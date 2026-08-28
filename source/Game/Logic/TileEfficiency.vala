@@ -330,9 +330,9 @@ public class EfficiencyLogging : Object
         StringBuilder overlay = new StringBuilder();
         message.append("Riichi-Trainer tile efficiency\n");
         message.append("Hand: ").append(format_counts(hand)).append("\n");
+        overlay.append("Hand: ").append(format_counts_overlay(hand)).append("\n");
         overlay.append("TILE EFFICIENCY GUIDE\n");
         overlay.append("S = shanten, U = ukeire\n");
-        overlay.append("Hand: ").append(format_counts_overlay(hand)).append("\n");
         foreach (TileEfficiencyResult result in last_results)
         {
             string best = result.ukeire == best_ukeire ? " BEST" : "";
@@ -575,7 +575,7 @@ public class EfficiencyLogging : Object
 
     private static string format_tile_overlay(int index)
     {
-        return "%s %s".printf(tile_emoji(index), format_tile(index));
+        return tile_emoji(index);
     }
 
     private static string tile_emoji(int index)

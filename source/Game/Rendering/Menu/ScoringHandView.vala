@@ -1,6 +1,7 @@
 using Engine;
 using Gee;
 
+#if !TWO_DIMENSIONAL
 public class ScoringHandView : View3D
 {
     private Scoring score;
@@ -153,3 +154,4 @@ public class ScoringHandView : View3D
         }
     }
 }
+#endif

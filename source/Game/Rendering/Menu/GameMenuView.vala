@@ -15,7 +15,8 @@ class GameMenuView : View2D
     private float start_time;
     private LabelControl timer;
     private LabelControl furiten;
-    private TileEfficiencyWindow? efficiency_window = null;
+    private TileEfficiencyOverlay? efficiency_overlay = null;
+    private bool efficiency_shift_down = false;
 
     private MenuTextButton chii;
     private MenuTextButton pon;
@@ -103,9 +104,6 @@ class GameMenuView : View2D
         furiten.text = "Furiten";
         furiten.color = Color.red();
 
-        if (EfficiencyLogging.enabled && EfficiencyLogging.singleplayer_session && !observing)
-            efficiency_window = new TileEfficiencyWindow();
-
         chii = new MenuTextButton("MenuButtonSmall", "Chii");
         pon = new MenuTextButton("MenuButtonSmall", "Pon");
         kan = new MenuTextButton("MenuButtonSmall", "Kan");
@@ -170,6 +168,13 @@ class GameMenuView : View2D
         position_buttons(observer_buttons);
 
         add_child(score_view);
+
+        if (EfficiencyLogging.enabled && EfficiencyLogging.singleplayer_session && !observing)
+        {
+            efficiency_overlay = new TileEfficiencyOverlay();
+            add_child(efficiency_overlay);
+            efficiency_overlay.clicked.connect(toggle_tile_efficiency);
+        }
     }
 
     private void position_buttons(ArrayList<MenuTextButton> buttons)
@@ -193,6 +198,14 @@ class GameMenuView : View2D
 
     protected override void key_press(KeyArgs key)
     {
+        if (key.scancode == ScanCode.LSHIFT || key.scancode == ScanCode.RSHIFT)
+        {
+            efficiency_shift_down = key.down;
+            if (efficiency_overlay != null)
+                efficiency_overlay.selectable = efficiency_shift_down;
+            return;
+        }
+
         if (key.handled)
             return;
 
@@ -270,14 +283,20 @@ class GameMenuView : View2D
 
     public void set_tile_efficiency(string results)
     {
-        if (efficiency_window != null)
-            efficiency_window.show_results(results);
+        if (efficiency_overlay != null)
+            efficiency_overlay.show_results(results);
     }
 
     public void hide_tile_efficiency()
     {
-        if (efficiency_window != null)
-            efficiency_window.show_waiting();
+        if (efficiency_overlay != null)
+            efficiency_overlay.show_waiting();
+    }
+
+    private void toggle_tile_efficiency(Control control, Vec2 position)
+    {
+        if (efficiency_shift_down && efficiency_overlay != null)
+            efficiency_overlay.toggle_minimized();
     }
 
     public void update_scores(RoundScoreState[] scores)
@@ -335,9 +354,6 @@ class GameMenuView : View2D
 
     protected override void process(DeltaArgs delta)
     {
-        if (efficiency_window != null)
-            efficiency_window.process_events();
-
         if (start_time == 0)
             start_time = delta.time;
 
@@ -364,12 +380,4 @@ class GameMenuView : View2D
 
     public int player_index { get; set; }
 
-    protected override void removed()
-    {
-        if (efficiency_window != null)
-        {
-            efficiency_window.close();
-            efficiency_window = null;
-        }
-    }
 }

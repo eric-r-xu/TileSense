@@ -1,6 +1,7 @@
 using Engine;
 using Gee;
 
+#if !TWO_DIMENSIONAL
 public class GameRenderView : View3D, IGameRenderer
 {
     public GameRenderContext context { get; private set; }
@@ -447,3 +448,4 @@ public class GameRenderView : View3D, IGameRenderer
                         tiles[tile.ID].indicated = true;*/
     }
 }
+#endif

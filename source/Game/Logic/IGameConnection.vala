@@ -45,6 +45,8 @@ public abstract class IGameConnection : Object
     public abstract void send_message(ClientMessage message);
     public abstract void close();
     public abstract bool authoritative { get; protected set; }
+    public virtual bool can_pause { get { return false; } }
+    public virtual void set_paused(bool paused) {}
 }
 
 public class GameNetworkConnection : IGameConnection
@@ -102,10 +104,14 @@ public class GameNetworkConnection : IGameConnection
 public class GameLocalConnection : IGameConnection
 {
     private unowned GameServer.ServerPlayerLocalConnection? connection;
+    private bool pause_supported;
 
-    public GameLocalConnection()
+    public signal void pause_changed(bool paused);
+
+    public GameLocalConnection(bool pause_supported = false)
     {
         authoritative = true;
+        this.pause_supported = pause_supported;
     }
 
     ~GameLocalConnection()
@@ -158,6 +164,13 @@ public class GameLocalConnection : IGameConnection
     }
 
     public override bool authoritative { get; protected set; }
+    public override bool can_pause { get { return pause_supported; } }
+
+    public override void set_paused(bool paused)
+    {
+        if (pause_supported)
+            pause_changed(paused);
+    }
 }
 
 public class TunneledGameConnection : IGameConnection

@@ -3,6 +3,7 @@ using Gee;
 
 public class GameEscapeMenuView : View2D
 {
+    private bool game_paused;
     private OptionsMenuView options_view;
     private MenuTextButton back_button;
     private MenuTextButton options_button;
@@ -15,6 +16,11 @@ public class GameEscapeMenuView : View2D
     public signal void apply_options(Options options);
     public signal void leave_game();
 
+    public GameEscapeMenuView(bool game_paused = false)
+    {
+        this.game_paused = game_paused;
+    }
+
     protected override void added()
     {
         RectangleControl background = new RectangleControl();
@@ -24,7 +30,7 @@ public class GameEscapeMenuView : View2D
         background.selectable = true;
         background.cursor_type = CursorType.NORMAL;
 
-        back_button = new MenuTextButton("MenuButton", "Back");
+        back_button = new MenuTextButton("MenuButton", game_paused ? "Resume" : "Back");
         options_button = new MenuTextButton("MenuButton", "Options");
         leave_button = new MenuTextButton("MenuButton", "Leave Game");
         confirm_yes_button = new MenuTextButton("MenuButton", "Yes");

@@ -48,7 +48,10 @@ class ServerMenuView : MenuSubView
         server = new ServerController();
 
         ServerPlayerLocalConnection server_connection = new ServerPlayerLocalConnection();
-        GameLocalConnection game_connection = new GameLocalConnection();
+        GameLocalConnection game_connection = new GameLocalConnection(!listen);
+
+        if (!listen)
+            game_connection.pause_changed.connect(server.set_paused);
 
         server_connection.set_connection(game_connection);
         game_connection.set_connection(server_connection);
@@ -104,7 +107,12 @@ class ServerMenuView : MenuSubView
             start_button.enabled = false;
 
         if (host)
+        {
             start_server();
+            if (!listen && log == null)
+                for (int slot = 1; slot < players.length; slot++)
+                    add_bot("SimpleBot", slot);
+        }
         if (can_control)
             send_settings(settings);
         if (log != null)

@@ -91,7 +91,11 @@ Next, generate a build target with meson using `meson build -Dbuildtype=release`
 
 Build the target with ninja using: `ninja -C build`
 
-The build also produces `OpenRiichi-Efficiency`, a separate training executable. In a singleplayer game it opens a separate live guide window with Riichi-Trainer-compatible shanten and ukeire results for every discard option. When an opponent declares riichi, a defensive section also ranks the local player's tiles using Riichi-Trainer's genbutsu, suji, visible-tile, and honor-exhaustion safety model. The same results are written to the console and OpenRiichi's `application` log, and each chosen discard is classified against the best available ukeire and safety rating. The regular `OpenRiichi` executable does not enable the guide or these logs.
+The build also produces `OpenRiichi-Efficiency`, a separate training executable. In a singleplayer game it displays a live, black in-game guide with Riichi-Trainer-compatible shanten and ukeire results for every discard option. Shift-click the panel to minimize or expand it. When an opponent declares riichi, a defensive section also ranks the local player's tiles using Riichi-Trainer's genbutsu, suji, visible-tile, and honor-exhaustion safety model. New singleplayer games fill the other seats with `SimpleBot` by default. The same results are written to the console and OpenRiichi's `application` log, and each chosen discard is classified against the best available ukeire and safety rating. The regular `OpenRiichi` executable does not enable the guide or these logs.
+
+The build also produces `OpenRiichi-2D`, a separate flat version of the complete game. It uses the same rules, networking, bots, menus, controls, and scoring flow, but replaces the table, hands, discards, calls, dora, scoring hands, sticks, and rotating menu tile with 2D controls. From a source build, launch it with `./build/OpenRiichi-2D --search-directory ./bin`.
+
+The build also produces `OpenRiichi-Efficiency-2D`, which combines the 2D renderer with the Efficiency build's tile-efficiency guide and logging. Launch it with `./build/OpenRiichi-Efficiency-2D --search-directory ./bin`.
 
 You can also install the target by running: `ninja -C build install`
 

@@ -45,6 +45,7 @@ sources = files(
     'source/Game/Options.vala',
     'source/Game/Rendering/GameAnimationTimings.vala',
     'source/Game/Rendering/GameRenderView.vala',
+    'source/Game/Rendering/GameRenderView2D.vala',
     'source/Game/Rendering/GameScene.vala',
     'source/Game/Rendering/IGameRenderer.vala',
     'source/Game/Rendering/Menu/GameEscapeMenuView.vala',
@@ -57,7 +58,8 @@ sources = files(
     'source/Game/Rendering/Menu/ScoringPointsView.vala',
     'source/Game/Rendering/Menu/ScoringStickView.vala',
     'source/Game/Rendering/Menu/ScoringView.vala',
-    'source/Game/Rendering/Menu/TileEfficiencyWindow.vala',
+    'source/Game/Rendering/Menu/TileEfficiencyOverlay.vala',
+    'source/Game/Rendering/Menu/TwoDimensionalViews.vala',
     'source/Game/Rendering/RenderAction.vala',
     'source/Game/Rendering/RenderCalls.vala',
     'source/Game/Rendering/RenderHand.vala',
@@ -119,6 +121,20 @@ executable('OpenRiichi-Efficiency', sources,
     dependencies: dependencies,
     include_directories: includes,
     vala_args: ['--define=EFFICIENCY_LOGGING'],
+    install: true
+)
+
+executable('OpenRiichi-2D', sources,
+    dependencies: dependencies,
+    include_directories: includes,
+    vala_args: ['--define=TWO_DIMENSIONAL'],
+    install: true
+)
+
+executable('OpenRiichi-Efficiency-2D', sources,
+    dependencies: dependencies,
+    include_directories: includes,
+    vala_args: ['--define=TWO_DIMENSIONAL', '--define=EFFICIENCY_LOGGING'],
     install: true
 )
 install_subdir('bin/Data', install_dir: dataDir)

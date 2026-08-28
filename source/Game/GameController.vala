@@ -91,6 +91,13 @@ class GameController : Object
         renderer.load_options(options);
     }
 
+    public bool can_pause { get { return connection.can_pause; } }
+
+    public void set_paused(bool paused)
+    {
+        connection.set_paused(paused);
+    }
+
     private void create_round_state(RoundStartInfo round_start)
     {
         round = new ClientRoundState(round_start, settings, player_index, game.round_wind, game.dealer_index, game.can_riichi());

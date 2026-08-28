@@ -9,6 +9,7 @@ public class RenderTile : WorldObjectTransformable
 
     private Color _front_color = Color.white();
     private Color _back_color = Color.black();
+    private WorldLabel rank_label;
 
     public RenderTile()
     {
@@ -20,6 +21,14 @@ public class RenderTile : WorldObjectTransformable
 
     protected override void added()
     {
+        rank_label = new WorldLabel();
+        add_object(rank_label);
+        rank_label.bold = false;
+        rank_label.font_size = 480;
+        rank_label.scale = Vec3(0.14f, 0.14f, 0.14f);
+        rank_label.position = Vec3(0, 0.126f, -0.15f);
+        rank_label.color = Color(0.03f, 0.03f, 0.04f, 1);
+
         reload();
     }
 
@@ -34,6 +43,25 @@ public class RenderTile : WorldObjectTransformable
         obb = Vec3(front.model.size.x, front.model.size.y + back.model.size.y, front.model.size.z);
 
         load_material();
+        update_rank_label();
+    }
+
+    private void update_rank_label()
+    {
+        int rank = 0;
+        int type = (int)tile_type.tile_type;
+        if (tile_type.tile_type >= TileType.MAN1 && tile_type.tile_type <= TileType.MAN9)
+            rank = type - (int)TileType.MAN1 + 1;
+        else if (tile_type.tile_type >= TileType.PIN1 && tile_type.tile_type <= TileType.PIN9)
+            rank = type - (int)TileType.PIN1 + 1;
+        else if (tile_type.tile_type >= TileType.SOU1 && tile_type.tile_type <= TileType.SOU9)
+            rank = type - (int)TileType.SOU1 + 1;
+        else if (tile_type.tile_type >= TileType.TON && tile_type.tile_type <= TileType.CHUN)
+            rank = type - (int)TileType.TON + 1;
+
+        string[] numerals = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX" };
+        rank_label.visible = rank > 0;
+        rank_label.text = rank > 0 ? numerals[rank] : "";
     }
 
     private void load_material()
