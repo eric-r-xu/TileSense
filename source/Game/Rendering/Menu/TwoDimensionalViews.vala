@@ -5,6 +5,7 @@ using Gee;
 public class ScoringHandView : View2D
 {
     private Scoring score;
+    private LabelControl title_label;
     private LabelControl label;
 
     public ScoringHandView(GameRenderContext context, Scoring score)
@@ -15,10 +16,24 @@ public class ScoringHandView : View2D
 
     public override void added()
     {
+        title_label = new LabelControl();
+        add_child(title_label);
+        title_label.text = "Winning Hand";
+        title_label.font_size = 18;
+        title_label.inner_anchor = Vec2(0.5f, 1);
+        title_label.outer_anchor = Vec2(0.5f, 1);
+        title_label.position = Vec2(0, -8);
+
         label = new LabelControl();
         add_child(label);
         label.font_size = 42;
-        label.text = hand_text();
+        label.inner_anchor = Vec2(0.5f, 0.5f);
+        label.outer_anchor = Vec2(0.5f, 0.5f);
+        label.position = Vec2(0, -10);
+        // The font bitmap trims Mahjong glyphs at their visual bounds. Empty
+        // lines provide transparent vertical padding so strokes at the top and
+        // bottom of the Unicode tile are never clipped.
+        label.text = "\n" + hand_text() + "\n";
     }
 
     private string hand_text()
@@ -41,7 +56,11 @@ public class ScoringHandView : View2D
     public float alpha
     {
         get { return label.alpha; }
-        set { label.alpha = value; }
+        set
+        {
+            label.alpha = value;
+            title_label.alpha = value;
+        }
     }
 }
 

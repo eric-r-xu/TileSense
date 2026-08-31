@@ -75,6 +75,18 @@ public class TileEfficiencyCalculator : Object
         return results;
     }
 
+    // Evaluate a hand between draws (13, 10, 7, or 4 concealed tiles).  The
+    // missing groups are completed open melds, matching the padding strategy
+    // used by calculate() for a post-call discard decision.
+    public int calculate_waiting_shanten(int[] concealed_hand)
+    {
+        int[] hand = copy_counts(concealed_hand);
+        int melds = int.max(0, (13 - count_tiles(hand)) / 3);
+        for (int i = 0; i < melds; i++)
+            hand[31] += 3;
+        return shanten(hand, melds > 0);
+    }
+
     private UkeireResult calculate_ukeire(int[] hand, int[] remaining_tiles, bool open_hand, int base_shanten)
     {
         UkeireResult result = new UkeireResult();
@@ -286,6 +298,25 @@ public class TileEfficiencyCalculator : Object
     }
 }
 
+internal class ActionEfficiencyOption : Object
+{
+    public ActionEfficiencyOption(string name, string row, int rank,
+        int shanten = 99, int ukeire = -1)
+    {
+        this.name = name;
+        this.row = row;
+        this.rank = rank;
+        this.shanten = shanten;
+        this.ukeire = ukeire;
+    }
+
+    public string name { get; private set; }
+    public string row { get; private set; }
+    public int rank { get; private set; }
+    public int shanten { get; private set; }
+    public int ukeire { get; private set; }
+}
+
 public class EfficiencyLogging : Object
 {
     private static ArrayList<TileEfficiencyResult>? last_results;
@@ -294,6 +325,97 @@ public class EfficiencyLogging : Object
 
     public static bool enabled { get; set; default = false; }
     public static bool singleplayer_session { get; set; default = false; }
+
+    public static string? log_call_decision(RoundState state, bool can_chii,
+        bool can_pon, bool can_kan, bool can_ron)
+    {
+        if (!enabled || !singleplayer_session || state.discard_tile == null)
+            return null;
+
+        Tile incoming = state.discard_tile;
+        int incoming_index = to_trainer_index(incoming.tile_type);
+        int[] hand = hand_counts(state.self.hand);
+        int[] remaining = remaining_counts(state);
+        TileEfficiencyCalculator calculator = new TileEfficiencyCalculator();
+        int baseline = calculator.calculate_waiting_shanten(hand);
+        ArrayList<ActionEfficiencyOption> options = new ArrayList<ActionEfficiencyOption>();
+
+        // Passing is the reference choice. Calling must make measurable shape
+        // progress to outrank the value and flexibility of a closed hand.
+        options.add(new ActionEfficiencyOption("PASS",
+            "%s PASS -> Keep the hand closed and preserve flexibility (S%d)".printf(
+                format_tile_overlay(incoming_index), baseline), 1, baseline, -1));
+
+        if (can_ron)
+            options.add(new ActionEfficiencyOption("RON",
+                "%s RON -> Win immediately; always take a legal ron".printf(
+                    format_tile_overlay(incoming_index)), 3, -1, 0));
+
+        if (can_pon)
+        {
+            int[] called_hand = copy_action_counts(hand);
+            called_hand[incoming_index] -= 2;
+            int[] quality = best_post_call_quality(calculator, called_hand, remaining);
+            int rank = quality[0] < baseline ? 2 : 0;
+            options.add(new ActionEfficiencyOption("PON", "%s %s %s PON -> S%d / U%d; %s".printf(
+                format_tile_overlay(incoming_index), format_tile_overlay(incoming_index),
+                format_tile_overlay(incoming_index), quality[0], quality[1],
+                rank == 2 ? "advances the hand, but opens it" :
+                    "no shanten gain; opening reduces flexibility"),
+                rank, quality[0], quality[1]));
+        }
+
+        if (can_chii)
+        {
+            foreach (ArrayList<Tile> group in state.get_chii_groups(state.self))
+            {
+                int[] called_hand = copy_action_counts(hand);
+                foreach (Tile tile in group)
+                    called_hand[to_trainer_index(tile.tile_type)]--;
+                int[] quality = best_post_call_quality(calculator, called_hand, remaining);
+                int rank = quality[0] < baseline ? 2 : 0;
+                options.add(new ActionEfficiencyOption("CHII",
+                    "%s CHII -> S%d / U%d; %s".printf(
+                        format_chii_tiles(incoming, group), quality[0], quality[1],
+                        rank == 2 ? "advances the hand, but opens it" :
+                            "no shanten gain; keep the hand flexible"),
+                    rank, quality[0], quality[1]));
+            }
+        }
+
+        if (can_kan)
+            options.add(new ActionEfficiencyOption("KAN",
+                "%s %s %s %s KAN -> Rinshan draw plus another dora; commits the hand and raises risk".printf(
+                    format_tile_overlay(incoming_index), format_tile_overlay(incoming_index),
+                    format_tile_overlay(incoming_index), format_tile_overlay(incoming_index)), 0));
+
+        ActionEfficiencyOption best = options[0];
+        foreach (ActionEfficiencyOption option in options)
+        {
+            if (option.rank > best.rank ||
+                (option.rank == best.rank && option.shanten < best.shanten) ||
+                (option.rank == best.rank && option.shanten == best.shanten &&
+                    option.ukeire > best.ukeire))
+                best = option;
+        }
+
+        StringBuilder overlay = new StringBuilder();
+        overlay.append("ACTION EFFICIENCY GUIDE\n");
+        overlay.append_printf("Incoming: %s\n", format_tile_overlay(incoming_index));
+        overlay.append_printf("Recommended: %s BEST\n\n", best.name);
+        overlay.append("OPTIONS\n");
+        foreach (ActionEfficiencyOption option in options)
+        {
+            overlay.append(option.row);
+            if (option.rank == best.rank && option.shanten == best.shanten &&
+                option.ukeire == best.ukeire)
+                overlay.append(" BEST");
+            overlay.append("\n");
+        }
+        overlay.append("\nPrinciple: take wins first; then reduce shanten and maximize ukeire; otherwise preserve closed-hand value.");
+        Environment.log(LogType.GAME, "ActionEfficiency", overlay.str);
+        return overlay.str;
+    }
 
     public static string? log_turn(RoundState state)
     {
@@ -548,6 +670,76 @@ public class EfficiencyLogging : Object
         case 15: return "genbutsu";
         default: return "unknown";
         }
+    }
+
+    private static int[] hand_counts(ArrayList<Tile> tiles)
+    {
+        int[] counts = new int[38];
+        foreach (Tile tile in tiles)
+            counts[to_trainer_index(tile.tile_type)]++;
+        return counts;
+    }
+
+    private static int[] remaining_counts(RoundState state)
+    {
+        int[] remaining = new int[38];
+        for (int i = 1; i < remaining.length; i++)
+            if (i % 10 != 0)
+                remaining[i] = 4;
+        foreach (Tile tile in state.get_tiles())
+        {
+            if (tile.tile_type == TileType.BLANK)
+                continue;
+            int index = to_trainer_index(tile.tile_type);
+            remaining[index] = int.max(0, remaining[index] - 1);
+        }
+        return remaining;
+    }
+
+    private static int[] copy_action_counts(int[] source)
+    {
+        int[] copy = new int[source.length];
+        for (int i = 0; i < source.length; i++)
+            copy[i] = source[i];
+        return copy;
+    }
+
+    private static int[] best_post_call_quality(TileEfficiencyCalculator calculator,
+        int[] called_hand, int[] remaining)
+    {
+        ArrayList<TileEfficiencyResult> results = calculator.calculate(called_hand, remaining);
+        int best_shanten = 99;
+        int best_ukeire = 0;
+        foreach (TileEfficiencyResult result in results)
+        {
+            if (result.shanten < best_shanten)
+            {
+                best_shanten = result.shanten;
+                best_ukeire = result.ukeire;
+            }
+            else if (result.shanten == best_shanten)
+                best_ukeire = int.max(best_ukeire, result.ukeire);
+        }
+        return new int[] { best_shanten, best_ukeire };
+    }
+
+    private static string format_chii_tiles(Tile incoming, ArrayList<Tile> group)
+    {
+        int[] indexes = {
+            to_trainer_index(incoming.tile_type),
+            to_trainer_index(group[0].tile_type),
+            to_trainer_index(group[1].tile_type)
+        };
+        for (int i = 0; i < indexes.length; i++)
+            for (int j = i + 1; j < indexes.length; j++)
+                if (indexes[j] < indexes[i])
+                {
+                    int swap = indexes[i];
+                    indexes[i] = indexes[j];
+                    indexes[j] = swap;
+                }
+        return "%s %s %s".printf(format_tile_overlay(indexes[0]),
+            format_tile_overlay(indexes[1]), format_tile_overlay(indexes[2]));
     }
 
     private static int to_trainer_index(TileType type)

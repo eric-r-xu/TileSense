@@ -23,11 +23,13 @@ public class RenderTile : WorldObjectTransformable
     {
         rank_label = new WorldLabel();
         add_object(rank_label);
-        rank_label.bold = false;
+        rank_label.bold = true;
         rank_label.font_size = 480;
-        rank_label.scale = Vec3(0.14f, 0.14f, 0.14f);
-        rank_label.position = Vec3(0, 0.126f, -0.15f);
-        rank_label.color = Color(0.03f, 0.03f, 0.04f, 1);
+        rank_label.scale = Vec3(0.22f, 0.22f, 0.22f);
+        // Tile faces span roughly x ±0.14 and z ±0.18. Offset the marker into
+        // the upper-right corner so it supplements rather than obscures art.
+        rank_label.position = Vec3(0.10f, 0.134f, -0.165f);
+        rank_label.color = Color(0.92f, 0.01f, 0.01f, 1);
 
         reload();
     }
@@ -66,10 +68,14 @@ public class RenderTile : WorldObjectTransformable
 
     private void load_material()
     {
-        Color ambient = Color(0.1f, 0.1f, 0.1f, 1);
+        // A brighter, neutral ambient face preserves the texture's ink colors
+        // against the white tile instead of letting blue table lighting wash
+        // the drawing out.
+        Color ambient = Color(0.32f, 0.32f, 0.32f, 1);
 
         MaterialSpecification spec = front.material.spec;
         spec.ambient_color = UniformType.STATIC;
+        spec.specular_color = UniformType.NONE;
         spec.diffuse_color = UniformType.DYNAMIC;
         spec.target_color = UniformType.DYNAMIC;
         spec.alpha = UniformType.DYNAMIC;

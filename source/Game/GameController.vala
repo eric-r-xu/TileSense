@@ -110,6 +110,7 @@ class GameController : Object
         round.set_ron_state.connect(menu.set_ron);
         round.set_timer_state.connect(menu.set_move_timer);
         round.set_continue_state.connect(menu.set_continue);
+        round.set_call_decision_state.connect(renderer.set_call_decision_state);
         round.set_void_hand_state.connect(menu.set_void_hand);
         round.set_furiten_state.connect(menu.set_furiten);
         round.set_tile_select_state.connect(renderer.set_active);

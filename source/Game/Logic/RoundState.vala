@@ -1217,6 +1217,24 @@ class RoundStateWall
         return null;
     }
 
+    public Tile? get_dead_wall_tile(int index)
+    {
+        if (index < 0 || index >= dead_wall_tiles.size)
+            return null;
+        return dead_wall_tiles[index];
+    }
+
+    public bool dead_wall_tile_revealed(int index)
+    {
+        Tile? tile = get_dead_wall_tile(index);
+        if (tile == null)
+            return false;
+        foreach (Tile indicator in dora)
+            if (indicator.ID == tile.ID)
+                return true;
+        return false;
+    }
+
     private static void shuffle(Tile[] tiles, RandomClass rnd)
     {
         for (int i = 0; i < tiles.length; i++)
@@ -1325,6 +1343,7 @@ class RoundStateWall
     }
 
     public bool empty { get { return wall_tiles.size == 0; } }
+    public int dead_wall_size { get { return dead_wall_tiles.size; } }
     public bool can_kan { get { return dora.size < 5; } }
     public bool can_call { get { return wall_tiles.size > 0; } }
     public bool can_riichi { get { return wall_tiles.size >= 4; } }

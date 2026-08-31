@@ -5,12 +5,19 @@ class CreateServerView : MenuSubView
 {
     private MenuTextButton? create_button;
     private TextInputControl name_text;
+    private string initial_name;
+
+    public CreateServerView(string initial_name = "")
+    {
+        this.initial_name = initial_name;
+    }
 
     protected override void load()
     {
         name_text = new TextInputControl("Player name", Environment.MAX_NAME_LENGTH);
         name_text.text_changed.connect(name_changed);
         add_child(name_text);
+        name_text.text = initial_name;
     }
 
     protected override ArrayList<MenuTextButton>? get_menu_buttons()

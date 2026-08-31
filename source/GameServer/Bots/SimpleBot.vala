@@ -241,5 +241,7 @@ class SimpleBot : Bot
         return false;
     }
 
-    public override string name { get { return "SimpleBot"; } }
+    // Keep the implementation/type name stable for server configuration while
+    // presenting a concise player-facing default name at the table.
+    public override string name { get { return "CPU"; } }
 }

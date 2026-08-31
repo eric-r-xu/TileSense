@@ -14,9 +14,9 @@ class GameMenuView : View2D
     private Sound hint_sound;
     private float start_time;
     private LabelControl timer;
+    private LabelControl timer_title;
     private LabelControl furiten;
     private TileEfficiencyOverlay? efficiency_overlay = null;
-    private bool efficiency_shift_down = false;
 
     private MenuTextButton chii;
     private MenuTextButton pon;
@@ -93,6 +93,18 @@ class GameMenuView : View2D
         timer.position = Vec2(-padding, padding / 2);
         timer.font_size = 60;
         timer.visible = false;
+
+        timer_title = new LabelControl();
+        add_child(timer_title);
+        timer_title.text = "Countdown Timer";
+        timer_title.font_size = 18;
+        timer_title.inner_anchor = Vec2(1, 0);
+        timer_title.outer_anchor = Vec2(1, 0);
+        // The timer has no text yet, so its measured height is zero here.
+        // Use its configured font height to keep this title reliably above the
+        // number from the first visible frame onward.
+        timer_title.position = Vec2(-padding, padding / 2 + timer.font_size + 14);
+        timer_title.visible = false;
 
         furiten = new LabelControl();
         add_child(furiten);
@@ -198,14 +210,6 @@ class GameMenuView : View2D
 
     protected override void key_press(KeyArgs key)
     {
-        if (key.scancode == ScanCode.LSHIFT || key.scancode == ScanCode.RSHIFT)
-        {
-            efficiency_shift_down = key.down;
-            if (efficiency_overlay != null)
-                efficiency_overlay.selectable = efficiency_shift_down;
-            return;
-        }
-
         if (key.handled)
             return;
 
@@ -279,6 +283,7 @@ class GameMenuView : View2D
 
         start_time = 0;
         timer.visible = enabled;
+        timer_title.visible = enabled;
     }
 
     public void set_tile_efficiency(string results)
@@ -295,7 +300,7 @@ class GameMenuView : View2D
 
     private void toggle_tile_efficiency(Control control, Vec2 position)
     {
-        if (efficiency_shift_down && efficiency_overlay != null)
+        if (efficiency_overlay != null)
             efficiency_overlay.toggle_minimized();
     }
 
@@ -367,6 +372,7 @@ class GameMenuView : View2D
         if (t < 0)
         {
             timer.visible = false;
+            timer_title.visible = false;
             return;
         }
 

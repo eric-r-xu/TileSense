@@ -19,6 +19,7 @@ public class ClientRoundState : Object
     public signal void set_ron_state(bool enabled);
     public signal void set_timer_state(bool enabled);
     public signal void set_continue_state(bool enabled);
+    public signal void set_call_decision_state(bool enabled);
     public signal void set_void_hand_state(bool enabled);
     public signal void set_furiten_state(bool enabled);
 
@@ -90,9 +91,11 @@ public class ClientRoundState : Object
         set_tsumo_state(false);
         set_ron_state(false);
         set_continue_state(false);
+        set_call_decision_state(false);
         set_void_hand_state(false);
         set_timer_state(false);
         set_tile_select_state(false);
+        tile_efficiency_hidden();
     }
 
     private void do_riichi(Tile tile, bool open)
@@ -154,7 +157,7 @@ public class ClientRoundState : Object
 
         set_tile_select_groups(selection_groups);
 
-        //set_tile_select_state(true);
+        set_tile_select_state(true);
     }
 
     private void do_call_decision(Tile tile, RoundStatePlayer discard_player)
@@ -166,6 +169,14 @@ public class ClientRoundState : Object
         bool can_kan = state.can_open_kan(state.self);
         bool can_ron = state.can_ron(state.self);
 
+        if (self_active)
+        {
+            string? guide = EfficiencyLogging.log_call_decision(state,
+                can_chii, can_pon, can_kan, can_ron);
+            if (guide != null)
+                tile_efficiency_updated(guide);
+        }
+
         set_chii_state(can_chii);
         set_pon_state(can_pon);
         set_kan_state(can_kan);
@@ -173,6 +184,7 @@ public class ClientRoundState : Object
         set_tsumo_state(false);
         set_ron_state(can_ron);
         set_continue_state(true);
+        set_call_decision_state(true);
         set_void_hand_state(false);
         set_timer_state(true);
         set_tile_select_state(false);

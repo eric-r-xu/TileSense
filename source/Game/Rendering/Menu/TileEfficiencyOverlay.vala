@@ -6,6 +6,9 @@ class TileEfficiencyOverlay : Control
     private const float PADDING = 12;
     private const float TEXT_SIZE = 14;
     private const float TILE_SIZE = 42;
+    // Keep only the top hand summary compact; recommendation tiles below must
+    // remain large enough to identify at a glance.
+    private const float HAND_TILE_SIZE = TILE_SIZE * 0.5f;
     private const float LINE_HEIGHT = 30;
     private const float EMPTY_LINE_HEIGHT = 6;
 
@@ -25,7 +28,7 @@ class TileEfficiencyOverlay : Control
             float.min(680, float.max(460, window_size.width * 0.48f)),
             float.min(820, float.max(360, window_size.height - 24)));
         expanded_height = size.height;
-        selectable = false;
+        selectable = true;
 
         background = new RectangleControl();
         add_child(background);
@@ -72,12 +75,24 @@ class TileEfficiencyOverlay : Control
 
         if (minimized)
         {
-            add_rich_line("TILE EFFICIENCY GUIDE — Shift-click to expand", PADDING, 7,
+            string heading = results.has_prefix("ACTION EFFICIENCY GUIDE") ?
+                "ACTION EFFICIENCY GUIDE — Click to expand" :
+                "TILE EFFICIENCY GUIDE — Click to expand";
+            add_rich_line(heading, PADDING, 7,
                 size.width - PADDING * 2);
             return;
         }
 
         string[] lines = results.split("\n");
+        if (results.has_prefix("ACTION EFFICIENCY GUIDE"))
+        {
+            float action_y = PADDING;
+            for (int i = 0; i < lines.length; i++)
+                action_y = add_rich_line(lines[i], PADDING, action_y,
+                    size.width - PADDING * 2, false);
+            return;
+        }
+
         int defense_start = lines.length;
         for (int i = 0; i < lines.length; i++)
             if (lines[i] == "DEFENSIVE PLAY")
@@ -89,11 +104,16 @@ class TileEfficiencyOverlay : Control
         float y = PADDING;
         int common_lines = int.min(3, defense_start);
         for (int i = 0; i < common_lines; i++)
-            y = add_rich_line(lines[i], PADDING, y, size.width - PADDING * 2);
+            y = add_rich_line(lines[i], PADDING, y, size.width - PADDING * 2,
+                i == 0);
 
         float section_y = y + 2;
-        float column_gap = 18;
-        float column_width = (size.width - PADDING * 2 - column_gap) / 2;
+        // Efficiency rows are short. Giving them half of the overlay created a
+        // large dead column before the defensive advice, especially on wide
+        // windows. Keep that column compact and give the remaining width to
+        // defensive text.
+        float column_gap = 10;
+        float column_width = float.min(150, size.width * 0.27f);
         float left_y = section_y;
         for (int i = common_lines; i < defense_start; i++)
             left_y = add_rich_line(lines[i], PADDING, left_y, column_width);
@@ -101,13 +121,15 @@ class TileEfficiencyOverlay : Control
         if (defense_start < lines.length)
         {
             float right_x = PADDING + column_width + column_gap;
+            float right_width = size.width - right_x - PADDING;
             float right_y = section_y;
             for (int i = defense_start; i < lines.length; i++)
-                right_y = add_rich_line(lines[i], right_x, right_y, column_width);
+                right_y = add_rich_line(lines[i], right_x, right_y, right_width);
         }
     }
 
-    private float add_rich_line(string line, float start_x, float y, float max_width)
+    private float add_rich_line(string line, float start_x, float y,
+        float max_width, bool compact_tiles = false)
     {
         if (line.length == 0)
             return y + EMPTY_LINE_HEIGHT;
@@ -126,7 +148,8 @@ class TileEfficiencyOverlay : Control
             label.scissor_box = rect;
             label.inner_anchor = Vec2(0, 1);
             label.outer_anchor = Vec2(0, 1);
-            label.font_size = tile ? TILE_SIZE : TEXT_SIZE;
+            label.font_size = tile ?
+                (compact_tiles ? HAND_TILE_SIZE : TILE_SIZE) : TEXT_SIZE;
             // The engine trims normal text bitmaps vertically. Blank lines give
             // full-height Mahjong glyphs enough transparent padding to avoid it.
             label.text = tile ? "\n%s\n".printf(token) : token;
@@ -153,4 +176,5 @@ class TileEfficiencyOverlay : Control
         const string symbols = "🀇🀈🀉🀊🀋🀌🀍🀎🀏🀙🀚🀛🀜🀝🀞🀟🀠🀡🀐🀑🀒🀓🀔🀕🀖🀗🀘🀀🀁🀂🀃🀆🀅🀄";
         return token.char_count() == 1 && symbols.contains(token);
     }
+
 }
