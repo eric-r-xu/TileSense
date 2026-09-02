@@ -17,6 +17,9 @@ class GameMenuView : View2D
     private LabelControl timer_title;
     private LabelControl furiten;
     private TileEfficiencyOverlay? efficiency_overlay = null;
+    private MenuTextButton? autoplay_button = null;
+    private LabelControl? autoplay_status = null;
+    private bool autoplay_enabled;
 
     private MenuTextButton chii;
     private MenuTextButton pon;
@@ -41,6 +44,7 @@ class GameMenuView : View2D
     public signal void void_hand_pressed();
     public signal void display_score_pressed();
     public signal void score_finished();
+    public signal void autoplay_changed(bool enabled);
 
     public signal void observe_next_pressed();
     public signal void observe_prev_pressed();
@@ -66,6 +70,14 @@ class GameMenuView : View2D
     private void press_ron() { ron_pressed(); }
     private void press_continue() { continue_pressed(); }
     private void press_void_hand() { void_hand_pressed(); }
+
+#if TWO_DIMENSIONAL
+    private void press_autoplay()
+    {
+        set_autoplay(!autoplay_enabled);
+        autoplay_changed(autoplay_enabled);
+    }
+#endif
 
     private void press_next() { observe_next_pressed(); score_view.next(); }
     private void press_prev() { observe_prev_pressed(); score_view.prev(); }
@@ -186,6 +198,24 @@ class GameMenuView : View2D
             efficiency_overlay = new TileEfficiencyOverlay();
             add_child(efficiency_overlay);
             efficiency_overlay.clicked.connect(toggle_tile_efficiency);
+
+#if TWO_DIMENSIONAL
+            autoplay_button = new MenuTextButton("MenuButtonSmall", "Autoplay");
+            add_child(autoplay_button);
+            autoplay_button.inner_anchor = Vec2(0.5f, 1);
+            autoplay_button.outer_anchor = Vec2(0.5f, 1);
+            autoplay_button.position = Vec2(260, -24);
+            autoplay_button.font_size = 20;
+            autoplay_button.clicked.connect(press_autoplay);
+
+            autoplay_status = new LabelControl();
+            add_child(autoplay_status);
+            autoplay_status.inner_anchor = Vec2(0.5f, 1);
+            autoplay_status.outer_anchor = Vec2(0.5f, 1);
+            autoplay_status.position = Vec2(260, -88);
+            autoplay_status.font_size = 16;
+            set_autoplay(autoplay_enabled);
+#endif
         }
     }
 
@@ -193,6 +223,12 @@ class GameMenuView : View2D
     {
         float p = 0;
         float width = 0;
+        float table_offset = 0;
+#if TWO_DIMENSIONAL
+#if EFFICIENCY_LOGGING
+        table_offset = float.min(120, size.width * 0.07f);
+#endif
+#endif
 
         foreach (var button in buttons)
             if (button.visible)
@@ -203,7 +239,7 @@ class GameMenuView : View2D
             if (!button.visible)
                 continue;
 
-            button.position = Vec2(button.size.width / 2 - width + p, 0);
+            button.position = Vec2(table_offset + button.size.width / 2 - width + p, 0);
             p += button.size.width;
         }
     }
@@ -298,6 +334,16 @@ class GameMenuView : View2D
             efficiency_overlay.show_waiting();
     }
 
+    public void set_autoplay(bool enabled)
+    {
+        autoplay_enabled = enabled;
+        if (autoplay_status == null)
+            return;
+        autoplay_status.text = enabled ?
+            "ON · EV + defense" : "OFF · click to enable (EV + defense)";
+        autoplay_status.color = enabled ? Color.green() : Color.white();
+    }
+
     private void toggle_tile_efficiency(Control control, Vec2 position)
     {
         if (efficiency_overlay != null)
@@ -311,16 +357,26 @@ class GameMenuView : View2D
 
     public void game_over()
     {
+        hide_autoplay();
         score_view.display(true);
     }
 
     public void round_finished()
     {
         hide_tile_efficiency();
+        hide_autoplay();
         score_view.display(true);
 
         foreach (var button in observer_buttons)
             button.enabled = false;
+    }
+
+    private void hide_autoplay()
+    {
+        if (autoplay_button != null)
+            autoplay_button.visible = false;
+        if (autoplay_status != null)
+            autoplay_status.visible = false;
     }
 
     public void display_score()

@@ -17,6 +17,7 @@ class GameController : Object
     private Options options;
     private bool game_finished = false;
     private bool is_disconnected = false;
+    private bool autoplay_enabled = false;
     public signal void game_loaded();
     public signal void finished();
 
@@ -148,6 +149,13 @@ class GameController : Object
             menu.observe_next_pressed.connect(renderer.observe_next);
             menu.observe_prev_pressed.connect(renderer.observe_prev);
         }
+        round.set_autoplay(autoplay_enabled);
+    }
+
+    private void set_autoplay(bool enabled)
+    {
+        autoplay_enabled = enabled;
+        round.set_autoplay(enabled);
     }
 
     private void do_action(ClientAction action)
@@ -172,8 +180,10 @@ class GameController : Object
 
         menu = new GameMenuView(renderer.context, settings, index, player_index == -1);
         menu.score_finished.connect(menu_score_finished);
+        menu.autoplay_changed.connect(set_autoplay);
 
         parent_view.add_child(menu);
+        menu.set_autoplay(autoplay_enabled);
 
         create_round_state(info);
     }

@@ -145,8 +145,17 @@ class ScoringPointsView : View2D
         ura.inner_anchor = Vec2(1, 0);
         ura.outer_anchor = Vec2(1, 0);
 
+#if TWO_DIMENSIONAL
+        // The flat renderer reveals both dora and eligible ura indicators in
+        // the persistent upper-right dead wall. Do not duplicate them here.
+        dora.visible = false;
+        ura.visible = false;
+        dora.size = Size2(1, 0);
+        ura.size = dora.size;
+#else
         dora.size = Size2(1, 60);
         ura.size = dora.size;
+#endif
 
         dora.alpha = animate ? 0 : 1;
         ura.alpha = animate ? 0 : 1;
@@ -325,6 +334,19 @@ class ScoringPointsView : View2D
 
         private int animation_han_index;
         private LabelControl points_label;
+#if TWO_DIMENSIONAL
+        private const float COLUMN_HALF_WIDTH = 190;
+        private const float TABLE_HEADER_HEIGHT = 32;
+        private const float TABLE_ROW_HEIGHT = 27;
+        private const float TABLE_HEADER_FONT = 20;
+        private const float TABLE_DATA_FONT = 17;
+
+        private RectangleControl yaku_background;
+        private LabelControl yaku_heading;
+        private LabelControl han_heading;
+        private ArrayList<RectangleControl> yaku_grid_lines =
+            new ArrayList<RectangleControl>();
+#endif
         private ArrayList<YakuLine> lines = new ArrayList<YakuLine>();
         private Sound score_sound;
         private Sound fade_sound;
@@ -361,6 +383,44 @@ class ScoringPointsView : View2D
             int h = 0;
             float start = hand.size.height / 2 - hand.position.y;
 
+#if TWO_DIMENSIONAL
+            // Keep the two scoring columns near the center instead of pinning
+            // them to the distant edges of the available table area.
+            // Keep the yaku and han values visually associated. The previous
+            // 560 px separation read as two unrelated tables on wide windows.
+            // Public table elements remain visible during scoring. Use an
+            // opaque card so pond tiles never bleed through the score data.
+            yaku_background = new RectangleControl();
+            add_child(yaku_background);
+            yaku_background.resize_style = ResizeStyle.ABSOLUTE;
+            yaku_background.size = Size2(COLUMN_HALF_WIDTH * 2 + 60, 80);
+            yaku_background.inner_anchor = Vec2(0.5f, 1);
+            yaku_background.outer_anchor = Vec2(0.5f, 1);
+            yaku_background.position = Vec2(0, -start + 8);
+            yaku_background.color = Color(0.015f, 0.07f, 0.075f,
+                _animate ? 0 : 1);
+
+            yaku_heading = new LabelControl();
+            add_child(yaku_heading);
+            yaku_heading.text = "YAKU";
+            yaku_heading.font_size = TABLE_HEADER_FONT;
+            yaku_heading.inner_anchor = Vec2(0, 1);
+            yaku_heading.outer_anchor = Vec2(0.5f, 1);
+            yaku_heading.position = Vec2(-COLUMN_HALF_WIDTH, -start);
+            yaku_heading.alpha = _animate ? 0 : 1;
+
+            han_heading = new LabelControl();
+            add_child(han_heading);
+            han_heading.text = "HAN";
+            han_heading.font_size = TABLE_HEADER_FONT;
+            han_heading.inner_anchor = Vec2(1, 1);
+            han_heading.outer_anchor = Vec2(0.5f, 1);
+            han_heading.position = Vec2(COLUMN_HALF_WIDTH, -start);
+            han_heading.alpha = _animate ? 0 : 1;
+
+            start += TABLE_HEADER_HEIGHT;
+#endif
+
             foreach (Yaku yaku in scoring.yaku)
             {
                 if (yakuman > 0 && yaku.yakuman == 0)
@@ -369,9 +429,17 @@ class ScoringPointsView : View2D
                 LabelControl name = new LabelControl();
                 add_child(name);
                 name.text = yaku_to_string(yaku);
+#if TWO_DIMENSIONAL
+                name.font_size = TABLE_DATA_FONT;
+                name.inner_anchor = Vec2(0, 1);
+                name.outer_anchor = Vec2(0.5f, 1);
+                name.position = Vec2(-COLUMN_HALF_WIDTH,
+                    -start - h * TABLE_ROW_HEIGHT);
+#else
                 name.inner_anchor = Vec2(0, 1);
                 name.outer_anchor = Vec2(0, 1);
                 name.position = Vec2(0, -start - h * name.size.height);
+#endif
                 name.alpha = _animate ? 0 : 1;
 
                 string str;
@@ -391,14 +459,33 @@ class ScoringPointsView : View2D
                 LabelControl num = new LabelControl();
                 add_child(num);
                 num.text = str;
+#if TWO_DIMENSIONAL
+                num.font_size = TABLE_DATA_FONT;
+                num.inner_anchor = Vec2(1, 1);
+                num.outer_anchor = Vec2(0.5f, 1);
+                num.position = Vec2(COLUMN_HALF_WIDTH,
+                    -start - h * TABLE_ROW_HEIGHT);
+#else
                 num.inner_anchor = Vec2(1, 1);
                 num.outer_anchor = Vec2(1, 1);
                 num.position = Vec2(0, -start - h * num.size.height);
+#endif
                 num.alpha = _animate ? 0 : 1;
                 h++;
 
                 lines.add(new YakuLine(name, num));
             }
+
+#if TWO_DIMENSIONAL
+            // Size the card to its rows, then draw a complete grid. This
+            // replaces the former short center stroke that looked like an
+            // accidental pipe character.
+            float table_height = TABLE_HEADER_HEIGHT +
+                float.max(1, lines.size) * TABLE_ROW_HEIGHT + 12;
+            yaku_background.size = Size2(COLUMN_HALF_WIDTH * 2 + 60,
+                table_height);
+            create_yaku_grid(table_height, lines.size);
+#endif
 
             points_label = new LabelControl();
             add_child(points_label);
@@ -429,7 +516,53 @@ class ScoringPointsView : View2D
         private void animate_items_animate(float time)
         {
             hand.alpha = time;
+#if TWO_DIMENSIONAL
+            yaku_background.color = Color(0.015f, 0.07f, 0.075f, time);
+            yaku_heading.alpha = time;
+            han_heading.alpha = time;
+            foreach (RectangleControl line in yaku_grid_lines)
+                line.color = Color(0.60f, 0.72f, 0.72f, 0.85f * time);
+#endif
         }
+
+#if TWO_DIMENSIONAL
+        private void create_yaku_grid(float table_height, int row_count)
+        {
+            float table_width = COLUMN_HALF_WIDTH * 2 + 60;
+            add_yaku_grid_line(Size2(table_width, 2),
+                Vec2(0.5f, 1), Vec2(0.5f, 1), Vec2(0, 0));
+            add_yaku_grid_line(Size2(table_width, 2),
+                Vec2(0.5f, 0), Vec2(0.5f, 0), Vec2(0, 0));
+            add_yaku_grid_line(Size2(2, table_height),
+                Vec2(0, 0.5f), Vec2(0, 0.5f), Vec2(0, 0));
+            add_yaku_grid_line(Size2(2, table_height),
+                Vec2(1, 0.5f), Vec2(1, 0.5f), Vec2(0, 0));
+            add_yaku_grid_line(Size2(2, table_height),
+                Vec2(0.5f, 0.5f), Vec2(0.5f, 0.5f), Vec2(0, 0));
+            add_yaku_grid_line(Size2(table_width, 2),
+                Vec2(0.5f, 1), Vec2(0.5f, 1),
+                Vec2(0, -TABLE_HEADER_HEIGHT));
+            for (int row = 1; row < row_count; row++)
+                add_yaku_grid_line(Size2(table_width, 1),
+                    Vec2(0.5f, 1), Vec2(0.5f, 1),
+                    Vec2(0, -TABLE_HEADER_HEIGHT - row * TABLE_ROW_HEIGHT));
+        }
+
+        private void add_yaku_grid_line(Size2 line_size, Vec2 inner,
+            Vec2 outer, Vec2 position)
+        {
+            RectangleControl line = new RectangleControl();
+            yaku_background.add_child(line);
+            yaku_grid_lines.add(line);
+            line.resize_style = ResizeStyle.ABSOLUTE;
+            line.size = line_size;
+            line.inner_anchor = inner;
+            line.outer_anchor = outer;
+            line.position = position;
+            line.color = Color(0.60f, 0.72f, 0.72f,
+                _animate ? 0 : 0.85f);
+        }
+#endif
 
         private void animate_items_finished()
         {

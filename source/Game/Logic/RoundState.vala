@@ -574,6 +574,23 @@ public class RoundState : Object
         );
     }
 
+    // Score a hypothetical future wait for the efficiency advisor without
+    // mutating the live round.  Situational yaku (haitei, rinshan, chankan,
+    // ippatsu) are deliberately excluded; visible dora are retained and ura
+    // dora remain unknown so the estimate cannot inspect hidden information.
+    public Scoring advisory_score(ArrayList<Tile> concealed_hand,
+        ArrayList<RoundStateCall> calls, Tile win_tile, bool ron,
+        bool assume_riichi)
+    {
+        ArrayList<Tile> unknown_ura = new ArrayList<Tile>();
+        RoundStateContext round = new RoundStateContext(
+            round_wind, wall.dora, unknown_ura, ron, win_tile,
+            false, false, false, true);
+        PlayerStateContext player = self.create_advisory_context(
+            concealed_hand, calls, assume_riichi);
+        return TileRules.get_score(player, round);
+    }
+
     public Tile[] get_tiles()
     {
         return wall.tiles;
@@ -589,6 +606,7 @@ public class RoundState : Object
     public Tile newest_dora { get { return wall.newest_dora; } }
     public ArrayList<Tile> ura_dora { get { return wall.ura_dora; } }
     public bool tiles_empty { get { return wall.empty; } }
+    public int wall_tiles_remaining { get { return wall.remaining; } }
     public ChankanCall chankan_call { get; private set; }
     public int riichi_return_index { get; private set; }
 }
@@ -1058,6 +1076,26 @@ public class RoundStatePlayer
         );
     }
 
+    public PlayerStateContext create_advisory_context(
+        ArrayList<Tile> concealed_hand, ArrayList<RoundStateCall> advisory_calls,
+        bool assume_riichi)
+    {
+        return new PlayerStateContext(
+            index,
+            concealed_hand,
+            pond,
+            advisory_calls,
+            wind,
+            dealer,
+            in_riichi || assume_riichi,
+            false,
+            in_riichi && open,
+            false,
+            tiles_called_on,
+            false,
+            sekinin_index);
+    }
+
     public int index { get; private set; }
     public Wind wind { get; private set; }
     public ArrayList<Tile> hand { get; private set; }
@@ -1224,7 +1262,7 @@ class RoundStateWall
         return dead_wall_tiles[index];
     }
 
-    public bool dead_wall_tile_revealed(int index)
+    public bool dead_wall_tile_revealed(int index, bool include_ura = false)
     {
         Tile? tile = get_dead_wall_tile(index);
         if (tile == null)
@@ -1232,6 +1270,10 @@ class RoundStateWall
         foreach (Tile indicator in dora)
             if (indicator.ID == tile.ID)
                 return true;
+        if (include_ura)
+            foreach (Tile indicator in ura_dora)
+                if (indicator.ID == tile.ID)
+                    return true;
         return false;
     }
 
@@ -1343,6 +1385,7 @@ class RoundStateWall
     }
 
     public bool empty { get { return wall_tiles.size == 0; } }
+    public int remaining { get { return wall_tiles.size; } }
     public int dead_wall_size { get { return dead_wall_tiles.size; } }
     public bool can_kan { get { return dora.size < 5; } }
     public bool can_call { get { return wall_tiles.size > 0; } }

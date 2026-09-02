@@ -33,7 +33,13 @@ class ScoringView : View2D
         rectangle = new RectangleControl();
         add_child(rectangle);
         rectangle.resize_style = ResizeStyle.RELATIVE;
+#if TWO_DIMENSIONAL
+        // Keep the public discard ponds legible beneath the between-round
+        // scoring panel.  Live-only table elements are hidden by the renderer.
+        rectangle.color = Color.with_alpha(0.45f);
+#else
         rectangle.color = Color.with_alpha(0.7f);
+#endif
         rectangle.selectable = true;
         rectangle.cursor_type = CursorType.NORMAL;
 

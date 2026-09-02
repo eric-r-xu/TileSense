@@ -16,12 +16,22 @@ class SimpleBot : Bot
         }
         else if(round_state.can_riichi())
         {
-            do_riichi(false);
-
             ArrayList<Tile> tiles = round_state.get_tenpai_tiles(round_state.self);
             assert(tiles.size > 0);
 
-            Tile tile = tiles[rnd.int_range(0, tiles.size)];
+            // Preserve a valuable legal-yaku hand in damaten; otherwise riichi
+            // supplies the missing yaku/value. The advisor helper deliberately
+            // examines hypothetical waits without reading hidden wall tiles.
+            Tile? damaten = EfficiencyLogging.qualifying_damaten_discard(
+                round_state, tiles);
+            Tile tile;
+            if (damaten != null)
+                tile = damaten;
+            else
+            {
+                do_riichi(false);
+                tile = tiles[rnd.int_range(0, tiles.size)];
+            }
 
             do_discard(tile);
         }

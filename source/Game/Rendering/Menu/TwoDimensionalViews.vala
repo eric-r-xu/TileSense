@@ -5,8 +5,10 @@ using Gee;
 public class ScoringHandView : View2D
 {
     private Scoring score;
+    private RectangleControl background;
     private LabelControl title_label;
     private LabelControl label;
+    private float _alpha = 1;
 
     public ScoringHandView(GameRenderContext context, Scoring score)
     {
@@ -16,6 +18,14 @@ public class ScoringHandView : View2D
 
     public override void added()
     {
+        // The scoring view is drawn over the still-visible table. Give the
+        // winning hand its own opaque surface so pond tiles can never bleed
+        // through the Unicode tile strip.
+        background = new RectangleControl();
+        add_child(background);
+        background.resize_style = ResizeStyle.RELATIVE;
+        background.color = Color(0.015f, 0.07f, 0.075f, 0.96f * _alpha);
+
         title_label = new LabelControl();
         add_child(title_label);
         title_label.text = "Winning Hand";
@@ -34,6 +44,8 @@ public class ScoringHandView : View2D
         // lines provide transparent vertical padding so strokes at the top and
         // bottom of the Unicode tile are never clipped.
         label.text = "\n" + hand_text() + "\n";
+        title_label.alpha = _alpha;
+        label.alpha = _alpha;
     }
 
     private string hand_text()
@@ -55,11 +67,16 @@ public class ScoringHandView : View2D
 
     public float alpha
     {
-        get { return label.alpha; }
+        get { return _alpha; }
         set
         {
-            label.alpha = value;
-            title_label.alpha = value;
+            _alpha = value;
+            if (background != null)
+                background.color = Color(0.015f, 0.07f, 0.075f, 0.96f * value);
+            if (label != null)
+                label.alpha = value;
+            if (title_label != null)
+                title_label.alpha = value;
         }
     }
 }
@@ -83,7 +100,9 @@ public class ScoringDoraView : View2D
     {
         label = new LabelControl();
         add_child(label);
-        label.font_size = 36;
+        label.font_size = 32;
+        label.inner_anchor = Vec2(0.5f, 0.5f);
+        label.outer_anchor = Vec2(0.5f, 0.5f);
         string text = "";
         for (int i = 0; i < front_tiles; i++)
             text += "🀫";
@@ -91,7 +110,9 @@ public class ScoringDoraView : View2D
             text += tile.tile_type == TileType.BLANK ? "🀫" : TILE_TYPE_TO_EMOJI_2D(tile.tile_type);
         for (int i = 0; i < back_tiles; i++)
             text += "🀫";
-        label.text = text;
+        // Mahjong glyph bitmaps are trimmed tightly by the font renderer.
+        // Transparent lines keep the top strokes clear of the texture edge.
+        label.text = "\n" + text + "\n";
     }
 
     public float alpha
