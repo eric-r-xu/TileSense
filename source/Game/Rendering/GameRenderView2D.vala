@@ -16,10 +16,6 @@ public class GameRenderView : View2D, IGameRenderer
     private bool[] riichi_players = new bool[4];
     private bool[] pending_riichi_discard = new bool[4];
     private int[] riichi_discard_index = new int[4];
-    // Per player: the ID of the tile most recently drawn (and not yet
-    // discarded), and, parallel to ponds[], whether each discard was a tedashi.
-    private int[] last_drawn_id = new int[4];
-    private ArrayList<bool>[] pond_tedashi = new ArrayList<bool>[4];
 
     private int observer_index;
     private int dealer_index;
@@ -86,8 +82,6 @@ public class GameRenderView : View2D, IGameRenderer
             calls[i] = new ArrayList<Tile>();
             melds[i] = new ArrayList<Meld2D>();
             riichi_discard_index[i] = -1;
-            last_drawn_id[i] = -1;
-            pond_tedashi[i] = new ArrayList<bool>();
         }
 
         // The logical wall uses the same ID ordering as the server and the 3D renderer.
@@ -181,6 +175,7 @@ public class GameRenderView : View2D, IGameRenderer
         {
             meld_buttons[i] = new Tile2DDisplay(texture_type);
             add_child(meld_buttons[i]);
+            meld_buttons[i].use_meld_notation();
         }
         for (int i = 0; i < riichi_sticks.length; i++)
         {
@@ -437,9 +432,7 @@ public class GameRenderView : View2D, IGameRenderer
 
     private void tile_draw(int player_index)
     {
-        Tile drawn = wall.draw_wall();
-        hands[player_index].add(drawn);
-        last_drawn_id[player_index] = drawn.ID;
+        hands[player_index].add(wall.draw_wall());
         wall_remaining--;
         refresh();
     }
@@ -449,9 +442,7 @@ public class GameRenderView : View2D, IGameRenderer
         // Mirror GameScene.action_draw_dead_wall(): every successful kan first
         // exposes the next dora indicator, then draws/replenishes the dead wall.
         wall.flip_dora();
-        Tile drawn = wall.draw_dead_wall();
-        hands[player_index].add(drawn);
-        last_drawn_id[player_index] = drawn.ID;
+        hands[player_index].add(wall.draw_dead_wall());
         wall_remaining--;
         refresh();
     }
@@ -462,10 +453,6 @@ public class GameRenderView : View2D, IGameRenderer
         if (tile != null)
         {
             ponds[player_index].add(tile);
-            // A discard that is not the tile just drawn (including any discard
-            // after a call, when nothing was drawn) came from the hand.
-            pond_tedashi[player_index].add(tile_ID != last_drawn_id[player_index]);
-            last_drawn_id[player_index] = -1;
             if (pending_riichi_discard[player_index])
             {
                 riichi_discard_index[player_index] = ponds[player_index].size - 1;
@@ -590,8 +577,6 @@ public class GameRenderView : View2D, IGameRenderer
         if (tile != null)
         {
             calls[player].add(tile);
-            if (removed_index >= 0 && removed_index < pond_tedashi[discarder].size)
-                pond_tedashi[discarder].remove_at(removed_index);
             if (removed_index == riichi_discard_index[discarder])
             {
                 // If the declaration tile is called, the next discard remains
@@ -917,13 +902,8 @@ public class GameRenderView : View2D, IGameRenderer
             {
                 Tile2DDisplay button = pond_buttons[seat * 24 + i];
                 button.set_attention(false);
-                bool present = i < ponds[players[seat]].size;
-                button.set_tile(present ? ponds[players[seat]][i] : null);
-                // Only the three opponents get the tedashi pip; the observer
-                // already knows which of their own discards came from hand.
-                button.set_tedashi(present && seat != 0 &&
-                    i < pond_tedashi[players[seat]].size &&
-                    pond_tedashi[players[seat]][i]);
+                button.set_tile(
+                    i < ponds[players[seat]].size ? ponds[players[seat]][i] : null);
             }
         update_discard_attention();
     }
@@ -1044,6 +1024,9 @@ private class TileNotation : Control
     private float text_size;
     private Vec2 text_position;
     private float current_rotation;
+    // Meld mode: the glyph is pinned upright to the tile's visual top-right
+    // corner and its clip is removed so it is never cut off.
+    private bool pinned = false;
 
     public TileNotation(float text_size, Vec2 text_position)
     {
@@ -1067,6 +1050,23 @@ private class TileNotation : Control
         apply_orientation();
     }
 
+    public void pin_top_right()
+    {
+        pinned = true;
+        // Never clip a meld's index — not by this container nor by the tight
+        // per-label face clip.
+        scissor = false;
+        foreach (RotatableLabelControl label in labels)
+            if (label != null)
+            {
+                label.scissor = false;
+                label.rotation = 0;   // keep it upright whatever the tile does
+            }
+        apply_orientation();
+    }
+
+    public bool is_pinned { get { return pinned; } }
+
     protected override void resized()
     {
         apply_orientation();
@@ -1075,7 +1075,7 @@ private class TileNotation : Control
 
     private void update_clip()
     {
-        if (labels[0] == null)
+        if (labels[0] == null || pinned)
             return;
         // Clip the marker to the inset white face. A side tile's
         // render geometry is rotated while its control rect is not, so swap the
@@ -1114,7 +1114,7 @@ private class TileNotation : Control
         {
             current_rotation = value;
             foreach (RotatableLabelControl label in labels)
-                label.rotation = value;
+                label.rotation = pinned ? 0 : value;
             apply_orientation();
             update_clip();
         }
@@ -1127,6 +1127,31 @@ private class TileNotation : Control
         float normalized = current_rotation % 2;
         if (normalized < 0)
             normalized += 2;
+
+        float inset_x_p = text_position.x.abs();
+        float inset_y_p = text_position.y.abs();
+        if (pinned)
+        {
+            // A meld tile's control rect is never rotated, so for a quarter
+            // turn the visible footprint has width and height swapped. Place
+            // the upright glyph at that visible top-right corner.
+            bool quarter = (normalized > 0.25f && normalized < 0.75f) ||
+                (normalized > 1.25f && normalized < 1.75f);
+            float vis_w = quarter ? rect.height : rect.width;
+            float vis_h = quarter ? rect.width : rect.height;
+            float px = float.max(0,
+                vis_w / 2 - labels[0].size.width / 2 - inset_x_p);
+            float py = float.max(0,
+                vis_h / 2 - labels[0].size.height / 2 - inset_y_p);
+            Vec2 pinned_pos = Vec2(Math.roundf(px), Math.roundf(py));
+            for (int i = 0; i < labels.length; i++)
+            {
+                labels[i].inner_anchor = Vec2(0.5f, 0.5f);
+                labels[i].outer_anchor = Vec2(0.5f, 0.5f);
+                labels[i].position = pinned_pos;
+            }
+            return;
+        }
 
         // Marker corner, in screen space (+x right, +y up). The own hand reads
         // top-right like a card index; the three rotated ponds put it along the
@@ -1387,7 +1412,7 @@ private class Tile2DDisplay : Control
 
     protected override void resized()
     {
-        if (notation != null)
+        if (notation != null && !notation.is_pinned)
             notation.scissor_box = rect;
     }
 }
