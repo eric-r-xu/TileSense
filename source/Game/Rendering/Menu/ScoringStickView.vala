@@ -59,6 +59,7 @@ public class ScoringStickNumberView : View2D
     }
 }
 
+#if !TWO_DIMENSIONAL
 public class ScoringStickView : View3D
 {
     private RenderStick.StickType stick_type;
@@ -118,3 +119,4 @@ public class ScoringStickView : View3D
         camera.pitch = pitch;
     }*/
 }
+#endif

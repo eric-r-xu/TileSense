@@ -1,6 +1,7 @@
 using Engine;
 using Gee;
 
+#if !TWO_DIMENSIONAL
 public class ScoringDoraView : View3D
 {
     private ArrayList<Tile> tile_list;
@@ -83,3 +84,4 @@ public class ScoringDoraView : View3D
         }
     }
 }
+#endif

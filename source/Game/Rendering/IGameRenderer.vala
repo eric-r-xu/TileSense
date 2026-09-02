@@ -2,6 +2,7 @@ public interface IGameRenderer
 {
     public signal void tile_selected(Tile tile);
     public abstract void set_active(bool active);
+    public abstract void set_call_decision_state(bool active);
     public abstract void tile_assignment(Tile tile);
     public abstract void tile_draw(int player_index);
     public abstract void tile_discard(int player_index, int tile_ID);

@@ -21,6 +21,7 @@ namespace GameServer
         private Mutex mutex = Mutex();
         private bool started = false;
         private bool finished = false;
+        private bool paused = false;
 
         public ServerController()
         {
@@ -68,6 +69,13 @@ namespace GameServer
         public void kill()
         {
             finished = true;
+        }
+
+        public void set_paused(bool paused)
+        {
+            mutex.lock();
+            this.paused = paused;
+            mutex.unlock();
         }
 
         private void player_connected(ServerPlayer player)
@@ -139,13 +147,20 @@ namespace GameServer
                 server = new RegularServer(players, observers, rnd, info, settings);
             
             Timer timer = new Timer();
+            double last_time = timer.elapsed();
+            float game_time = 0;
 
             while (!finished && !server.finished)
             {
                 mutex.lock();
-                float time = (float)timer.elapsed();
-                process_messages();
-                server.process(time);
+                double time = timer.elapsed();
+                if (!paused)
+                {
+                    game_time += (float)(time - last_time);
+                    process_messages();
+                    server.process(game_time);
+                }
+                last_time = time;
                 mutex.unlock();
                 sleep();
             }

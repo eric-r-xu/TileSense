@@ -6,6 +6,7 @@ public class ClientRoundState : Object
     private State action_state;
     private ServerMessageParser parser = new ServerMessageParser();
     private bool self_active;
+    private bool autoplay;
 
     private ArrayList<TileSelectionGroup> selection_groups = new ArrayList<TileSelectionGroup>();
 
@@ -19,6 +20,7 @@ public class ClientRoundState : Object
     public signal void set_ron_state(bool enabled);
     public signal void set_timer_state(bool enabled);
     public signal void set_continue_state(bool enabled);
+    public signal void set_call_decision_state(bool enabled);
     public signal void set_void_hand_state(bool enabled);
     public signal void set_furiten_state(bool enabled);
 
@@ -79,6 +81,18 @@ public class ClientRoundState : Object
         decision_finished();
     }
 
+    public void set_autoplay(bool enabled)
+    {
+        autoplay = enabled && self_active;
+        if (!autoplay)
+            return;
+
+        if (action_state == State.TURN)
+            perform_autoplay_turn(state.can_tsumo(), state.can_riichi());
+        else if (action_state == State.CALL)
+            perform_autoplay_call();
+    }
+
     private void decision_finished()
     {
         action_state = State.DONE;
@@ -90,9 +104,11 @@ public class ClientRoundState : Object
         set_tsumo_state(false);
         set_ron_state(false);
         set_continue_state(false);
+        set_call_decision_state(false);
         set_void_hand_state(false);
         set_timer_state(false);
         set_tile_select_state(false);
+        tile_efficiency_hidden();
     }
 
     private void do_riichi(Tile tile, bool open)
@@ -154,7 +170,9 @@ public class ClientRoundState : Object
 
         set_tile_select_groups(selection_groups);
 
-        //set_tile_select_state(true);
+        set_tile_select_state(true);
+        if (autoplay)
+            perform_autoplay_turn(can_tsumo, can_riichi);
     }
 
     private void do_call_decision(Tile tile, RoundStatePlayer discard_player)
@@ -166,6 +184,14 @@ public class ClientRoundState : Object
         bool can_kan = state.can_open_kan(state.self);
         bool can_ron = state.can_ron(state.self);
 
+        if (self_active)
+        {
+            string? guide = EfficiencyLogging.log_call_decision(state,
+                can_chii, can_pon, can_kan, can_ron);
+            if (guide != null)
+                tile_efficiency_updated(guide);
+        }
+
         set_chii_state(can_chii);
         set_pon_state(can_pon);
         set_kan_state(can_kan);
@@ -173,9 +199,104 @@ public class ClientRoundState : Object
         set_tsumo_state(false);
         set_ron_state(can_ron);
         set_continue_state(true);
+        set_call_decision_state(true);
         set_void_hand_state(false);
         set_timer_state(true);
         set_tile_select_state(false);
+        if (autoplay)
+            perform_autoplay_call();
+    }
+
+    private void perform_autoplay_turn(bool can_tsumo, bool can_riichi)
+    {
+        if (action_state != State.TURN)
+            return;
+        if (can_tsumo)
+        {
+            client_tsumo();
+            return;
+        }
+
+        // Auto-kan: declare an available closed or added kan (rinshan draw plus
+        // an extra dora) unless an opponent is in riichi, where opening the dead
+        // wall for them is rarely worth it. With several options, take the first
+        // closed kan, else the first added kan.
+        if (!state.self.in_riichi && !any_opponent_riichi() &&
+            (state.can_closed_kan() || state.can_late_kan()))
+        {
+            ArrayList<ArrayList<Tile>> closed_kans =
+                state.self.get_closed_kan_groups();
+            ArrayList<Tile> late_kans = TileRules.get_late_kan_tiles(
+                state.self.hand, state.self.calls);
+            decision_finished();
+            if (closed_kans.size > 0)
+                do_closed_kan(closed_kans[0][0].tile_type);
+            else
+                do_late_kan(late_kans[0]);
+            return;
+        }
+
+        ArrayList<Tile> legal_tiles = state.current_player.get_discard_tiles();
+        Tile? tile = EfficiencyLogging.recommended_discard(legal_tiles);
+        if (tile == null && legal_tiles.size > 0)
+            tile = legal_tiles[legal_tiles.size - 1];
+        if (tile != null)
+        {
+            if (can_riichi && EfficiencyLogging.recommends_riichi(tile))
+            {
+                decision_finished();
+                do_riichi(tile, false);
+            }
+            else
+                do_select_discard_tile(tile);
+        }
+    }
+
+    private void perform_autoplay_call()
+    {
+        if (action_state != State.CALL)
+            return;
+
+        string? action = EfficiencyLogging.recommended_action();
+        if (action == "RON")
+            client_ron();
+        else if (action == "PON")
+            client_pon();
+        else if (action == "KAN")
+            client_kan();
+        else if (action == "CHII")
+        {
+            Tile? tile_1 = find_self_tile(EfficiencyLogging.recommended_action_tile_1_ID());
+            Tile? tile_2 = find_self_tile(EfficiencyLogging.recommended_action_tile_2_ID());
+            if (tile_1 != null && tile_2 != null && state.can_chii_with(state.self, tile_1, tile_2))
+            {
+                decision_finished();
+                do_chii(tile_1, tile_2);
+            }
+            else
+                client_continue();
+        }
+        else
+            client_continue();
+    }
+
+    private Tile? find_self_tile(int tile_ID)
+    {
+        foreach (Tile tile in state.self.hand)
+            if (tile.ID == tile_ID)
+                return tile;
+        return null;
+    }
+
+    private bool any_opponent_riichi()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            RoundStatePlayer p = state.get_player(i);
+            if (p.index != state.self.index && p.in_riichi)
+                return true;
+        }
+        return false;
     }
 
     private void do_discard_tile(Tile tile)

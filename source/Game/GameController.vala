@@ -17,6 +17,7 @@ class GameController : Object
     private Options options;
     private bool game_finished = false;
     private bool is_disconnected = false;
+    private bool autoplay_enabled = false;
     public signal void game_loaded();
     public signal void finished();
 
@@ -91,6 +92,13 @@ class GameController : Object
         renderer.load_options(options);
     }
 
+    public bool can_pause { get { return connection.can_pause; } }
+
+    public void set_paused(bool paused)
+    {
+        connection.set_paused(paused);
+    }
+
     private void create_round_state(RoundStartInfo round_start)
     {
         round = new ClientRoundState(round_start, settings, player_index, game.round_wind, game.dealer_index, game.can_riichi());
@@ -103,6 +111,7 @@ class GameController : Object
         round.set_ron_state.connect(menu.set_ron);
         round.set_timer_state.connect(menu.set_move_timer);
         round.set_continue_state.connect(menu.set_continue);
+        round.set_call_decision_state.connect(renderer.set_call_decision_state);
         round.set_void_hand_state.connect(menu.set_void_hand);
         round.set_furiten_state.connect(menu.set_furiten);
         round.set_tile_select_state.connect(renderer.set_active);
@@ -140,6 +149,13 @@ class GameController : Object
             menu.observe_next_pressed.connect(renderer.observe_next);
             menu.observe_prev_pressed.connect(renderer.observe_prev);
         }
+        round.set_autoplay(autoplay_enabled);
+    }
+
+    private void set_autoplay(bool enabled)
+    {
+        autoplay_enabled = enabled;
+        round.set_autoplay(enabled);
     }
 
     private void do_action(ClientAction action)
@@ -164,8 +180,10 @@ class GameController : Object
 
         menu = new GameMenuView(renderer.context, settings, index, player_index == -1);
         menu.score_finished.connect(menu_score_finished);
+        menu.autoplay_changed.connect(set_autoplay);
 
         parent_view.add_child(menu);
+        menu.set_autoplay(autoplay_enabled);
 
         create_round_state(info);
     }

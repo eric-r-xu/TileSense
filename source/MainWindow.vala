@@ -8,6 +8,8 @@ public class MainWindow : RenderWindow
     private GameController? game_controller = null;
     private GameEscapeMenuView? escape_menu;
     private bool game_running = false;
+    private bool game_paused = false;
+    private float game_process_time = 0;
     private MusicPlayer music;
     private RectangleControl fade_rect;
 
@@ -91,6 +93,8 @@ public class MainWindow : RenderWindow
         game_controller.finished.connect(game_finished);
         
         game_running = true;
+        game_paused = false;
+        game_process_time = 0;
     
         fade_rect = new RectangleControl();
         main_view.add_child(fade_rect);
@@ -103,6 +107,8 @@ public class MainWindow : RenderWindow
     private void game_finished()
     {
         game_running = false;
+        game_paused = false;
+        game_view.process_paused = false;
         game_controller = null;
         menu.visible = true;
         if (escape_menu != null)
@@ -130,8 +136,11 @@ public class MainWindow : RenderWindow
 
     protected override void do_process(DeltaArgs delta)
     {
-        if (game_running && game_controller != null)
-            game_controller.process(delta);
+        if (game_running && game_controller != null && !game_paused)
+        {
+            game_process_time += delta.delta;
+            game_controller.process(new DeltaArgs(game_process_time, delta.delta));
+        }
     }
 
     protected override bool key_press(KeyArgs key)
@@ -148,7 +157,8 @@ public class MainWindow : RenderWindow
             {
                 if (escape_menu == null)
                 {
-                    escape_menu = new GameEscapeMenuView();
+                    set_game_paused(game_controller.can_pause);
+                    escape_menu = new GameEscapeMenuView(game_paused);
                     escape_menu.apply_options.connect(apply_options);
                     escape_menu.close_menu.connect(close_menu);
                     escape_menu.leave_game.connect(leave_game_pressed);
@@ -156,6 +166,7 @@ public class MainWindow : RenderWindow
                 }
                 else
                 {
+                    set_game_paused(false);
                     main_view.remove_child(escape_menu);
                     escape_menu = null;
                 }
@@ -169,8 +180,22 @@ public class MainWindow : RenderWindow
 
     private void close_menu()
     {
+        set_game_paused(false);
         main_view.remove_child(escape_menu);
         escape_menu = null;
+    }
+
+    private void set_game_paused(bool paused)
+    {
+        if (game_controller == null || !game_controller.can_pause)
+            paused = false;
+
+        if (game_paused == paused)
+            return;
+
+        game_paused = paused;
+        game_view.process_paused = paused;
+        game_controller.set_paused(paused);
     }
 
     private void apply_options(Options options)

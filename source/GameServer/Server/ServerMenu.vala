@@ -287,37 +287,40 @@ namespace GameServer
             int uma_lower = 10;
 
 
-            float winning_draw_animation_time = 0.5f;
-            float hand_reveal_animation_time = 0.5f;
-            float round_over_delay = 1.0f;
+            // Animation and between-round pacing is tightened so a full
+            // single-player game plays through quickly. Every phase still
+            // animates (nothing is zeroed) so sequencing stays intact.
+            float winning_draw_animation_time = 0.3f;
+            float hand_reveal_animation_time = 0.3f;
+            float round_over_delay = 0.4f;
 
             // Add a second so the indicator counts down from the specific second to 0
-            float round_end_delay = 10 + 1;
-            float hanchan_end_delay = 30 + 1;
-            float game_end_delay = 60 + 1;
+            float round_end_delay = 3 + 1;
+            float hanchan_end_delay = 12 + 1;
+            float game_end_delay = 25 + 1;
             int decision_time = settings.decision_time + 1;
 
-            var finish_label_fade = new AnimationTime(1, 0.5f, 0);
-            var menu_items_fade = new AnimationTime(1, 0.5f, 1);
-            var han_fade = new AnimationTime(0.5f, 0.5f, 0);
-            var score_counting_fade = new AnimationTime(1, 0.5f, 0);
-            var score_counting = new AnimationTime(1, 3, 2);
-            var players_points_counting = new AnimationTime(0, 3, 2);
-            var players_score_fade = new AnimationTime(0, 0.5f, 0);
-            var players_score_counting = new AnimationTime(1, 3, 2);
+            var finish_label_fade = new AnimationTime(0.35f, 0.3f, 0);
+            var menu_items_fade = new AnimationTime(0.3f, 0.3f, 0.3f);
+            var han_fade = new AnimationTime(0.2f, 0.2f, 0);
+            var score_counting_fade = new AnimationTime(0.35f, 0.3f, 0);
+            var score_counting = new AnimationTime(0.4f, 1.0f, 0.5f);
+            var players_points_counting = new AnimationTime(0, 1.0f, 0.5f);
+            var players_score_fade = new AnimationTime(0, 0.3f, 0);
+            var players_score_counting = new AnimationTime(0.4f, 1.0f, 0.5f);
 
-            var initial_draw = new AnimationTime(0, 0.15f, 0);
-            var tile_draw = new AnimationTime(0, 0.15f, 0.2f);
-            var tile_discard = new AnimationTime(0, 0.15f, 0.3f);
-            var call = new AnimationTime(0, 0.5f, 0);
-            var hand_reveal = new AnimationTime(0, 0.15f, 0.8f);
-            var split_wall = new AnimationTime(0, 0.5f, 0);
-            var dora_flip = new AnimationTime(0, 0.2f, 0);
-            var win = new AnimationTime(0, 0.5f, 0.5f);
-            var riichi = new AnimationTime(0, 0.3f, 0.5f);
+            var initial_draw = new AnimationTime(0, 0.05f, 0);
+            var tile_draw = new AnimationTime(0, 0.07f, 0.06f);
+            var tile_discard = new AnimationTime(0, 0.07f, 0.1f);
+            var call = new AnimationTime(0, 0.22f, 0);
+            var hand_reveal = new AnimationTime(0, 0.1f, 0.35f);
+            var split_wall = new AnimationTime(0, 0.25f, 0);
+            var dora_flip = new AnimationTime(0, 0.1f, 0);
+            var win = new AnimationTime(0, 0.3f, 0.3f);
+            var riichi = new AnimationTime(0, 0.2f, 0.25f);
 
-            var hand_order = new AnimationTime(0, 0.15f, 0);
-            var hand_angle = new AnimationTime(0, 0.2f, 0);
+            var hand_order = new AnimationTime(0, 0.08f, 0);
+            var hand_angle = new AnimationTime(0, 0.1f, 0);
 
             /*var finish_label_fade = new AnimationTime.zero();
             var menu_items_fade = new AnimationTime.zero();

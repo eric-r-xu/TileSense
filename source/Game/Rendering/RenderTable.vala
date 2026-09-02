@@ -139,9 +139,9 @@ private class RenderTableCenterPiece : WorldObjectTransformable
         round_wind_label.rotation = Quat.from_euler(field_rotation / 2, 0, 0);
         round_wind_label.text = WIND_TO_KANJI(score.round_wind);
         round_wind_label.color = Color(0.1f, 0.3f, 1, 1);
-        float s = 2.5f;
+        float s = 1.9f;
         round_wind_label.scale = Vec3(s, s, s);
-        round_wind_label.font_size = 300;
+        round_wind_label.font_size = 260;
         round_wind_label.position = Vec3(0, center_size.y, 0);
 
         for (int i = 0; i < names.length; i++)
@@ -149,7 +149,7 @@ private class RenderTableCenterPiece : WorldObjectTransformable
             WorldObject wrap = new WorldObject();
             add_object(wrap);
             wrap.rotation = Quat.from_euler(i / 2.0f, 0, 0);
-            names[i] = new RenderTablePlayerNameField(score.players[i].name, score.players[i].wind, score.players[i].points, round_wind_label.end_size, round_wind_label.color);
+            names[i] = new RenderTablePlayerNameField(score.players[i].name, score.players[i].wind, center_size);
             wrap.add_object(names[i]);
             wrap.position = Vec3(0, center_size.y, 0);
         }
@@ -162,55 +162,28 @@ private class RenderTablePlayerNameField : WorldObject
 {
     private string name;
     private Wind wind;
-    private int score;
     private Vec3 center_size;
-    private Color color;
 
-    public RenderTablePlayerNameField(string name, Wind wind, int score, Vec3 center_size, Color color)
+    public RenderTablePlayerNameField(string name, Wind wind, Vec3 center_size)
     {
         this.name = name;
         this.wind = wind;
-        this.score = score;
         this.center_size = center_size;
-        this.color = color;
     }
 
     protected override void added()
     {
-        float scale = 0.8f;
+        // Two short, centered rows stay within each edge of the console. This
+        // avoids long player strings crossing the large round-wind character.
+        WorldLabel identity_label = new WorldLabel();
+        add_object(identity_label);
+        identity_label.bold = true;
+        identity_label.text = "%s  %s".printf(WIND_TO_KANJI(wind), name);
+        identity_label.color = Color(0.78f, 0.9f, 1, 1);
+        identity_label.font_size = 260;
+        float identity_scale = 0.58f;
+        identity_label.scale = Vec3(identity_scale, identity_scale, identity_scale);
+        identity_label.position = Vec3(0, 0, center_size.z * 0.30f);
 
-        WorldLabel wind_label = new WorldLabel();
-        add_object(wind_label);
-        wind_label.bold = true;
-        wind_label.text = WIND_TO_KANJI(wind);
-        wind_label.color = color;
-        wind_label.scale = Vec3(scale, scale, scale);
-        wind_label.font_size = wind_label.font_size * 8;
-
-        Vec3 offset = Vec3(-center_size.x / 2, 0, center_size.z / 2);
-        Vec3 pos = Vec3(offset.x + wind_label.end_size.x / 2, 0, offset.z + wind_label.end_size.z / 2);
-        wind_label.position = pos;
-
-        WorldLabel name_label = new WorldLabel();
-        add_object(name_label);
-        name_label.bold = true;
-        name_label.text = name;
-        name_label.scale = wind_label.scale.mul_scalar(0.5f);
-        name_label.font_size = wind_label.font_size;
-        name_label.color = color;
-
-        pos = Vec3(offset.x + wind_label.end_size.x + name_label.end_size.x / 2, 0, offset.z + name_label.end_size.z / 2);
-        name_label.position = pos;
-
-        WorldLabel score_label = new WorldLabel();
-        add_object(score_label);
-        score_label.bold = true;
-        score_label.text = score.to_string();
-        score_label.scale = name_label.scale;
-        score_label.font_size = name_label.font_size;
-        score_label.color = Color.green();
-
-        pos = Vec3(offset.x + wind_label.end_size.x + score_label.end_size.x / 2, 0, offset.z + name_label.end_size.z + score_label.end_size.z / 2);
-        score_label.position = pos;
     }
 }

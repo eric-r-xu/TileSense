@@ -14,7 +14,7 @@ class SingleplayerMenuView : MenuSubView
 
     private void create_game_clicked()
     {
-        CreateServerView view = new CreateServerView();
+        CreateServerView view = new CreateServerView("Eric Xu");
         view.finish.connect(create_game);
         load_sub_view(view);
     }

@@ -16,10 +16,12 @@ class ScoringPlayerElement : Control
 
     private ImageControl background;
     private LabelControl wind_label;
+    private LabelControl name_label;
     private LabelControl score_label;
     private LabelControl points_label;
     private LabelControl transfer_label;
     private int padding = 10;
+    private float points_position_x;
 
     public signal void animation_finished(ScoringPlayerElement element);
 
@@ -46,14 +48,16 @@ class ScoringPlayerElement : Control
 
         wind_label = new LabelControl();
         add_child(wind_label);
-        wind_label.text = WIND_TO_KANJI(wind);
+        wind_label.text = "%s %s".printf(
+            WIND_TO_KANJI(wind),
+            WIND_TO_STRING(wind).substring(0, 1));
         wind_label.inner_anchor = Vec2(0, 0.5f);
         wind_label.outer_anchor = Vec2(0, 0.5f);
         wind_label.font_size = 50;
         wind_label.position = Vec2(padding, 0);
         wind_label.color = Color.blue();
 
-        LabelControl name_label = new LabelControl();
+        name_label = new LabelControl();
         add_child(name_label);
         name_label.text = player_name;
         name_label.font_size = 40;
@@ -69,6 +73,7 @@ class ScoringPlayerElement : Control
         points_label.outer_anchor = Vec2(0, 0.5f);
         points_label.position = Vec2(wind_label.size.width + padding * 2, 0);
         points_label.color = Color.white();
+        points_position_x = wind_label.size.width + padding * 2;
 
         transfer_label = new LabelControl();
         add_child(transfer_label);
@@ -97,6 +102,37 @@ class ScoringPlayerElement : Control
         score_label.alpha = s;
         set_score_text(s);
 
+#if TWO_DIMENSIONAL
+        // Use the same compact, single-line wind/name/points placard shown
+        // during normal 2D play instead of the oversized blue score card.
+        background.visible = false;
+        size = Size2(360, 60);
+
+        wind_label.font_size = 24;
+        wind_label.color = Color.white();
+        wind_label.inner_anchor = Vec2(0, 0.5f);
+        wind_label.outer_anchor = Vec2(0, 0.5f);
+        wind_label.position = Vec2(0, 0);
+
+        name_label.font_size = 24;
+        name_label.color = Color.white();
+        name_label.inner_anchor = Vec2(0, 0.5f);
+        name_label.outer_anchor = Vec2(0, 0.5f);
+        name_label.position = Vec2(wind_label.size.width + 8, 0);
+
+        points_label.font_size = 24;
+        points_label.inner_anchor = Vec2(0, 0.5f);
+        points_label.outer_anchor = Vec2(0, 0.5f);
+        points_position_x = wind_label.size.width + name_label.size.width + 22;
+        points_label.position = Vec2(points_position_x, 0);
+
+        transfer_label.font_size = 20;
+        transfer_label.inner_anchor = Vec2(0, 0.5f);
+        transfer_label.outer_anchor = Vec2(0, 0.5f);
+        score_label.visible = false;
+        set_points_text(p, transfer);
+#endif
+
         score_sound = store.audio_player.load_sound("score_count");
         fade_sound = store.audio_player.load_sound("fade_in");
     }
@@ -108,7 +144,13 @@ class ScoringPlayerElement : Control
 
     private void animation_points_start()
     {
-        var animation = new Animation(timings.players_points_counting);
+        AnimationTime point_animation_time = timings.players_points_counting;
+#if TWO_DIMENSIONAL
+        // A short count still communicates the exchange without holding the
+        // 2D between-round screen on overlapping score cards for three seconds.
+        point_animation_time = new AnimationTime(0, 0.45f, 0);
+#endif
+        var animation = new Animation(point_animation_time);
         animation.animate_start.connect(animation_points_animate_start);
         animation.animate_finish.connect(animation_points_animate_finish);
         animation.animate.connect(animation_points_animate);
@@ -216,7 +258,7 @@ class ScoringPlayerElement : Control
         else
             transfer_label.visible = false;
 
-        transfer_label.position = Vec2(wind_label.size.width + padding * 2 + points_label.size.width, 0);
+        transfer_label.position = Vec2(points_position_x + points_label.size.width, 0);
     }
 
     private void set_score_text(float time)

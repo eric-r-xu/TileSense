@@ -9,6 +9,7 @@ public class RenderTile : WorldObjectTransformable
 
     private Color _front_color = Color.white();
     private Color _back_color = Color.black();
+    private WorldLabel rank_label;
 
     public RenderTile()
     {
@@ -20,6 +21,16 @@ public class RenderTile : WorldObjectTransformable
 
     protected override void added()
     {
+        rank_label = new WorldLabel();
+        add_object(rank_label);
+        rank_label.bold = true;
+        rank_label.font_size = 480;
+        rank_label.scale = Vec3(0.22f, 0.22f, 0.22f);
+        // Tile faces span roughly x ±0.14 and z ±0.18. Offset the marker into
+        // the upper-right corner so it supplements rather than obscures art.
+        rank_label.position = Vec3(0.10f, 0.134f, -0.165f);
+        rank_label.color = Color(0.92f, 0.01f, 0.01f, 1);
+
         reload();
     }
 
@@ -34,14 +45,37 @@ public class RenderTile : WorldObjectTransformable
         obb = Vec3(front.model.size.x, front.model.size.y + back.model.size.y, front.model.size.z);
 
         load_material();
+        update_rank_label();
+    }
+
+    private void update_rank_label()
+    {
+        int rank = 0;
+        int type = (int)tile_type.tile_type;
+        if (tile_type.tile_type >= TileType.MAN1 && tile_type.tile_type <= TileType.MAN9)
+            rank = type - (int)TileType.MAN1 + 1;
+        else if (tile_type.tile_type >= TileType.PIN1 && tile_type.tile_type <= TileType.PIN9)
+            rank = type - (int)TileType.PIN1 + 1;
+        else if (tile_type.tile_type >= TileType.SOU1 && tile_type.tile_type <= TileType.SOU9)
+            rank = type - (int)TileType.SOU1 + 1;
+        else if (tile_type.tile_type >= TileType.TON && tile_type.tile_type <= TileType.CHUN)
+            rank = type - (int)TileType.TON + 1;
+
+        string[] numerals = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX" };
+        rank_label.visible = rank > 0;
+        rank_label.text = rank > 0 ? numerals[rank] : "";
     }
 
     private void load_material()
     {
-        Color ambient = Color(0.1f, 0.1f, 0.1f, 1);
+        // A brighter, neutral ambient face preserves the texture's ink colors
+        // against the white tile instead of letting blue table lighting wash
+        // the drawing out.
+        Color ambient = Color(0.32f, 0.32f, 0.32f, 1);
 
         MaterialSpecification spec = front.material.spec;
         spec.ambient_color = UniformType.STATIC;
+        spec.specular_color = UniformType.NONE;
         spec.diffuse_color = UniformType.DYNAMIC;
         spec.target_color = UniformType.DYNAMIC;
         spec.alpha = UniformType.DYNAMIC;

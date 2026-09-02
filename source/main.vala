@@ -12,6 +12,14 @@ private static bool multithread_rendering = false;
 
 private static string? arg_search_dir = null;
 
+private static string? make_absolute_path(string? path, string working_dir)
+{
+    if (path == null || path.strip().length == 0 || GLib.Path.is_absolute(path))
+        return path;
+
+    return GLib.Path.build_filename(working_dir, path);
+}
+
 private static void parse_args(string[] args)
 {
     for (int i = 1; i < args.length; i++)
@@ -51,10 +59,18 @@ public static int main(string[] args)
     EfficiencyLogging.enabled = true;
 #endif
 
-    string? executable_dir = args.length > 0 ? GLib.Path.get_dirname(args[0]) : null;
+    // Environment.init() changes the working directory to the application
+    // bundle's Resources directory on macOS. Resolve command-line paths first
+    // so relative paths keep referring to the directory the user launched from.
+    string launch_dir = GLib.Environment.get_current_dir();
+    string? executable_dir = args.length > 0
+        ? make_absolute_path(GLib.Path.get_dirname(args[0]), launch_dir)
+        : null;
     string? built_search_dir = Build.SEARCH_DIR;
 
     parse_args(args);
+    built_search_dir = make_absolute_path(built_search_dir, launch_dir);
+    arg_search_dir = make_absolute_path(arg_search_dir, launch_dir);
 
     if (!Environment.init(debug))
     {
@@ -80,9 +96,17 @@ public static int main(string[] args)
         int multisamples = options.anti_aliasing == OnOffEnum.ON ? 2 : 0;
         Size2i window_size = Size2i(options.window_width, options.window_height);
         Vec2i window_position = Vec2i(options.window_x, options.window_y);
-        string window_name = EfficiencyLogging.enabled ? "OpenRiichi Tile Efficiency" : "OpenRiichi";
+        string window_name = EfficiencyLogging.enabled ? "OpenRiichi Tile Efficiency" :
+#if TWO_DIMENSIONAL
+            "OpenRiichi 2D";
+#else
+            "OpenRiichi";
+#endif
 
-        SDLGLEngine engine = new SDLGLEngine(multithread_rendering, Environment.version_info.to_string(), debug);
+        // Keep the training panel's top-left corner clear of renderer diagnostics.
+        bool renderer_debug = debug && !EfficiencyLogging.enabled;
+        SDLGLEngine engine = new SDLGLEngine(multithread_rendering,
+            Environment.version_info.to_string(), renderer_debug);
         if (!engine.init(window_name, window_size, window_position, options.screen_type, multisamples))
         {
             show_error("Could not init engine");

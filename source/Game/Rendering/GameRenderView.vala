@@ -1,6 +1,7 @@
 using Engine;
 using Gee;
 
+#if !TWO_DIMENSIONAL
 public class GameRenderView : View3D, IGameRenderer
 {
     public GameRenderContext context { get; private set; }
@@ -352,6 +353,11 @@ public class GameRenderView : View3D, IGameRenderer
         }
     }
 
+    // The 3D renderer already identifies the actionable discard spatially.
+    // The explicit pulse requested for call decisions is a 2D presentation
+    // feature, but the interface state is accepted here for renderer parity.
+    public void set_call_decision_state(bool active) {}
+
     /////////////////////
 
     private void buffer_action(RenderAction action)
@@ -447,3 +453,4 @@ public class GameRenderView : View3D, IGameRenderer
                         tiles[tile.ID].indicated = true;*/
     }
 }
+#endif

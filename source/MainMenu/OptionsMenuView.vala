@@ -488,6 +488,7 @@ private class AppearanceOptionsMenuView : SubOptionsMenuView
     }
 }
 
+#if !TWO_DIMENSIONAL
 private class TileMenuView : View3D
 {
     private RenderTile tile;
@@ -542,3 +543,49 @@ private class TileMenuView : View3D
         set { tile.back_color = value; }
     }
 }
+#else
+private class TileMenuView : View2D
+{
+    private LabelControl tile;
+    private TileTextureEnum _texture_type;
+    private Color _front_color = Color.white();
+    private Color _back_color = Color.black();
+
+    public override void added()
+    {
+        RectangleControl background = new RectangleControl();
+        add_child(background);
+        background.resize_style = ResizeStyle.RELATIVE;
+        background.color = Color(0.04f, 0.12f, 0.14f, 1);
+
+        tile = new LabelControl();
+        add_child(tile);
+        tile.text = "🀙";
+        tile.font_size = 96;
+        tile.color = _front_color;
+    }
+
+    public TileTextureEnum texture_type
+    {
+        get { return _texture_type; }
+        set { _texture_type = value; }
+    }
+
+    public Color front_color
+    {
+        get { return _front_color; }
+        set
+        {
+            _front_color = value;
+            if (tile != null)
+                tile.color = value;
+        }
+    }
+
+    public Color back_color
+    {
+        get { return _back_color; }
+        set { _back_color = value; }
+    }
+}
+#endif
