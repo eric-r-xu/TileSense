@@ -71,13 +71,11 @@ class GameMenuView : View2D
     private void press_continue() { continue_pressed(); }
     private void press_void_hand() { void_hand_pressed(); }
 
-#if TWO_DIMENSIONAL
     private void press_autoplay()
     {
         set_autoplay(!autoplay_enabled);
         autoplay_changed(autoplay_enabled);
     }
-#endif
 
     private void press_next() { observe_next_pressed(); score_view.next(); }
     private void press_prev() { observe_prev_pressed(); score_view.prev(); }
@@ -199,7 +197,6 @@ class GameMenuView : View2D
             add_child(efficiency_overlay);
             efficiency_overlay.clicked.connect(toggle_tile_efficiency);
 
-#if TWO_DIMENSIONAL
             autoplay_button = new MenuTextButton("MenuButtonSmall", "Autoplay");
             add_child(autoplay_button);
             autoplay_button.inner_anchor = Vec2(0.5f, 1);
@@ -215,7 +212,6 @@ class GameMenuView : View2D
             autoplay_status.position = Vec2(260, -88);
             autoplay_status.font_size = 16;
             set_autoplay(autoplay_enabled);
-#endif
         }
     }
 
@@ -223,12 +219,7 @@ class GameMenuView : View2D
     {
         float p = 0;
         float width = 0;
-        float table_offset = 0;
-#if TWO_DIMENSIONAL
-#if EFFICIENCY_LOGGING
-        table_offset = float.min(120, size.width * 0.07f);
-#endif
-#endif
+        float table_offset = float.min(120, size.width * 0.07f);
 
         foreach (var button in buttons)
             if (button.visible)

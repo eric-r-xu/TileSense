@@ -71,13 +71,11 @@ class ScoringInnerView : View2D
         riichi_view.position = Vec2(left.size.width + left.position.x, bottom.size.height + bottom.position.y);
         riichi_view.number = score.riichi_count;
         riichi_view.alpha = animate ? 0 : 1;
-#if TWO_DIMENSIONAL
         // The 2D stick glyph is visually indistinguishable from a disabled
         // slider at this scale. Riichi totals already appear in the round
         // status, so omit this redundant control from the score screen.
         riichi_view.visible = false;
         riichi_view.size = Size2(0, 0);
-#endif
 
         renchan_view = new ScoringStickNumberView(RenderStick.StickType.STICK_100, false);
         add_child(renchan_view);
@@ -88,10 +86,8 @@ class ScoringInnerView : View2D
         renchan_view.position = Vec2(-right.size.width + right.position.x, bottom.size.height + bottom.position.y);
         renchan_view.number = score.renchan;
         renchan_view.alpha = animate ? 0 : 1;
-#if TWO_DIMENSIONAL
         renchan_view.visible = false;
         renchan_view.size = Size2(0, 0);
-#endif
 
         wind_indicator = new LabelControl();
         add_child(wind_indicator);
@@ -159,21 +155,16 @@ class ScoringInnerView : View2D
 
     protected override void resized()
     {
-        float table_offset = 0;
-#if TWO_DIMENSIONAL
-#if EFFICIENCY_LOGGING
         // Match the advisory-column offset used by GameRenderView2D so the
         // result heading, winning hand, ponds, and seat placards do not jump
         // left of their live-play positions at round end.
-        table_offset = float.min(120, size.width * 0.07f);
+        float table_offset = float.min(120, size.width * 0.07f);
         if (bottom != null)
         {
             bottom.position = Vec2(table_offset, bottom.position.y);
             top.position = Vec2(table_offset, top.position.y);
             left.position = Vec2(table_offset, left.position.y);
         }
-#endif
-#endif
 
         if (view != null)
         {

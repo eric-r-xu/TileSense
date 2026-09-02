@@ -1,7 +1,10 @@
-name: open_riichi_mobile
-description: A touch-first, 2D Flutter client for OpenRiichi.
+name: tilesense
+description: >-
+  A touch-first Flutter port of TileSense's 2D tile-efficiency trainer:
+  offline singleplayer vs bots with a live shanten / ukeire guide and a
+  defensive safety panel.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -9,6 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:

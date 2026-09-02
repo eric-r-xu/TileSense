@@ -488,62 +488,6 @@ private class AppearanceOptionsMenuView : SubOptionsMenuView
     }
 }
 
-#if !TWO_DIMENSIONAL
-private class TileMenuView : View3D
-{
-    private RenderTile tile;
-
-    public override void added()
-    {
-        resize_style = ResizeStyle.ABSOLUTE;
-
-        float len = 4;
-        world.add_object(new WorldLight(){ position = Vec3( len, len, len / 2), intensity = 5 });
-        world.add_object(new WorldLight(){ position = Vec3(-len, len, len / 2), intensity = 5 });
-
-        tile = new RenderTile()
-        {
-            tile_type = new Tile(0, TileType.PIN1, false),
-            model_quality = QualityEnum.HIGH
-        };
-
-        world.add_object(tile);
-
-        WorldCamera camera = new TargetWorldCamera(tile);
-        world.add_object(camera);
-        world.active_camera = camera;
-        camera.position = Vec3(0, 1, 1);
-    }
-
-    protected override void process(DeltaArgs delta)
-    {
-        float r = delta.time;
-        tile.set_absolute_location(Vec3.empty(), Quat.from_euler_vec(Vec3(r * -0.2f, r * 0.1f, r * 0.0812f)));
-    }
-
-    public TileTextureEnum texture_type
-    {
-        get { return tile.texture_type; }
-        set
-        {
-            tile.texture_type = value;
-            tile.reload();
-        }
-    }
-
-    public Color front_color
-    {
-        get { return tile.front_color; }
-        set { tile.front_color = value; }
-    }
-
-    public Color back_color
-    {
-        get { return tile.back_color; }
-        set { tile.back_color = value; }
-    }
-}
-#else
 private class TileMenuView : View2D
 {
     private LabelControl tile;
@@ -588,4 +532,3 @@ private class TileMenuView : View2D
         set { _back_color = value; }
     }
 }
-#endif

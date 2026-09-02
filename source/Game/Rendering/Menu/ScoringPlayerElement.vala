@@ -102,7 +102,6 @@ class ScoringPlayerElement : Control
         score_label.alpha = s;
         set_score_text(s);
 
-#if TWO_DIMENSIONAL
         // Use the same compact, single-line wind/name/points placard shown
         // during normal 2D play instead of the oversized blue score card.
         background.visible = false;
@@ -131,7 +130,6 @@ class ScoringPlayerElement : Control
         transfer_label.outer_anchor = Vec2(0, 0.5f);
         score_label.visible = false;
         set_points_text(p, transfer);
-#endif
 
         score_sound = store.audio_player.load_sound("score_count");
         fade_sound = store.audio_player.load_sound("fade_in");
@@ -144,12 +142,9 @@ class ScoringPlayerElement : Control
 
     private void animation_points_start()
     {
-        AnimationTime point_animation_time = timings.players_points_counting;
-#if TWO_DIMENSIONAL
         // A short count still communicates the exchange without holding the
         // 2D between-round screen on overlapping score cards for three seconds.
-        point_animation_time = new AnimationTime(0, 0.45f, 0);
-#endif
+        AnimationTime point_animation_time = new AnimationTime(0, 0.45f, 0);
         var animation = new Animation(point_animation_time);
         animation.animate_start.connect(animation_points_animate_start);
         animation.animate_finish.connect(animation_points_animate_finish);

@@ -1,4 +1,3 @@
-#if TWO_DIMENSIONAL
 using Engine;
 using Gee;
 
@@ -153,4 +152,3 @@ public class ScoringStickView : View2D
         }
     }
 }
-#endif

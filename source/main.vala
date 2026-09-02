@@ -50,14 +50,12 @@ private static void parse_args(string[] args)
 private static void show_error(string message)
 {
     Environment.log(LogType.ERROR, "Main", message);
-    show_error_message_box("OpenRiichi (" + Environment.version_info.to_string() + ") startup error", message + "\n" + "Look at logs for more details");
+    show_error_message_box("TileSense (" + Environment.version_info.to_string() + ") startup error", message + "\n" + "Look at logs for more details");
 }
 
 public static int main(string[] args)
 {
-#if EFFICIENCY_LOGGING
     EfficiencyLogging.enabled = true;
-#endif
 
     // Environment.init() changes the working directory to the application
     // bundle's Resources directory on macOS. Resolve command-line paths first
@@ -96,12 +94,8 @@ public static int main(string[] args)
         int multisamples = options.anti_aliasing == OnOffEnum.ON ? 2 : 0;
         Size2i window_size = Size2i(options.window_width, options.window_height);
         Vec2i window_position = Vec2i(options.window_x, options.window_y);
-        string window_name = EfficiencyLogging.enabled ? "OpenRiichi Tile Efficiency" :
-#if TWO_DIMENSIONAL
-            "OpenRiichi 2D";
-#else
-            "OpenRiichi";
-#endif
+        string window_name = EfficiencyLogging.enabled ? "TileSense Tile Efficiency" :
+            "TileSense 2D";
 
         // Keep the training panel's top-left corner clear of renderer diagnostics.
         bool renderer_debug = debug && !EfficiencyLogging.enabled;
