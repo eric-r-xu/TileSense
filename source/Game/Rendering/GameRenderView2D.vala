@@ -1293,7 +1293,6 @@ private class Tile2DDisplay : Control
     private ImageControl image;
     private RectangleControl edge;
     private RectangleControl face;
-    private RectangleControl tedashi_mark;
     private TileNotation notation;
 
     public Tile2DDisplay(TileTextureEnum texture_type)
@@ -1330,24 +1329,14 @@ private class Tile2DDisplay : Control
         notation = new TileNotation(11, Vec2(-4, -4));
         add_child(notation);
         notation.scissor = true;
-
-        // A small corner pip marks a tedashi discard (a tile that was already
-        // in the player's hand) so it can be told apart from a tsumogiri (the
-        // tile just drawn). Added last so it stays above the face artwork.
-        tedashi_mark = new RectangleControl();
-        add_child(tedashi_mark);
-        tedashi_mark.resize_style = ResizeStyle.ABSOLUTE;
-        tedashi_mark.size = Size2(6, 6);
-        tedashi_mark.inner_anchor = Vec2(0, 1);
-        tedashi_mark.outer_anchor = Vec2(0, 1);
-        tedashi_mark.position = Vec2(3, -3);
-        tedashi_mark.color = Color(1, 0.55f, 0.05f, 1);
-        tedashi_mark.visible = false;
     }
 
-    public void set_tedashi(bool tedashi)
+    // Melds show the red index pinned to the tile's top-right corner and never
+    // clipped, unlike the pond where it moves to a seat-specific corner.
+    public void use_meld_notation()
     {
-        tedashi_mark.visible = tedashi;
+        if (notation != null)
+            notation.pin_top_right();
     }
 
     public void set_tile(Tile? tile)
@@ -1357,7 +1346,6 @@ private class Tile2DDisplay : Control
             return;
         image.visible = true;
         notation.visible = true;
-        tedashi_mark.visible = false;
         edge.color = Color(0.01f, 0.01f, 0.01f, 1);
         face.color = Color(0.96f, 0.96f, 0.93f, 1);
         // OpenGL2DShaderBuilder uses diffuse RGB as an additive tint. Keep the
@@ -1373,7 +1361,6 @@ private class Tile2DDisplay : Control
         visible = true;
         image.visible = false;
         notation.visible = false;
-        tedashi_mark.visible = false;
         face.color = Color(0.02f, 0.42f, 0.66f, 1);
         edge.color = Color(0.01f, 0.12f, 0.18f, 1);
     }
