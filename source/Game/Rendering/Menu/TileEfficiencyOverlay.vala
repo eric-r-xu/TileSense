@@ -116,13 +116,13 @@ class TileEfficiencyOverlay : Control
         float section_y = PADDING;
         int content_start = 0;
         // The autoplay choice sits on its own row across the top; both tables
-        // start below it. The inline tile glyph needs a little headroom so it
-        // is not clipped by the panel's top edge.
+        // start well below it so the tall inline tile glyph has clear headroom
+        // and never overlaps the headings.
         if (lines.length > 0 && lines[0].has_prefix("AUTOPLAY CHOICE:"))
         {
-            add_rich_line(lines[0], PADDING, PADDING + 26,
+            add_rich_line(lines[0], PADDING, PADDING + 34,
                 size.width - PADDING * 2, false, LINE_HEIGHT);
-            section_y = PADDING + 26 + LINE_HEIGHT + 8;
+            section_y = PADDING + 34 + LINE_HEIGHT + 24;
             content_start = 1;
         }
 
