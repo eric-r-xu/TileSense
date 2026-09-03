@@ -36,8 +36,8 @@ and 2D layout are maintained as part of TileSense.
 [toolchain](#the-vala-reference-client) installed:
 
 ```sh
-meson setup build -Dbuildtype=release && ninja -C build
-./build/TileSense --search-directory ./bin
+meson setup build-tilesense -Dbuildtype=release && ninja -C build-tilesense
+./build-tilesense/TileSense --search-directory ./bin
 ```
 
 Details, emulator/simulator launch, and release/store builds are in
@@ -200,17 +200,37 @@ submodule, with local macOS build fixes (VAO/FontConfig/cursor) and a
 
 ```sh
 git clone <this repo>
-meson setup build -Dbuildtype=release     # or -Dbuildtype=debug
+meson setup build-tilesense -Dbuildtype=release     # or -Dbuildtype=debug
+ninja -C build-tilesense
+./build-tilesense/TileSense --search-directory ./bin
+```
+
+`build-tilesense/` is the Meson build directory for this repository. If you
+already have a `build/` directory from another checkout, do not use its
+executable path: it may point at a different project and may not contain
+`TileSense`.
+
+If you prefer to use the directory name `build/`, configure it explicitly for
+this repository first:
+
+```sh
+meson setup --wipe build . -Dbuildtype=release
 ninja -C build
 ./build/TileSense --search-directory ./bin
 ```
+
+If `ninja -C build` reports that its source directory is
+`OpenRiichiFlutter`, the directory contains stale Meson metadata. Run the
+commands above, or use `build-tilesense/` instead. Do not edit `build.ninja`
+by hand; Meson regenerates it.
 
 In the app: **Singleplayer → Create Game → Start**. The other seats fill with
 `SimpleBot`; the efficiency panel appears on your turn (shift-click to
 minimize/expand). Guide results are also written to the `application` log.
 
-`ninja -C build install` installs it (needs the `bin/Data` folder on a search
-path); `ninja -C build uninstall` removes it.
+`ninja -C build-tilesense install` installs it (needs the `bin/Data` folder on a
+search path); `ninja -C build-tilesense uninstall` removes it. If you used the
+alternative `build/` directory, substitute `build` in those commands.
 
 <details>
 <summary>Toolchain setup (Vala / meson / SDL2 / GTK3 / libgee / GLEW / pango)</summary>
@@ -232,8 +252,8 @@ sudo apt install -y git valac gcc meson libgee-0.8-dev libgtk-3-dev \
 **Windows:** use MSYS2 + MinGW-w64 and install the `mingw-w64-x86_64-` builds of
 the same packages (`vala`, `meson`, `gcc`, `pkg-config`, `libgee`, `gtk3`,
 `glew`, `SDL2_image`, `SDL2_mixer`, `pango`). VS Code with a Vala extension is
-the recommended editor; a `tasks.json` running `ninja -C build` gives you
-incremental builds.
+the recommended editor; a `tasks.json` running `ninja -C build-tilesense` gives
+you incremental builds.
 
 </details>
 
