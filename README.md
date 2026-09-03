@@ -3,7 +3,9 @@
 
 <img width="215" height="215" alt="clefairy" src="https://github.com/user-attachments/assets/448af05c-3065-46d3-9c4e-73c267c7a1ae" />
 
+--- 
 
+[Flutter Desktop Web App](https://app.ericrxu.com/tilesense/)
 
 A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
 against bots while a live guide grades every discard — shanten, ukeire (tile
