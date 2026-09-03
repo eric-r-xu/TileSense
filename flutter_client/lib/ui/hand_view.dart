@@ -9,11 +9,15 @@ import 'meld_row.dart';
 import 'tile_face.dart';
 
 /// The human seat's concealed hand plus turn actions. An auto-sort toggle keeps
-/// the hand in tile order; the freshly drawn tile always carries a yellow
-/// border so it stays identifiable.
+/// the hand in tile order; while the guide is on the freshly drawn tile carries
+/// a yellow border so it stays identifiable.
 class HandView extends StatefulWidget {
-  const HandView({super.key, required this.game});
+  const HandView({super.key, required this.game, this.showGuide = true});
   final GameController game;
+
+  /// When false the guide is off: no yellow (drawn tile) or green (best discard)
+  /// tile highlights.
+  final bool showGuide;
 
   @override
   State<HandView> createState() => _HandViewState();
@@ -51,8 +55,9 @@ class _HandViewState extends State<HandView> {
     // Green = every discard tied for the best choice (all of them, if >1).
     // Yellow = the freshly drawn tile. A drawn tile that is also a top choice
     // gets both: a green tint with a yellow border.
+    final showGuide = widget.showGuide;
     final topTypes = <TileType>{};
-    if (canPlay) {
+    if (canPlay && showGuide) {
       final lines = game.report.lines;
       final low = lines.isEmpty
           ? 99
@@ -74,8 +79,12 @@ class _HandViewState extends State<HandView> {
       final isDrawn = drawn != null && tile.id == drawn.id;
       final tappable = canPlay && (!riichiLocked || isDrawn);
       final isTop = tappable && topTypes.contains(tile.type);
-      final Color? hc = isTop ? _green : (isDrawn ? _yellow : null);
-      final Color? border = (isDrawn && isTop) ? _yellow : null;
+      final Color? hc = !showGuide
+          ? null
+          : isTop
+              ? _green
+              : (isDrawn ? _yellow : null);
+      final Color? border = (showGuide && isDrawn && isTop) ? _yellow : null;
       return Padding(
         padding: EdgeInsets.only(left: separated ? 16 : 2, right: 2),
         child: InkWell(
@@ -117,8 +126,9 @@ class _HandViewState extends State<HandView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // The hand is centred; it scrolls (left-anchored) if it overflows.
-              // The small sort button rides just left of the tiles.
+              // Left-anchored so the resting tiles keep their position when the
+              // drawn tile is appended. Scrolls if it overflows. The small sort
+              // button rides just left of the tiles.
               Expanded(
                 child: LayoutBuilder(
                   builder: (ctx, c) => SingleChildScrollView(
@@ -126,7 +136,7 @@ class _HandViewState extends State<HandView> {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minWidth: c.maxWidth),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           _sortButton(),
                           const SizedBox(width: 6),

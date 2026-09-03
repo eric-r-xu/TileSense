@@ -9,6 +9,13 @@ import 'ui/table_view.dart';
 
 void main() => runApp(const TileSenseApp());
 
+/// The design resolution the UI is authored at. Everything is laid out in these
+/// logical pixels and then scaled as one unit, so the table never reflows.
+const Size kDesignSize = Size(1280, 800);
+
+/// Colour shown in the letterbox bars around the scaled canvas.
+const Color kLetterboxColor = Color(0xff042020);
+
 class TileSenseApp extends StatelessWidget {
   const TileSenseApp({super.key});
 
@@ -23,8 +30,83 @@ class TileSenseApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const GamePage(),
+        home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
       );
+}
+
+/// Renders [child] at [kDesignSize] and scales the whole thing to fit the
+/// window. With [BoxFit.scaleDown] it never exceeds 1:1 — on a large desktop
+/// Chrome window you get the app at its exact native pixels, centred, with
+/// letterbox bars; on a smaller window or a phone in landscape it shrinks
+/// uniformly to fit. Swap to [BoxFit.contain] if you'd rather it also scale up.
+class _FixedCanvas extends StatelessWidget {
+  const _FixedCanvas({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: kLetterboxColor,
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: SizedBox(
+            width: kDesignSize.width,
+            height: kDesignSize.height,
+            // Give the subtree a MediaQuery that reflects the fixed canvas, not
+            // the browser window, so SafeArea / layout math stays stable.
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                size: kDesignSize,
+                padding: EdgeInsets.zero,
+                viewInsets: EdgeInsets.zero,
+                viewPadding: EdgeInsets.zero,
+              ),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Blocks portrait orientation: web can't reliably lock rotation, so instead of
+/// squashing the landscape layout we show a rotate prompt until the viewport is
+/// wider than it is tall.
+class _LandscapeGate extends StatelessWidget {
+  const _LandscapeGate({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    if (size.width >= size.height) return child;
+    return const ColoredBox(
+      color: kLetterboxColor,
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.screen_rotation, color: Colors.white70, size: 48),
+              SizedBox(height: 16),
+              Text(
+                'Rotate your device to landscape to play TileSense',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class GamePage extends StatefulWidget {
@@ -75,6 +157,22 @@ class _GamePageState extends State<GamePage> {
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
             const SizedBox(width: 8),
+            // Guide toggle (clefairy) sits just after the logo.
+            IconButton(
+              tooltip: _showGuide ? 'Hide guide' : 'Show guide',
+              visualDensity: VisualDensity.compact,
+              icon: Opacity(
+                opacity: _showGuide ? 1 : 0.8,
+                child: Image.asset(
+                  'assets/clefairy.png',
+                  height: 30,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.school),
+                ),
+              ),
+              onPressed: () => setState(() => _showGuide = !_showGuide),
+            ),
+            const SizedBox(width: 8),
             const Text('TileSense'),
             const SizedBox(width: 16),
             // East-only vs. hanchan game length (hanchan is the default).
@@ -93,22 +191,32 @@ class _GamePageState extends State<GamePage> {
                 ),
               ),
             ),
+            // 2x fast-mode toggle.
+            AnimatedBuilder(
+              animation: _game,
+              builder: (context, _) => TextButton(
+                onPressed: () => _game.setFastMode(!_game.fastMode),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: _game.fastMode
+                      ? const Color(0xffffdf76)
+                      : Colors.white38,
+                ),
+                child: Text(
+                  '2x',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    decoration: _game.fastMode
+                        ? TextDecoration.none
+                        : TextDecoration.lineThrough,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: _showGuide ? 'Hide guide' : 'Show guide',
-            icon: Opacity(
-              opacity: _showGuide ? 1 : 0.8,
-              child: Image.asset(
-                'assets/clefairy.png',
-                height: 30,
-                filterQuality: FilterQuality.high,
-                errorBuilder: (_, __, ___) => const Icon(Icons.school),
-              ),
-            ),
-            onPressed: () => setState(() => _showGuide = !_showGuide),
-          ),
           AnimatedBuilder(
             animation: _game,
             builder: (context, _) => Row(
@@ -137,7 +245,7 @@ class _GamePageState extends State<GamePage> {
                 Column(
                   children: [
                     Expanded(child: TableView(game: _game)),
-                    HandView(game: _game),
+                    HandView(game: _game, showGuide: _showGuide),
                   ],
                 ),
                 if (_showGuide)
