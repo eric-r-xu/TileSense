@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('TileSense — 2D Efficiency'), findsWidgets);
+    expect(find.text('TileSense'), findsWidgets);
     expect(find.byType(TableView), findsOneWidget);
     expect(find.byType(HandView), findsOneWidget);
     expect(find.byType(EfficiencyOverlay), findsOneWidget);

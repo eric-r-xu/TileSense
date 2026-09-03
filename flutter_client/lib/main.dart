@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'game/game_controller.dart';
 import 'ui/efficiency_overlay.dart';
@@ -13,7 +14,7 @@ class TileSenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'TileSense — 2D Efficiency',
+        title: 'TileSense',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
@@ -38,20 +39,74 @@ class _GamePageState extends State<GamePage> {
   bool _showGuide = true;
 
   @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _game.dispose();
     super.dispose();
+  }
+
+  // Esc toggles pause (works on web where widget shortcuts miss the canvas).
+  bool _onKey(KeyEvent e) {
+    if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.escape) {
+      _game.togglePause();
+      return true;
+    }
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TileSense — 2D Efficiency'),
+        titleSpacing: 12,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/tilesense.png',
+              height: 28,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+            const SizedBox(width: 8),
+            const Text('TileSense'),
+            const SizedBox(width: 16),
+            // East-only vs. hanchan game length (hanchan is the default).
+            AnimatedBuilder(
+              animation: _game,
+              builder: (context, _) => TextButton(
+                onPressed: () => _game.setHanchan(!_game.hanchan),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: const Color(0xffe9d58f),
+                ),
+                child: Text(
+                  _game.hanchan ? 'Hanchan' : 'East only',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: _showGuide ? 'Hide guide' : 'Show guide',
-            icon: Icon(_showGuide ? Icons.school : Icons.school_outlined),
+            icon: Opacity(
+              opacity: _showGuide ? 1 : 0.8,
+              child: Image.asset(
+                'assets/clefairy.png',
+                height: 30,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) => const Icon(Icons.school),
+              ),
+            ),
             onPressed: () => setState(() => _showGuide = !_showGuide),
           ),
           AnimatedBuilder(
@@ -88,8 +143,25 @@ class _GamePageState extends State<GamePage> {
                 if (_showGuide)
                   Positioned(
                     left: 8,
-                    bottom: 120,
+                    bottom: 8,
                     child: EfficiencyOverlay(report: _game.report),
+                  ),
+                if (_game.paused)
+                  Positioned.fill(
+                    child: ColoredBox(
+                      color: const Color(0xcc000000),
+                      child: const Center(
+                        child: Text(
+                          'PAUSED\npress Esc to resume',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 if (_game.phase != GamePhase.playing) ScoringView(game: _game),
               ],

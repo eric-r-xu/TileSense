@@ -51,13 +51,24 @@ class RoundResult {
     required this.label,
     this.loser,
     this.score,
+    this.scores = const [],
+    this.winTiles = const {},
     this.tenpaiAtDraw = const [],
   });
 
   final RoundEndKind kind;
   final List<int> winners;
   final int? loser;
+
+  /// The first winner's score (kept for existing callers).
   final HandScore? score;
+
+  /// One [HandScore] per entry in [winners], in the same order — used to page
+  /// through every hand on a multiple ron.
+  final List<HandScore> scores;
+
+  /// The winning tile for each winner seat.
+  final Map<int, Tile> winTiles;
   final Map<int, int> pointDeltas;
   final List<int> tenpaiAtDraw;
   final String label;
@@ -78,7 +89,8 @@ class Round {
     required this.honba,
     required this.riichiSticks,
     required List<int> startingPoints,
-  }) : wall = Wall(seed) {
+  })  : wall = Wall(seed),
+        startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];
       return SeatState(i, wind, i == dealer, startingPoints[i]);
@@ -96,6 +108,15 @@ class Round {
   final Wind roundWind;
   int honba;
   int riichiSticks;
+
+  /// Each seat's points at the start of the round; the result's [pointDeltas]
+  /// are measured against this so they reflect the full hand (riichi stick
+  /// payments included) and always balance.
+  final List<int> startPoints;
+
+  /// The net change for each seat over the whole hand.
+  Map<int, int> _handDeltas() =>
+      {for (var i = 0; i < 4; i++) i: seats[i].points - startPoints[i]};
 
   late final List<SeatState> seats;
   int turn = 0;
@@ -417,7 +438,9 @@ class Round {
       winners: ronners,
       loser: discarder,
       score: firstScore,
-      pointDeltas: deltas,
+      scores: [for (final w in ronners) _score(seats[w], seats[w].hand, discard, isTsumo: false)],
+      winTiles: {for (final w in ronners) w: discard},
+      pointDeltas: _handDeltas(),
       label: ronners.length > 1 ? 'Multiple Ron' : 'Ron',
     );
     _postFinish(dealerRepeat: dealerWins);
@@ -450,7 +473,9 @@ class Round {
       winners: winners,
       loser: loser,
       score: score,
-      pointDeltas: deltas,
+      scores: [score],
+      winTiles: winTile != null ? {w: winTile} : const {},
+      pointDeltas: _handDeltas(),
       label: 'Tsumo',
     );
     _postFinish(dealerRepeat: winners.contains(dealer));
@@ -481,7 +506,7 @@ class Round {
     result = RoundResult(
       kind: RoundEndKind.exhaustiveDraw,
       winners: const [],
-      pointDeltas: deltas,
+      pointDeltas: _handDeltas(),
       tenpaiAtDraw: tenpai,
       label: 'Exhaustive Draw',
     );
