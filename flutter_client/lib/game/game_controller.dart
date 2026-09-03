@@ -12,6 +12,7 @@ import '../logic/bot.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
 import '../logic/tile.dart';
+import 'sfx.dart';
 
 const int kHumanSeat = 0;
 
@@ -139,6 +140,7 @@ class GameController extends ChangeNotifier {
       if (phase != GamePhase.roundEnd && phase != GamePhase.gameEnd) {
         phase = GamePhase.roundEnd;
         _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
+        _playRoundEndSfx();
         notifyListeners();
       }
       return;
@@ -169,8 +171,10 @@ class GameController extends ChangeNotifier {
     if (decision.tsumo) {
       round.declareTsumo(seat);
     } else if (decision.closedKan != null) {
+      Sfx.i.play(SfxKind.kan);
       round.closedKan(seat, decision.closedKan!);
     } else {
+      if (decision.riichi) Sfx.i.play(SfxKind.riichi);
       final tile = decision.discard ?? round.legalDiscards(seat).first;
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
@@ -194,10 +198,34 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[opt.seat] = c;
     }
     _humanCallOption = null;
+    _playCallSfx(choices.values);
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
+  }
+
+  /// A win sound at round end, a call sound for a pon / kan mid-round.
+  void _playRoundEndSfx() {
+    switch (round.result?.kind) {
+      case RoundEndKind.ron:
+        Sfx.i.play(SfxKind.ron);
+        break;
+      case RoundEndKind.tsumo:
+        Sfx.i.play(SfxKind.tsumo);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _playCallSfx(Iterable<CallType> calls) {
+    if (calls.contains(CallType.ron)) return; // handled at round end
+    if (calls.contains(CallType.kan)) {
+      Sfx.i.play(SfxKind.kan);
+    } else if (calls.contains(CallType.pon)) {
+      Sfx.i.play(SfxKind.pon);
+    }
   }
 
   CallType _autoHumanCall(CallOption opt) {
@@ -211,6 +239,7 @@ class GameController extends ChangeNotifier {
     if (round.finished || round.turn != kHumanSeat || round.phase != RoundPhase.discarding) {
       return;
     }
+    if (declareRiichi) Sfx.i.play(SfxKind.riichi);
     round.discard(kHumanSeat, tile, declareRiichi: declareRiichi);
     _refreshReport();
     notifyListeners();
@@ -227,6 +256,7 @@ class GameController extends ChangeNotifier {
 
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
+      Sfx.i.play(SfxKind.kan);
       round.closedKan(kHumanSeat, type);
       _refreshReport();
       notifyListeners();
@@ -248,6 +278,7 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[other.seat] = c;
     }
     _humanCallOption = null;
+    _playCallSfx(choices.values);
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();

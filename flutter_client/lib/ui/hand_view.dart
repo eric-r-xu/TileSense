@@ -7,10 +7,34 @@ import '../logic/tile.dart';
 import 'tile_face.dart';
 
 /// The human seat's concealed hand plus turn actions. The freshly drawn tile is
-/// shown slightly separated on the right, as in the desktop 2D renderer.
-class HandView extends StatelessWidget {
+/// always shown slightly separated on the far right; an auto-sort toggle keeps
+/// the resting 13 in tile order (or leaves them in draw order).
+class HandView extends StatefulWidget {
   const HandView({super.key, required this.game});
   final GameController game;
+
+  @override
+  State<HandView> createState() => _HandViewState();
+}
+
+class _HandViewState extends State<HandView> {
+  bool _autoSort = true;
+
+  /// Tile ids of the resting hand in draw order, kept stable across rebuilds so
+  /// "auto-sort off" leaves tiles where they were.
+  final List<int> _drawOrder = [];
+
+  GameController get game => widget.game;
+
+  List<Tile> _orderedResting(List<Tile> resting) {
+    if (_autoSort) return sortByType(resting);
+    final present = {for (final t in resting) t.id: t};
+    _drawOrder.removeWhere((id) => !present.containsKey(id));
+    for (final t in resting) {
+      if (!_drawOrder.contains(t.id)) _drawOrder.add(t.id);
+    }
+    return [for (final id in _drawOrder) present[id]!];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +45,7 @@ class HandView extends StatelessWidget {
     final report = game.report;
 
     final resting = [...seat.hand]..remove(drawn);
-    final ordered = sortByType(resting);
+    final ordered = _orderedResting(resting);
 
     DiscardLine? lineFor(TileType t) {
       for (final l in report.lines) {
@@ -30,38 +54,39 @@ class HandView extends StatelessWidget {
       return null;
     }
 
+    // Blue = the autoplay pick; green = any best-EV / safest tie. Mirrors the
+    // highlighting in the efficiency guide.
+    final topEv = report.lines.isEmpty
+        ? 0
+        : report.lines
+            .map((l) => l.expectedValue.round())
+            .reduce((a, b) => a > b ? a : b);
+    final topSafety = report.defending
+        ? report.lines
+            .map((l) => l.safety?.rating ?? -1)
+            .fold<int>(-1, (a, b) => a > b ? a : b)
+        : -1;
+    Color? highlightFor(DiscardLine? line) {
+      if (!canPlay || line == null) return null;
+      if (line.recommended) return const Color(0xff3d7bff);
+      final evTie = topEv > 0 && line.expectedValue.round() == topEv;
+      final safeTie =
+          topSafety >= 0 && (line.safety?.rating ?? -1) == topSafety;
+      return (evTie || safeTie) ? const Color(0xff43a047) : null;
+    }
+
     Widget tileButton(Tile tile, {bool separated = false}) {
       final line = canPlay ? lineFor(tile.type) : null;
       return Padding(
-        padding: EdgeInsets.only(left: separated ? 14 : 2, right: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (line != null)
-              Text(
-                line.shanten == -1 ? 'win' : 'u${line.ukeire}',
-                style: TextStyle(
-                  fontSize: 9,
-                  color: line.recommended
-                      ? const Color(0xff81c784)
-                      : line.bestUkeire
-                          ? const Color(0xffffdf76)
-                          : Colors.white54,
-                  fontWeight: line.bestUkeire ? FontWeight.bold : FontWeight.normal,
-                ),
-              )
-            else
-              const SizedBox(height: 12),
-            InkWell(
-              onTap: canPlay ? () => _discard(context, tile) : null,
-              borderRadius: BorderRadius.circular(6),
-              child: TileFace(
-                tile: tile,
-                size: TileSize.large,
-                highlight: canPlay && (line?.recommended ?? false),
-              ),
-            ),
-          ],
+        padding: EdgeInsets.only(left: separated ? 16 : 2, right: 2),
+        child: InkWell(
+          onTap: canPlay ? () => _discard(context, tile) : null,
+          borderRadius: BorderRadius.circular(6),
+          child: TileFace(
+            tile: tile,
+            size: TileSize.large,
+            highlightColor: highlightFor(line),
+          ),
         ),
       );
     }
@@ -75,17 +100,54 @@ class HandView extends StatelessWidget {
         children: [
           _actionBar(context),
           const SizedBox(height: 6),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final t in ordered) tileButton(t),
-                if (drawn != null) tileButton(drawn, separated: true),
-              ],
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _sortButton(),
+              const SizedBox(width: 6),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (ctx, c) => SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: c.maxWidth),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (final t in ordered) tileButton(t),
+                          // The latest draw is always kept at the far right.
+                          if (drawn != null) tileButton(drawn, separated: true),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _sortButton() {
+    return Tooltip(
+      message: _autoSort ? 'Auto-sort on' : 'Auto-sort off (draw order)',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => setState(() => _autoSort = !_autoSort),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          decoration: BoxDecoration(
+            color: _autoSort ? const Color(0xff00695c) : const Color(0xff26403f),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            _autoSort ? Icons.sort : Icons.sort_outlined,
+            size: 20,
+            color: _autoSort ? Colors.white : Colors.white60,
+          ),
+        ),
       ),
     );
   }
@@ -167,7 +229,11 @@ class HandView extends StatelessWidget {
       ));
     }
 
-    return Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: buttons);
+    return Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: buttons);
   }
 
   Widget _btn(String label, Color color, VoidCallback onTap) => ElevatedButton(
