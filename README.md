@@ -1,5 +1,8 @@
 # TileSense
 
+<img width="284" height="280" alt="image" src="https://github.com/user-attachments/assets/561b52bb-5498-47b9-80b5-24bb5359254f" />
+
+
 A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
 against bots while a live guide grades every discard — shanten, ukeire (tile
 acceptance), the recommended tile — and, when an opponent declares riichi,
