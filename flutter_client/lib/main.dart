@@ -143,8 +143,8 @@ class _GamePageState extends State<GamePage> {
                 if (_showGuide)
                   Positioned(
                     left: 8,
-                    bottom: 8,
-                    child: EfficiencyOverlay(report: _game.report),
+                    top: 8,
+                    child: EfficiencyOverlay(game: _game, report: _game.report),
                   ),
                 if (_game.paused)
                   Positioned.fill(

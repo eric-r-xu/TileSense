@@ -1,20 +1,24 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
-/// Call / win events that get a sound effect. The TileSense Vala build ships
-/// only generic UI sounds (`click`, `hint`, `score_count`), so those are reused:
-/// `hint` for a riichi declaration, `click` for a call (chi / pon / kan), and
-/// `score_count` for a win (ron / tsumo).
+/// Generic UI blips (from the Vala build's `click` / `hint` / `score_count`),
+/// played for every seat.
 enum SfxKind { riichi, chi, pon, kan, ron, tsumo, discard }
 
-/// Fire-and-forget sound-effect player. Browsers block audio until the first
-/// user gesture, so the first tap in the app is what actually "enables" sound;
-/// every call is wrapped in try/catch so a blocked context never breaks play.
+/// Orderic voice lines — only played for the human seat's own actions.
+enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah }
+
+/// Fire-and-forget sound player. Browsers block audio until the first user
+/// gesture, so the first tap in the app is what "enables" sound; every call is
+/// wrapped in try/catch so a blocked context never breaks play. Voice lines get
+/// their own player so they can overlap the generic blips.
 class Sfx {
   Sfx._();
   static final Sfx i = Sfx._();
 
   final AudioPlayer _player = AudioPlayer(playerId: 'tilesense-sfx')
+    ..setReleaseMode(ReleaseMode.stop);
+  final AudioPlayer _voice = AudioPlayer(playerId: 'tilesense-voice')
     ..setReleaseMode(ReleaseMode.stop);
 
   bool enabled = true;
@@ -29,20 +33,35 @@ class Sfx {
     SfxKind.discard: 'sfx/click.wav',
   };
 
-  void play(SfxKind kind) {
-    if (!enabled) return;
-    final path = _asset[kind];
-    if (path == null) return;
+  static const Map<VoiceKind, String> _voiceAsset = {
+    VoiceKind.chi: 'orderic/Orderic_Chi.wav',
+    VoiceKind.pon: 'orderic/Orderic_Pon.wav',
+    VoiceKind.kan: 'orderic/Orderic_Kan.wav',
+    VoiceKind.riichi: 'orderic/Orderic_Riichi.wav',
+    VoiceKind.ron: 'orderic/Orderic_ron.wav',
+    VoiceKind.tsumo: 'orderic/Orderic_Tsumo.wav',
+    VoiceKind.yeah: 'orderic/Orderic_Yeah.wav',
+  };
+
+  void play(SfxKind kind) => _fire(_player, _asset[kind],
+      volume: kind == SfxKind.discard ? 0.35 : 0.7);
+
+  void voice(VoiceKind kind) => _fire(_voice, _voiceAsset[kind], volume: 0.9);
+
+  void _fire(AudioPlayer player, String? path, {required double volume}) {
+    if (!enabled || path == null) return;
     () async {
       try {
-        await _player.stop();
-        await _player.play(AssetSource(path),
-            volume: kind == SfxKind.discard ? 0.35 : 0.7);
+        await player.stop();
+        await player.play(AssetSource(path), volume: volume);
       } catch (e) {
-        if (kDebugMode) debugPrint('Sfx($kind) failed: $e');
+        if (kDebugMode) debugPrint('Sfx($path) failed: $e');
       }
     }();
   }
 
-  void dispose() => _player.dispose();
+  void dispose() {
+    _player.dispose();
+    _voice.dispose();
+  }
 }

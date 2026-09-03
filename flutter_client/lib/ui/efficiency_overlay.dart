@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../game/game_controller.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/round.dart';
 import 'tile_face.dart';
 
-/// The translucent bottom-left training panel. Mirrors the Vala client's
-/// `TileEfficiencyOverlay`: an "expected value / efficiency" table plus, when an
-/// opponent is in riichi, a defensive safety table.
+/// The translucent top-left training panel: an "expected value / efficiency"
+/// table, a defensive safety table when an opponent is in riichi, and — when a
+/// call is on offer — the recommended response.
 class EfficiencyOverlay extends StatefulWidget {
-  const EfficiencyOverlay({super.key, required this.report});
+  const EfficiencyOverlay({super.key, required this.game, required this.report});
+  final GameController game;
   final EfficiencyReport report;
 
   @override
@@ -36,6 +39,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             _header(r),
             if (!_minimized) ...[
               const SizedBox(height: 6),
+              if (widget.game.awaitingHumanCall) _callAdvice(),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
@@ -103,6 +107,70 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             ),
           Icon(_minimized ? Icons.expand_more : Icons.expand_less,
               size: 16, color: Colors.white54),
+        ],
+      ),
+    );
+  }
+
+  /// Shown while a call (pon/kan/ron) is on offer to the human: the tile that
+  /// was cut and the response the guide recommends.
+  Widget _callAdvice() {
+    final opt = widget.game.humanCallOption;
+    final tile = widget.game.round.pendingDiscard;
+    if (opt == null || tile == null) return const SizedBox.shrink();
+    final rec = widget.game.recommendedCall ?? CallType.none;
+    final recLabel = switch (rec) {
+      CallType.pon => 'PON',
+      CallType.kan => 'KAN',
+      CallType.ron => 'RON',
+      CallType.none => 'PASS',
+    };
+    final offered = [
+      for (final t in [CallType.ron, CallType.kan, CallType.pon])
+        if (opt.types.contains(t)) t.name.toUpperCase(),
+      'PASS',
+    ].join(' · ');
+    final act = rec != CallType.none;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+      decoration: BoxDecoration(
+        color: act ? const Color(0x3343a047) : const Color(0x22ffffff),
+        border: Border.all(
+            color: act ? const Color(0xff43a047) : const Color(0x44ffffff)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              TileFace(type: tile.type, size: TileSize.small),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('CALL DECISION',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700)),
+                    Text('Recommended: $recLabel',
+                        style: TextStyle(
+                            color: act
+                                ? const Color(0xff9ccc65)
+                                : Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text('Options: $offered',
+              style: const TextStyle(color: Colors.white54, fontSize: 10)),
         ],
       ),
     );

@@ -178,6 +178,9 @@ class TableView extends StatelessWidget {
     final s = round.seats[seat];
     if (s.pond.isEmpty && !s.riichi) return const SizedBox.shrink();
     final last = s.pond.length - 1;
+    // Pulse the just-cut tile while the human is being offered a call on it.
+    final flashLast =
+        game.awaitingHumanCall && round.pendingDiscardSeat == seat;
     final rows = <Widget>[];
     for (var start = 0; start < s.pond.length; start += _pondCols) {
       final end = (start + _pondCols).clamp(0, s.pond.length);
@@ -188,14 +191,24 @@ class TableView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(0.5),
               child: i == last
-                  ? _popIn(
-                      ValueKey('pond-$seat-${s.pond.length}'),
-                      TileFace(
-                        tile: s.pond[i],
-                        size: TileSize.normal,
-                        rotationQuarterTurns: i == s.riichiPondIndex ? 1 : 0,
-                      ),
-                    )
+                  ? (flashLast
+                      ? _FlashTile(
+                          child: TileFace(
+                            tile: s.pond[i],
+                            size: TileSize.normal,
+                            rotationQuarterTurns:
+                                i == s.riichiPondIndex ? 1 : 0,
+                          ),
+                        )
+                      : _popIn(
+                          ValueKey('pond-$seat-${s.pond.length}'),
+                          TileFace(
+                            tile: s.pond[i],
+                            size: TileSize.normal,
+                            rotationQuarterTurns:
+                                i == s.riichiPondIndex ? 1 : 0,
+                          ),
+                        ))
                   : TileFace(
                       tile: s.pond[i],
                       size: TileSize.normal,
@@ -344,6 +357,58 @@ class TableView extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+/// A tile that pulses (glow + gentle scale) to point at the tile a pending
+/// call would act on.
+class _FlashTile extends StatefulWidget {
+  const _FlashTile({required this.child});
+  final Widget child;
+
+  @override
+  State<_FlashTile> createState() => _FlashTileState();
+}
+
+class _FlashTileState extends State<_FlashTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) {
+        final t = Curves.easeInOut.transform(_c.value);
+        return Transform.scale(
+          scale: 1.0 + 0.10 * t,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              boxShadow: [
+                BoxShadow(
+                  color: Color.lerp(
+                      const Color(0x00ffd54f), const Color(0xffffd54f), t)!,
+                  blurRadius: 6 + 10 * t,
+                  spreadRadius: 1 + 2 * t,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
     );
   }
 }
