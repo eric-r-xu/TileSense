@@ -97,32 +97,6 @@ enum TileType {
     }
   }
 
-  /// The short red corner index drawn on a tile face, matching the Vala
-  /// client's `tile_notation`: the bare number for a suit tile (the suit is
-  /// already clear from the face), and E/S/W/N for the winds, B/G/R for the
-  /// white / green / red dragons.
-  String get notation {
-    if (isSuit) return '$number';
-    switch (this) {
-      case TileType.ton:
-        return 'E';
-      case TileType.nan:
-        return 'S';
-      case TileType.shaa:
-        return 'W';
-      case TileType.pei:
-        return 'N';
-      case TileType.haku:
-        return 'B';
-      case TileType.hatsu:
-        return 'G';
-      case TileType.chun:
-        return 'R';
-      default:
-        return '';
-    }
-  }
-
   /// The Unicode mahjong glyph for this tile face.
   String get glyph => _glyphs[index];
 

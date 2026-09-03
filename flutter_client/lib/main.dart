@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'game/game_controller.dart';
 import 'ui/efficiency_overlay.dart';
@@ -14,7 +13,7 @@ class TileSenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'TileSense',
+        title: 'TileSense — 2D Efficiency',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
@@ -48,41 +47,11 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 12,
-        title: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => launchUrl(
-              Uri.parse('https://github.com/eric-r-xu/TileSense'),
-              mode: LaunchMode.externalApplication,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/tilesense.png',
-                  height: 30,
-                  filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-                const SizedBox(width: 8),
-                const Text('TileSense'),
-              ],
-            ),
-          ),
-        ),
+        title: const Text('TileSense — 2D Efficiency'),
         actions: [
           IconButton(
             tooltip: _showGuide ? 'Hide guide' : 'Show guide',
-            icon: Opacity(
-              opacity: _showGuide ? 1.0 : 0.4,
-              child: Image.asset(
-                'assets/clefairy.png',
-                height: 26,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => const Icon(Icons.school),
-              ),
-            ),
+            icon: Icon(_showGuide ? Icons.school : Icons.school_outlined),
             onPressed: () => setState(() => _showGuide = !_showGuide),
           ),
           AnimatedBuilder(
@@ -119,8 +88,8 @@ class _GamePageState extends State<GamePage> {
                 if (_showGuide)
                   Positioned(
                     left: 8,
-                    top: 8,
-                    child: EfficiencyOverlay(game: _game, report: _game.report),
+                    bottom: 120,
+                    child: EfficiencyOverlay(report: _game.report),
                   ),
                 if (_game.phase != GamePhase.playing) ScoringView(game: _game),
               ],

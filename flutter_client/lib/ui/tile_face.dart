@@ -12,10 +12,8 @@ class TileFace extends StatelessWidget {
     this.faceDown = false,
     this.size = TileSize.normal,
     this.highlight = false,
-    this.highlightColor,
     this.dimmed = false,
     this.rotationQuarterTurns = 0,
-    this.showNotation = true,
   });
 
   final Tile? tile;
@@ -23,16 +21,8 @@ class TileFace extends StatelessWidget {
   final bool faceDown;
   final TileSize size;
   final bool highlight;
-
-  /// When set, tints the face and draws a thick border in this colour — used to
-  /// flag the autoplay pick (blue) and best-EV / safest ties (green).
-  final Color? highlightColor;
   final bool dimmed;
   final int rotationQuarterTurns;
-
-  /// Draw the small red corner index (number / wind / dragon letter), as the
-  /// Vala 2D renderer does on every visible tile.
-  final bool showNotation;
 
   TileType? get _type => tile?.type ?? type;
   bool get _aka => tile?.aka ?? false;
@@ -53,59 +43,25 @@ class TileFace extends StatelessWidget {
       );
     } else {
       final t = _type!;
-      final note = t.notation;
-      final hc = highlightColor;
       face = Container(
         width: dims.$1,
         height: dims.$2,
-        clipBehavior: Clip.hardEdge,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: hc != null
-              ? Color.alphaBlend(hc.withValues(alpha: 0.22),
-                  const Color(0xffeae7d7))
-              : highlight
-                  ? const Color(0xfffff6d8)
-                  : const Color(0xffeae7d7),
+          color: highlight ? const Color(0xfffff6d8) : const Color(0xffeae7d7),
           border: Border.all(
-            color: hc ??
-                (highlight
-                    ? const Color(0xffd39e2e)
-                    : const Color(0xff403d35)),
-            width: hc != null ? 3 : (highlight ? 2 : 1),
+            color: highlight ? const Color(0xffd39e2e) : const Color(0xff403d35),
+            width: highlight ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(dims.$1 * 0.14),
         ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // The glyph is deliberately oversized so the tile symbol fills
-            // ~90% of the face; the container clips the overhang.
-            Center(
-              child: Text(
-                t.glyph,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: dims.$2 * 1.18,
-                  height: 1.0,
-                  color: _aka ? const Color(0xffc62828) : Colors.black87,
-                ),
-              ),
-            ),
-            if (showNotation && note.isNotEmpty)
-              Positioned(
-                top: dims.$2 * 0.02,
-                right: dims.$1 * 0.06,
-                child: Text(
-                  note,
-                  style: TextStyle(
-                    fontSize: (dims.$2 * 0.34).clamp(7.0, 15.0),
-                    height: 1.0,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xffd90000),
-                  ),
-                ),
-              ),
-          ],
+        child: Text(
+          t.glyph,
+          style: TextStyle(
+            fontSize: dims.$3,
+            height: 1.0,
+            color: _aka ? const Color(0xffc62828) : Colors.black87,
+          ),
         ),
       );
     }
