@@ -1,6 +1,8 @@
-# TileSense
+# <img width="35" height="35" alt="tileSense" src="https://github.com/user-attachments/assets/5b178736-39e4-489d-9bc5-3ffa7f927057" /> TileSense 
 
-<img width="284" height="280" alt="image" src="https://github.com/user-attachments/assets/561b52bb-5498-47b9-80b5-24bb5359254f" />
+
+<img width="215" height="215" alt="clefairy" src="https://github.com/user-attachments/assets/448af05c-3065-46d3-9c4e-73c267c7a1ae" />
+
 
 
 A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
