@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Vendored the `Engine/` rendering engine directly into the repo instead of a
+  git submodule pointing at a personal fork; it now tracks
+  [FluffyStuff/Engine](https://github.com/FluffyStuff/Engine) as its upstream,
+  with local macOS build fixes and a `Container.process_paused` addition kept in
+  tree. Removed `.gitmodules`.
+
 ## [0.2.1.1] - 2020-05-04
 
 ### Fixed

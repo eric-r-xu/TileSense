@@ -130,10 +130,17 @@ and the other three build targets have been removed; the server, bots,
 networking, menus, scoring, and rules are untouched, so singleplayer and
 multiplayer both still work.
 
+`Engine/` is the rendering engine from
+[FluffyStuff/Engine](https://github.com/FluffyStuff/Engine) (GPLv3, see
+`Engine/LICENSE`), vendored directly into this repo rather than pulled as a
+submodule, with local macOS build fixes (VAO/FontConfig/cursor) and a
+`Container.process_paused` addition. `meson.build` compiles it in via
+`subdir('Engine')`.
+
 ### Build & run
 
 ```sh
-git clone --recurse-submodules <this repo>
+git clone <this repo>
 meson setup build -Dbuildtype=release     # or -Dbuildtype=debug
 ninja -C build
 ./build/TileSense --search-directory ./bin
