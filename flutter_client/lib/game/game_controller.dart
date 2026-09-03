@@ -151,6 +151,8 @@ class GameController extends ChangeNotifier {
     final tobi = _points.any((p) => p < 0);
     if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
       phase = GamePhase.gameEnd;
+      final best = _points.reduce((a, b) => a > b ? a : b);
+      if (_points[kHumanSeat] == best) Sfx.i.voice(VoiceKind.yeah);
       notifyListeners();
       return;
     }
@@ -249,12 +251,17 @@ class GameController extends ChangeNotifier {
 
   /// A win chime at round end, a call click for a mid-round pon / kan / chi.
   void _playRoundEndSfx() {
-    switch (round.result?.kind) {
+    final res = round.result;
+    if (res == null) return;
+    final humanWon = res.winners.contains(kHumanSeat);
+    switch (res.kind) {
       case RoundEndKind.ron:
         Sfx.i.play(SfxKind.ron);
+        if (humanWon) Sfx.i.voice(VoiceKind.ron);
         break;
       case RoundEndKind.tsumo:
         Sfx.i.play(SfxKind.tsumo);
+        if (humanWon) Sfx.i.voice(VoiceKind.tsumo);
         break;
       default:
         break;
@@ -282,6 +289,7 @@ class GameController extends ChangeNotifier {
       return;
     }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
+    if (declareRiichi) Sfx.i.voice(VoiceKind.riichi);
     _noteDiscard(kHumanSeat, tile);
     round.discard(kHumanSeat, tile, declareRiichi: declareRiichi);
     _refreshReport();
@@ -293,6 +301,7 @@ class GameController extends ChangeNotifier {
     if (round.canTsumo(kHumanSeat) && round.turn == kHumanSeat) {
       round.declareTsumo(kHumanSeat);
       phase = GamePhase.roundEnd;
+      _playRoundEndSfx();
       notifyListeners();
     }
   }
@@ -300,6 +309,7 @@ class GameController extends ChangeNotifier {
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
+      Sfx.i.voice(VoiceKind.kan);
       round.closedKan(kHumanSeat, type);
       _refreshReport();
       notifyListeners();
@@ -322,6 +332,11 @@ class GameController extends ChangeNotifier {
     }
     _humanCallOption = null;
     _playCallSfx(choices.values);
+    if (choice == CallType.pon) {
+      Sfx.i.voice(VoiceKind.pon);
+    } else if (choice == CallType.kan) {
+      Sfx.i.voice(VoiceKind.kan);
+    }
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();
@@ -433,6 +448,14 @@ class GameController extends ChangeNotifier {
           round.phase == RoundPhase.discarding
       ? round.closedKanTypes(kHumanSeat)
       : const [];
+
+  /// The call the guide recommends for the pending human call decision.
+  CallType? get recommendedCall {
+    final opt = _humanCallOption;
+    final pd = round.pendingDiscard;
+    if (opt == null || pd == null) return null;
+    return _bots[kHumanSeat].decideCall(round, kHumanSeat, pd, opt.types);
+  }
 
   bool get isHumanTurn =>
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding && !round.finished;
