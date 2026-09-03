@@ -262,6 +262,14 @@ class Round {
     assert(phase == RoundPhase.discarding && seat == turn);
     final s = current;
 
+    // Once riichi is declared the hand is frozen: every later discard must be
+    // the just-drawn tile (tsumogiri). A concealed kan goes through
+    // [closedKan], not here, so this does not block it. On the declaring turn
+    // itself `s.riichi` is still false, so the declaration discard is free.
+    if (s.riichi && s.drawn != null) {
+      tile = s.drawn!;
+    }
+
     if (declareRiichi) {
       s.riichi = true;
       s.ippatsu = true;

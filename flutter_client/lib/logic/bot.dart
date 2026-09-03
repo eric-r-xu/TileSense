@@ -39,8 +39,10 @@ class SimpleBot {
       }
     }
 
+    // closedKanTypes already filters to wait-preserving kans while in riichi,
+    // so a riichi hand may still declare a concealed kan.
     final kanTypes = round.closedKanTypes(seat);
-    if (kanTypes.isNotEmpty && !s.riichi) return BotTurn(closedKan: kanTypes.first);
+    if (kanTypes.isNotEmpty) return BotTurn(closedKan: kanTypes.first);
 
     if (s.riichi) return BotTurn(discard: s.drawn);
 
