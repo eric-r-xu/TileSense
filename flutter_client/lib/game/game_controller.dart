@@ -273,8 +273,8 @@ class GameController extends ChangeNotifier {
         report = _efficiency.analyze(
           hand: human.hand,
           visibleCounts34: _visibleCounts(),
-          openMelds: human.melds.length,
           canRiichi: false,
+          valueContext: _efficiencyValueContext(human),
           defenseHand: human.hand,
           opponentDiscards: riichiOpp.pond.map((t) => t.type).toList(),
           allDiscards: _allDiscardTypes(),
@@ -291,8 +291,8 @@ class GameController extends ChangeNotifier {
     report = _efficiency.analyze(
       hand: human.hand,
       visibleCounts34: _visibleCounts(),
-      openMelds: human.melds.length,
       canRiichi: round.canRiichi(kHumanSeat),
+      valueContext: _efficiencyValueContext(human),
       defenseHand: riichiOpp != null ? human.hand : null,
       opponentDiscards:
           riichiOpp != null ? riichiOpp.pond.map((t) => t.type).toList() : const [],
@@ -300,6 +300,17 @@ class GameController extends ChangeNotifier {
       opponentRiichi: riichiOpp != null,
     );
   }
+
+  EfficiencyValueContext _efficiencyValueContext(SeatState seat) =>
+      EfficiencyValueContext(
+        melds: seat.melds,
+        roundWind: round.roundWind,
+        seatWind: seat.wind,
+        isDealer: seat.isDealer,
+        inRiichi: seat.riichi,
+        wallTilesRemaining: round.wall.remaining,
+        doraIndicators: round.wall.doraIndicators(),
+      );
 
   SeatState? _riichiOpponent() {
     for (final s in round.seats) {

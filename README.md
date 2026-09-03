@@ -5,8 +5,8 @@
 
 A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
 against bots while a live guide grades every discard — shanten, ukeire (tile
-acceptance), the recommended tile — and, when an opponent declares riichi,
-ranks your hand by safety.
+acceptance), probability-weighted point value, and the recommended tile — and,
+when an opponent declares riichi, ranks your hand by safety.
 
 This repo contains two implementations:
 
@@ -54,8 +54,12 @@ Details, emulator/simulator launch, and release/store builds are in
   discards, **pon** and **closed kan** (chi omitted, matching the reference
   `SimpleBot`), riichi, tsumo, ron, and exhaustive draw with tenpai payments.
 - A **live efficiency guide**: for every tile in your hand — resulting shanten,
-  ukeire count, and which tiles are accepted, with the best-ukeire and
-  recommended discards highlighted, plus a riichi hint at tenpai.
+  ukeire count, accepted tiles, and expected value. In tenpai, EV scores every
+  live wait (including yaku, han/fu, visible dora, tsumo/ron, and dealer value)
+  and weights it by remaining copies and estimated win probability. Before
+  tenpai, it uses completion probability and a dealer/open-hand value estimate.
+  Best-efficiency, best-EV, and recommended discards are highlighted, with a
+  riichi/damaten plan at tenpai.
 - A **defensive panel** when an opponent is in riichi: each tile rated 0–15
   (genbutsu / suji / one-chance / honor-by-copies) with a short reason; the
   recommendation switches to the safest discard.

@@ -20,11 +20,13 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   @override
   Widget build(BuildContext context) {
     final r = widget.report;
+    final panelWidth =
+        (MediaQuery.sizeOf(context).width - 16).clamp(300.0, 420.0).toDouble();
     return Material(
       color: const Color(0xdd031213),
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        width: 340,
+        width: panelWidth,
         constraints: const BoxConstraints(maxHeight: 460),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Column(
@@ -51,6 +53,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                       const SizedBox(height: 10),
                       const Text(
                         'ukeire = live tiles that reduce shanten · '
+                        'EV = probability-weighted points · '
                         'safety 15 = genbutsu',
                         style: TextStyle(color: Colors.white38, fontSize: 10),
                       ),
@@ -106,14 +109,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     return Table(
       columnWidths: const {
         0: FixedColumnWidth(34),
-        1: FixedColumnWidth(64),
-        2: FixedColumnWidth(48),
-        3: FlexColumnWidth(),
+        1: FixedColumnWidth(34),
+        2: FixedColumnWidth(38),
+        3: FixedColumnWidth(58),
+        4: FlexColumnWidth(),
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
-        _headerRow(const ['', 'shanten', 'ukeire', 'accepts']),
+        _headerRow(const ['', 'S', 'U', 'EV', 'accepts']),
         for (final line in rows)
           TableRow(
             decoration: BoxDecoration(
@@ -131,15 +135,32 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               _cell(line.shanten == -1 ? 'win' : line.shanten.toString()),
               _cell(line.ukeire.toString(),
                   bold: line.bestUkeire, color: const Color(0xffffdf76)),
+              _cell(
+                line.expectedValue.round().toString(),
+                bold: line.bestExpectedValue,
+                color: const Color(0xff80cbc4),
+              ),
               Padding(
                 padding: const EdgeInsets.all(3),
-                child: Wrap(
-                  spacing: 1,
-                  runSpacing: 1,
-                  children: line.accepts
-                      .take(9)
-                      .map((t) => TileFace(type: t, size: TileSize.tiny))
-                      .toList(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 1,
+                      runSpacing: 1,
+                      children: line.accepts
+                          .take(9)
+                          .map((t) => TileFace(type: t, size: TileSize.tiny))
+                          .toList(),
+                    ),
+                    Text(
+                      line.valuePlan,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

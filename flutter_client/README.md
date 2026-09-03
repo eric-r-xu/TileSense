@@ -11,9 +11,12 @@ repository root). It is intentionally independent of the Vala/Meson build.
   omitted, matching the `SimpleBot` behavior), riichi, tsumo, ron, and
   exhaustive draw with tenpai payments.
 - A **live efficiency guide** (bottom-left panel): for every discard from your
-  hand it shows the resulting shanten, the ukeire count, and which tile types
-  are accepted, with the best-ukeire and recommended discards highlighted, plus
-  a riichi hint at tenpai.
+  hand it shows the resulting shanten, ukeire, accepted tile types, and
+  probability-weighted point value. Tenpai EV uses yaku/han/fu scoring, visible
+  dora, dealer status, live wait counts, estimated ron/tsumo opportunities, and
+  the riichi deposit; earlier shapes use projected completion probability and
+  hand value. Best-efficiency, best-EV, and recommended discards are marked,
+  together with a riichi/damaten plan.
 - A **defensive panel** when an opponent declares riichi: each of your tiles is
   ranked 0–15 (genbutsu / suji / one-chance / honor-by-copies) with a short
   explanation, and the recommendation switches to the safest discard.
@@ -25,12 +28,13 @@ repository root). It is intentionally independent of the Vala/Meson build.
 
 `lib/logic/efficiency_calc.dart` faithfully implements the Riichi-Trainer
 shanten/ukeire algorithm used by the Vala client
-(`source/Game/Logic/TileEfficiency.vala`). `lib/logic/bot.dart` closely follows
-`source/GameServer/Bots/SimpleBot.vala`. `lib/logic/scoring.dart` and
-`lib/logic/hand_parse.dart` are a *documented subset* of `TileRules.vala` — the
-common yaku, the standard fu table, and the yakuman set; rare fu corner cases
-and some double-yakuman rules are approximated. There is no networking, lobby,
-replay, or optional-rule configuration.
+(`source/Game/Logic/TileEfficiency.vala`), and `efficiency_engine.dart` applies
+the desktop client's scoring-aware expected-value model. `lib/logic/bot.dart`
+closely follows `source/GameServer/Bots/SimpleBot.vala`. `lib/logic/scoring.dart`
+and `lib/logic/hand_parse.dart` are a *documented subset* of `TileRules.vala` —
+the common yaku, the standard fu table, and the yakuman set; rare fu corner
+cases and some double-yakuman rules are approximated. There is no networking,
+lobby, replay, or optional-rule configuration.
 
 ## Project layout
 
@@ -45,13 +49,13 @@ lib/
     safety.dart          defensive tile ranking vs a riichi opponent
     bot.dart             SimpleBot port
     round.dart           the offline round state machine
-    efficiency_engine.dart -> typed EfficiencyReport for the UI
+    efficiency_engine.dart scoring-aware discard EV + typed UI report
   game/
     game_controller.dart ChangeNotifier: round + bots + async turn loop
   ui/
     table_view.dart, hand_view.dart, efficiency_overlay.dart,
     scoring_view.dart, tile_face.dart
-test/                     shanten / ukeire / scoring / round / widget tests
+test/                     shanten / ukeire / EV / scoring / round / widget tests
 ```
 
 ## Run
