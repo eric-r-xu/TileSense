@@ -10,8 +10,10 @@ import 'ui/table_view.dart';
 void main() => runApp(const TileSenseApp());
 
 /// The design resolution the UI is authored at. Everything is laid out in these
-/// logical pixels and then scaled as one unit, so the table never reflows.
-const Size kDesignSize = Size(1280, 800);
+/// logical pixels and then scaled as one unit, so the table never reflows. The
+/// ~2:1 ratio is deliberately wide so a phone held in landscape fills almost the
+/// whole viewport with only thin letterbox bars.
+const Size kDesignSize = Size(1600, 820);
 
 /// Colour shown in the letterbox bars around the scaled canvas.
 const Color kLetterboxColor = Color(0xff042020);
@@ -156,11 +158,13 @@ class _GamePageState extends State<GamePage> {
               filterQuality: FilterQuality.medium,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 2),
             // Guide toggle (clefairy) sits just after the logo.
             IconButton(
               tooltip: _showGuide ? 'Hide guide' : 'Show guide',
               visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
               icon: Opacity(
                 opacity: _showGuide ? 1 : 0.8,
                 child: Image.asset(
@@ -172,7 +176,7 @@ class _GamePageState extends State<GamePage> {
               ),
               onPressed: () => setState(() => _showGuide = !_showGuide),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             const Text('TileSense'),
             const SizedBox(width: 16),
             // East-only vs. hanchan game length (hanchan is the default).
@@ -234,6 +238,8 @@ class _GamePageState extends State<GamePage> {
             icon: const Icon(Icons.refresh),
             onPressed: _game.newGame,
           ),
+          // Keep the actions off the very edge.
+          const SizedBox(width: 10),
         ],
       ),
       body: SafeArea(

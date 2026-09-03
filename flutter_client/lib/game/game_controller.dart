@@ -16,6 +16,22 @@ import 'sfx.dart';
 
 const int kHumanSeat = 0;
 
+/// Fixed personality per seat: 0 self (Orderic), 1 right (Grant), 2 across
+/// (Hubert), 3 left (Astaroth).
+const List<Character> kSeatCharacters = [
+  Character.orderic,
+  Character.grant,
+  Character.hubert,
+  Character.astaroth,
+];
+Character _characterForSeat(int seat) => kSeatCharacters[seat];
+
+const List<String> kSeatNames = ['Orderic', 'Grant', 'Hubert', 'Astaroth'];
+
+/// The name shown for a seat in the UI; the human seat is tagged "(you)".
+String seatDisplayName(int seat) =>
+    seat == kHumanSeat ? '${kSeatNames[seat]} (you)' : kSeatNames[seat];
+
 /// How many East-round hands before the game ends (tonpuusen). Renchan can
 /// extend past this.
 const int kRoundsPerGame = 4;
@@ -165,8 +181,11 @@ class GameController extends ChangeNotifier {
     final tobi = _points.any((p) => p < 0);
     if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
       phase = GamePhase.gameEnd;
+      // The overall points leader (ties broken by seat order) gives their win
+      // line for the whole match.
       final best = _points.reduce((a, b) => a > b ? a : b);
-      if (_points[kHumanSeat] == best) Sfx.i.voice(VoiceKind.yeah);
+      final champion = _points.indexOf(best);
+      Sfx.i.voice(VoiceKind.win, character: _characterForSeat(champion));
       notifyListeners();
       return;
     }
@@ -231,9 +250,13 @@ class GameController extends ChangeNotifier {
       round.declareTsumo(seat);
     } else if (decision.closedKan != null) {
       Sfx.i.play(SfxKind.kan);
+      Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
       round.closedKan(seat, decision.closedKan!);
     } else {
-      if (decision.riichi) Sfx.i.play(SfxKind.riichi);
+      if (decision.riichi) {
+        Sfx.i.play(SfxKind.riichi);
+        Sfx.i.voice(VoiceKind.riichi, character: _characterForSeat(seat));
+      }
       final tile = decision.discard ?? round.legalDiscards(seat).first;
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
@@ -258,7 +281,7 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[opt.seat] = c;
     }
     _humanCallOption = null;
-    _playCallSfx(choices.values);
+    _playCallSfx(choices);
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();
@@ -269,38 +292,54 @@ class GameController extends ChangeNotifier {
   void _playRoundEndSfx() {
     final res = round.result;
     if (res == null) return;
-    final humanWon = res.winners.contains(kHumanSeat);
-    // Mangan or higher gets the celebratory "Yeah" line instead of the plain
-    // ron/tsumo call.
-    final humanBigHand = () {
-      final wi = res.winners.indexOf(kHumanSeat);
-      if (wi < 0 || wi >= res.scores.length) return false;
-      return res.scores[wi].limitName.isNotEmpty;
-    }();
-    switch (res.kind) {
-      case RoundEndKind.ron:
-        Sfx.i.play(SfxKind.ron);
-        if (humanWon) {
-          Sfx.i.voice(humanBigHand ? VoiceKind.yeah : VoiceKind.ron);
-        }
-        break;
-      case RoundEndKind.tsumo:
-        Sfx.i.play(SfxKind.tsumo);
-        if (humanWon) {
-          Sfx.i.voice(humanBigHand ? VoiceKind.yeah : VoiceKind.tsumo);
-        }
-        break;
-      default:
-        break;
+    final VoiceKind? winLine = switch (res.kind) {
+      RoundEndKind.ron => VoiceKind.ron,
+      RoundEndKind.tsumo => VoiceKind.tsumo,
+      _ => null,
+    };
+    if (winLine == null) return;
+    Sfx.i.play(res.kind == RoundEndKind.ron ? SfxKind.ron : SfxKind.tsumo);
+
+    // The winning seat's character calls it. Mangan or higher chains into the
+    // celebratory "yeah"; on a mangan+ ron the discarder then gives a resigned
+    // acknowledgement right after.
+    for (var wi = 0; wi < res.winners.length; wi++) {
+      final seat = res.winners[wi];
+      final bigHand = wi < res.scores.length && res.scores[wi].limitName.isNotEmpty;
+      final winner = _characterForSeat(seat);
+      if (!bigHand) {
+        Sfx.i.voice(winLine, character: winner);
+        continue;
+      }
+      final steps = <(Character, VoiceKind)>[
+        (winner, winLine),
+        (winner, VoiceKind.yeah),
+      ];
+      if (res.kind == RoundEndKind.ron && res.loser != null) {
+        steps.add((_characterForSeat(res.loser!), VoiceKind.acquiescement));
+      }
+      Sfx.i.voiceChain(steps);
     }
   }
 
-  void _playCallSfx(Iterable<CallType> calls) {
+  void _playCallSfx(Map<int, CallType> choices) {
+    final calls = choices.values;
     if (calls.contains(CallType.ron)) return; // handled at round end
     if (calls.contains(CallType.kan)) {
       Sfx.i.play(SfxKind.kan);
     } else if (calls.contains(CallType.pon)) {
       Sfx.i.play(SfxKind.pon);
+    }
+    // The seat that made the call gets its character's line.
+    for (final e in choices.entries) {
+      final vk = switch (e.value) {
+        CallType.pon => VoiceKind.pon,
+        CallType.kan => VoiceKind.kan,
+        _ => null,
+      };
+      if (vk != null) {
+        Sfx.i.voice(vk, character: _characterForSeat(e.key));
+      }
     }
   }
 
@@ -358,12 +397,7 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[other.seat] = c;
     }
     _humanCallOption = null;
-    _playCallSfx(choices.values);
-    if (choice == CallType.pon) {
-      Sfx.i.voice(VoiceKind.pon);
-    } else if (choice == CallType.kan) {
-      Sfx.i.voice(VoiceKind.kan);
-    }
+    _playCallSfx(choices); // voices every calling seat, human included
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();

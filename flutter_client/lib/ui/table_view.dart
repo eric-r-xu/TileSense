@@ -53,7 +53,7 @@ class TableView extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ordericAvatar(),
+                    _portrait(0),
                     const SizedBox(width: 8),
                     _placard(round, 0),
                   ],
@@ -276,7 +276,14 @@ class TableView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _placard(round, seat),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _portrait(seat, size: 32),
+            const SizedBox(width: 6),
+            _placard(round, seat),
+          ],
+        ),
         const SizedBox(height: 2),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -300,9 +307,17 @@ class TableView extends StatelessWidget {
   /// player) and open melds shifted just inside it.
   Widget _sideOpponent(Round round, int seat, {required bool isLeft}) {
     final s = round.seats[seat];
-    final placard = RotatedBox(
-      quarterTurns: isLeft ? 3 : 1,
-      child: _placard(round, seat),
+    // Portrait stays upright above the sideways placard on the outer edge.
+    final placard = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _portrait(seat, size: 30),
+        const SizedBox(height: 4),
+        RotatedBox(
+          quarterTurns: isLeft ? 3 : 1,
+          child: _placard(round, seat),
+        ),
+      ],
     );
     final inside = Column(
       mainAxisSize: MainAxisSize.min,
@@ -342,12 +357,20 @@ class TableView extends StatelessWidget {
     );
   }
 
-  /// The human player's Orderic portrait, tucked beside the self placard and
-  /// sized to sit level with it.
-  Widget _ordericAvatar() {
+  /// Portrait asset per seat: 0 Orderic (you), 1 Grant, 2 Hubert, 3 Astaroth.
+  static const List<String> _seatPortrait = [
+    'assets/orderic/orderic.png',
+    'assets/grant/grant.png',
+    'assets/hubert/hubert.png',
+    'assets/astaroth/astaroth.png',
+  ];
+
+  /// A seat's character portrait, tucked beside its placard and sized to sit
+  /// level with it.
+  Widget _portrait(int seat, {double size = 36}) {
     return Container(
-      width: 36,
-      height: 36,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xff0c4747),
@@ -355,9 +378,10 @@ class TableView extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Image.asset(
-        'assets/orderic/orderic.png',
+        _seatPortrait[seat],
         fit: BoxFit.cover,
         filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
   }
@@ -369,7 +393,7 @@ class TableView extends StatelessWidget {
         !round.finished &&
         round.phase != RoundPhase.callOffer;
     final label =
-        '${s.wind.kanji}${seat == 0 ? ' Orderic' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
+        '${s.wind.kanji}${seat == 0 ? ' Orderic (you)' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

@@ -188,7 +188,7 @@ class _ScoringViewState extends State<ScoringView> {
     return Column(
       children: [
         Text(
-          '${w.wind.kanji} ${seat == kHumanSeat ? 'Orderic' : 'CPU $seat'}',
+          '${w.wind.kanji} ${seatDisplayName(seat)}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 4),
@@ -243,7 +243,7 @@ class _ScoringViewState extends State<ScoringView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${round.seats[i].wind.kanji} ${i == kHumanSeat ? 'Orderic' : 'CPU $i'}',
+                  '${round.seats[i].wind.kanji} ${seatDisplayName(i)}',
                   style: const TextStyle(color: Colors.white),
                 ),
                 Text(
@@ -268,7 +268,7 @@ class _ScoringViewState extends State<ScoringView> {
   String _standings(GameController game) {
     final entries = [
       for (var i = 0; i < 4; i++)
-        (i == kHumanSeat ? 'Orderic' : 'CPU $i', game.tablePoints[i])
+        (seatDisplayName(i), game.tablePoints[i])
     ]..sort((a, b) => b.$2.compareTo(a.$2));
     return entries.map((e) => '${e.$1}: ${e.$2}').join('    ');
   }
