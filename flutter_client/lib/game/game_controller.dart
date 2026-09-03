@@ -12,6 +12,7 @@ import '../logic/bot.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
 import '../logic/tile.dart';
+import 'sfx.dart';
 
 const int kHumanSeat = 0;
 
@@ -40,7 +41,25 @@ class GameController extends ChangeNotifier {
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
 
+  /// Hanchan (East + South, 8 hands) when true; East-only (tonpuusen, 4 hands)
+  /// when false. Hanchan is the default.
+  bool hanchan = true;
+  int get _handsPerGame => hanchan ? 8 : 4;
+
   EfficiencyReport report = EfficiencyReport.waiting();
+
+  /// Bumped on every discard so the UI can run a one-shot animation. When the
+  /// discard was NOT the drawn tile (a cut from the concealed hand), the
+  /// opponent's hand briefly shows a blank slot so you can see it left.
+  int discardSerial = 0;
+  int? lastDiscardSeat;
+  bool lastDiscardTsumogiri = false;
+
+  void _noteDiscard(int seat, Tile tile) {
+    lastDiscardSeat = seat;
+    lastDiscardTsumogiri = tile.id == round.seats[seat].drawn?.id;
+    discardSerial++;
+  }
 
   /// True while the human seat has a pending call to answer.
   bool get awaitingHumanCall => _humanCallOption != null;
@@ -50,11 +69,31 @@ class GameController extends ChangeNotifier {
   Timer? _loopTimer;
   bool _disposed = false;
 
+  /// When paused the async turn loop stops (bots and autoplay freeze). Toggled
+  /// by pressing Escape.
+  bool paused = false;
+  void togglePause() {
+    paused = !paused;
+    if (!paused) _scheduleLoop();
+    notifyListeners();
+  }
+
   int get roundNumber => _roundNumber;
   int get honba => _honba;
   int get riichiSticks => _riichiSticks;
-  Wind get roundWind => Wind.east;
+
+  /// East for hands 1-4, South for 5-8 (hanchan).
+  Wind get roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
+
+  /// 1-4 within the current round wind.
+  int get handInWind => (_roundNumber % 4) + 1;
   List<int> get tablePoints => _points;
+
+  void setHanchan(bool value) {
+    if (hanchan == value) return;
+    hanchan = value;
+    newGame();
+  }
 
   // --- lifecycle -------------------------------------------------------
 
@@ -78,7 +117,7 @@ class GameController extends ChangeNotifier {
     round = Round(
       seed: _seed + _roundNumber * 100 + _honba,
       dealer: _dealer,
-      roundWind: Wind.east,
+      roundWind: roundWind,
       honba: _honba,
       riichiSticks: _riichiSticks,
       startingPoints: List.of(_points),
@@ -110,7 +149,7 @@ class GameController extends ChangeNotifier {
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
     final tobi = _points.any((p) => p < 0);
-    if (tobi || (_roundNumber >= kRoundsPerGame && !dealerKept)) {
+    if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
       phase = GamePhase.gameEnd;
       notifyListeners();
       return;
@@ -128,17 +167,21 @@ class GameController extends ChangeNotifier {
 
   // --- the loop -------------------------------------------------------
 
+  // Opponents act at half the old pace (960 ms vs 480 ms per step).
+  static const Duration _stepDelay = Duration(milliseconds: 960);
+
   void _scheduleLoop() {
-    if (_disposed || (_loopTimer?.isActive ?? false)) return;
-    _loopTimer = Timer(const Duration(milliseconds: 480), _tick);
+    if (_disposed || paused || (_loopTimer?.isActive ?? false)) return;
+    _loopTimer = Timer(_stepDelay, _tick);
   }
 
   void _tick() {
-    if (_disposed) return;
+    if (_disposed || paused) return;
     if (round.finished) {
       if (phase != GamePhase.roundEnd && phase != GamePhase.gameEnd) {
         phase = GamePhase.roundEnd;
         _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
+        _playRoundEndSfx();
         notifyListeners();
       }
       return;
@@ -169,9 +212,12 @@ class GameController extends ChangeNotifier {
     if (decision.tsumo) {
       round.declareTsumo(seat);
     } else if (decision.closedKan != null) {
+      Sfx.i.play(SfxKind.kan);
       round.closedKan(seat, decision.closedKan!);
     } else {
+      if (decision.riichi) Sfx.i.play(SfxKind.riichi);
       final tile = decision.discard ?? round.legalDiscards(seat).first;
+      _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
     _refreshReport();
@@ -194,10 +240,34 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[opt.seat] = c;
     }
     _humanCallOption = null;
+    _playCallSfx(choices.values);
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
+  }
+
+  /// A win chime at round end, a call click for a mid-round pon / kan / chi.
+  void _playRoundEndSfx() {
+    switch (round.result?.kind) {
+      case RoundEndKind.ron:
+        Sfx.i.play(SfxKind.ron);
+        break;
+      case RoundEndKind.tsumo:
+        Sfx.i.play(SfxKind.tsumo);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _playCallSfx(Iterable<CallType> calls) {
+    if (calls.contains(CallType.ron)) return; // handled at round end
+    if (calls.contains(CallType.kan)) {
+      Sfx.i.play(SfxKind.kan);
+    } else if (calls.contains(CallType.pon)) {
+      Sfx.i.play(SfxKind.pon);
+    }
   }
 
   CallType _autoHumanCall(CallOption opt) {
@@ -211,6 +281,8 @@ class GameController extends ChangeNotifier {
     if (round.finished || round.turn != kHumanSeat || round.phase != RoundPhase.discarding) {
       return;
     }
+    Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
+    _noteDiscard(kHumanSeat, tile);
     round.discard(kHumanSeat, tile, declareRiichi: declareRiichi);
     _refreshReport();
     notifyListeners();
@@ -227,6 +299,7 @@ class GameController extends ChangeNotifier {
 
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
+      Sfx.i.play(SfxKind.kan);
       round.closedKan(kHumanSeat, type);
       _refreshReport();
       notifyListeners();
@@ -248,6 +321,7 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[other.seat] = c;
     }
     _humanCallOption = null;
+    _playCallSfx(choices.values);
     round.resolveCalls(choices);
     _refreshReport();
     notifyListeners();
@@ -362,4 +436,11 @@ class GameController extends ChangeNotifier {
 
   bool get isHumanTurn =>
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding && !round.finished;
+
+  /// The tile the auto-player would discard on the human's turn (for the green
+  /// "what autoplay would do" hint). Null when it is not the human's turn.
+  TileType? get autoplayDiscardType {
+    if (!isHumanTurn) return null;
+    return _bots[kHumanSeat].decideTurn(round, kHumanSeat).discard?.type;
+  }
 }

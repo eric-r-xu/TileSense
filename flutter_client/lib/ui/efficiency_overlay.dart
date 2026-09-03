@@ -21,7 +21,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   Widget build(BuildContext context) {
     final r = widget.report;
     final panelWidth =
-        (MediaQuery.sizeOf(context).width - 16).clamp(300.0, 420.0).toDouble();
+        (MediaQuery.sizeOf(context).width - 16).clamp(260.0, 340.0).toDouble();
     return Material(
       color: const Color(0xdd031213),
       borderRadius: BorderRadius.circular(10),
@@ -51,12 +51,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                         _defenseTable(r),
                       ],
                       const SizedBox(height: 10),
-                      const Text(
-                        'ukeire = live tiles that reduce shanten · '
-                        'EV = probability-weighted points · '
-                        'safety 15 = genbutsu',
-                        style: TextStyle(color: Colors.white38, fontSize: 10),
-                      ),
+                      _glossary(),
                     ],
                   ),
                 ),
@@ -73,13 +68,22 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       onTap: () => setState(() => _minimized = !_minimized),
       child: Row(
         children: [
-          const Icon(Icons.insights, size: 16, color: Color(0xffe9d58f)),
+          // clefairy + tilesense marks, sized to the text height, to the left.
+          Image.asset('assets/clefairy.png',
+              height: 15,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+          const SizedBox(width: 3),
+          Image.asset('assets/tilesense.png',
+              height: 15,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               _minimized
-                  ? 'EFFICIENCY GUIDE — tap to expand'
-                  : (r.headline ?? 'EFFICIENCY GUIDE'),
+                  ? 'TILE SENSE GUIDE — Tap to expand'
+                  : 'TILE SENSE GUIDE — Tap to minimize',
               style: const TextStyle(
                 color: Color(0xffe9d58f),
                 fontWeight: FontWeight.w600,
@@ -104,20 +108,34 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
+  /// One-line glossary, bulleted, with every column term spelled out.
+  Widget _glossary() {
+    const style = TextStyle(color: Colors.white38, fontSize: 10, height: 1.35);
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('• Shanten — tiles away from a ready hand (0 = tenpai)',
+            style: style),
+        Text('• Ukeire — live tiles that reduce shanten', style: style),
+        Text('• Expected Value — probability-weighted points', style: style),
+        Text('• Safety 15 — genbutsu (fully safe discard)', style: style),
+      ],
+    );
+  }
+
   Widget _efficiencyTable(EfficiencyReport r) {
     final rows = r.lines.take(8).toList();
     return Table(
       columnWidths: const {
         0: FixedColumnWidth(34),
-        1: FixedColumnWidth(34),
-        2: FixedColumnWidth(38),
-        3: FixedColumnWidth(58),
-        4: FlexColumnWidth(),
+        1: FixedColumnWidth(52),
+        2: FixedColumnWidth(48),
+        3: FlexColumnWidth(),
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
-        _headerRow(const ['', 'S', 'U', 'EV', 'accepts']),
+        _headerRow(const ['', 'Shanten', 'Ukeire', 'Expected Value']),
         for (final line in rows)
           TableRow(
             decoration: BoxDecoration(
@@ -139,29 +157,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 line.expectedValue.round().toString(),
                 bold: line.bestExpectedValue,
                 color: const Color(0xff80cbc4),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(3),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 1,
-                      runSpacing: 1,
-                      children: line.accepts
-                          .take(9)
-                          .map((t) => TileFace(type: t, size: TileSize.tiny))
-                          .toList(),
-                    ),
-                    Text(
-                      line.valuePlan,
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 8,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -217,12 +212,14 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         decoration: const BoxDecoration(color: Color(0x22ffffff)),
         children: labels
             .map((l) => Padding(
-                  padding: const EdgeInsets.all(3),
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
                   child: Text(l,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600)),
+                          color: Colors.white70,
+                          fontSize: 9,
+                          height: 1.15,
+                          fontWeight: FontWeight.w700)),
                 ))
             .toList(),
       );

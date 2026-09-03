@@ -97,6 +97,11 @@ enum TileType {
     }
   }
 
+  /// The short red corner mark drawn on a tile face: the bare number for a suit
+  /// tile (its suit is already obvious from the face) and a letter for the
+  /// honours — E/S/W/N for the winds, B/G/R for white / green / red dragon.
+  String get redIndex => isSuit ? '$number' : code;
+
   /// The Unicode mahjong glyph for this tile face.
   String get glyph => _glyphs[index];
 
