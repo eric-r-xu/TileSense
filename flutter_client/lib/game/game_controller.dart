@@ -41,6 +41,20 @@ class GameController extends ChangeNotifier {
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
 
+  /// When true the turn loop runs at 2x speed (opponents act twice as fast).
+  bool fastMode = false;
+  void setFastMode(bool value) {
+    if (fastMode == value) return;
+    fastMode = value;
+    // Re-arm the pending step so the new pace takes effect immediately.
+    if (_loopTimer?.isActive ?? false) {
+      _loopTimer!.cancel();
+      _loopTimer = null;
+      _scheduleLoop();
+    }
+    notifyListeners();
+  }
+
   /// Hanchan (East + South, 8 hands) when true; East-only (tonpuusen, 4 hands)
   /// when false. Hanchan is the default.
   bool hanchan = true;
@@ -169,8 +183,10 @@ class GameController extends ChangeNotifier {
 
   // --- the loop -------------------------------------------------------
 
-  // Opponents act at half the old pace (960 ms vs 480 ms per step).
-  static const Duration _stepDelay = Duration(milliseconds: 960);
+  // Opponents act at half the old pace (960 ms vs 480 ms per step); fast mode
+  // halves that again for a 2x run.
+  Duration get _stepDelay =>
+      Duration(milliseconds: fastMode ? 480 : 960);
 
   void _scheduleLoop() {
     if (_disposed || paused || (_loopTimer?.isActive ?? false)) return;
@@ -254,14 +270,25 @@ class GameController extends ChangeNotifier {
     final res = round.result;
     if (res == null) return;
     final humanWon = res.winners.contains(kHumanSeat);
+    // Mangan or higher gets the celebratory "Yeah" line instead of the plain
+    // ron/tsumo call.
+    final humanBigHand = () {
+      final wi = res.winners.indexOf(kHumanSeat);
+      if (wi < 0 || wi >= res.scores.length) return false;
+      return res.scores[wi].limitName.isNotEmpty;
+    }();
     switch (res.kind) {
       case RoundEndKind.ron:
         Sfx.i.play(SfxKind.ron);
-        if (humanWon) Sfx.i.voice(VoiceKind.ron);
+        if (humanWon) {
+          Sfx.i.voice(humanBigHand ? VoiceKind.yeah : VoiceKind.ron);
+        }
         break;
       case RoundEndKind.tsumo:
         Sfx.i.play(SfxKind.tsumo);
-        if (humanWon) Sfx.i.voice(VoiceKind.tsumo);
+        if (humanWon) {
+          Sfx.i.voice(humanBigHand ? VoiceKind.yeah : VoiceKind.tsumo);
+        }
         break;
       default:
         break;

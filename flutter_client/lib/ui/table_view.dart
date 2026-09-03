@@ -49,13 +49,22 @@ class TableView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Center(child: _placard(round, 0)),
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ordericAvatar(),
+                    const SizedBox(width: 8),
+                    _placard(round, 0),
+                  ],
+                ),
+              ),
             ],
           ),
 
           // The four discard ponds, bracketing the centre so they form a square.
           Align(
-            alignment: const Alignment(0, -0.62),
+            alignment: const Alignment(0, -0.76),
             child: _pond(round, 2, quarterTurns: 2),
           ),
           Align(
@@ -67,7 +76,7 @@ class TableView extends StatelessWidget {
             child: _pond(round, 1, quarterTurns: 3),
           ),
           Align(
-            alignment: const Alignment(0, 0.60),
+            alignment: const Alignment(0, 0.76),
             child: _pond(round, 0, quarterTurns: 0),
           ),
 
@@ -94,21 +103,21 @@ class TableView extends StatelessWidget {
           ),
         );
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xe61f3a1c),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0x66e9d58f), width: 1.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           line('${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
-              19, FontWeight.w800),
-          const SizedBox(height: 5),
-          line('Wall ${round.wall.remaining}', 15, FontWeight.w700),
+              17, FontWeight.w800),
           const SizedBox(height: 3),
-          line('Honba ${game.honba}  ·  Riichi ${round.riichiSticks}', 12,
+          line('Wall ${round.wall.remaining}', 13, FontWeight.w700),
+          const SizedBox(height: 2),
+          line('Honba ${game.honba}  ·  Riichi ${round.riichiSticks}', 11,
               FontWeight.w600),
         ],
       ),
@@ -333,6 +342,26 @@ class TableView extends StatelessWidget {
     );
   }
 
+  /// The human player's Orderic portrait, tucked beside the self placard and
+  /// sized to sit level with it.
+  Widget _ordericAvatar() {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xff0c4747),
+        border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.asset(
+        'assets/orderic/orderic.png',
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
+      ),
+    );
+  }
+
   /// Seat placard (wind + score).
   Widget _placard(Round round, int seat) {
     final s = round.seats[seat];
@@ -340,7 +369,7 @@ class TableView extends StatelessWidget {
         !round.finished &&
         round.phase != RoundPhase.callOffer;
     final label =
-        '${s.wind.kanji}${seat == 0 ? ' You' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
+        '${s.wind.kanji}${seat == 0 ? ' Orderic' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

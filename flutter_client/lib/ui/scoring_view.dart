@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
@@ -18,9 +20,63 @@ class ScoringView extends StatefulWidget {
 }
 
 class _ScoringViewState extends State<ScoringView> {
+  static const int _autoContinueSeconds = 10;
+
   int _page = 0;
+  bool _autoEnabled = true;
+  int _secondsLeft = _autoContinueSeconds;
+  Timer? _timer;
 
   GameController get game => widget.game;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdown() {
+    _timer?.cancel();
+    if (!_autoEnabled || game.phase == GamePhase.gameEnd) return;
+    _secondsLeft = _autoContinueSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _secondsLeft--);
+      if (_secondsLeft <= 0) {
+        _timer?.cancel();
+        _advance();
+      }
+    });
+  }
+
+  /// Runs the same step the Continue / Next button performs, then re-arms the
+  /// countdown if there are more result pages to page through.
+  void _advance() {
+    final winners = game.round.result!.winners;
+    final page = _page.clamp(0, winners.isEmpty ? 0 : winners.length - 1);
+    final hasMore = winners.length > 1 && page < winners.length - 1;
+    if (hasMore) {
+      setState(() => _page = page + 1);
+      _startCountdown();
+    } else {
+      game.continueFromRoundEnd();
+    }
+  }
+
+  void _toggleAuto() {
+    setState(() => _autoEnabled = !_autoEnabled);
+    if (_autoEnabled) {
+      _startCountdown();
+    } else {
+      _timer?.cancel();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +139,10 @@ class _ScoringViewState extends State<ScoringView> {
                   foregroundColor: Colors.black,
                 ),
                 onPressed: () {
+                  _timer?.cancel();
                   if (hasMore) {
                     setState(() => _page = page + 1);
+                    _startCountdown();
                   } else if (gameOver) {
                     game.newGame();
                   } else {
@@ -93,6 +151,24 @@ class _ScoringViewState extends State<ScoringView> {
                 },
                 child: Text(label),
               ),
+              if (!gameOver)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: TextButton(
+                    onPressed: _toggleAuto,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                    ),
+                    child: Text(
+                      _autoEnabled
+                          ? 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s  ·  tap to pause'
+                          : 'Auto Continue paused  ·  tap to resume',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
               if (gameOver)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
@@ -112,7 +188,7 @@ class _ScoringViewState extends State<ScoringView> {
     return Column(
       children: [
         Text(
-          '${w.wind.kanji} ${seat == kHumanSeat ? 'You' : 'CPU $seat'}',
+          '${w.wind.kanji} ${seat == kHumanSeat ? 'Orderic' : 'CPU $seat'}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 4),
@@ -167,7 +243,7 @@ class _ScoringViewState extends State<ScoringView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${round.seats[i].wind.kanji} ${i == kHumanSeat ? 'You' : 'CPU $i'}',
+                  '${round.seats[i].wind.kanji} ${i == kHumanSeat ? 'Orderic' : 'CPU $i'}',
                   style: const TextStyle(color: Colors.white),
                 ),
                 Text(
@@ -192,7 +268,7 @@ class _ScoringViewState extends State<ScoringView> {
   String _standings(GameController game) {
     final entries = [
       for (var i = 0; i < 4; i++)
-        (i == kHumanSeat ? 'You' : 'CPU $i', game.tablePoints[i])
+        (i == kHumanSeat ? 'Orderic' : 'CPU $i', game.tablePoints[i])
     ]..sort((a, b) => b.$2.compareTo(a.$2));
     return entries.map((e) => '${e.$1}: ${e.$2}').join('    ');
   }
