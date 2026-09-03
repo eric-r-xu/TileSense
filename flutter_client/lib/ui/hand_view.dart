@@ -45,6 +45,8 @@ class _HandViewState extends State<HandView> {
     final seat = round.seats[kHumanSeat];
     final canPlay = game.isHumanTurn;
     final drawn = seat.drawn;
+    // After riichi the hand is frozen — only the drawn tile can be discarded.
+    final riichiLocked = seat.riichi && drawn != null;
 
     // Green = every discard tied for the best choice (all of them, if >1).
     // Yellow = the freshly drawn tile. A drawn tile that is also a top choice
@@ -70,19 +72,21 @@ class _HandViewState extends State<HandView> {
 
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
-      final isTop = canPlay && topTypes.contains(tile.type);
+      final tappable = canPlay && (!riichiLocked || isDrawn);
+      final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = isTop ? _green : (isDrawn ? _yellow : null);
       final Color? border = (isDrawn && isTop) ? _yellow : null;
       return Padding(
         padding: EdgeInsets.only(left: separated ? 16 : 2, right: 2),
         child: InkWell(
-          onTap: canPlay ? () => _discard(context, tile) : null,
+          onTap: tappable ? () => _discard(context, tile) : null,
           borderRadius: BorderRadius.circular(6),
           child: TileFace(
             tile: tile,
             size: TileSize.large,
             highlightColor: hc,
             borderColorOverride: border,
+            dimmed: riichiLocked && !isDrawn,
           ),
         ),
       );
