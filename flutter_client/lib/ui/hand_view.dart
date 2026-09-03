@@ -34,6 +34,11 @@ class _HandViewState extends State<HandView> {
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);
 
+  /// Fixed width for the concealed-tile strip: 13 resting tiles at 46 px
+  /// (42 face + 2 + 2 padding) plus the 60 px slot the separated drawn tile
+  /// takes. Sizing for the full 14 keeps tiles from shifting on every draw.
+  static const double _handStripWidth = 13 * 46.0 + 60;
+
   List<Tile> _drawOrdered(List<Tile> resting) {
     final present = {for (final t in resting) t.id: t};
     _order.removeWhere((id) => !present.containsKey(id));
@@ -126,9 +131,9 @@ class _HandViewState extends State<HandView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Left-anchored so the resting tiles keep their position when the
-              // drawn tile is appended. Scrolls if it overflows. The small sort
-              // button rides just left of the tiles.
+              // The tile strip has a fixed width (always sized for 14 tiles), so
+              // the resting tiles never drift as the drawn tile comes and goes;
+              // that strip is then centred in the band. Scrolls if it overflows.
               Expanded(
                 child: LayoutBuilder(
                   builder: (ctx, c) => SingleChildScrollView(
@@ -136,11 +141,17 @@ class _HandViewState extends State<HandView> {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minWidth: c.maxWidth),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _sortButton(),
                           const SizedBox(width: 6),
-                          ...tiles,
+                          SizedBox(
+                            width: _handStripWidth,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: tiles,
+                            ),
+                          ),
                         ],
                       ),
                     ),
