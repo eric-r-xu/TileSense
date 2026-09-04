@@ -7,7 +7,17 @@ import 'ui/hand_view.dart';
 import 'ui/scoring_view.dart';
 import 'ui/table_view.dart';
 
-void main() => runApp(const TileSenseApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // The layout is authored landscape-only (see [_LandscapeGate], which is the
+  // web fallback since browsers can't lock rotation). On Android / iOS lock it
+  // for real so the app opens straight into landscape.
+  SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  runApp(const TileSenseApp());
+}
 
 /// The design resolution the UI is authored at. Everything is laid out in these
 /// logical pixels and then scaled as one unit, so the table never reflows. The
@@ -158,24 +168,6 @@ class _GamePageState extends State<GamePage> {
               filterQuality: FilterQuality.medium,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
-            const SizedBox(width: 2),
-            // Guide toggle (clefairy) sits just after the logo.
-            IconButton(
-              tooltip: _showGuide ? 'Hide guide' : 'Show guide',
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-              icon: Opacity(
-                opacity: _showGuide ? 1 : 0.8,
-                child: Image.asset(
-                  'assets/clefairy.png',
-                  height: 30,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.school),
-                ),
-              ),
-              onPressed: () => setState(() => _showGuide = !_showGuide),
-            ),
             const SizedBox(width: 6),
             const Text('TileSense'),
             const SizedBox(width: 16),
@@ -251,7 +243,12 @@ class _GamePageState extends State<GamePage> {
                 Column(
                   children: [
                     Expanded(child: TableView(game: _game)),
-                    HandView(game: _game, showGuide: _showGuide),
+                    HandView(
+                      game: _game,
+                      showGuide: _showGuide,
+                      onToggleGuide: () =>
+                          setState(() => _showGuide = !_showGuide),
+                    ),
                   ],
                 ),
                 if (_showGuide)

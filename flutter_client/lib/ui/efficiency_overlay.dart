@@ -72,12 +72,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       onTap: () => setState(() => _minimized = !_minimized),
       child: Row(
         children: [
-          // clefairy + tilesense marks, sized to the text height, to the left.
-          Image.asset('assets/clefairy.png',
-              height: 15,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-          const SizedBox(width: 3),
+          // tilesense wordmark, sized to the text height, to the left.
           Image.asset('assets/tilesense.png',
               height: 15,
               filterQuality: FilterQuality.high,

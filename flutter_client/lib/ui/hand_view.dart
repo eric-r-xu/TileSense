@@ -12,12 +12,20 @@ import 'tile_face.dart';
 /// the hand in tile order; while the guide is on the freshly drawn tile carries
 /// a yellow border so it stays identifiable.
 class HandView extends StatefulWidget {
-  const HandView({super.key, required this.game, this.showGuide = true});
+  const HandView({
+    super.key,
+    required this.game,
+    this.showGuide = true,
+    this.onToggleGuide,
+  });
   final GameController game;
 
   /// When false the guide is off: no yellow (drawn tile) or green (best discard)
   /// tile highlights.
   final bool showGuide;
+
+  /// Toggles [showGuide]. Fired by the clefairy button next to the GitHub link.
+  final VoidCallback? onToggleGuide;
 
   @override
   State<HandView> createState() => _HandViewState();
@@ -170,8 +178,26 @@ class _HandViewState extends State<HandView> {
                     ],
                   ),
                 ),
-              // GitHub link — centred in this bottom band, never covered by melds.
+              // Guide toggle (clefairy) then the GitHub link — centred in this
+              // bottom band, never covered by melds. The clefairy matches the
+              // GitHub icon's 44 px size and dims while the guide is off.
               const SizedBox(width: 10),
+              if (widget.onToggleGuide != null)
+                IconButton(
+                  tooltip: widget.showGuide ? 'Hide guide' : 'Show guide',
+                  iconSize: 44,
+                  onPressed: widget.onToggleGuide,
+                  icon: Opacity(
+                    opacity: widget.showGuide ? 1.0 : 0.4,
+                    child: Image.asset(
+                      'assets/clefairy.png',
+                      height: 44,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.school, size: 44),
+                    ),
+                  ),
+                ),
               IconButton(
                 tooltip: 'View on GitHub',
                 iconSize: 44,
