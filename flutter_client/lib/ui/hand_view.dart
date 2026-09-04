@@ -209,6 +209,8 @@ class _HandViewState extends State<HandView> {
                   mode: LaunchMode.externalApplication,
                 ),
               ),
+              const SizedBox(width: 6),
+              const _FlutterAttribution(),
             ],
           ),
         ],
@@ -350,4 +352,37 @@ class _HandViewState extends State<HandView> {
         onPressed: onTap,
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
       );
+}
+
+/// "Built with Flutter" credit, bottom-right of the hand bar (so bottom-right
+/// of the whole app) — the stock [FlutterLogo] widget rather than a bundled
+/// image, tappable through to flutter.dev.
+class _FlutterAttribution extends StatelessWidget {
+  const _FlutterAttribution();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => launchUrl(
+          Uri.parse('https://flutter.dev'),
+          mode: LaunchMode.externalApplication,
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FlutterLogo(size: 14),
+              SizedBox(width: 4),
+              Text('Built with Flutter',
+                  style: TextStyle(color: Colors.white54, fontSize: 10)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

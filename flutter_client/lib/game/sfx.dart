@@ -16,16 +16,24 @@ enum Character { orderic, grant, hubert, astaroth }
 
 /// Fire-and-forget sound player.
 ///
-/// Two things browsers (Chrome on Android especially) get strict about:
+/// Mobile browsers (Safari and Chrome both, more strictly than desktop) gate
+/// audio on a real user gesture in a few ways this works around:
 ///
-///  * **Autoplay unlock is per media element, and only from a user gesture.**
-///    The blip player gets unlocked by the first tap that plays a blip, but the
-///    voice player is only ever driven by bot turns on timers — so without
-///    priming it inside a real gesture, every spoken line is silently rejected.
-///    [unlock] does that priming; call it from a root pointer-down listener.
+///  * **Autoplay unlock is per player, and only from a user gesture.** Each of
+///    `_player`/`_voice` plays through its own `AudioContext`, which starts
+///    suspended until resumed from a gesture. [unlock] primes both — see
+///    `gesture_unlock.dart`, which calls it from a raw native event listener
+///    rather than through Flutter's own event pipeline, and retries across
+///    the first few gestures rather than only the very first.
+///  * **Every extra `await` between the gesture and the actual native
+///    `play()` call is a chance to no longer count as gesture-linked.** So
+///    neither [play] nor [voice]/[voiceChain] call `stop()` before playing —
+///    `AudioPlayer.play()` already restarts from the beginning on its own.
 ///  * **`play()` rejects if a `pause()`/`stop()` interrupts it.** The voice
 ///    channel therefore runs a serial queue: one line plays to completion (or a
-///    watchdog) before the next starts, so we never stop a line mid-`play()`.
+///    watchdog) before the next starts, so nothing here stops a line
+///    mid-`play()` (the only `stop()` calls left are [unlock]'s own priming,
+///    each on a clip it just started itself).
 class Sfx {
   Sfx._();
   static final Sfx i = Sfx._();
@@ -104,28 +112,39 @@ class Sfx {
 
   // --- autoplay unlock ---------------------------------------------------
 
-  bool _unlocked = false;
+  /// Each of `_player`/`_voice` plays through its own `AudioContext` (see
+  /// `audioplayers`' web backend), and a fresh `AudioContext` starts
+  /// `suspended` until `resume()`d from a user gesture — mobile Safari in
+  /// particular is known to sometimes need more than one real gesture before
+  /// that actually sticks, so this retries on the first few rather than
+  /// giving up after one attempt. Cheap (a muted, sub-second clip) and capped.
+  int _unlockAttempts = 0;
+  static const int _maxUnlockAttempts = 6;
 
-  /// Prime both players so the browser will let them play later. Must be called
-  /// from within a real user gesture (e.g. a root `Listener.onPointerDown`);
-  /// no-op after the first successful call and on non-web platforms, which
-  /// don't gate audio this way.
+  /// Prime both players so the browser will let them play later. Best called
+  /// from as close to a raw native pointer/touch/key event as possible — see
+  /// `gesture_unlock.dart`, which hooks one before Flutter's own event
+  /// pipeline even sees it, since that extra hop is enough for strict mobile
+  /// browsers to no longer count a later call as gesture-linked. No-op on
+  /// non-web platforms, which don't gate audio this way.
   void unlock() {
-    if (_unlocked) return;
-    _unlocked = true;
-    if (!kIsWeb) return;
+    if (!kIsWeb || _unlockAttempts >= _maxUnlockAttempts) return;
+    _unlockAttempts++;
     for (final p in [_player, _voice]) {
       try {
-        // Start playback synchronously here — any `await` before `play()` drops
-        // us out of the gesture and the browser rejects it. Muted so priming is
-        // inaudible; stop as soon as it has started.
+        // Play (muted) synchronously here, with no `await` before it - any
+        // `await` first drops us out of the gesture and the browser rejects
+        // the resume it would otherwise grant. The muted volume only silences
+        // this priming clip; it doesn't change whether the browser treats the
+        // call as gesture-linked (that's keyed off the element being muted,
+        // which we never set — only its Web Audio gain, here 0).
         // ignore: discarded_futures
         p.play(AssetSource(_primeAsset), volume: 0).then((_) {
           // ignore: discarded_futures
           p.stop();
         }).catchError((_) {});
       } catch (_) {
-        // Priming failed; real plays below will still try on their own.
+        // Priming failed; the next gesture (or a real play) gets another shot.
       }
     }
   }
@@ -137,14 +156,15 @@ class Sfx {
 
   void _fire(String? path, {required double volume}) {
     if (!enabled || path == null) return;
-    () async {
-      try {
-        await _player.stop();
-        await _player.play(AssetSource(path), volume: volume);
-      } catch (e) {
-        if (kDebugMode) debugPrint('Sfx($path) failed: $e');
-      }
-    }();
+    // No `stop()` first: `play()` already restarts from the beginning on its
+    // own (see `AudioPlayer.play` -> `start`, which always resets position),
+    // and skipping it means one fewer `await` between this call and the
+    // browser's actual play — the fewer hops, the less chance a strict mobile
+    // browser no longer considers it linked to whatever gesture triggered it.
+    // ignore: discarded_futures
+    _player.play(AssetSource(path), volume: volume).catchError((e) {
+      if (kDebugMode) debugPrint('Sfx($path) failed: $e');
+    });
   }
 
   // --- voice queue ---------------------------------------------------
@@ -194,8 +214,6 @@ class Sfx {
     _voiceBusy = true;
     final gen = ++_voiceGen;
 
-    // The previous line has already completed by the time we get here, so this
-    // stop() has no in-flight play() to interrupt — it just resets position.
     _voiceCompleteSub?.cancel();
     _voiceCompleteSub = _voice.onPlayerComplete.listen((_) => _stepDone(gen));
 
@@ -205,15 +223,15 @@ class Sfx {
     _voiceWatchdog =
         Timer(const Duration(seconds: 8), () => _stepDone(gen));
 
-    () async {
-      try {
-        await _voice.stop();
-        await _voice.play(AssetSource(path), volume: 0.9);
-      } catch (e) {
-        if (kDebugMode) debugPrint('Sfx($path) failed: $e');
-        _stepDone(gen);
-      }
-    }();
+    // No `stop()` first — see `_fire`: `play()` restarts from the beginning
+    // on its own, and this is the call most likely to be running right off
+    // the back of a user gesture (a call/riichi line triggered by the human's
+    // own tap), so it's the one where an extra `await` most matters.
+    // ignore: discarded_futures
+    _voice.play(AssetSource(path), volume: 0.9).catchError((e) {
+      if (kDebugMode) debugPrint('Sfx($path) failed: $e');
+      _stepDone(gen);
+    });
   }
 
   void _stepDone(int gen) {

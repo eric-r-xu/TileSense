@@ -4,7 +4,7 @@ description: >-
   offline singleplayer vs bots with a live shanten / ukeire guide and a
   defensive safety panel.
 publish_to: none
-version: 0.2.1+3
+version: 0.2.1+4
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -16,6 +16,7 @@ dependencies:
   url_launcher: ^6.3.2
   font_awesome_flutter: ^11.0.0
   audioplayers: ^6.8.1
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -27,16 +28,9 @@ flutter:
   assets:
     - assets/tilesense.png
     - assets/clefairy.png
+    - assets/tiles/
     - assets/sfx/
     - assets/orderic/
     - assets/grant/
     - assets/hubert/
     - assets/astaroth/
-  fonts:
-    # Unicode Mahjong Tiles block (U+1F000–U+1F02F), subset from Noto Sans
-    # Symbols 2. Bundled so tile faces render on browsers whose platform fonts
-    # lack the block (Chrome on Android) instead of relying on a runtime Noto
-    # fallback download. See assets/fonts/README.md.
-    - family: MahjongTiles
-      fonts:
-        - asset: assets/fonts/MahjongTiles-Regular.ttf

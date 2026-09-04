@@ -5,6 +5,7 @@ import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
+import 'package:tilesense/ui/tile_face.dart';
 
 void main() {
   testWidgets(
@@ -33,12 +34,15 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
     }
 
-    final glyph = find.byWidgetPredicate(
-      (w) => w is Text && w.data != null && _isMahjongGlyph(w.data!),
+    // Tile faces are drawn as images now (see tile_face.dart), not glyph
+    // Text, so find a tappable one by widget type instead of by its glyph.
+    final tileInHand = find.descendant(
+      of: find.byType(HandView),
+      matching: find.byType(TileFace),
     );
-    expect(glyph, findsWidgets);
+    expect(tileInHand, findsWidgets);
 
-    await tester.tap(glyph.last, warnIfMissed: false);
+    await tester.tap(tileInHand.last, warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 100));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 500));
@@ -51,10 +55,4 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });
-}
-
-bool _isMahjongGlyph(String s) {
-  if (s.runes.length != 1) return false;
-  final r = s.runes.first;
-  return r >= 0x1F007 && r <= 0x1F02B; // mahjong tiles Unicode block
 }

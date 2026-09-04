@@ -1,18 +1,25 @@
-# Bundled fonts
+# Font (build-time input only — not bundled into the app)
 
 ## MahjongTiles-Regular.ttf
 
 A subset of **Noto Sans Symbols 2** (SIL Open Font License 1.1, see `OFL.txt`)
 containing only the Unicode *Mahjong Tiles* block (`U+1F000`–`U+1F02F`).
 
-The tile faces in `lib/ui/tile_face.dart` are drawn as these Unicode glyphs.
-iOS/macOS system fonts cover the block, but stock Android fonts do **not**, so on
-Chrome for Android CanvasKit was falling back to a runtime Noto download from
-`fonts.gstatic.com` — and every tile rendered blank whenever that fetch was
-slow, blocked, or offline. Bundling the glyphs removes that dependency and makes
-tiles look identical across browsers.
+This file is **not** listed in `pubspec.yaml` and ships with nothing — it only
+exists as the source `tools/render_tiles.py` rasterizes from to produce
+`assets/tiles/*.png`, which is what `lib/ui/tile_face.dart` actually draws.
 
-### Regenerating
+Tile faces used to be drawn directly as these Unicode glyphs via `Text`. That
+depended on the browser having — and having already *loaded* — a font
+covering the block: stock Android fonts don't have it at all (so Chrome for
+Android fell back to a slow/unreliable runtime Noto download), and even after
+bundling this font directly, web font loading is asynchronous enough relative
+to first paint that tiles could still render blank. Rasterizing once, at build
+time, and shipping plain PNGs removes that dependency entirely — see
+`tools/render_tiles.py`'s module docstring for the full rationale and the
+outline-stripping it does before saving each tile.
+
+### Regenerating this font (only needed if swapping the source font/subset)
 
 ```sh
 pip install fonttools brotli
@@ -24,3 +31,6 @@ pyftsubset NotoSansSymbols2-Regular.ttf \
   --layout-features='' --no-hinting --desubroutinize \
   --name-IDs='' --notdef-outline --drop-tables+=DSIG
 ```
+
+Then re-run `python3 tools/render_tiles.py` (from `flutter_client/`) to
+regenerate `assets/tiles/*.png` from it.

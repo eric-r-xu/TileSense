@@ -516,8 +516,8 @@ Store) is the standard tool if you want them automated.
 | Web: blank page under a sub-path | rebuild with `--base-href /<path>/` (leading and trailing slash) |
 | Web: deep-link reload 404s | add the SPA fallback redirect to `index.html` (see host notes) |
 | Web: tile glyphs look different across browsers | you are on the HTML renderer; drop `--web-renderer html` to use CanvasKit |
-| Web: tiles render blank (typically Chrome on Android) | the bundled `MahjongTiles` font failed to load — confirm `assets/fonts/MahjongTiles-Regular.ttf` is in the build and listed in `FontManifest.json`; regenerate it per `assets/fonts/README.md` if missing |
-| Web: spoken lines don't play on mobile | audio unlocks only after the first tap anywhere in the app (`Sfx.unlock`); a tap that lands before the Flutter view is interactive won't count — tap again |
+| Web: tiles render blank | a tile's PNG under `assets/tiles/` failed to load — confirm `assets/tiles/*.png` (34 files) is in the build and listed in `AssetManifest.bin`/`.json`; regenerate with `python3 tools/render_tiles.py` if missing |
+| Web: spoken lines / sfx don't play on mobile | audio unlocks per player from a native gesture listener (`gesture_unlock_web.dart` → `Sfx.unlock`), retried across the first several taps/keys — if it's still silent after several real interactions, check the browser console for `Sfx(...) failed:` messages (`kDebugMode` only) |
 | Web: updated `.wav` files still play the old recording after a redeploy | nothing in `build/web/` is content-hashed (see the note in [Web ▸ PWA / offline](#web)), so a long-lived cache — browser or a CDN in front of your host — can serve the old file by URL; set `Cache-Control: no-cache` on the bundle (done for you in the [DigitalOcean](#digitalocean-web) configs) and confirm with `curl -sI <url> \| grep -i etag` before/after the deploy |
 | Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
 | Android: `keystore not found` on release build | check `storeFile` in `key.properties` is an absolute path and the file exists |

@@ -4,20 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Flutter web: the browser tab icon is now clefairy instead of the default
+  Flutter mark.
+- Flutter client: a small "Built with Flutter" credit (the stock `FlutterLogo`
+  widget, linking to flutter.dev) sits bottom-right of the hand bar, after the
+  GitHub link.
+
 ### Fixed
-- Flutter web: tiles no longer render blank on Chrome for Android. The faces are
-  Unicode Mahjong Tiles glyphs, which stock Android fonts don't cover, so
-  CanvasKit had been falling back to a runtime Noto download that failed
-  whenever the network was slow, blocked, or offline. A ~34 KB subset of Noto
-  Sans Symbols 2 (the mahjong block only) is now bundled and pinned as the tile
-  font, so tiles render offline and look identical across browsers.
-- Flutter web: spoken call/win lines no longer drop out intermittently. Browsers
-  unlock audio per media element and only from a user gesture, but the voice
-  player was only ever driven by bot turns on timers, so Chrome on Android kept
-  rejecting it — the first pointer-down now primes both players. The voice
-  channel also runs a serial queue instead of stop-then-play, so overlapping
-  lines (e.g. a call line into the round-end chain) can't abort each other's
-  `play()`.
+- Flutter web: tiles no longer render blank on Chrome for mobile. Tile faces
+  were drawn as Unicode Mahjong Tiles glyphs via `Text`, which depends on the
+  browser having — and having already *loaded* — a font covering that block:
+  missing on stock Android fonts entirely, and (even after bundling a subset
+  font directly) still a race against asynchronous web font loading relative
+  to first paint. Tile faces are now bundled PNGs (rasterized once at build
+  time — see `tools/render_tiles.py`), which has no such dependency and
+  renders identically everywhere.
+- Flutter web: sound now plays reliably on mobile Safari and mobile Chrome, not
+  just desktop. Each `Sfx` player drives its own `AudioContext`, which starts
+  suspended until resumed from a user gesture; the unlock/prime now happens via
+  a native DOM listener attached directly to `window` (see
+  `lib/game/gesture_unlock_web.dart`) instead of through Flutter's own
+  pointer-event pipeline, which on strict mobile browsers was one hop too many
+  for the eventual `resume()` call to still count as gesture-linked — and it
+  retries across the first several gestures rather than only the first, since
+  mobile Safari in particular can need more than one attempt. Every play call
+  also dropped its redundant `stop()`-before-`play()` (`AudioPlayer.play()`
+  already restarts from the beginning on its own), removing another `await`
+  between a tap and the actual native `play()`.
 - Flutter client: ura dora is now actually revealed. The dead-wall's ura row was
   wired up but never shown (its `revealUra` flag was never set), so a riichi win
   never displayed which tiles counted; it now reveals once a riichi hand wins

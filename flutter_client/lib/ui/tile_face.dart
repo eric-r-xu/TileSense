@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../logic/tile.dart';
 
-/// A single mahjong tile face: the Unicode glyph on a cream tile, with a small
+/// A single mahjong tile face: the tile artwork on a cream tile, with a small
 /// red index in the top-right corner (number for suits, letter for honours), as
 /// in the Vala 2D renderer. `null` [tile] with [faceDown] renders a back.
+///
+/// The artwork is a bundled PNG per [TileType] (`assets/tiles/<name>.png`, tinted
+/// black or aka-red via [Image.color]/`BlendMode.srcIn`), not a Unicode glyph
+/// drawn with [Text]. Rendering mahjong tiles as text depends on the browser
+/// having (and having already *loaded*) a font covering the Unicode Mahjong
+/// Tiles block — unreliable enough on mobile browsers (missing on stock
+/// Android fonts; a race against web font loading even once bundled) that
+/// tiles could render blank. A raster image has no such dependency.
 class TileFace extends StatelessWidget {
   const TileFace({
     super.key,
@@ -84,25 +92,31 @@ class TileFace extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Center(
-              child: Text(
-                t.glyph,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  // The tile faces are Unicode Mahjong Tiles glyphs. Pin them to
-                  // the bundled subset font so they render even where the
-                  // platform font lacks the block (Chrome on Android), then fall
-                  // back to system fonts if the asset somehow fails to load.
-                  fontFamily: 'MahjongTiles',
-                  fontFamilyFallback: const [
-                    'Noto Sans Symbols 2',
-                    'Apple Symbols',
-                    'Segoe UI Symbol',
-                  ],
-                  // Oversize the glyph so the tile symbol fills ~85-90% of the
-                  // face; the container clips any overhang.
-                  fontSize: dims.$2 * 1.06,
-                  height: 1.0,
+              child: Padding(
+                // Leaves a small margin so the artwork doesn't touch the tile's
+                // own border; BoxFit.contain fills the rest, matching the
+                // ~85-90%-of-the-face sizing the old oversized-glyph text had.
+                padding: EdgeInsets.symmetric(
+                  horizontal: dims.$1 * 0.08,
+                  vertical: dims.$2 * 0.05,
+                ),
+                child: Image.asset(
+                  'assets/tiles/${t.name}.png',
+                  fit: BoxFit.contain,
                   color: _aka ? const Color(0xffc62828) : Colors.black87,
+                  colorBlendMode: BlendMode.srcIn,
+                  filterQuality: FilterQuality.high,
+                  // Should never trigger — kept as a last-resort fallback so a
+                  // missing/corrupt asset still shows *something* readable
+                  // rather than a blank tile.
+                  errorBuilder: (_, __, ___) => Text(
+                    t.code,
+                    style: TextStyle(
+                      fontSize: dims.$2 * 0.42,
+                      fontWeight: FontWeight.bold,
+                      color: _aka ? const Color(0xffc62828) : Colors.black87,
+                    ),
+                  ),
                 ),
               ),
             ),

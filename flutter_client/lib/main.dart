@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/game_controller.dart';
+import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -17,6 +18,10 @@ void main() {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+  // Arms a native (pre-Flutter) listener on the first few taps/keys to prime
+  // Sfx's audio players before mobile browsers' autoplay gating can block
+  // them — see gesture_unlock.dart and Sfx's class doc. No-op off the web.
+  armFirstGestureUnlock();
   runApp(const TileSenseApp());
 }
 
@@ -34,9 +39,10 @@ class TileSenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Listener(
-        // Browsers unlock audio per media element and only from a user gesture.
-        // The very first pointer-down anywhere primes both sound players (see
-        // [Sfx.unlock]) so timer-driven voice lines aren't silently blocked.
+        // Redundant with the native listener armFirstGestureUnlock() sets up
+        // in main() (which fires first and does the real work) — a cheap
+        // fallback in case that one somehow didn't attach, since Sfx.unlock()
+        // is itself a capped, idempotent no-op once it's used up its attempts.
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) => Sfx.i.unlock(),
         child: MaterialApp(
