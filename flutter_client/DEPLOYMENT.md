@@ -282,11 +282,17 @@ In **Runner ▸ General**:
   (`$(FLUTTER_BUILD_NAME)` / `$(FLUTTER_BUILD_NUMBER)` — the Flutter tooling sets
   them).
 - **Deployment target**: iOS 13.0 or newer (Flutter's current minimum is 12).
-- **Device Orientation**: this app is portrait-first; leave landscape enabled if
-  you want tablet flexibility, or restrict to portrait.
+- **Device Orientation**: this app is **landscape-only**. `main()` calls
+  `SystemChrome.setPreferredOrientations([landscapeLeft, landscapeRight])`, and
+  the platform configs pin it too — `ios/Runner/Info.plist`
+  `UISupportedInterfaceOrientations` (iPhone and iPad) lists only the two
+  landscape values, Android's `AndroidManifest.xml` activity sets
+  `android:screenOrientation="sensorLandscape"`, and `web/manifest.json` sets
+  `"orientation": "landscape"` (with a runtime `_LandscapeGate` prompt as the
+  web fallback, since browsers can't hard-lock rotation).
 
-`ios/Runner/Info.plist` needs no special keys — the app uses no camera,
-location, network entitlements, or background modes.
+`ios/Runner/Info.plist` otherwise needs no special keys — the app uses no
+camera, location, network entitlements, or background modes.
 
 ### Build
 

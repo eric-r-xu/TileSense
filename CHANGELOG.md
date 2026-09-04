@@ -13,6 +13,15 @@ All notable changes to this project will be documented in this file.
   spells out its waits, as at a real ryuukyoku.
 
 ### Changed
+- Flutter client: the clefairy guide-toggle now lives once, in the bottom bar
+  just left of the GitHub link and sized to match it. Removed the duplicate
+  clefairy marks from the app bar and the guide panel header.
+- Flutter client is now landscape-only on every target: `main()` locks
+  orientation via `SystemChrome`, and the Android manifest, iOS `Info.plist`,
+  and `web/manifest.json` are all pinned to landscape (bringing Android/iOS to
+  parity with the web build's landscape gate). The web PWA manifest's
+  background/theme colours now match the app's letterbox instead of the Flutter
+  default blue.
 - Vendored the `Engine/` rendering engine directly into the repo instead of a
   git submodule pointing at a personal fork; it now tracks
   [FluffyStuff/Engine](https://github.com/FluffyStuff/Engine) as its upstream,
