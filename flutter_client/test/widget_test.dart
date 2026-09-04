@@ -7,13 +7,20 @@ import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
 
 void main() {
-  testWidgets('app boots to the table with the efficiency guide', (tester) async {
+  testWidgets(
+      'app boots to the table with the efficiency guide off by default',
+      (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('TileSense'), findsWidgets);
     expect(find.byType(TableView), findsOneWidget);
     expect(find.byType(HandView), findsOneWidget);
+    expect(find.byType(EfficiencyOverlay), findsNothing);
+
+    // The clefairy button next to the GitHub link turns it on.
+    await tester.tap(find.byTooltip('Show guide'));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());

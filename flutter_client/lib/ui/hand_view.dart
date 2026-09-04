@@ -32,7 +32,8 @@ class HandView extends StatefulWidget {
 }
 
 class _HandViewState extends State<HandView> {
-  bool _autoSort = true;
+  // Off by default: tiles stay in draw order until the sort button is tapped.
+  bool _autoSort = false;
 
   /// Tile ids in draw order, kept stable so "auto-sort off" leaves tiles put.
   final List<int> _order = [];

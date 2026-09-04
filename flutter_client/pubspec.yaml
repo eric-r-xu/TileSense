@@ -4,7 +4,7 @@ description: >-
   offline singleplayer vs bots with a live shanten / ukeire guide and a
   defensive safety panel.
 publish_to: none
-version: 0.2.0+2
+version: 0.2.1+3
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
