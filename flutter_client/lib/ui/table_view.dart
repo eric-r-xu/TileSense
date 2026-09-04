@@ -394,7 +394,7 @@ class TableView extends StatelessWidget {
         round.phase != RoundPhase.callOffer;
     final label =
         '${s.wind.kanji}${seat == 0 ? ' Orderic (you)' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
-    return Container(
+    final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: active ? const Color(0xffcaa24e) : const Color(0xff0c4747),
@@ -411,7 +411,33 @@ class TableView extends StatelessWidget {
         ),
       ),
     );
+    // The human seat gets a FURITEN badge beside its placard while tenpai but
+    // barred from ron. Only seat 0's placard renders unrotated, so keep it here.
+    if (seat == kHumanSeat && game.humanFuriten) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [placard, const SizedBox(width: 6), _furitenBadge()],
+      );
+    }
+    return placard;
   }
+
+  Widget _furitenBadge() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xffc62828),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'FURITEN',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+      );
 }
 
 /// A tile that pulses (glow + gentle scale) to point at the tile a pending
