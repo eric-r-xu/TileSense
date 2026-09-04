@@ -250,6 +250,22 @@ class _HandViewState extends State<HandView> {
   Widget _actionBar(BuildContext context) {
     final buttons = <Widget>[];
 
+    // Furiten marker: shown whenever the human seat is tenpai but barred from
+    // ron. It sits first so it stays visible next to (or instead of) the call
+    // buttons — a furiten wait never gets a RON prompt.
+    if (game.humanFuriten) {
+      buttons.add(const Chip(
+        label: Text('FURITEN',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 0.5)),
+        backgroundColor: Color(0xffc62828),
+        visualDensity: VisualDensity.compact,
+      ));
+    }
+
     if (game.awaitingHumanCall) {
       final opt = game.humanCallOption!;
       if (opt.types.contains(CallType.ron)) {

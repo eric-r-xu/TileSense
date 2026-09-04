@@ -36,8 +36,19 @@ class SeatState {
   /// The tile drawn this turn (null once discarded).
   Tile? drawn;
 
-  /// Tiles this seat has discarded, used for furiten.
+  /// Tiles this seat has discarded, used for furiten. Unlike [pond] this keeps
+  /// tiles that were later called away, so own-discard furiten still applies.
   final List<Tile> allDiscards = [];
+
+  /// Temporary furiten: set when this seat passed up a winning tile (any
+  /// player's discard that completed its wait) and cleared on this seat's next
+  /// draw. While the seat is in riichi the same miss instead latches
+  /// [riichiFuriten] permanently.
+  bool tempFuriten = false;
+
+  /// Permanent (riichi) furiten: once a hand in riichi passes up a winning
+  /// tile it can never declare ron for the rest of the round. Never cleared.
+  bool riichiFuriten = false;
 
   bool get isOpen => melds.any((m) => !(m.kind == MeldKind.kan && m.concealed));
   bool get closed => melds.every((m) => m.kind == MeldKind.kan && m.concealed);
@@ -143,6 +154,9 @@ class Round {
       return;
     }
     final tile = wall.drawLive();
+    // A fresh draw ends temporary (non-riichi) furiten; permanent riichi
+    // furiten is untouched.
+    current.tempFuriten = false;
     current.drawn = tile;
     current.hand = [...sortByType(current.hand), tile];
     phase = RoundPhase.discarding;
@@ -151,6 +165,7 @@ class Round {
   /// After a kan, draw from the dead wall instead.
   void _drawReplacement() {
     final tile = wall.drawDeadWall();
+    current.tempFuriten = false;
     current.drawn = tile;
     current.hand = [...sortByType(current.hand), tile];
     phase = RoundPhase.discarding;
@@ -180,8 +195,17 @@ class Round {
     final s = seats[seat];
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
-    if (_isFuriten(s, discard)) return false;
+    if (_isFuriten(s)) return false;
     return _winsWith(s, s.hand, discard, isTsumo: false);
+  }
+
+  /// Whether [seat] is tenpai but barred from declaring ron by furiten. Drives
+  /// the UI's furiten marker; the same check gates every seat's [canRon] so no
+  /// player — human or bot — can ron off a furiten wait.
+  bool isFuriten(int seat) {
+    final s = seats[seat];
+    if (waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
+    return _isFuriten(s);
   }
 
   bool canRiichi(int seat) {
@@ -231,11 +255,32 @@ class Round {
     return score.valid;
   }
 
-  bool _isFuriten(SeatState s, Tile discard) {
+  /// The three riichi furiten cases, any of which bars ron:
+  ///  1. permanent riichi furiten — a winning tile was passed while in riichi;
+  ///  2. own-discard furiten — one of the current waits sits in this seat's
+  ///     discards (kept in [SeatState.allDiscards] even once called away);
+  ///  3. temporary furiten — a winning tile went past since this seat's last
+  ///     draw and was not claimed.
+  bool _isFuriten(SeatState s) {
+    if (s.riichiFuriten) return true;
     final waits = waitTiles(s.hand, openMelds: s.melds.length).toSet();
     if (waits.isEmpty) return true;
-    return s.allDiscards.any((d) => waits.contains(d.type)) ||
-        (s.riichi && s.pond.any((d) => waits.contains(d.type)));
+    if (s.allDiscards.any((d) => waits.contains(d.type))) return true;
+    return s.tempFuriten;
+  }
+
+  /// Any seat (other than the discarder) whose wait includes [discard] but did
+  /// not claim it is now furiten: temporarily until its next draw, or —
+  /// if it is in riichi — permanently for the rest of the round.
+  void _registerMissedRon(Tile discard, int discarder) {
+    for (var i = 0; i < 4; i++) {
+      if (i == discarder) continue;
+      final s = seats[i];
+      final waits = waitTiles(s.hand, openMelds: s.melds.length);
+      if (!waits.contains(discard.type)) continue;
+      s.tempFuriten = true;
+      if (s.riichi) s.riichiFuriten = true;
+    }
   }
 
   bool _anyRiichiDiscardTenpai(SeatState s) {
@@ -300,8 +345,14 @@ class Round {
     pendingDiscard = tile;
     pendingDiscardSeat = seat;
     callOptions = _collectCallOptions(tile, seat);
-    phase = callOptions.isEmpty ? RoundPhase.drawing : RoundPhase.callOffer;
-    if (phase == RoundPhase.drawing) _advanceTurn();
+    if (callOptions.isEmpty) {
+      // No one can act on it, so no one is claiming it: register the miss now.
+      _registerMissedRon(tile, seat);
+      phase = RoundPhase.drawing;
+      _advanceTurn();
+    } else {
+      phase = RoundPhase.callOffer;
+    }
   }
 
   List<CallOption> _collectCallOptions(Tile discard, int discarder) {
@@ -328,6 +379,12 @@ class Round {
       _applyRon(ronners, pendingDiscard!, pendingDiscardSeat);
       return;
     }
+
+    // The discard cleared the call window unclaimed. Any seat waiting on it
+    // that chose not to ron (or had no yaku to ron with) is now furiten —
+    // permanently if it is in riichi, otherwise until its next draw. This runs
+    // even when the tile is then ponned/kanned: the missed ron still counts.
+    _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
 
     int? kanSeat;
     int? ponSeat;

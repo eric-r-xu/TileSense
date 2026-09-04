@@ -521,6 +521,10 @@ class GameController extends ChangeNotifier {
   bool get isHumanTurn =>
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding && !round.finished;
 
+  /// True when the human seat is tenpai but in furiten, so ron is unavailable
+  /// (tsumo still is). Drives the FURITEN marker on the hand bar and placard.
+  bool get humanFuriten => !round.finished && round.isFuriten(kHumanSeat);
+
   /// The tile the auto-player would discard on the human's turn (for the green
   /// "what autoplay would do" hint). Null when it is not the human's turn.
   TileType? get autoplayDiscardType {

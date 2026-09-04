@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Flutter client now enforces full riichi furiten rules: own-discard furiten,
+  temporary furiten from a passed-up winning discard (cleared on the next draw),
+  and permanent riichi furiten. No seat — human or bot — can ron on a furiten
+  wait, and the human seat shows a FURITEN marker on its placard and hand bar.
+- On an exhaustive draw the score screen now opens every tenpai seat's hand and
+  spells out its waits, as at a real ryuukyoku.
+
 ### Changed
 - Vendored the `Engine/` rendering engine directly into the repo instead of a
   git submodule pointing at a personal fork; it now tracks

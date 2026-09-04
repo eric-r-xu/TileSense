@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
+import '../logic/hand_parse.dart';
 import '../logic/round.dart';
 import '../logic/scoring.dart';
 import '../logic/tile.dart';
@@ -130,6 +131,8 @@ class _ScoringViewState extends State<ScoringView> {
                   scoreFor(page)!.valid)
                 _handBlock(round, winners[page], scoreFor(page)!,
                     r.winTiles[winners[page]]),
+              if (r.kind == RoundEndKind.exhaustiveDraw)
+                _tenpaiReveal(round, r),
               const SizedBox(height: 12),
               _transfers(round, r),
               const SizedBox(height: 16),
@@ -229,6 +232,70 @@ class _ScoringViewState extends State<ScoringView> {
           style: const TextStyle(
               color: Color(0xffffdf76), fontWeight: FontWeight.bold),
         ),
+      ],
+    );
+  }
+
+  /// On an exhaustive draw every tenpai seat opens its hand (as at a real
+  /// ryuukyoku), with its waits spelled out beneath.
+  Widget _tenpaiReveal(Round round, RoundResult r) {
+    final seats = r.tenpaiAtDraw;
+    return Column(
+      children: [
+        Text(
+          seats.isEmpty ? 'All players noten' : 'Tenpai hands revealed',
+          style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.bold),
+        ),
+        for (final seat in seats) ...[
+          const SizedBox(height: 6),
+          _tenpaiHandRow(round, seat),
+        ],
+      ],
+    );
+  }
+
+  Widget _tenpaiHandRow(Round round, int seat) {
+    final s = round.seats[seat];
+    final waits = waitTiles(s.hand, openMelds: s.melds.length);
+    return Column(
+      children: [
+        Text(
+          '${s.wind.kanji} ${seatDisplayName(seat)}',
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        const SizedBox(height: 3),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 1,
+          runSpacing: 1,
+          children: [
+            for (final t in sortByType(s.hand))
+              TileFace(tile: t, size: TileSize.small),
+            for (final m in s.melds) ...[
+              const SizedBox(width: 6),
+              for (final ty in m.types) TileFace(type: ty, size: TileSize.small),
+            ],
+          ],
+        ),
+        if (waits.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 2,
+              runSpacing: 1,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Text('waits',
+                    style: TextStyle(color: Colors.white54, fontSize: 11)),
+                const SizedBox(width: 2),
+                for (final wt in waits) TileFace(type: wt, size: TileSize.small),
+              ],
+            ),
+          ),
       ],
     );
   }
