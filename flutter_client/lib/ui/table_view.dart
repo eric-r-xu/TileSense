@@ -146,9 +146,15 @@ class TableView extends StatelessWidget {
   }
 
   /// The 14-tile dead wall: seven columns, two rows. The upper row shows the
-  /// revealed dora indicators; the rest stay face down.
+  /// revealed dora indicators; the lower row is ura-dora and stays face down
+  /// until a riichi hand wins the round (real ryuukyoku doesn't reveal it, and
+  /// neither does a non-riichi win — the indicators don't count for it).
   Widget _deadWall(Round round) {
-    final tiles = round.wall.deadWallDisplay();
+    final result = round.result;
+    final revealUra = result != null &&
+        (result.kind == RoundEndKind.tsumo || result.kind == RoundEndKind.ron) &&
+        result.winners.any((w) => round.seats[w].riichi);
+    final tiles = round.wall.deadWallDisplay(revealUra: revealUra);
     List<Widget> row(bool top) => [
           for (var col = 0; col < 7; col++)
             Padding(
@@ -160,14 +166,28 @@ class TableView extends StatelessWidget {
               ),
             ),
         ];
+    // 44-high normal tile + 0.5 padding on both sides, so each label lines up
+    // with its row regardless of whether the URA label is present.
+    Widget rowLabel(String t) => SizedBox(
+          height: 45,
+          child: Center(
+            child:
+                Text(t, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+          ),
+        );
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(right: 4),
-          child: Text('DORA',
-              style: TextStyle(color: Colors.white54, fontSize: 11)),
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              rowLabel('DORA'),
+              rowLabel(revealUra ? 'URA' : ''),
+            ],
+          ),
         ),
         Column(
           mainAxisSize: MainAxisSize.min,
@@ -496,6 +516,12 @@ class _FlashTileState extends State<_FlashTile>
 /// the right. When that seat cuts a tile from its hand (not tsumogiri), a blank
 /// slot flashes at the cut position for ~450 ms so you can see which tile left,
 /// then the backs close up.
+///
+/// The strip is a fixed footprint (room for 13 resting backs, the gap, and the
+/// separated drawn tile) so drawing or discarding never changes how much space
+/// this seat's hand occupies — only the tiles inside it move. Without this the
+/// hand (and everything centred around it: portrait, placard, melds) visibly
+/// shifted every time an opponent drew, then shifted back on discard.
 class _OpponentHand extends StatefulWidget {
   const _OpponentHand({
     required this.game,
@@ -517,6 +543,21 @@ class _OpponentHandState extends State<_OpponentHand> {
   int _seenSerial = -1;
   int? _gapIndex;
   Timer? _timer;
+
+  // Small-tile back footprint: 22×30 face + 0.5 padding on every side = 23×31.
+  // A rotated back (side seats) reports the same numbers swapped, so the
+  // extent along the strip's main axis is always 23 and its depth always 31
+  // regardless of orientation.
+  static const double _tileMain = 23;
+  static const double _tileCross = 31;
+  static const double _drawGap = 6;
+
+  // The largest this strip ever needs to be: 13 resting backs plus one more
+  // for the ~450 ms discard-cut flash (which briefly inserts an extra blank
+  // slot), plus the gap and the separated drawn tile. Those two extras don't
+  // actually overlap in practice, but sizing for both together costs nothing
+  // and keeps this safe even if a future timing tweak ever let them touch.
+  static const double _fixedMain = 14 * _tileMain + _drawGap + _tileMain;
 
   @override
   void dispose() {
@@ -570,8 +611,21 @@ class _OpponentHandState extends State<_OpponentHand> {
       tiles.add(back());
     }
 
-    return widget.vertical
+    final content = widget.vertical
         ? Column(mainAxisSize: MainAxisSize.min, children: tiles)
         : Row(mainAxisSize: MainAxisSize.min, children: tiles);
+
+    // Fixed-size box, content anchored to its start edge: the strip's
+    // footprint never changes, so nothing around it needs to recentre while
+    // the discard-cut animation above decides (and shows) whether this was
+    // the drawn tile or one from the existing hand.
+    return SizedBox(
+      width: widget.vertical ? _tileCross : _fixedMain,
+      height: widget.vertical ? _fixedMain : _tileCross,
+      child: Align(
+        alignment: widget.vertical ? Alignment.topCenter : Alignment.centerLeft,
+        child: content,
+      ),
+    );
   }
 }

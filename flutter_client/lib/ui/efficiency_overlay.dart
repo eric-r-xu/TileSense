@@ -80,9 +80,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              _minimized
-                  ? 'TILE SENSE GUIDE — Tap to expand'
-                  : 'TILE SENSE GUIDE — Tap to minimize',
+              _minimized ? 'GUIDE — Tap to expand' : 'GUIDE — Tap to minimize',
               style: const TextStyle(
                 color: Color(0xffe9d58f),
                 fontWeight: FontWeight.w600,
@@ -193,7 +191,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         0: FixedColumnWidth(34),
         1: FixedColumnWidth(52),
         2: FixedColumnWidth(48),
-        3: FlexColumnWidth(),
+        3: FixedColumnWidth(50),
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,

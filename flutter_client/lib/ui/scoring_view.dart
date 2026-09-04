@@ -188,6 +188,10 @@ class _ScoringViewState extends State<ScoringView> {
 
   Widget _handBlock(Round round, int seat, HandScore score, Tile? winTile) {
     final w = round.seats[seat];
+    // The dora indicators always show; ura only counts (and only shows) for a
+    // hand that won in riichi.
+    final doraInd = round.wall.doraIndicators();
+    final uraInd = w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
     return Column(
       children: [
         Text(
@@ -211,7 +215,10 @@ class _ScoringViewState extends State<ScoringView> {
             ],
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
+        _indicatorRow('Dora', doraInd),
+        if (uraInd.isNotEmpty) _indicatorRow('Ura Dora', uraInd),
+        const SizedBox(height: 2),
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 8,
@@ -233,6 +240,27 @@ class _ScoringViewState extends State<ScoringView> {
               color: Color(0xffffdf76), fontWeight: FontWeight.bold),
         ),
       ],
+    );
+  }
+
+  /// One line of dora / ura-dora indicator tiles, labelled. Empty when there
+  /// are no indicators to show yet (never happens for dora; ura only when the
+  /// hand didn't win in riichi, in which case the caller skips it).
+  Widget _indicatorRow(String label, List<TileType> indicators) {
+    if (indicators.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 3,
+        children: [
+          Text('$label indicator${indicators.length > 1 ? 's' : ''}:',
+              style: const TextStyle(color: Colors.white54, fontSize: 11)),
+          const SizedBox(width: 2),
+          for (final ty in indicators) TileFace(type: ty, size: TileSize.tiny),
+        ],
+      ),
     );
   }
 

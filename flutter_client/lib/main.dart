@@ -138,7 +138,9 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> {
   late final GameController _game = GameController();
-  bool _showGuide = true;
+  // Off by default so a new player sees the plain table first; the clefairy
+  // button next to the GitHub link turns it on.
+  bool _showGuide = false;
 
   @override
   void initState() {

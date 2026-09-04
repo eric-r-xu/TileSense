@@ -18,6 +18,18 @@ All notable changes to this project will be documented in this file.
   channel also runs a serial queue instead of stop-then-play, so overlapping
   lines (e.g. a call line into the round-end chain) can't abort each other's
   `play()`.
+- Flutter client: ura dora is now actually revealed. The dead-wall's ura row was
+  wired up but never shown (its `revealUra` flag was never set), so a riichi win
+  never displayed which tiles counted; it now reveals once a riichi hand wins
+  the round. The score screen also lists the dora (and, on a riichi win, ura
+  dora) indicator tiles themselves next to the han count, not just the "Dora N"
+  line.
+- Flutter client: an opponent's hand and everything centred around it (portrait,
+  placard, melds) no longer visibly shifts every time that seat draws then
+  discards. The concealed-hand strip now reserves a fixed footprint for the
+  largest case (13 resting tiles + the drawn tile) instead of growing and
+  shrinking with the tile count, so the seat only settles once the discard-cut
+  animation shows whether it was the drawn tile or one from the hand.
 
 ### Added
 - Flutter client now enforces full riichi furiten rules: own-discard furiten,
@@ -28,6 +40,13 @@ All notable changes to this project will be documented in this file.
   spells out its waits, as at a real ryuukyoku.
 
 ### Changed
+- Flutter client: the efficiency/EV guide and hand auto-sort are now both **off**
+  by default, so a new game starts on the plain table with tiles in draw order.
+  The clefairy button and the sort button (both in the hand bar) still turn
+  them on per-session.
+- Flutter client: the guide panel is now titled "GUIDE" (was "TILE SENSE
+  GUIDE"), and its Expected Value column is narrower — it was the one column
+  left unconstrained and ran far wider than it needed to.
 - Flutter client: the clefairy guide-toggle now lives once, in the bottom bar
   just left of the GitHub link and sized to match it. Removed the duplicate
   clefairy marks from the app bar and the guide panel header.

@@ -7,6 +7,7 @@ releasing each target.
 - [Prerequisites](#prerequisites)
 - [Shared setup](#shared-setup-do-this-once)
 - [Web](#web)
+- [DigitalOcean (web)](#digitalocean-web)
 - [Android](#android)
 - [iOS / iPhone](#ios--iphone)
 - [Continuous integration](#continuous-integration)
@@ -151,6 +152,155 @@ it installable and offline-capable:
 - The generated service worker caches the app shell; a repeat visit works
   offline. Bump `version` in `pubspec.yaml` so clients pick up new builds
   (Flutter stamps the service worker with it).
+
+  **Important:** as of the Flutter version this project builds with, the
+  generated `flutter_service_worker.js` no longer precaches or fingerprints
+  anything — it just unregisters itself. That means **no file in `build/web/`
+  has a content hash in its name**: `main.dart.js`, every `.wav` under
+  `assets/assets/`, all of it, keeps the exact same URL release after release.
+  Whether a redeploy actually reaches players depends entirely on the
+  `Cache-Control` your host (or a CDN in front of it) puts on those URLs — see
+  the DigitalOcean section below for the concrete fix, which applies to any
+  host: serve the bundle with `Cache-Control: no-cache` (not `no-store`; the
+  browser still keeps a copy and revalidates it with a conditional request, so
+  it's fast) so a changed `.wav` on the server is picked up on the very next
+  load instead of whenever a long-lived cache happens to expire.
+
+---
+
+## DigitalOcean (web)
+
+Two explicit paths. **Option A (Droplet + Nginx)** is the one to reach for if
+"deploy to DigitalOcean" means a VM you control — it gives you the atomic,
+`rsync --delete`-based release swap below, which is the most reliable way to
+guarantee every asset (audio included) is exactly what you just built, never a
+mix of old and new files. **Option B (App Platform)** is less hands-on but
+needs a Dockerfile, because App Platform's static-site buildpacks don't have
+the Flutter SDK — a plain "static site" build command can't run
+`flutter build web`.
+
+### Option A — Droplet + Nginx (recommended)
+
+**One-time setup:**
+
+1. Create a Droplet (Ubuntu 24.04 LTS, the cheapest "Basic" tier is plenty for
+   a static bundle) in the DigitalOcean control panel, or:
+   ```sh
+   doctl compute droplet create tilesense-web \
+     --region nyc3 --size s-1vcpu-1gb --image ubuntu-24-04-x64 \
+     --ssh-keys <your-ssh-key-fingerprint>
+   ```
+2. SSH in and install Nginx:
+   ```sh
+   ssh root@<droplet-ip>
+   apt update && apt install -y nginx
+   ```
+3. Point a domain at it (A record → the Droplet's IP), then get a certificate:
+   ```sh
+   apt install -y certbot python3-certbot-nginx
+   certbot --nginx -d tilesense.example.com
+   ```
+4. Nginx site config (`/etc/nginx/sites-available/tilesense`, symlinked into
+   `sites-enabled/`) — serves from a `current` symlink so a deploy is one atomic
+   pointer swap, and disables long-lived caching since nothing here is
+   fingerprinted (see the note above):
+   ```nginx
+   server {
+       listen 443 ssl http2;
+       server_name tilesense.example.com;
+       root /var/www/tilesense/current;
+       index index.html;
+
+       # Nothing in this build is content-hashed, so cache conservatively:
+       # the browser still caches, but must revalidate (ETag / Last-Modified)
+       # before reusing a file, so a redeployed .wav is picked up immediately.
+       add_header Cache-Control "no-cache";
+
+       location / {
+           try_files $uri $uri/ /index.html;
+       }
+   }
+   ```
+   ```sh
+   mkdir -p /var/www/tilesense
+   nginx -t && systemctl reload nginx
+   ```
+
+**Every deploy**, from your machine (or CI):
+
+```sh
+cd flutter_client
+flutter build web --release
+
+RELEASE=$(date +%Y%m%d%H%M%S)
+ssh root@<droplet-ip> "mkdir -p /var/www/tilesense/releases/$RELEASE"
+# --delete matters: it removes files from the new release dir that no longer
+# exist in build/web, so a renamed/removed .wav can't linger.
+rsync -avz --delete build/web/ root@<droplet-ip>:/var/www/tilesense/releases/$RELEASE/
+ssh root@<droplet-ip> \
+  "ln -sfn /var/www/tilesense/releases/$RELEASE /var/www/tilesense/current && \
+   nginx -s reload && \
+   ls -dt /var/www/tilesense/releases/*/ | tail -n +6 | xargs rm -rf"
+```
+
+That last `ls | tail | xargs rm -rf` keeps only the 5 most recent releases so
+old ones don't accumulate. The symlink swap means there is never a moment where
+Nginx serves a half-uploaded release, and because it's a full fresh copy of
+`build/web/` every time (not an in-place overwrite), a changed `.wav` file is
+guaranteed to be the one served — verify with:
+
+```sh
+curl -sI https://tilesense.example.com/assets/assets/orderic/Orderic_Chi.wav | grep -i etag
+# run again after a deploy that touched that file — the ETag must differ.
+```
+
+### Option B — App Platform (Docker service)
+
+App Platform's "Static Site" component can't build this app (no Flutter SDK in
+its buildpacks), so run it as a **Service** built from a Dockerfile that builds
+the app and serves the result with Nginx:
+
+```dockerfile
+# flutter_client/Dockerfile
+FROM ghcr.io/cirruslabs/flutter:stable AS build
+WORKDIR /app
+COPY . .
+RUN flutter build web --release
+
+FROM nginx:alpine
+COPY --from=build /app/build/web /usr/share/nginx/html
+# Same reasoning as the Droplet config: nothing here is content-hashed.
+RUN printf 'server { listen 8080; root /usr/share/nginx/html; \
+    add_header Cache-Control "no-cache"; \
+    location / { try_files $uri $uri/ /index.html; } }' \
+    > /etc/nginx/conf.d/default.conf
+EXPOSE 8080
+```
+
+Then either through the control panel (**Create App → GitHub repo → Dockerfile
+detected automatically**, source directory `flutter_client`) or:
+
+```sh
+doctl apps create --spec - <<'EOF'
+name: tilesense-web
+services:
+  - name: web
+    dockerfile_path: flutter_client/Dockerfile
+    source_dir: flutter_client
+    github:
+      repo: eric-r-xu/TileSense
+      branch: ericrxu_dev
+      deploy_on_push: true
+    http_port: 8080
+    instance_size_slug: basic-xxs
+    instance_count: 1
+EOF
+```
+
+`deploy_on_push: true` means every push rebuilds the Docker image from
+scratch, so an updated `.wav` is always baked into the new image — there's no
+stale-file risk at the container level, only the same browser-cache
+consideration the Nginx config above already handles.
 
 ---
 
@@ -368,6 +518,7 @@ Store) is the standard tool if you want them automated.
 | Web: tile glyphs look different across browsers | you are on the HTML renderer; drop `--web-renderer html` to use CanvasKit |
 | Web: tiles render blank (typically Chrome on Android) | the bundled `MahjongTiles` font failed to load — confirm `assets/fonts/MahjongTiles-Regular.ttf` is in the build and listed in `FontManifest.json`; regenerate it per `assets/fonts/README.md` if missing |
 | Web: spoken lines don't play on mobile | audio unlocks only after the first tap anywhere in the app (`Sfx.unlock`); a tap that lands before the Flutter view is interactive won't count — tap again |
+| Web: updated `.wav` files still play the old recording after a redeploy | nothing in `build/web/` is content-hashed (see the note in [Web ▸ PWA / offline](#web)), so a long-lived cache — browser or a CDN in front of your host — can serve the old file by URL; set `Cache-Control: no-cache` on the bundle (done for you in the [DigitalOcean](#digitalocean-web) configs) and confirm with `curl -sI <url> \| grep -i etag` before/after the deploy |
 | Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
 | Android: `keystore not found` on release build | check `storeFile` in `key.properties` is an absolute path and the file exists |
 | Android: Play rejects "debuggable" APK | you built `apk` without `--release`, or `key.properties` was absent so it fell back to the debug signing config |
