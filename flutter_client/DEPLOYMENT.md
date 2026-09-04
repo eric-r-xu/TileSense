@@ -366,6 +366,8 @@ Store) is the standard tool if you want them automated.
 | Web: blank page under a sub-path | rebuild with `--base-href /<path>/` (leading and trailing slash) |
 | Web: deep-link reload 404s | add the SPA fallback redirect to `index.html` (see host notes) |
 | Web: tile glyphs look different across browsers | you are on the HTML renderer; drop `--web-renderer html` to use CanvasKit |
+| Web: tiles render blank (typically Chrome on Android) | the bundled `MahjongTiles` font failed to load — confirm `assets/fonts/MahjongTiles-Regular.ttf` is in the build and listed in `FontManifest.json`; regenerate it per `assets/fonts/README.md` if missing |
+| Web: spoken lines don't play on mobile | audio unlocks only after the first tap anywhere in the app (`Sfx.unlock`); a tap that lands before the Flutter view is interactive won't count — tap again |
 | Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
 | Android: `keystore not found` on release build | check `storeFile` in `key.properties` is an absolute path and the file exists |
 | Android: Play rejects "debuggable" APK | you built `apk` without `--release`, or `key.properties` was absent so it fell back to the debug signing config |

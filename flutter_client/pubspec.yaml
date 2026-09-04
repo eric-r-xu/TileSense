@@ -32,3 +32,11 @@ flutter:
     - assets/grant/
     - assets/hubert/
     - assets/astaroth/
+  fonts:
+    # Unicode Mahjong Tiles block (U+1F000–U+1F02F), subset from Noto Sans
+    # Symbols 2. Bundled so tile faces render on browsers whose platform fonts
+    # lack the block (Chrome on Android) instead of relying on a runtime Noto
+    # fallback download. See assets/fonts/README.md.
+    - family: MahjongTiles
+      fonts:
+        - asset: assets/fonts/MahjongTiles-Regular.ttf

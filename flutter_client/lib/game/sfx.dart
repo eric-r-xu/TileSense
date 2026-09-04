@@ -14,10 +14,18 @@ enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah, acquiescement, win }
 /// The four table personalities — one per seat (0 = the human, Orderic).
 enum Character { orderic, grant, hubert, astaroth }
 
-/// Fire-and-forget sound player. Browsers block audio until the first user
-/// gesture, so the first tap in the app is what "enables" sound; every call is
-/// wrapped in try/catch so a blocked context never breaks play. Voice lines get
-/// their own player so they can overlap the generic blips.
+/// Fire-and-forget sound player.
+///
+/// Two things browsers (Chrome on Android especially) get strict about:
+///
+///  * **Autoplay unlock is per media element, and only from a user gesture.**
+///    The blip player gets unlocked by the first tap that plays a blip, but the
+///    voice player is only ever driven by bot turns on timers — so without
+///    priming it inside a real gesture, every spoken line is silently rejected.
+///    [unlock] does that priming; call it from a root pointer-down listener.
+///  * **`play()` rejects if a `pause()`/`stop()` interrupts it.** The voice
+///    channel therefore runs a serial queue: one line plays to completion (or a
+///    watchdog) before the next starts, so we never stop a line mid-`play()`.
 class Sfx {
   Sfx._();
   static final Sfx i = Sfx._();
@@ -28,6 +36,9 @@ class Sfx {
     ..setReleaseMode(ReleaseMode.stop);
 
   bool enabled = true;
+
+  /// A short existing clip, played muted, purely to unlock a media element.
+  static const String _primeAsset = 'sfx/click.wav';
 
   static const Map<SfxKind, String> _asset = {
     SfxKind.riichi: 'sfx/hint.wav',
@@ -91,63 +102,134 @@ class Sfx {
     },
   };
 
-  StreamSubscription<void>? _chainSub;
+  // --- autoplay unlock ---------------------------------------------------
 
-  void play(SfxKind kind) => _fire(_player, _asset[kind],
+  bool _unlocked = false;
+
+  /// Prime both players so the browser will let them play later. Must be called
+  /// from within a real user gesture (e.g. a root `Listener.onPointerDown`);
+  /// no-op after the first successful call and on non-web platforms, which
+  /// don't gate audio this way.
+  void unlock() {
+    if (_unlocked) return;
+    _unlocked = true;
+    if (!kIsWeb) return;
+    for (final p in [_player, _voice]) {
+      try {
+        // Start playback synchronously here — any `await` before `play()` drops
+        // us out of the gesture and the browser rejects it. Muted so priming is
+        // inaudible; stop as soon as it has started.
+        // ignore: discarded_futures
+        p.play(AssetSource(_primeAsset), volume: 0).then((_) {
+          // ignore: discarded_futures
+          p.stop();
+        }).catchError((_) {});
+      } catch (_) {
+        // Priming failed; real plays below will still try on their own.
+      }
+    }
+  }
+
+  // --- blips -----------------------------------------------------------
+
+  void play(SfxKind kind) => _fire(_asset[kind],
       volume: kind == SfxKind.discard ? 0.35 : 0.7);
 
-  void voice(VoiceKind kind, {Character character = Character.orderic}) {
-    _chainSub?.cancel();
-    _fire(_voice, _voiceAsset[character]?[kind], volume: 0.9);
-  }
-
-  /// Play a sequence of lines back to back on the voice channel, each with its
-  /// own speaker — e.g. a mangan+ ron is the winner's "ron" then "yeah", then
-  /// the discarder's resigned acknowledgement.
-  void voiceChain(List<(Character, VoiceKind)> steps) {
-    if (!enabled || steps.isEmpty) return;
-    _chainSub?.cancel();
-    final paths = [
-      for (final (character, k) in steps)
-        if (_voiceAsset[character]?[k] != null) _voiceAsset[character]![k]!,
-    ];
-    if (paths.isEmpty) return;
-    var idx = 0;
-    void next() {
-      if (idx >= paths.length) {
-        _chainSub?.cancel();
-        _chainSub = null;
-        return;
-      }
-      final path = paths[idx++];
-      () async {
-        try {
-          await _voice.stop();
-          await _voice.play(AssetSource(path), volume: 0.9);
-        } catch (e) {
-          if (kDebugMode) debugPrint('Sfx($path) failed: $e');
-        }
-      }();
-    }
-
-    _chainSub = _voice.onPlayerComplete.listen((_) => next());
-    next();
-  }
-
-  void _fire(AudioPlayer player, String? path, {required double volume}) {
+  void _fire(String? path, {required double volume}) {
     if (!enabled || path == null) return;
     () async {
       try {
-        await player.stop();
-        await player.play(AssetSource(path), volume: volume);
+        await _player.stop();
+        await _player.play(AssetSource(path), volume: volume);
       } catch (e) {
         if (kDebugMode) debugPrint('Sfx($path) failed: $e');
       }
     }();
   }
 
+  // --- voice queue ---------------------------------------------------
+
+  /// Lines waiting to be spoken. Kept short: if lines are requested faster than
+  /// they play we drop the stalest pending ones rather than fall further behind.
+  final List<String> _voiceQueue = [];
+  static const int _maxVoiceQueue = 4;
+
+  bool _voiceBusy = false;
+
+  /// Bumped every time a line starts, so a stale `onPlayerComplete` or watchdog
+  /// from a previous line can't advance the queue twice.
+  int _voiceGen = 0;
+  StreamSubscription<void>? _voiceCompleteSub;
+  Timer? _voiceWatchdog;
+
+  void voice(VoiceKind kind, {Character character = Character.orderic}) {
+    final path = _voiceAsset[character]?[kind];
+    if (path != null) _enqueueVoice([path]);
+  }
+
+  /// Speak several lines back to back on the voice channel, each with its own
+  /// speaker — e.g. a mangan+ ron is the winner's "ron" then "yeah", then the
+  /// discarder's resigned acknowledgement. Queued as one unit after anything
+  /// already pending.
+  void voiceChain(List<(Character, VoiceKind)> steps) {
+    final paths = [
+      for (final (character, k) in steps)
+        if (_voiceAsset[character]?[k] != null) _voiceAsset[character]![k]!,
+    ];
+    if (paths.isNotEmpty) _enqueueVoice(paths);
+  }
+
+  void _enqueueVoice(List<String> paths) {
+    if (!enabled) return;
+    _voiceQueue.addAll(paths);
+    if (_voiceQueue.length > _maxVoiceQueue) {
+      _voiceQueue.removeRange(0, _voiceQueue.length - _maxVoiceQueue);
+    }
+    if (!_voiceBusy) _pumpVoice();
+  }
+
+  void _pumpVoice() {
+    if (_voiceBusy || _voiceQueue.isEmpty) return;
+    final path = _voiceQueue.removeAt(0);
+    _voiceBusy = true;
+    final gen = ++_voiceGen;
+
+    // The previous line has already completed by the time we get here, so this
+    // stop() has no in-flight play() to interrupt — it just resets position.
+    _voiceCompleteSub?.cancel();
+    _voiceCompleteSub = _voice.onPlayerComplete.listen((_) => _stepDone(gen));
+
+    // Safety net: on web `onPlayerComplete` can fail to fire if the element
+    // errors out. Don't let the queue wedge.
+    _voiceWatchdog?.cancel();
+    _voiceWatchdog =
+        Timer(const Duration(seconds: 8), () => _stepDone(gen));
+
+    () async {
+      try {
+        await _voice.stop();
+        await _voice.play(AssetSource(path), volume: 0.9);
+      } catch (e) {
+        if (kDebugMode) debugPrint('Sfx($path) failed: $e');
+        _stepDone(gen);
+      }
+    }();
+  }
+
+  void _stepDone(int gen) {
+    if (gen != _voiceGen) return; // superseded
+    _voiceWatchdog?.cancel();
+    _voiceWatchdog = null;
+    _voiceCompleteSub?.cancel();
+    _voiceCompleteSub = null;
+    _voiceBusy = false;
+    _pumpVoice();
+  }
+
   void dispose() {
-    _chainSub?.cancel();
+    _voiceWatchdog?.cancel();
+    _voiceCompleteSub?.cancel();
+    _voiceQueue.clear();
     _player.dispose();
     _voice.dispose();
   }

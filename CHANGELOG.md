@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Flutter web: tiles no longer render blank on Chrome for Android. The faces are
+  Unicode Mahjong Tiles glyphs, which stock Android fonts don't cover, so
+  CanvasKit had been falling back to a runtime Noto download that failed
+  whenever the network was slow, blocked, or offline. A ~34 KB subset of Noto
+  Sans Symbols 2 (the mahjong block only) is now bundled and pinned as the tile
+  font, so tiles render offline and look identical across browsers.
+- Flutter web: spoken call/win lines no longer drop out intermittently. Browsers
+  unlock audio per media element and only from a user gesture, but the voice
+  player was only ever driven by bot turns on timers, so Chrome on Android kept
+  rejecting it — the first pointer-down now primes both players. The voice
+  channel also runs a serial queue instead of stop-then-play, so overlapping
+  lines (e.g. a call line into the round-end chain) can't abort each other's
+  `play()`.
+
 ### Added
 - Flutter client now enforces full riichi furiten rules: own-discard furiten,
   temporary furiten from a passed-up winning discard (cleared on the next draw),
