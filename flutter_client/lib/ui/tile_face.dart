@@ -88,6 +88,16 @@ class TileFace extends StatelessWidget {
                 t.glyph,
                 textAlign: TextAlign.center,
                 style: TextStyle(
+                  // The tile faces are Unicode Mahjong Tiles glyphs. Pin them to
+                  // the bundled subset font so they render even where the
+                  // platform font lacks the block (Chrome on Android), then fall
+                  // back to system fonts if the asset somehow fails to load.
+                  fontFamily: 'MahjongTiles',
+                  fontFamilyFallback: const [
+                    'Noto Sans Symbols 2',
+                    'Apple Symbols',
+                    'Segoe UI Symbol',
+                  ],
                   // Oversize the glyph so the tile symbol fills ~85-90% of the
                   // face; the container clips any overhang.
                   fontSize: dims.$2 * 1.06,

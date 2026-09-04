@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/game_controller.dart';
+import 'game/sfx.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/scoring_view.dart';
@@ -32,17 +33,24 @@ class TileSenseApp extends StatelessWidget {
   const TileSenseApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'TileSense',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xffcaa24e),
-            brightness: Brightness.dark,
+  Widget build(BuildContext context) => Listener(
+        // Browsers unlock audio per media element and only from a user gesture.
+        // The very first pointer-down anywhere primes both sound players (see
+        // [Sfx.unlock]) so timer-driven voice lines aren't silently blocked.
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => Sfx.i.unlock(),
+        child: MaterialApp(
+          title: 'TileSense',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xffcaa24e),
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
           ),
-          useMaterial3: true,
+          home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
         ),
-        home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
       );
 }
 
