@@ -43,7 +43,7 @@ class TileSenseApp extends StatelessWidget {
         // main(). Repeated resume calls are idempotent, and this is a no-op on
         // native platforms.
         behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => Sfx.i.unlock(),
+        onPointerUp: (_) => Sfx.i.unlock(),
         child: MaterialApp(
           title: 'TileSense',
           debugShowCheckedModeBanner: false,

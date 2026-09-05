@@ -107,6 +107,10 @@ class Sfx {
   /// in the native backend and is safe to repeat if a browser re-suspends.
   void unlock() => _audio.unlock();
 
+  /// Recover browser audio after returning from a background tab/app. No-op on
+  /// native platforms, whose lifecycle remains managed by `audioplayers`.
+  void recoverAfterForeground() => _audio.recoverAfterForeground();
+
   // --- preloading --------------------------------------------------------
 
   /// Every clip the game can actually play, blips first.
