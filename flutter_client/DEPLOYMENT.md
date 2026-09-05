@@ -211,10 +211,20 @@ the Flutter SDK — a plain "static site" build command can't run
        root /var/www/tilesense/current;
        index index.html;
 
-       # Nothing in this build is content-hashed, so cache conservatively:
-       # the browser still caches, but must revalidate (ETag / Last-Modified)
-       # before reusing a file, so a redeployed .wav is picked up immediately.
+       # Nothing in this build is content-hashed, so the app shell must be
+       # revalidated every time or a deploy never reaches anyone.
        add_header Cache-Control "no-cache";
+
+       # Media is the exception. Every voice line is a separate file that
+       # `audioplayers` fetches at the moment it is needed, so making the
+       # browser revalidate each one first is audible as lag before a call.
+       # These change far less often than the shell, so let them be reused
+       # outright. See "Audio latency" below for the trade-off.
+       location ~* \.(wav|png|ttf|otf|jpe?g|webp)$ {
+           expires 1d;
+           add_header Cache-Control "public, max-age=86400";
+           access_log off;
+       }
 
        location / {
            try_files $uri $uri/ /index.html;
@@ -301,6 +311,44 @@ EOF
 scratch, so an updated `.wav` is always baked into the new image — there's no
 stale-file risk at the container level, only the same browser-cache
 consideration the Nginx config above already handles.
+
+---
+
+## Audio latency
+
+Sounds are fetched, not bundled into the JS: `audioplayers`' web backend
+builds a fresh `<audio>` element every time the source URL changes — and since
+every voice line is its own file, that is *every single line*. So each clip is
+fetched at the exact moment the game wants to play it. Two things make that
+audible, and both are worth fixing:
+
+1. **No `Cache-Control` on the bundle.** With only `ETag`/`Last-Modified`, the
+   browser has to make a conditional request (`304 Not Modified`) before it can
+   reuse a clip it already has. That is a full network round trip in front of
+   every sound — cheap on a desktop connection, very obvious on mobile. The
+   `location ~* \.(wav|png|...)$` block above removes it for media while
+   leaving the shell on `no-cache`.
+2. **Nothing is warmed up.** Even with good headers, the *first* play of each
+   clip is a cold fetch. `Sfx.preload()` (called from the first real gesture,
+   alongside the autoplay unlock) pulls every clip the game can play through
+   `rootBundle` in small batches, which puts them in the browser's HTTP cache
+   and then evicts the bytes so they aren't held in Dart memory too. Web only:
+   elsewhere the clips are already local.
+
+**The trade-off:** with `max-age=86400`, a *regenerated* clip (say after
+re-running `tools/mkastaroth.py`) can take up to a day to reach someone who
+already has the old one, because the filename doesn't change. If you need it
+immediately, either shorten the `max-age` or rename the file so the URL is new.
+
+To check what a clip is actually costing:
+
+```sh
+curl -sI https://app.ericrxu.com/tilesense/assets/assets/orderic/Orderic_Chi.wav \
+  | grep -iE "cache-control|etag|content-length"
+```
+
+`Cache-Control: public, max-age=86400` means repeat plays never touch the
+network. No `Cache-Control` line at all means every play pays a round trip.
 
 ---
 
@@ -518,7 +566,8 @@ Store) is the standard tool if you want them automated.
 | Web: tile glyphs look different across browsers | you are on the HTML renderer; drop `--web-renderer html` to use CanvasKit |
 | Web: tiles render blank | a tile's PNG under `assets/tiles/` failed to load — confirm `assets/tiles/*.png` (34 files) is in the build and listed in `AssetManifest.bin`/`.json`; regenerate with `python3 tools/render_tiles.py` if missing |
 | Web: spoken lines / sfx don't play on mobile | audio unlocks per player from a native gesture listener (`lib/game/gesture_unlock_web.dart` → `Sfx.unlock`), retried on every tap/key — if it's still silent after several real interactions, check the browser console for `Sfx(...) failed:` messages (`kDebugMode` only) |
-| Web: updated `.wav` files still play the old recording after a redeploy | nothing in `build/web/` is content-hashed (see the note in [Web ▸ PWA / offline](#web)), so a long-lived cache — browser or a CDN in front of your host — can serve the old file by URL; set `Cache-Control: no-cache` on the bundle (done for you in the [DigitalOcean](#digitalocean-web) configs) and confirm with `curl -sI <url> \| grep -i etag` before/after the deploy |
+| Web: updated `.wav` files still play the old recording after a redeploy | media is deliberately cached for a day (see [Audio latency](#audio-latency)) and nothing in `build/web/` is content-hashed, so the old file is served by URL until it expires; rename the clip to bust it, or shorten the `max-age` |
+| Web: audible lag before a call sound | the media `Cache-Control` block is missing, so every play makes a `304` round trip first — check with `curl -sI <clip-url> \| grep -i cache-control` and see [Audio latency](#audio-latency) |
 | Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
 | Android: `keystore not found` on release build | check `storeFile` in `key.properties` is an absolute path and the file exists |
 | Android: Play rejects "debuggable" APK | you built `apk` without `--release`, or `key.properties` was absent so it fell back to the debug signing config |

@@ -36,6 +36,14 @@ All notable changes to this project will be documented in this file.
   GitHub link.
 
 ### Fixed
+- Web audio latency. Every voice line is a separate file that `audioplayers`
+  fetches at the moment it wants to play it, and the bundle carried no
+  `Cache-Control`, so each sound made a `304` round trip before it could start
+  — barely noticeable on desktop, audible lag on mobile. `Sfx.preload()` now
+  warms every clip through the browser's HTTP cache on the first gesture (in
+  small batches, evicting the bytes so they aren't held in Dart memory too),
+  and `DEPLOYMENT.md` documents the nginx side: media cached for a day, app
+  shell still `no-cache` so deploys land.
 - Dora sitting inside a **called meld** was never counted. `scoreHand` built its
   tile list from the concealed hand plus the winning tile only, so a ponned dora
   scored nothing and the honitsu/chinitsu suit check couldn't see a meld in a
