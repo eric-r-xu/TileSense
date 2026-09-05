@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
+
+import 'audio_backend.dart';
 
 /// Generic UI blips (`click` / `hint` / `score_count`), played for every seat.
 enum SfxKind { riichi, chi, pon, kan, ron, tsumo, discard }
@@ -16,35 +16,15 @@ enum Character { orderic, grant, hubert, astaroth }
 
 /// Fire-and-forget sound player.
 ///
-/// Mobile browsers (Safari and Chrome both, more strictly than desktop) gate
-/// audio on a real user gesture in a few ways this works around:
-///
-///  * **Autoplay unlock is per player, and only from a user gesture.** Each of
-///    `_player`/`_voice` plays through its own `AudioContext` (see
-///    `audioplayers`' web backend), which starts suspended until resumed from
-///    a gesture. [unlock] primes both — see `gesture_unlock.dart`, which calls
-///    it from a raw native event listener rather than through Flutter's own
-///    event pipeline, and keeps calling it on every gesture rather than just
-///    the first (cheap — a muted, sub-second clip — and mobile Safari in
-///    particular can need more than one attempt, or can re-suspend a context
-///    later, e.g. after the tab is backgrounded).
-///  * **Every extra `await` between the gesture and the actual native
-///    `play()` call is a chance to no longer count as gesture-linked.** So
-///    neither [play] nor [voice]/[voiceChain] call `stop()` before playing —
-///    `AudioPlayer.play()` already restarts from the beginning on its own.
-///  * **`play()` rejects if a `pause()`/`stop()` interrupts it.** The voice
-///    channel therefore runs a serial queue: one line plays to completion (or a
-///    watchdog) before the next starts, so nothing here stops a line
-///    mid-`play()` (the only `stop()` calls left are [unlock]'s own priming,
-///    each on a clip it just started itself).
+/// Browsers use a dedicated Web Audio backend with one shared `AudioContext`;
+/// native apps retain the existing two-channel `audioplayers` implementation.
+/// The voice channel is serial on both so one line completes (or reaches its
+/// watchdog) before the next begins.
 class Sfx {
   Sfx._();
   static final Sfx i = Sfx._();
 
-  final AudioPlayer _player = AudioPlayer(playerId: 'tilesense-sfx')
-    ..setReleaseMode(ReleaseMode.stop);
-  final AudioPlayer _voice = AudioPlayer(playerId: 'tilesense-voice')
-    ..setReleaseMode(ReleaseMode.stop);
+  final AudioBackend _audio = AudioBackend();
 
   bool enabled = true;
 
@@ -58,9 +38,6 @@ class Sfx {
   @visibleForTesting
   static String? debugAssetFor(Character character, VoiceKind kind) =>
       _voiceAsset[character]?[kind];
-
-  /// A short existing clip, played muted, purely to unlock a media element.
-  static const String _primeAsset = 'sfx/click.wav';
 
   static const Map<SfxKind, String> _asset = {
     SfxKind.riichi: 'sfx/hint.wav',
@@ -126,47 +103,11 @@ class Sfx {
 
   // --- autoplay unlock ---------------------------------------------------
 
-  /// Prime both players so the browser will let them play later. Best called
-  /// from as close to a raw native pointer/touch/key event as possible — see
-  /// `gesture_unlock.dart`, which hooks one before Flutter's own event
-  /// pipeline even sees it, since that extra hop is enough for strict mobile
-  /// browsers to no longer count a later call as gesture-linked.
-  ///
-  /// Deliberately *not* one-shot: kept cheap enough (a muted, sub-second clip,
-  /// immediately stopped) to call on every single gesture for the life of the
-  /// app, since a single successful unlock isn't a guarantee — mobile Safari
-  /// in particular can need a couple of attempts, and any browser can
-  /// re-suspend an `AudioContext` later (e.g. the tab being backgrounded and
-  /// foregrounded). No-op on non-web platforms, which don't gate audio this
-  /// way.
-  void unlock() {
-    if (!kIsWeb) return;
-    // The first gesture is also the earliest point worth spending bandwidth on
-    // the clips themselves.
-    // ignore: discarded_futures
-    preload();
-    for (final p in [_player, _voice]) {
-      try {
-        // Play (muted) synchronously here, with no `await` before it - any
-        // `await` first drops us out of the gesture and the browser rejects
-        // the resume it would otherwise grant. The muted volume only silences
-        // this priming clip; it doesn't change whether the browser treats the
-        // call as gesture-linked (that's keyed off the element being muted,
-        // which we never set — only its Web Audio gain, here 0).
-        // ignore: discarded_futures
-        p.play(AssetSource(_primeAsset), volume: 0).then((_) {
-          // ignore: discarded_futures
-          p.stop();
-        }).catchError((_) {});
-      } catch (_) {
-        // Priming failed; the next gesture (or a real play) gets another shot.
-      }
-    }
-  }
+  /// Resume browser audio directly from a native user gesture. This is a no-op
+  /// in the native backend and is safe to repeat if a browser re-suspends.
+  void unlock() => _audio.unlock();
 
   // --- preloading --------------------------------------------------------
-
-  bool _preloaded = false;
 
   /// Every clip the game can actually play, blips first.
   static Iterable<String> get _allClips sync* {
@@ -178,36 +119,9 @@ class Sfx {
     }
   }
 
-  /// Pull every clip through the browser's HTTP cache up front.
-  ///
-  /// `audioplayers` builds a fresh `<audio>` element every time the source URL
-  /// changes — and for voice lines that is *every single line* — so without
-  /// this each one is fetched at the exact moment it is needed, which is what
-  /// shows up as lag before a call. Warming the cache moves that cost to
-  /// start-up, where nothing is waiting on it. The bytes are evicted straight
-  /// away so they are not also held in Dart memory.
-  ///
-  /// Web only: elsewhere the clips are already local.
-  Future<void> preload() async {
-    if (_preloaded || !kIsWeb) return;
-    _preloaded = true;
-    final keys = {for (final path in _allClips) 'assets/$path'}.toList();
-
-    // A few at a time: one-at-a-time would serialise ~40 round trips on a
-    // mobile connection, all at once would fight the rest of the page load.
-    const batch = 6;
-    for (var i = 0; i < keys.length; i += batch) {
-      final slice = keys.skip(i).take(batch);
-      await Future.wait([
-        for (final key in slice)
-          rootBundle.load(key).then((_) => rootBundle.evict(key)).catchError(
-            (_) {
-              // A clip that will not load just stays uncached; play() copes.
-            },
-          ),
-      ]);
-    }
-  }
+  /// Start fetching and decoding every browser clip. Native assets are already
+  /// local, so the native backend returns immediately.
+  Future<void> preload() => _audio.preload(_allClips);
 
   // --- blips -----------------------------------------------------------
 
@@ -216,13 +130,8 @@ class Sfx {
 
   void _fire(String? path, {required double volume}) {
     if (!enabled || path == null) return;
-    // No `stop()` first: `play()` already restarts from the beginning on its
-    // own (see `AudioPlayer.play` -> `start`, which always resets position),
-    // and skipping it means one fewer `await` between this call and the
-    // browser's actual play — the fewer hops, the less chance a strict mobile
-    // browser no longer considers it linked to whatever gesture triggered it.
     // ignore: discarded_futures
-    _player.play(AssetSource(path), volume: volume).catchError((e) {
+    _audio.playEffect(path, volume: volume).catchError((e) {
       if (kDebugMode) debugPrint('Sfx($path) failed: $e');
     });
   }
@@ -239,7 +148,6 @@ class Sfx {
   /// Bumped every time a line starts, so a stale `onPlayerComplete` or watchdog
   /// from a previous line can't advance the queue twice.
   int _voiceGen = 0;
-  StreamSubscription<void>? _voiceCompleteSub;
   Timer? _voiceWatchdog;
 
   void voice(VoiceKind kind, {Character character = Character.orderic}) {
@@ -276,22 +184,20 @@ class Sfx {
     _voiceBusy = true;
     final gen = ++_voiceGen;
 
-    _voiceCompleteSub?.cancel();
-    _voiceCompleteSub = _voice.onPlayerComplete.listen((_) => _stepDone(gen));
     _voiceWatchdog?.cancel();
     _voiceWatchdog = null;
 
-    // No `stop()` first — see `_fire`: `play()` restarts from the beginning
-    // on its own, and this is the call most likely to be running right off
-    // the back of a user gesture (a call/riichi line triggered by the human's
-    // own tap), so it's the one where an extra `await` most matters.
     // ignore: discarded_futures
-    _voice.play(AssetSource(path), volume: 0.9).then((_) {
+    _audio
+        .startVoice(
+      path,
+      volume: 0.9,
+      onEnded: () => _stepDone(gen),
+    )
+        .then((_) {
       if (gen != _voiceGen) return;
-      // Safety net, armed only once playback is actually under way: on web
-      // `onPlayerComplete` can fail to fire if the element errors out
-      // mid-clip, and the queue would wedge behind it. A play that fails
-      // outright takes the catchError path instead and needs no timer.
+      // Safety net, armed only once playback is actually under way. A failure
+      // to start takes the catchError path instead and needs no timer.
       _voiceWatchdog?.cancel();
       _voiceWatchdog = Timer(const Duration(seconds: 8), () => _stepDone(gen));
     }).catchError((e) {
@@ -304,17 +210,14 @@ class Sfx {
     if (gen != _voiceGen) return; // superseded
     _voiceWatchdog?.cancel();
     _voiceWatchdog = null;
-    _voiceCompleteSub?.cancel();
-    _voiceCompleteSub = null;
     _voiceBusy = false;
     _pumpVoice();
   }
 
   void dispose() {
     _voiceWatchdog?.cancel();
-    _voiceCompleteSub?.cancel();
     _voiceQueue.clear();
-    _player.dispose();
-    _voice.dispose();
+    // ignore: discarded_futures
+    _audio.dispose();
   }
 }

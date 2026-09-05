@@ -18,9 +18,9 @@ void main() {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-  // Arms a native (pre-Flutter) listener to prime Sfx's audio players before
-  // mobile browsers' autoplay gating can block them — see gesture_unlock.dart
-  // and Sfx's class doc. No-op off the web.
+  // Arm a native (pre-Flutter) listener whose synchronous AudioContext.resume
+  // call satisfies mobile browser autoplay policy. Its web implementation also
+  // begins decoding clips; the native stub remains a true no-op.
   armFirstGestureUnlock();
   runApp(const TileSenseApp());
 }
@@ -39,10 +39,9 @@ class TileSenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Listener(
-        // Redundant with the native listener armFirstGestureUnlock() sets up
-        // in main() (which fires first and does the real work) — a cheap
-        // fallback in case that one somehow didn't attach, since Sfx.unlock()
-        // is itself cheap and safe to call repeatedly.
+        // Redundant fallback for the native browser listener installed in
+        // main(). Repeated resume calls are idempotent, and this is a no-op on
+        // native platforms.
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) => Sfx.i.unlock(),
         child: MaterialApp(

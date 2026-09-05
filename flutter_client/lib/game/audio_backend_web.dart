@@ -1,0 +1,180 @@
+import 'dart:async';
+import 'dart:js_interop';
+
+import 'package:web/web.dart' as web;
+
+/// Browser playback backed by one shared Web Audio context.
+///
+/// A single context means one user-gesture resume unlocks both effects and
+/// voices. Decoded buffers are retained so playing a line never has to create
+/// a media element or fetch/decode the WAV at the moment it is needed.
+class AudioBackend {
+  final web.AudioContext _context = web.AudioContext();
+  final Map<String, Future<web.AudioBuffer>> _buffers = {};
+
+  Future<void>? _preloadFuture;
+  Future<void>? _resumePending;
+  web.AudioBufferSourceNode? _effectSource;
+  web.AudioBufferSourceNode? _voiceSource;
+  int _effectGeneration = 0;
+  int _voiceGeneration = 0;
+  bool _disposed = false;
+
+  Future<void> preload(Iterable<String> paths) =>
+      _preloadFuture ??= _preloadInBatches(paths.toSet().toList());
+
+  Future<void> _preloadInBatches(List<String> paths) async {
+    // Avoid making ~40 simultaneous requests compete with Flutter's initial
+    // download on a mobile connection.
+    const batchSize = 6;
+    for (var i = 0; i < paths.length; i += batchSize) {
+      final batch = paths.skip(i).take(batchSize);
+      await Future.wait([
+        for (final path in batch)
+          _load(path).then<void>((_) {}).catchError((_) {
+            // A transient preload failure is harmless. `_load` removes failed
+            // entries so a real playback request can retry later.
+          }),
+      ]);
+    }
+  }
+
+  /// Resume immediately inside the native gesture callback.
+  ///
+  /// It is important that the JS `resume()` invocation itself occurs before
+  /// any `await`: mobile browsers only grant it while user activation is live.
+  void unlock() {
+    if (_disposed ||
+        _context.state == 'running' ||
+        _context.state == 'closed') {
+      return;
+    }
+    if (_resumePending != null) return;
+
+    final attempt = _context.resume().toDart;
+    _resumePending = attempt.then<void>((_) {}).catchError((_) {
+      // Another real gesture will retry if the browser did not accept this
+      // one (or if the context was interrupted while the tab was backgrounded).
+    }).whenComplete(() => _resumePending = null);
+  }
+
+  Future<void> playEffect(String path, {required double volume}) async {
+    final buffer = await _load(path);
+    await _ensureRunning();
+
+    final previous = _effectSource;
+    _effectSource = null;
+    if (previous != null) {
+      previous.onended = null;
+      previous.stop();
+      previous.disconnect();
+    }
+
+    final generation = ++_effectGeneration;
+    final (source, gain) = _makeSource(buffer, volume);
+    _effectSource = source;
+    source.onended = ((web.Event _) {
+      source.disconnect();
+      gain.disconnect();
+      if (generation == _effectGeneration) _effectSource = null;
+    }).toJS;
+    source.start();
+  }
+
+  Future<void> startVoice(
+    String path, {
+    required double volume,
+    required void Function() onEnded,
+  }) async {
+    final buffer = await _load(path);
+    await _ensureRunning();
+
+    final previous = _voiceSource;
+    _voiceSource = null;
+    if (previous != null) {
+      previous.onended = null;
+      previous.stop();
+      previous.disconnect();
+    }
+
+    final generation = ++_voiceGeneration;
+    final (source, gain) = _makeSource(buffer, volume);
+    _voiceSource = source;
+    source.onended = ((web.Event _) {
+      source.disconnect();
+      gain.disconnect();
+      if (_disposed || generation != _voiceGeneration) return;
+      _voiceSource = null;
+      onEnded();
+    }).toJS;
+    source.start();
+  }
+
+  (web.AudioBufferSourceNode, web.GainNode) _makeSource(
+    web.AudioBuffer buffer,
+    double volume,
+  ) {
+    final source = _context.createBufferSource();
+    final gain = _context.createGain();
+    source.buffer = buffer;
+    gain.gain.value = volume;
+    source.connect(gain);
+    gain.connect(_context.destination);
+    return (source, gain);
+  }
+
+  Future<void> _ensureRunning() async {
+    if (_context.state == 'running') return;
+    unlock();
+    final pending = _resumePending;
+    if (pending != null) await pending;
+    if (_context.state != 'running') {
+      throw StateError('Browser audio is still waiting for a user gesture');
+    }
+  }
+
+  Future<web.AudioBuffer> _load(String path) async {
+    final cached = _buffers[path];
+    if (cached != null) return cached;
+
+    final request = _fetchAndDecode(path);
+    _buffers[path] = request;
+    try {
+      return await request;
+    } catch (_) {
+      if (identical(_buffers[path], request)) _buffers.remove(path);
+      rethrow;
+    }
+  }
+
+  Future<web.AudioBuffer> _fetchAndDecode(String path) async {
+    if (_disposed) throw StateError('Audio backend is disposed');
+    final encodedPath = path.split('/').map(Uri.encodeComponent).join('/');
+    final url = Uri.parse(web.document.baseURI)
+        .resolve('assets/assets/$encodedPath')
+        .toString();
+    final response = await web.window.fetch(url.toJS).toDart;
+    if (!response.ok) {
+      throw StateError('Audio request failed (${response.status}): $url');
+    }
+    final bytes = await response.arrayBuffer().toDart;
+    return _context.decodeAudioData(bytes).toDart;
+  }
+
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    _effectGeneration++;
+    _voiceGeneration++;
+    for (final source in [_effectSource, _voiceSource]) {
+      if (source == null) continue;
+      source.onended = null;
+      source.stop();
+      source.disconnect();
+    }
+    _effectSource = null;
+    _voiceSource = null;
+    _buffers.clear();
+    if (_context.state != 'closed') await _context.close().toDart;
+  }
+}
