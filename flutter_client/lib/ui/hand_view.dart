@@ -43,10 +43,10 @@ class _HandViewState extends State<HandView> {
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);
 
-  /// Fixed width for the concealed-tile strip: 13 resting tiles at 46 px
-  /// (42 face + 2 + 2 padding) plus the 60 px slot the separated drawn tile
+  /// Fixed width for the concealed-tile strip: 13 resting tiles at 50 px
+  /// (46 face + 2 + 2 padding) plus the 64 px slot the separated drawn tile
   /// takes. Sizing for the full 14 keeps tiles from shifting on every draw.
-  static const double _handStripWidth = 13 * 46.0 + 60;
+  static const double _handStripWidth = 13 * 50.0 + 64;
 
   List<Tile> _drawOrdered(List<Tile> resting) {
     final present = {for (final t in resting) t.id: t};
@@ -179,30 +179,33 @@ class _HandViewState extends State<HandView> {
                     ],
                   ),
                 ),
-              // Guide toggle (clefairy) then the GitHub link — centred in this
-              // bottom band, never covered by melds. The clefairy matches the
-              // GitHub icon's 44 px size and dims while the guide is off.
+              // Guide toggle (clefairy, TileSense's mascot) then the GitHub
+              // link — centred in this bottom band, never covered by melds.
+              // The clefairy is the largest of the three (it's the app's own
+              // mark); GitHub and the Flutter credit stay smaller.
               const SizedBox(width: 10),
               if (widget.onToggleGuide != null)
                 IconButton(
-                  tooltip: widget.showGuide ? 'Hide guide' : 'Show guide',
-                  iconSize: 44,
+                  tooltip: widget.showGuide
+                      ? 'TileSense — hide guide'
+                      : 'TileSense — show guide',
+                  iconSize: 56,
                   onPressed: widget.onToggleGuide,
                   icon: Opacity(
                     opacity: widget.showGuide ? 1.0 : 0.4,
                     child: Image.asset(
                       'assets/clefairy.png',
-                      height: 44,
+                      height: 56,
                       filterQuality: FilterQuality.high,
                       errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.school, size: 44),
+                          const Icon(Icons.school, size: 56),
                     ),
                   ),
                 ),
               IconButton(
                 tooltip: 'View on GitHub',
-                iconSize: 44,
-                icon: const FaIcon(FontAwesomeIcons.github, size: 44),
+                iconSize: 32,
+                icon: const FaIcon(FontAwesomeIcons.github, size: 32),
                 color: Colors.white70,
                 onPressed: () => launchUrl(
                   Uri.parse('https://github.com/eric-r-xu/TileSense'),
@@ -332,10 +335,13 @@ class _HandViewState extends State<HandView> {
     }
 
     // Fixed height so the tile bar below never shifts as buttons come and go.
+    // Centred (rather than left-aligned) so it lines up under the seat badge
+    // above it instead of hugging the left edge of the bar.
     return SizedBox(
       height: 34,
+      width: double.infinity,
       child: Align(
-        alignment: Alignment.centerLeft,
+        alignment: Alignment.center,
         child: Wrap(
           spacing: 8,
           runSpacing: 4,
@@ -360,30 +366,27 @@ class _HandViewState extends State<HandView> {
 
 /// "Built with Flutter" credit, bottom-right of the hand bar (so bottom-right
 /// of the whole app) — the stock [FlutterLogo] widget rather than a bundled
-/// image, tappable through to flutter.dev.
+/// image, tappable through to flutter.dev. The credit is a [Tooltip] popup
+/// (hover on desktop, long-press on touch) so it never changes this icon's
+/// footprint or nudges its neighbours in the row.
 class _FlutterAttribution extends StatelessWidget {
   const _FlutterAttribution();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: () => launchUrl(
-          Uri.parse('https://flutter.dev'),
-          mode: LaunchMode.externalApplication,
-        ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FlutterLogo(size: 14),
-              SizedBox(width: 4),
-              Text('Built with Flutter',
-                  style: TextStyle(color: Colors.white54, fontSize: 10)),
-            ],
+    return Tooltip(
+      message: 'Built with Flutter',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => launchUrl(
+            Uri.parse('https://flutter.dev'),
+            mode: LaunchMode.externalApplication,
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(4),
+            child: FlutterLogo(size: 20),
           ),
         ),
       ),

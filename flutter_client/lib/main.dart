@@ -162,6 +162,9 @@ class _GamePageState extends State<GamePage> {
   // Off by default so a new player sees the plain table first; the clefairy
   // button next to the GitHub link turns it on.
   bool _showGuide = false;
+  // Shown once per app load, ahead of the table; the Start button hides it
+  // for the rest of the session.
+  bool _showWelcome = true;
 
   @override
   void initState() {
@@ -187,6 +190,9 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showWelcome) {
+      return _WelcomeScreen(onStart: () => setState(() => _showWelcome = false));
+    }
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 12,
@@ -309,6 +315,86 @@ class _GamePageState extends State<GamePage> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// First thing shown on app load: the clefairy mark, the app name, a short
+/// explanation of what TileSense does, and a Start button into the table.
+class _WelcomeScreen extends StatelessWidget {
+  const _WelcomeScreen({required this.onStart});
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    // Material ancestor: without one, Text on web can render with a stray
+    // underline decoration (every other screen gets this for free via
+    // Scaffold's own Material).
+    return Material(
+      color: kLetterboxColor,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/clefairy.png',
+                height: 140,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Welcome to',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Text(
+                'TileSense',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xffe9d58f),
+                  fontSize: 44,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                width: 560,
+                child: Text(
+                  "TileSense is a Flutter Web App built to give you a feel for "
+                  'optimal Riichi Mahjong play, with recommended actions scored '
+                  'by efficiency, expected value, and safety.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              ElevatedButton(
+                onPressed: onStart,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xffcaa24e),
+                  foregroundColor: Colors.black,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                child: const Text('Start'),
+              ),
+            ],
+          ),
         ),
       ),
     );

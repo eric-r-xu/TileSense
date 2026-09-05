@@ -303,7 +303,7 @@ class TableView extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _portrait(seat, size: 32),
+            _portrait(seat, size: 38),
             const SizedBox(width: 6),
             _placard(round, seat),
           ],
@@ -335,7 +335,7 @@ class TableView extends StatelessWidget {
     final placard = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _portrait(seat, size: 30),
+        _portrait(seat, size: 34),
         const SizedBox(height: 4),
         RotatedBox(
           quarterTurns: isLeft ? 3 : 1,
@@ -395,7 +395,7 @@ class TableView extends StatelessWidget {
 
   /// A seat's character portrait, tucked beside its placard and sized to sit
   /// level with it.
-  Widget _portrait(int seat, {double size = 36}) {
+  Widget _portrait(int seat, {double size = 42}) {
     return Container(
       width: size,
       height: size,

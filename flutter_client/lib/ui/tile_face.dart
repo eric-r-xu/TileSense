@@ -156,7 +156,7 @@ class TileFace extends StatelessWidget {
       case TileSize.normal:
         return (32, 44, 30);
       case TileSize.large:
-        return (42, 58, 40);
+        return (46, 64, 44);
     }
   }
 }
