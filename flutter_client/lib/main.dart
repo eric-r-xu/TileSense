@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/game_controller.dart';
+import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -17,6 +18,10 @@ void main() {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+  // Arms a native (pre-Flutter) listener to prime Sfx's audio players before
+  // mobile browsers' autoplay gating can block them — see gesture_unlock.dart
+  // and Sfx's class doc. No-op off the web.
+  armFirstGestureUnlock();
   runApp(const TileSenseApp());
 }
 
@@ -34,9 +39,10 @@ class TileSenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Listener(
-        // Browsers unlock audio per media element and only from a user gesture.
-        // The very first pointer-down anywhere primes both sound players (see
-        // [Sfx.unlock]) so timer-driven voice lines aren't silently blocked.
+        // Redundant with the native listener armFirstGestureUnlock() sets up
+        // in main() (which fires first and does the real work) — a cheap
+        // fallback in case that one somehow didn't attach, since Sfx.unlock()
+        // is itself cheap and safe to call repeatedly.
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) => Sfx.i.unlock(),
         child: MaterialApp(
@@ -48,6 +54,22 @@ class TileSenseApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
             useMaterial3: true,
+          ),
+          // Every size in this app is authored in kDesignSize's fixed logical
+          // pixels and scaled as one unit by _FixedCanvas — but browsers each
+          // set their own default system/accessibility text-scale factor
+          // independently of that (e.g. Chrome for Android can differ from
+          // Safari/Firefox on the very same device), which scales Text
+          // separately from everything else and was exactly why things like
+          // the centre status block or the rotate-landscape prompt rendered
+          // taller / more loosely spaced on some browsers than others. Pin it
+          // to 1.0 everywhere — including _LandscapeGate, which sits outside
+          // _FixedCanvas's own MediaQuery override — so text always renders
+          // at the size it was authored at.
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.noScaling),
+            child: child!,
           ),
           home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
         ),
