@@ -7,9 +7,10 @@ repository root). It is intentionally independent of the Vala/Meson build.
 ## What it does
 
 - A locally shuffled 136-tile wall, four dealt hands, and a full offline round
-  loop vs three bots: draws, discards, **pon** and **closed kan** (chi is
-  omitted, matching the `SimpleBot` behavior), riichi, tsumo, ron, and
-  exhaustive draw with tenpai payments.
+  loop vs three bots: draws, discards, **chi**, **pon** and **closed kan**,
+  riichi, tsumo, ron, and exhaustive draw with tenpai payments. Chi is offered
+  only to the seat after the discarder, and loses to pon/kan/ron; the guide
+  picks which run to take when more than one is possible.
 - A **live efficiency guide** (bottom-left panel): for every discard from your
   hand it shows the resulting shanten, ukeire, accepted tile types, and
   probability-weighted point value. Tenpai EV uses yaku/han/fu scoring, visible
@@ -25,7 +26,6 @@ repository root). It is intentionally independent of the Vala/Meson build.
   in, once melds are counted), then filtered by three hard rules — a call must
   advance the hand, leave a yaku to finish on, and not commit you while a
   riichi is out and you are still behind. The panel shows the verdict and why.
-  Chi is evaluated too, though the round engine never offers it.
 - Hand scoring at the end of a round: yaku list, han/fu, dora/ura/aka, limit
   hands and yakuman, and the point transfers.
 - An **Autoplay** toggle that plays your seat from that same guide — the
@@ -40,7 +40,9 @@ shanten/ukeire algorithm used by the Vala client
 (`source/Game/Logic/TileEfficiency.vala`), and `efficiency_engine.dart` applies
 the desktop client's scoring-aware expected-value model. `lib/logic/bot.dart`
 closely follows `source/GameServer/Bots/SimpleBot.vala` and drives seats 1-3
-only — your own seat is always played by the guide. `lib/logic/scoring.dart`
+only — your own seat is always played by the guide. The one place the round
+deliberately goes beyond the reference client is chi, which it offers (and the
+guide advises on) even though `SimpleBot` never calls it. `lib/logic/scoring.dart`
 and `lib/logic/hand_parse.dart` are a *documented subset* of `TileRules.vala` —
 the common yaku, the standard fu table, and the yakuman set; rare fu corner
 cases and some double-yakuman rules are approximated. There is no networking,

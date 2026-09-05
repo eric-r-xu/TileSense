@@ -63,7 +63,8 @@ isolated.
 - **Ron:** always taken.
 - **Pon:** only for a tile worth something by itself (a dragon, or the
   seat/round wind), and only when already holding exactly two.
-- **Chi:** never — switched off entirely.
+- **Chi:** never. The table offers it now, but the opponents' rulebook has no
+  concept of it, so they let every chi go by — a free edge for you.
 - **Closed kan:** taken every time it's legal, with no thought about whether
   flipping a fresh dora indicator is a good idea right now.
 
@@ -90,8 +91,7 @@ Autoplay (as the actual move):
 - **A safety table the moment a riichi lands** — every tile rated 0
   (dangerous) to 15 (provably safe) with a reason, and while you're still
   behind, the recommendation switches from "best" to "safest."
-- **Call advice on every offer**, covering ron, pon and kan (and chi, which
-  the engine evaluates even though the round never offers it). Each option is
+- **Call advice on every offer**, covering ron, chi, pon and kan. Each option is
   scored the same way as a discard — the state it leaves you in once melds
   count — and then has to clear three hard rules:
   1. **It has to get you closer.** A call that leaves you the same distance
@@ -116,17 +116,25 @@ dora along with it.
 | Picking a discard | Fixed checklist, first match wins, random tie-break | Every option ranked by real win-odds and real point value |
 | Sees dora / red fives? | No | Yes, including dora inside called melds |
 | Riichi vs. stay quiet | Hard-coded points cutoff | Real math on both, deposit risk included |
-| Pon / kan / ron | Simple fixed rules; chi off entirely | Scored on expected value, then three hard rules |
+| Chi / pon / kan / ron | Simple fixed rules; never chis | Every option scored on expected value, then three hard rules |
 | Plays defense vs. a riichi | Never | Yes — safety ratings, and it folds when behind |
 | Explains itself | — | Yes, in plain English, in the guide panel |
 | Different per character? | No — one shared brain in three costumes | — |
 
-## Known gap: chi
+## About chi
 
-The advisor evaluates chi (including choosing between the possible sequences),
-but `Round` has no `CallType.chi` — the round engine never offers it, matching
-the original desktop client. The strategy is in place if chi is ever added to
-the rules.
+Chi is fully in play: the round offers it to the seat immediately after the
+discarder (and only that seat), it loses to pon, kan and ron, and it's barred
+while you're in riichi — the normal rules. When the same discard could be
+taken as more than one run — holding 34567p and offered 5p, you could make
+345p, 456p or 567p — the guide scores each and takes the best, so the CHI
+button stays a single tap.
+
+The opponents never call it. That's deliberate: `SimpleBot` is a port of the
+original desktop client's simplest bot, which has no chi logic, and keeping it
+that way preserves the "they're a checklist, you have a calculator" gap this
+document describes. The practical effect is that chi discards sail past them,
+which makes the opponents a little slower than real players would be.
 
 ## Bottom line
 

@@ -111,6 +111,7 @@ class ActionAdvice {
     required this.shantenAfter,
     required this.reason,
     this.eligible = true,
+    this.meldLow,
     this.discardAfter,
     this.discardSafety,
   });
@@ -131,6 +132,10 @@ class ActionAdvice {
   /// False when a hard rule rules this out regardless of [expectedValue] — no
   /// shanten progress, no yaku to finish on, or folding under a riichi.
   final bool eligible;
+
+  /// For a chi, the lowest tile of the run the guide picked — several runs can
+  /// often be made with the same discard, so the caller has to know which.
+  final TileType? meldLow;
 
   /// The tile the guide would discard after making this call.
   final TileType? discardAfter;
@@ -567,6 +572,7 @@ class EfficiencyEngine {
         expectedValue: 0,
         shantenAfter: 99,
         eligible: false,
+        meldLow: meld.low,
         reason: '$label leaves no playable hand.',
       );
     }
@@ -586,6 +592,7 @@ class EfficiencyEngine {
         expectedValue: best.expectedValue,
         shantenAfter: best.shanten,
         eligible: false,
+        meldLow: meld.low,
         discardAfter: best.discard,
         discardSafety: best.safety,
         reason: '$label gets you no closer — still $shape afterwards, and it '
@@ -598,6 +605,7 @@ class EfficiencyEngine {
         expectedValue: 0,
         shantenAfter: best.shanten,
         eligible: false,
+        meldLow: meld.low,
         discardAfter: best.discard,
         discardSafety: best.safety,
         reason: '$label opens your hand with no yaku left to finish on, so it '
@@ -610,6 +618,7 @@ class EfficiencyEngine {
         expectedValue: best.expectedValue,
         shantenAfter: best.shanten,
         eligible: false,
+        meldLow: meld.low,
         discardAfter: best.discard,
         discardSafety: best.safety,
         reason: '$label commits you while a riichi is out and you are still '
@@ -625,6 +634,7 @@ class EfficiencyEngine {
       action: action,
       expectedValue: best.expectedValue,
       shantenAfter: best.shanten,
+      meldLow: meld.low,
       discardAfter: best.discard,
       discardSafety: safety,
       reason: '$label puts you at $shape worth about '

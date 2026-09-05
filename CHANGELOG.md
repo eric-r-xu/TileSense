@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- The guide now advises on **calls**, not just discards: ron, pon and closed /
-  open kan (and chi, which the engine evaluates even though the round never
-  offers it). Every option is scored through the same expected-value model the
+- **Chi is now part of the game.** The round offers it to the seat immediately
+  after the discarder (and only that seat), bars it during riichi, and ranks it
+  below pon, kan and ron. Where a discard could complete more than one run
+  (holding 34567p and offered 5p), the guide scores each and takes the best, so
+  the CHI button stays a single tap — `resolveCalls` gained an optional
+  `chiLow` map naming the run a caller wants. The opponents still never chi:
+  `SimpleBot` is a port of the reference client's bot, which has no chi logic.
+- The guide now advises on **calls**, not just discards: ron, chi, pon and
+  closed / open kan. Every option is scored through the same expected-value model the
   discard table uses — the state it leaves you in once melds are counted — and
   then has to clear three hard rules: it must advance the hand, leave a yaku to
   finish on, and not commit you while a riichi is out and you are still behind.
@@ -39,6 +45,10 @@ All notable changes to this project will be documented in this file.
   step toward tenpai, so a wide 3-shanten hand scored higher than a narrow
   1-shanten one. The draws left are now shared across the steps still needed,
   which is what makes "call vs. stay put" comparable at all.
+- A voice line's stall watchdog was armed before playback had even started, so
+  a call whose audio failed outright (no plugin, or a blocked autoplay) left an
+  8-second timer running with nothing to cancel it. It is now armed only once
+  the clip is actually playing, which is the case it exists to cover.
 - The guide panel's call recommendation ("Recommended: PON / PASS") was
   `SimpleBot`'s output presented as guide advice; it now comes from the
   expected-value advisor, as does the Autoplay discard hint.

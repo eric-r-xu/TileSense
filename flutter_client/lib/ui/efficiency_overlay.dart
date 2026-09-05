@@ -113,13 +113,14 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     if (opt == null || tile == null) return const SizedBox.shrink();
     final rec = widget.game.recommendedCall ?? CallType.none;
     final recLabel = switch (rec) {
+      CallType.chi => 'CHI',
       CallType.pon => 'PON',
       CallType.kan => 'KAN',
       CallType.ron => 'RON',
       CallType.none => 'PASS',
     };
     final offered = [
-      for (final t in [CallType.ron, CallType.kan, CallType.pon])
+      for (final t in [CallType.ron, CallType.kan, CallType.pon, CallType.chi])
         if (opt.types.contains(t)) t.name.toUpperCase(),
       'PASS',
     ].join(' · ');

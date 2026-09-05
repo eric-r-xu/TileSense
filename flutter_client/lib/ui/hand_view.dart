@@ -309,6 +309,10 @@ class _HandViewState extends State<HandView> {
         buttons.add(_btn('KAN', const Color(0xff4527a0),
             () => game.answerCall(CallType.kan)));
       }
+      if (opt.types.contains(CallType.chi)) {
+        buttons.add(_btn('CHI', const Color(0xff00838f),
+            () => game.answerCall(CallType.chi)));
+      }
       buttons.add(_btn('PASS', const Color(0xff37474f),
           () => game.answerCall(CallType.none)));
     } else if (game.isHumanTurn) {

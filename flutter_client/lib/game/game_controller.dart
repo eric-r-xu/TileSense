@@ -276,6 +276,7 @@ class GameController extends ChangeNotifier {
 
   void _resolveCallPhase() {
     final choices = <int, CallType>{};
+    final chiLow = <int, TileType>{};
     for (final opt in round.callOptions) {
       if (opt.seat == kHumanSeat && !autoplay) {
         _humanCallOption = opt;
@@ -286,15 +287,21 @@ class GameController extends ChangeNotifier {
         return; // wait for the human
       }
       final bot = _bots[opt.seat];
-      final c = autoplay && opt.seat == kHumanSeat
-          ? _autoHumanCall(opt)
-          : bot.decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
+      CallType c;
+      if (autoplay && opt.seat == kHumanSeat) {
+        final advice = _guidedCallAdvice(opt);
+        c = _callTypeFor(advice?.recommended);
+        final low = _chiLowFor(advice);
+        if (low != null) chiLow[opt.seat] = low;
+      } else {
+        c = bot.decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
+      }
       if (c != CallType.none) choices[opt.seat] = c;
     }
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices);
-    round.resolveCalls(choices);
+    round.resolveCalls(choices, chiLow: chiLow);
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
@@ -341,10 +348,13 @@ class GameController extends ChangeNotifier {
       Sfx.i.play(SfxKind.kan);
     } else if (calls.contains(CallType.pon)) {
       Sfx.i.play(SfxKind.pon);
+    } else if (calls.contains(CallType.chi)) {
+      Sfx.i.play(SfxKind.chi);
     }
     // The seat that made the call gets its character's line.
     for (final e in choices.entries) {
       final vk = switch (e.value) {
+        CallType.chi => VoiceKind.chi,
         CallType.pon => VoiceKind.pon,
         CallType.kan => VoiceKind.kan,
         _ => null,
@@ -354,9 +364,6 @@ class GameController extends ChangeNotifier {
       }
     }
   }
-
-  CallType _autoHumanCall(CallOption opt) =>
-      _callTypeFor(_guidedCallAdvice(opt)?.recommended);
 
   // --- the guide playing your seat ------------------------------------
 
@@ -439,6 +446,8 @@ class GameController extends ChangeNotifier {
       switch (type) {
         case CallType.ron:
           out.add(GuidedAction.ron);
+        case CallType.chi:
+          out.add(GuidedAction.chi);
         case CallType.pon:
           out.add(GuidedAction.pon);
         case CallType.kan:
@@ -454,9 +463,15 @@ class GameController extends ChangeNotifier {
         GuidedAction.ron => CallType.ron,
         GuidedAction.pon => CallType.pon,
         GuidedAction.kan => CallType.kan,
-        // Chi is evaluated by the engine but the round never offers it.
+        GuidedAction.chi => CallType.chi,
         _ => CallType.none,
       };
+
+  /// The run the guide picked, for a chi it is recommending.
+  static TileType? _chiLowFor(CallAdvice? advice) =>
+      advice?.recommended == GuidedAction.chi
+          ? advice?.forAction(GuidedAction.chi)?.meldLow
+          : null;
 
   // --- human input ---------------------------------------------------
 
@@ -497,7 +512,15 @@ class GameController extends ChangeNotifier {
     final opt = _humanCallOption;
     if (opt == null) return;
     final choices = <int, CallType>{};
+    final chiLow = <int, TileType>{};
     if (choice != CallType.none) choices[opt.seat] = choice;
+
+    // Several runs can often be made with the same tile; take the one the
+    // guide rates highest rather than making you pick between them.
+    if (choice == CallType.chi) {
+      final low = _humanCallAdvice?.forAction(GuidedAction.chi)?.meldLow;
+      if (low != null) chiLow[opt.seat] = low;
+    }
 
     // Let the remaining bot seats decide too.
     for (final other in round.callOptions) {
@@ -509,7 +532,7 @@ class GameController extends ChangeNotifier {
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices); // voices every calling seat, human included
-    round.resolveCalls(choices);
+    round.resolveCalls(choices, chiLow: chiLow);
     _refreshReport();
     notifyListeners();
     _scheduleLoop();

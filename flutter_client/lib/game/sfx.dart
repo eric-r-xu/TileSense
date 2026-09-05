@@ -216,19 +216,23 @@ class Sfx {
 
     _voiceCompleteSub?.cancel();
     _voiceCompleteSub = _voice.onPlayerComplete.listen((_) => _stepDone(gen));
-
-    // Safety net: on web `onPlayerComplete` can fail to fire if the element
-    // errors out. Don't let the queue wedge.
     _voiceWatchdog?.cancel();
-    _voiceWatchdog =
-        Timer(const Duration(seconds: 8), () => _stepDone(gen));
+    _voiceWatchdog = null;
 
     // No `stop()` first — see `_fire`: `play()` restarts from the beginning
     // on its own, and this is the call most likely to be running right off
     // the back of a user gesture (a call/riichi line triggered by the human's
     // own tap), so it's the one where an extra `await` most matters.
     // ignore: discarded_futures
-    _voice.play(AssetSource(path), volume: 0.9).catchError((e) {
+    _voice.play(AssetSource(path), volume: 0.9).then((_) {
+      if (gen != _voiceGen) return;
+      // Safety net, armed only once playback is actually under way: on web
+      // `onPlayerComplete` can fail to fire if the element errors out
+      // mid-clip, and the queue would wedge behind it. A play that fails
+      // outright takes the catchError path instead and needs no timer.
+      _voiceWatchdog?.cancel();
+      _voiceWatchdog = Timer(const Duration(seconds: 8), () => _stepDone(gen));
+    }).catchError((e) {
       if (kDebugMode) debugPrint('Sfx($path) failed: $e');
       _stepDone(gen);
     });

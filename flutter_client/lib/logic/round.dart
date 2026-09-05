@@ -1,6 +1,6 @@
 /// A self-contained offline round of four-player riichi. A pragmatic subset of
 /// the Vala client's `RoundState` + `GameState.round_finished`: draws, discards,
-/// riichi, pon / closed-kan (chii is intentionally omitted, matching SimpleBot),
+/// riichi, chi / pon / closed-kan,
 /// tsumo, ron, exhaustive draw with tenpai payments, honba and riichi sticks.
 library;
 
@@ -14,7 +14,7 @@ enum RoundPhase { drawing, discarding, callOffer, finished }
 
 enum RoundEndKind { tsumo, ron, exhaustiveDraw, abortiveDraw }
 
-enum CallType { none, pon, kan, ron }
+enum CallType { none, chi, pon, kan, ron }
 
 class SeatState {
   SeatState(this.seat, this.wind, this.isDealer, this.points);
@@ -224,6 +224,48 @@ class Round {
     return s.hand.where((t) => t.type == discard.type).length >= 2;
   }
 
+  /// Chi is open only to the seat immediately after the discarder — its
+  /// kamicha — and only on a suit tile it can complete a run with.
+  bool canChi(int seat, Tile discard) {
+    if (seat == pendingDiscardSeat) return false;
+    if (seat != (pendingDiscardSeat + 1) % 4) return false;
+    if (seats[seat].riichi) return false;
+    return chiSequences(seat, discard).isNotEmpty;
+  }
+
+  /// The lowest tile of every run [seat] could form with [discard]. Holding
+  /// 3456m and offered 5m gives 345m, 456m and 567m, so the caller has to say
+  /// which one it wants.
+  List<TileType> chiSequences(int seat, Tile discard) {
+    final type = discard.type;
+    if (!type.isSuit) return const [];
+    final hand = seats[seat].hand;
+    final out = <TileType>[];
+    final suitBase = type.index - type.number;
+
+    for (var offset = -2; offset <= 0; offset++) {
+      final lowNumber = type.number + offset;
+      if (lowNumber < 1 || lowNumber + 2 > 9) continue;
+      final low = TileType.values[suitBase + lowNumber];
+
+      final used = <int>{};
+      var complete = true;
+      for (var i = 0; i < 3; i++) {
+        final need = TileType.values[low.index + i];
+        if (need == type) continue; // the discard supplies this one
+        final index = hand.indexWhere(
+            (t) => t.type == need && !used.contains(t.id));
+        if (index < 0) {
+          complete = false;
+          break;
+        }
+        used.add(hand[index].id);
+      }
+      if (complete) out.add(low);
+    }
+    return out;
+  }
+
   bool canOpenKan(int seat, Tile discard) {
     if (seat == pendingDiscardSeat) return false;
     final s = seats[seat];
@@ -363,14 +405,21 @@ class Round {
       if (canRon(i, discard)) types.add(CallType.ron);
       if (canPon(i, discard)) types.add(CallType.pon);
       if (canOpenKan(i, discard)) types.add(CallType.kan);
+      if (canChi(i, discard)) types.add(CallType.chi);
       if (types.isNotEmpty) options.add(CallOption(i, types));
     }
     return options;
   }
 
   /// Resolve the call phase. [choice] maps seat -> chosen call (absent / none
-  /// means pass). Ron beats kan beats pon; ties on ron are all winners.
-  void resolveCalls(Map<int, CallType> choice) {
+  /// means pass). Ron beats kan beats pon beats chi; ties on ron are all
+  /// winners. [chiLow] names the run a chi caller wants, keyed by seat — see
+  /// [chiSequences]; an absent or impossible entry falls back to the first
+  /// run the hand can make.
+  void resolveCalls(
+    Map<int, CallType> choice, {
+    Map<int, TileType> chiLow = const {},
+  }) {
     assert(phase == RoundPhase.callOffer);
 
     final ronners =
@@ -388,9 +437,11 @@ class Round {
 
     int? kanSeat;
     int? ponSeat;
+    int? chiSeat;
     choice.forEach((seat, type) {
       if (type == CallType.kan) kanSeat = seat;
       if (type == CallType.pon) ponSeat = seat;
+      if (type == CallType.chi) chiSeat = seat;
     });
 
     if (kanSeat != null) {
@@ -399,6 +450,11 @@ class Round {
     }
     if (ponSeat != null) {
       _applyPonOrKan(ponSeat!, pendingDiscard!, pendingDiscardSeat, kan: false);
+      return;
+    }
+    if (chiSeat != null) {
+      _applyChi(chiSeat!, pendingDiscard!, pendingDiscardSeat,
+          chiLow[chiSeat!]);
       return;
     }
 
@@ -434,6 +490,47 @@ class Round {
   }
 
   // --- call application ---------------------------------------------------
+
+  void _applyChi(int seat, Tile discard, int discarder, TileType? requestedLow) {
+    final s = seats[seat];
+    final runs = chiSequences(seat, discard);
+    if (runs.isEmpty) return;
+    final low = (requestedLow != null && runs.contains(requestedLow))
+        ? requestedLow
+        : runs.first;
+
+    final taken = <Tile>[];
+    for (var i = 0; i < 3; i++) {
+      final need = TileType.values[low.index + i];
+      if (need == discard.type) continue; // supplied by the discard
+      final index =
+          s.hand.indexWhere((t) => t.type == need && !taken.contains(t));
+      if (index >= 0) taken.add(s.hand[index]);
+    }
+    for (final tile in taken) {
+      s.hand.remove(tile);
+    }
+
+    seats[discarder].pond.removeLast();
+    s.melds.add(Meld(
+      kind: MeldKind.sequence,
+      low: low,
+      concealed: false,
+      calledFromSeatOffset: (discarder - seat + 4) % 4,
+      tiles: [...taken, discard],
+    ));
+    for (final o in seats) {
+      o.ippatsu = false;
+    }
+    _firstGoAround = false;
+
+    pendingDiscard = null;
+    pendingDiscardSeat = -1;
+    callOptions = const [];
+    turn = seat;
+    current.drawn = null;
+    phase = RoundPhase.discarding;
+  }
 
   void _applyPonOrKan(int seat, Tile discard, int discarder, {required bool kan}) {
     final s = seats[seat];

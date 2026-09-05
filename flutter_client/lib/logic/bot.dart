@@ -59,7 +59,9 @@ class SimpleBot {
           discard.type == round.roundWind.tile;
       if (count == 2 && valuable) return CallType.pon;
     }
-    // chii is intentionally not called, matching SimpleBot.
+    // The round offers chi now, but the opponents still never take it: this
+    // is a faithful SimpleBot port and chi is not part of it. Your own seat
+    // gets chi advice from the guide instead.
     return CallType.none;
   }
 
