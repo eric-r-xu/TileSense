@@ -20,11 +20,14 @@ enum Character { orderic, grant, hubert, astaroth }
 /// audio on a real user gesture in a few ways this works around:
 ///
 ///  * **Autoplay unlock is per player, and only from a user gesture.** Each of
-///    `_player`/`_voice` plays through its own `AudioContext`, which starts
-///    suspended until resumed from a gesture. [unlock] primes both — see
-///    `gesture_unlock.dart`, which calls it from a raw native event listener
-///    rather than through Flutter's own event pipeline, and retries across
-///    the first few gestures rather than only the very first.
+///    `_player`/`_voice` plays through its own `AudioContext` (see
+///    `audioplayers`' web backend), which starts suspended until resumed from
+///    a gesture. [unlock] primes both — see `gesture_unlock.dart`, which calls
+///    it from a raw native event listener rather than through Flutter's own
+///    event pipeline, and keeps calling it on every gesture rather than just
+///    the first (cheap — a muted, sub-second clip — and mobile Safari in
+///    particular can need more than one attempt, or can re-suspend a context
+///    later, e.g. after the tab is backgrounded).
 ///  * **Every extra `await` between the gesture and the actual native
 ///    `play()` call is a chance to no longer count as gesture-linked.** So
 ///    neither [play] nor [voice]/[voiceChain] call `stop()` before playing —
@@ -112,24 +115,21 @@ class Sfx {
 
   // --- autoplay unlock ---------------------------------------------------
 
-  /// Each of `_player`/`_voice` plays through its own `AudioContext` (see
-  /// `audioplayers`' web backend), and a fresh `AudioContext` starts
-  /// `suspended` until `resume()`d from a user gesture — mobile Safari in
-  /// particular is known to sometimes need more than one real gesture before
-  /// that actually sticks, so this retries on the first few rather than
-  /// giving up after one attempt. Cheap (a muted, sub-second clip) and capped.
-  int _unlockAttempts = 0;
-  static const int _maxUnlockAttempts = 6;
-
   /// Prime both players so the browser will let them play later. Best called
   /// from as close to a raw native pointer/touch/key event as possible — see
   /// `gesture_unlock.dart`, which hooks one before Flutter's own event
   /// pipeline even sees it, since that extra hop is enough for strict mobile
-  /// browsers to no longer count a later call as gesture-linked. No-op on
-  /// non-web platforms, which don't gate audio this way.
+  /// browsers to no longer count a later call as gesture-linked.
+  ///
+  /// Deliberately *not* one-shot: kept cheap enough (a muted, sub-second clip,
+  /// immediately stopped) to call on every single gesture for the life of the
+  /// app, since a single successful unlock isn't a guarantee — mobile Safari
+  /// in particular can need a couple of attempts, and any browser can
+  /// re-suspend an `AudioContext` later (e.g. the tab being backgrounded and
+  /// foregrounded). No-op on non-web platforms, which don't gate audio this
+  /// way.
   void unlock() {
-    if (!kIsWeb || _unlockAttempts >= _maxUnlockAttempts) return;
-    _unlockAttempts++;
+    if (!kIsWeb) return;
     for (final p in [_player, _voice]) {
       try {
         // Play (muted) synchronously here, with no `await` before it - any

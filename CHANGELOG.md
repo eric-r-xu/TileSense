@@ -23,15 +23,25 @@ All notable changes to this project will be documented in this file.
 - Flutter web: sound now plays reliably on mobile Safari and mobile Chrome, not
   just desktop. Each `Sfx` player drives its own `AudioContext`, which starts
   suspended until resumed from a user gesture; the unlock/prime now happens via
-  a native DOM listener attached directly to `window` (see
-  `lib/game/gesture_unlock_web.dart`) instead of through Flutter's own
-  pointer-event pipeline, which on strict mobile browsers was one hop too many
-  for the eventual `resume()` call to still count as gesture-linked — and it
-  retries across the first several gestures rather than only the first, since
-  mobile Safari in particular can need more than one attempt. Every play call
-  also dropped its redundant `stop()`-before-`play()` (`AudioPlayer.play()`
-  already restarts from the beginning on its own), removing another `await`
-  between a tap and the actual native `play()`.
+  a native DOM listener attached directly to `window` (`lib/game/
+  gesture_unlock_web.dart`) instead of through Flutter's own pointer-event
+  pipeline, which on strict mobile browsers was one hop too many for the
+  eventual `resume()` call to still count as gesture-linked — and it keeps
+  priming on every gesture rather than only the first, since mobile Safari in
+  particular can need more than one attempt, or a context can be re-suspended
+  later. Every play call also dropped its redundant `stop()`-before-`play()`
+  (`AudioPlayer.play()` already restarts from the beginning on its own),
+  removing another `await` between a tap and the actual native `play()`. The
+  voice channel still runs a serial queue so overlapping lines (e.g. a call
+  line into the round-end chain) can't abort each other's `play()`.
+- Flutter client: layout no longer varies by browser — a tap-heavy centre
+  status block rendered taller and the rotate-to-landscape prompt's line
+  spacing looked looser on some mobile browsers (Chrome in particular) than
+  others (Safari, Firefox). Every browser sets its own default text-scale
+  factor independently of the page's own layout, and this app is authored
+  entirely in fixed logical pixels scaled as one unit — so the fix pins
+  `MediaQuery.textScaler` to `TextScaler.noScaling` app-wide, matching the
+  fixed-canvas design instead of at the mercy of each browser's default.
 - Flutter client: ura dora is now actually revealed. The dead-wall's ura row was
   wired up but never shown (its `revealUra` flag was never set), so a riichi win
   never displayed which tiles counted; it now reveals once a riichi hand wins
