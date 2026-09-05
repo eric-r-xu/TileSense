@@ -29,20 +29,16 @@
   concealed-kan verdict. It never falls back to the opponents' heuristic; see
   [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
 
-### Fidelity
+### Rules coverage
 
-`lib/logic/efficiency_calc.dart` faithfully implements the Riichi-Trainer
-shanten/ukeire algorithm used by the Vala client
-(`source/Game/Logic/TileEfficiency.vala`), and `efficiency_engine.dart` applies
-the desktop client's scoring-aware expected-value model. `lib/logic/bot.dart`
-closely follows `source/GameServer/Bots/SimpleBot.vala` and drives seats 1-3
-only — your own seat is always played by the guide. The one place the round
-deliberately goes beyond the reference client is chi, which it offers (and the
-guide advises on) even though `SimpleBot` never calls it. `lib/logic/scoring.dart`
-and `lib/logic/hand_parse.dart` are a *documented subset* of `TileRules.vala` —
-the common yaku, the standard fu table, and the yakuman set; rare fu corner
-cases and some double-yakuman rules are approximated. There is no networking,
-lobby, replay, or optional-rule configuration.
+`lib/logic/efficiency_calc.dart` implements the Riichi-Trainer shanten/ukeire
+algorithm, and `efficiency_engine.dart` adds the scoring-aware expected-value
+model. `lib/logic/bot.dart` drives seats 1–3 only; your own seat is always played
+by the guide. The bots never call chi, though the round offers it and the guide
+advises on it. Scoring covers the common yaku, the standard fu table, and the
+yakuman set; rare fu corner cases and some double-yakuman rules are
+approximated. There is no networking, lobby, replay, or optional-rule
+configuration.
 
 ## Project layout
 
@@ -55,7 +51,7 @@ lib/
     hand_parse.dart      agari / decomposition / waits / furiten
     scoring.dart         yaku + han/fu -> points
     safety.dart          defensive tile ranking vs a riichi opponent
-    bot.dart             SimpleBot port
+    bot.dart             SimpleBot opponent heuristic
     round.dart           the offline round state machine
     efficiency_engine.dart scoring-aware discard EV + typed UI report
   game/

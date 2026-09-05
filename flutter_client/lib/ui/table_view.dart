@@ -11,7 +11,7 @@ import 'tile_face.dart';
 /// hand just inside it (the freshly drawn tile split out so its position reads);
 /// the four discard ponds bracket the centre on a fixed six-column grid whose
 /// origin never moves as it fills; the round/wall status sits dead centre and
-/// the dead wall in the top-right corner — the Vala `GameRenderView2D` layout.
+/// the dead wall in the top-right corner.
 class TableView extends StatelessWidget {
   const TableView({super.key, required this.game});
   final GameController game;
@@ -22,7 +22,8 @@ class TableView extends StatelessWidget {
   static const double _pondTileH = 45;
   // Fixed footprint: one riichi stick + four full rows. Anchored top-left so
   // earlier tiles stay put as later rows come in.
-  static const double _pondBoxW = _pondCols * _pondTileW + 16; // room for a turned tile
+  static const double _pondBoxW =
+      _pondCols * _pondTileW + 16; // room for a turned tile
   static const double _pondBoxH = 16 + 4 * _pondTileH;
 
   @override
@@ -112,8 +113,10 @@ class TableView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          line('${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
-              17, FontWeight.w800),
+          line(
+              '${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
+              17,
+              FontWeight.w800),
           const SizedBox(height: 3),
           line('Wall ${round.wall.remaining}', 13, FontWeight.w700),
           const SizedBox(height: 2),
@@ -152,7 +155,8 @@ class TableView extends StatelessWidget {
   Widget _deadWall(Round round) {
     final result = round.result;
     final revealUra = result != null &&
-        (result.kind == RoundEndKind.tsumo || result.kind == RoundEndKind.ron) &&
+        (result.kind == RoundEndKind.tsumo ||
+            result.kind == RoundEndKind.ron) &&
         result.winners.any((w) => round.seats[w].riichi);
     final tiles = round.wall.deadWallDisplay(revealUra: revealUra);
     List<Widget> row(bool top) => [
@@ -171,8 +175,8 @@ class TableView extends StatelessWidget {
     Widget rowLabel(String t) => SizedBox(
           height: 45,
           child: Center(
-            child:
-                Text(t, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            child: Text(t,
+                style: const TextStyle(color: Colors.white54, fontSize: 11)),
           ),
         );
     return Row(
@@ -369,7 +373,11 @@ class TableView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: isLeft
                   ? [placard, const SizedBox(width: 6), Flexible(child: inside)]
-                  : [Flexible(child: inside), const SizedBox(width: 6), placard],
+                  : [
+                      Flexible(child: inside),
+                      const SizedBox(width: 6),
+                      placard
+                    ],
             ),
           ),
         ],
@@ -592,7 +600,9 @@ class _OpponentHandState extends State<_OpponentHand> {
     Widget back() => Padding(
           padding: const EdgeInsets.all(0.5),
           child: TileFace(
-              faceDown: true, size: TileSize.small, rotationQuarterTurns: rotate),
+              faceDown: true,
+              size: TileSize.small,
+              rotationQuarterTurns: rotate),
         );
 
     final tiles = <Widget>[];

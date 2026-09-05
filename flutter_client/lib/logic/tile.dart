@@ -1,25 +1,56 @@
-/// Tile model, ported from the Vala client's `source/Game/Logic/Tile.vala`.
-///
-/// The [TileType] ordering is deliberately identical to the Vala enum so the
-/// integer gaps the rules and efficiency code rely on are preserved:
+/// Tile model. The [TileType] ordering deliberately preserves the integer gaps
+/// that the rules and efficiency code rely on:
 ///   BLANK = 0, MAN1..MAN9 = 1..9, PIN1..PIN9 = 10..18, SOU1..SOU9 = 19..27,
 ///   TON/NAN/SHAA/PEI = 28..31, HAKU/HATSU/CHUN = 32..34.
 library;
 
 enum TileType {
   blank,
-  man1, man2, man3, man4, man5, man6, man7, man8, man9,
-  pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9,
-  sou1, sou2, sou3, sou4, sou5, sou6, sou7, sou8, sou9,
-  ton, nan, shaa, pei, // east, south, west, north
-  haku, hatsu, chun; // white, green, red
+  man1,
+  man2,
+  man3,
+  man4,
+  man5,
+  man6,
+  man7,
+  man8,
+  man9,
+  pin1,
+  pin2,
+  pin3,
+  pin4,
+  pin5,
+  pin6,
+  pin7,
+  pin8,
+  pin9,
+  sou1,
+  sou2,
+  sou3,
+  sou4,
+  sou5,
+  sou6,
+  sou7,
+  sou8,
+  sou9,
+  ton,
+  nan,
+  shaa,
+  pei, // east, south, west, north
+  haku,
+  hatsu,
+  chun; // white, green, red
 
-  bool get isMan => index >= TileType.man1.index && index <= TileType.man9.index;
-  bool get isPin => index >= TileType.pin1.index && index <= TileType.pin9.index;
-  bool get isSou => index >= TileType.sou1.index && index <= TileType.sou9.index;
+  bool get isMan =>
+      index >= TileType.man1.index && index <= TileType.man9.index;
+  bool get isPin =>
+      index >= TileType.pin1.index && index <= TileType.pin9.index;
+  bool get isSou =>
+      index >= TileType.sou1.index && index <= TileType.sou9.index;
   bool get isSuit => isMan || isPin || isSou;
   bool get isWind => index >= TileType.ton.index && index <= TileType.pei.index;
-  bool get isDragon => index >= TileType.haku.index && index <= TileType.chun.index;
+  bool get isDragon =>
+      index >= TileType.haku.index && index <= TileType.chun.index;
   bool get isHonor => isWind || isDragon;
 
   /// 1..9 for a suit tile, 0 otherwise.
@@ -41,8 +72,8 @@ enum TileType {
     return -1;
   }
 
-  /// The tile a dora indicator of this type points to (with terminal and
-  /// honor wraparound), matching `Tile.dora_indicator()` in the Vala client.
+  /// The tile a dora indicator of this type points to, with terminal and honor
+  /// wraparound.
   TileType get doraTarget {
     if (isSuit) {
       final base = isMan
@@ -111,20 +142,78 @@ enum TileType {
 
 const List<String> _glyphs = [
   '🀫',
-  '🀇', '🀈', '🀉', '🀊', '🀋', '🀌', '🀍', '🀎', '🀏',
-  '🀙', '🀚', '🀛', '🀜', '🀝', '🀞', '🀟', '🀠', '🀡',
-  '🀐', '🀑', '🀒', '🀓', '🀔', '🀕', '🀖', '🀗', '🀘',
-  '🀀', '🀁', '🀂', '🀃',
-  '🀆', '🀅', '🀄',
+  '🀇',
+  '🀈',
+  '🀉',
+  '🀊',
+  '🀋',
+  '🀌',
+  '🀍',
+  '🀎',
+  '🀏',
+  '🀙',
+  '🀚',
+  '🀛',
+  '🀜',
+  '🀝',
+  '🀞',
+  '🀟',
+  '🀠',
+  '🀡',
+  '🀐',
+  '🀑',
+  '🀒',
+  '🀓',
+  '🀔',
+  '🀕',
+  '🀖',
+  '🀗',
+  '🀘',
+  '🀀',
+  '🀁',
+  '🀂',
+  '🀃',
+  '🀆',
+  '🀅',
+  '🀄',
 ];
 
 const List<String> _names = [
   'Blank',
-  '1 Man', '2 Man', '3 Man', '4 Man', '5 Man', '6 Man', '7 Man', '8 Man', '9 Man',
-  '1 Pin', '2 Pin', '3 Pin', '4 Pin', '5 Pin', '6 Pin', '7 Pin', '8 Pin', '9 Pin',
-  '1 Sou', '2 Sou', '3 Sou', '4 Sou', '5 Sou', '6 Sou', '7 Sou', '8 Sou', '9 Sou',
-  'East', 'South', 'West', 'North',
-  'White Dragon', 'Green Dragon', 'Red Dragon',
+  '1 Man',
+  '2 Man',
+  '3 Man',
+  '4 Man',
+  '5 Man',
+  '6 Man',
+  '7 Man',
+  '8 Man',
+  '9 Man',
+  '1 Pin',
+  '2 Pin',
+  '3 Pin',
+  '4 Pin',
+  '5 Pin',
+  '6 Pin',
+  '7 Pin',
+  '8 Pin',
+  '9 Pin',
+  '1 Sou',
+  '2 Sou',
+  '3 Sou',
+  '4 Sou',
+  '5 Sou',
+  '6 Sou',
+  '7 Sou',
+  '8 Sou',
+  '9 Sou',
+  'East',
+  'South',
+  'West',
+  'North',
+  'White Dragon',
+  'Green Dragon',
+  'Red Dragon',
 ];
 
 /// A physical tile in the wall. [id] is unique (0..135) and is the identity
@@ -136,13 +225,14 @@ class Tile {
   final int id;
   final TileType type;
 
-  /// Red five (aka dora). Named `dora` on the Vala `Tile`.
+  /// Red five (aka dora).
   final bool aka;
 
   bool get isFive => type.number == 5;
 
   String get glyph => type.glyph;
-  String get code => aka ? '0${type.code.substring(type.code.length - 1)}' : type.code;
+  String get code =>
+      aka ? '0${type.code.substring(type.code.length - 1)}' : type.code;
 
   @override
   bool operator ==(Object other) => other is Tile && other.id == id;

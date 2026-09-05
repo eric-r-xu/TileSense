@@ -11,18 +11,23 @@ All notable changes to this project will be documented in this file.
   (holding 34567p and offered 5p), the guide scores each and takes the best, so
   the CHI button stays a single tap — `resolveCalls` gained an optional
   `chiLow` map naming the run a caller wants. The opponents still never chi:
-  `SimpleBot` is a port of the reference client's bot, which has no chi logic.
+  `SimpleBot` intentionally has no chi logic.
 - The guide now advises on **calls**, not just discards: ron, chi, pon and
   closed / open kan. Every option is scored through the same expected-value model the
   discard table uses — the state it leaves you in once melds are counted — and
   then has to clear three hard rules: it must advance the hand, leave a yaku to
   finish on, and not commit you while a riichi is out and you are still behind.
-  Kan is judged on shape alone, since its payoff (a fresh dora indicator) helps
-  the opponents too. The call prompt now shows the verdict *and* the reasoning.
+  Kan must preserve the shape and a valid yaku path; its payoff (a fresh dora
+  indicator) still helps the opponents too. The call prompt shows the verdict
+  *and* the reasoning.
 - `BOT_STRATEGY.md`: a plain-language comparison of the opponents' `SimpleBot`
   heuristic against the guide that plays your seat.
 
 ### Changed
+- The repository is Flutter-only; the retired desktop client and its build
+  assets have been removed, along with stale documentation references.
+- Unused voice source recordings now live under `tools/audio_sources/` instead
+  of shipping in the Flutter asset bundle.
 - **Autoplay now plays your seat from the guide**, not from the opponents'
   heuristic. It follows the recommended discard, the riichi/damaten verdict,
   the call advice and the concealed-kan verdict. Previously `_botOrAutoTurn`
@@ -36,6 +41,8 @@ All notable changes to this project will be documented in this file.
   GitHub link.
 
 ### Fixed
+- Guided kan advice now rejects a kan that would leave an open hand without a
+  yaku, matching the existing pon/chi minimum.
 - Web audio latency. Every voice line is a separate file that `audioplayers`
   fetches at the moment it wants to play it, and the bundle carried no
   `Cache-Control`, so each sound made a `304` round trip before it could start
@@ -128,12 +135,6 @@ All notable changes to this project will be documented in this file.
   parity with the web build's landscape gate). The web PWA manifest's
   background/theme colours now match the app's letterbox instead of the Flutter
   default blue.
-- Vendored the `Engine/` rendering engine directly into the repo instead of a
-  git submodule pointing at a personal fork; it now tracks
-  [FluffyStuff/Engine](https://github.com/FluffyStuff/Engine) as its upstream,
-  with local macOS build fixes and a `Container.process_paused` addition kept in
-  tree. Removed `.gitmodules`.
-
 ## [0.2.1.1] - 2020-05-04
 
 ### Fixed
@@ -145,7 +146,6 @@ All notable changes to this project will be documented in this file.
 - Changelog file.
 - Table texture selection option in options menu.
 - Feature to persist window state between runs.
-- Meson build scripts.
 - More verbose debug log
 - Compile and runtime option for data search directory
 - About menu

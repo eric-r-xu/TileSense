@@ -1,6 +1,4 @@
-/// Shanten / ukeire calculator — a faithful port of the pure part of the Vala
-/// client's `source/Game/Logic/TileEfficiency.vala` (`TileEfficiencyCalculator`,
-/// lines 45-305), which itself was ported from Riichi-Trainer's
+/// Shanten / ukeire calculator based on Riichi-Trainer's
 /// ShantenCalculator.js / UkeireCalculator.js (GPL-3.0).
 ///
 /// The 38-slot tile representation is retained so results match Riichi-Trainer:
@@ -77,7 +75,8 @@ class TileEfficiencyCalculator {
 
       hand[discard]--;
       final resultingShanten = _shanten(hand, openHand);
-      final ukeire = _calculateUkeire(hand, remainingTiles, openHand, baseShanten);
+      final ukeire =
+          _calculateUkeire(hand, remainingTiles, openHand, baseShanten);
       hand[discard]++;
 
       results.add(TileEfficiencyResult(

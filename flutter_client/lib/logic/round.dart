@@ -1,5 +1,4 @@
-/// A self-contained offline round of four-player riichi. A pragmatic subset of
-/// the Vala client's `RoundState` + `GameState.round_finished`: draws, discards,
+/// A self-contained offline round of four-player riichi: draws, discards,
 /// riichi, chi / pon / closed-kan,
 /// tsumo, ron, exhaustive draw with tenpai payments, honba and riichi sticks.
 library;
@@ -253,8 +252,8 @@ class Round {
       for (var i = 0; i < 3; i++) {
         final need = TileType.values[low.index + i];
         if (need == type) continue; // the discard supplies this one
-        final index = hand.indexWhere(
-            (t) => t.type == need && !used.contains(t.id));
+        final index =
+            hand.indexWhere((t) => t.type == need && !used.contains(t.id));
         if (index < 0) {
           complete = false;
           break;
@@ -280,7 +279,8 @@ class Round {
     for (final t in s.hand) {
       byType[t.type] = (byType[t.type] ?? 0) + 1;
     }
-    final out = byType.entries.where((e) => e.value == 4).map((e) => e.key).toList();
+    final out =
+        byType.entries.where((e) => e.value == 4).map((e) => e.key).toList();
     if (s.riichi) {
       // In riichi a closed kan must not change the wait; approximate by
       // allowing it only if the kan tile isn't part of any wait shape.
@@ -340,7 +340,8 @@ class Round {
     // same tiles
     final without = s.hand.where((x) => x.type != t).toList();
     final after = waitTiles(without, openMelds: s.melds.length + 1);
-    return before.toSet().containsAll(after) && after.toSet().containsAll(before);
+    return before.toSet().containsAll(after) &&
+        after.toSet().containsAll(before);
   }
 
   // --- actions ---------------------------------------------------------
@@ -422,8 +423,10 @@ class Round {
   }) {
     assert(phase == RoundPhase.callOffer);
 
-    final ronners =
-        choice.entries.where((e) => e.value == CallType.ron).map((e) => e.key).toList();
+    final ronners = choice.entries
+        .where((e) => e.value == CallType.ron)
+        .map((e) => e.key)
+        .toList();
     if (ronners.isNotEmpty) {
       _applyRon(ronners, pendingDiscard!, pendingDiscardSeat);
       return;
@@ -453,8 +456,8 @@ class Round {
       return;
     }
     if (chiSeat != null) {
-      _applyChi(chiSeat!, pendingDiscard!, pendingDiscardSeat,
-          chiLow[chiSeat!]);
+      _applyChi(
+          chiSeat!, pendingDiscard!, pendingDiscardSeat, chiLow[chiSeat!]);
       return;
     }
 
@@ -484,14 +487,16 @@ class Round {
       }
       return false;
     });
-    s.melds.add(Meld(kind: MeldKind.kan, low: type, concealed: true, tiles: taken));
+    s.melds.add(
+        Meld(kind: MeldKind.kan, low: type, concealed: true, tiles: taken));
     s.drawn = null;
     _drawReplacement();
   }
 
   // --- call application ---------------------------------------------------
 
-  void _applyChi(int seat, Tile discard, int discarder, TileType? requestedLow) {
+  void _applyChi(
+      int seat, Tile discard, int discarder, TileType? requestedLow) {
     final s = seats[seat];
     final runs = chiSequences(seat, discard);
     if (runs.isEmpty) return;
@@ -532,7 +537,8 @@ class Round {
     phase = RoundPhase.discarding;
   }
 
-  void _applyPonOrKan(int seat, Tile discard, int discarder, {required bool kan}) {
+  void _applyPonOrKan(int seat, Tile discard, int discarder,
+      {required bool kan}) {
     final s = seats[seat];
     final need = kan ? 3 : 2;
     final taken = <Tile>[];
@@ -584,8 +590,8 @@ class Round {
       deltas[discarder] = deltas[discarder]! - score.points - honba * 300;
     }
     // riichi sticks go to the first ronner (closest in turn order after discarder)
-    ronners.sort((a, b) =>
-        ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
+    ronners.sort(
+        (a, b) => ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     deltas[ronners.first] = deltas[ronners.first]! + riichiSticks * 1000;
 
     for (final e in deltas.entries) {
@@ -600,7 +606,10 @@ class Round {
       winners: ronners,
       loser: discarder,
       score: firstScore,
-      scores: [for (final w in ronners) _score(seats[w], seats[w].hand, discard, isTsumo: false)],
+      scores: [
+        for (final w in ronners)
+          _score(seats[w], seats[w].hand, discard, isTsumo: false)
+      ],
       winTiles: {for (final w in ronners) w: discard},
       pointDeltas: _handDeltas(),
       label: ronners.length > 1 ? 'Multiple Ron' : 'Ron',
@@ -608,7 +617,8 @@ class Round {
     _postFinish(dealerRepeat: dealerWins);
   }
 
-  void _finishWin(List<int> winners, HandScore score, {int? loser, Tile? winTile}) {
+  void _finishWin(List<int> winners, HandScore score,
+      {int? loser, Tile? winTile}) {
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     final w = winners.first;
 
@@ -646,10 +656,14 @@ class Round {
   void _exhaustiveDraw() {
     final tenpai = <int>[];
     for (var i = 0; i < 4; i++) {
-      if (isTenpai(seats[i].hand, openMelds: seats[i].melds.length)) tenpai.add(i);
+      if (isTenpai(seats[i].hand, openMelds: seats[i].melds.length)) {
+        tenpai.add(i);
+      }
     }
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
-    final noten = [for (var i = 0; i < 4; i++) i].where((i) => !tenpai.contains(i)).toList();
+    final noten = [for (var i = 0; i < 4; i++) i]
+        .where((i) => !tenpai.contains(i))
+        .toList();
     if (tenpai.isNotEmpty && noten.isNotEmpty) {
       const pot = 3000;
       final gain = pot ~/ tenpai.length;
@@ -693,7 +707,9 @@ class Round {
     seats[turn].drawn = null;
     turn = (turn + 1) % 4;
     // ippatsu is lost once it comes back around to the declarer
-    if (seats[turn].riichi && seats[turn].ippatsu && seats[turn].pond.isNotEmpty) {
+    if (seats[turn].riichi &&
+        seats[turn].ippatsu &&
+        seats[turn].pond.isNotEmpty) {
       seats[turn].ippatsu = false;
     }
     _beginDraw();

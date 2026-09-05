@@ -1,8 +1,6 @@
-/// Turns the raw shanten/ukeire calculator plus the safety model into a typed
-/// report the UI renders. This replaces the tab-delimited string protocol that
-/// `EfficiencyLogging.log_turn` builds in the Vala client; the analysis intent
-/// (best ukeire, recommended discard, riichi hint, defensive ranking) is the
-/// same.
+/// Turns the raw shanten/ukeire calculator plus the safety model into the typed
+/// report the UI renders: best ukeire, recommended discard, riichi hint, and
+/// defensive ranking.
 library;
 
 import 'dart:math' as math;
@@ -327,8 +325,8 @@ class EfficiencyEngine {
     // A win on offer ends the discussion: points now beat any hand you might
     // still build, and passing a winning tile puts you in furiten.
     if (available.contains(GuidedAction.ron)) {
-      final score = _scoreWait(hand, offered, isTsumo: false,
-          assumeRiichi: context.inRiichi, context: context);
+      final score = _scoreWait(hand, offered,
+          isTsumo: false, assumeRiichi: context.inRiichi, context: context);
       final points = score.valid ? score.points : 0;
       return CallAdvice(
         recommended: GuidedAction.ron,
@@ -491,7 +489,8 @@ class EfficiencyEngine {
       valueContext: context,
     );
     final shantenBefore = current.currentShanten;
-    final evBefore = current.lines.isEmpty ? 0.0 : current.lines.first.expectedValue;
+    final evBefore =
+        current.lines.isEmpty ? 0.0 : current.lines.first.expectedValue;
 
     final consumed = _takeFromHand(hand, kanType, 4);
     if (consumed.length < 4) {
@@ -528,8 +527,8 @@ class EfficiencyEngine {
     required EfficiencyValueContext context,
   }) {
     final concealed = List<Tile>.of(hand)..remove(drawn);
-    final score = _scoreWait(concealed, drawn, isTsumo: true,
-        assumeRiichi: context.inRiichi, context: context);
+    final score = _scoreWait(concealed, drawn,
+        isTsumo: true, assumeRiichi: context.inRiichi, context: context);
     final points = score.valid ? score.points : 0;
     return ActionAdvice(
       action: GuidedAction.tsumo,
@@ -667,6 +666,19 @@ class EfficiencyEngine {
         shantenAfter: after.shanten,
         eligible: false,
         reason: 'Kan breaks up your shape — it would drop you to $shape.',
+      );
+    }
+    // A concealed kan keeps the hand closed, so riichi remains its yaku path.
+    // An open kan has no such fallback and must retain a scoring route, just
+    // like the pon/chi evaluator above.
+    if (!contextAfter.closed && after.ev <= 0) {
+      return ActionAdvice(
+        action: GuidedAction.kan,
+        expectedValue: 0,
+        shantenAfter: after.shanten,
+        eligible: false,
+        reason: 'Kan leaves no live yaku-bearing finish, so the hand could '
+            'not score.',
       );
     }
     if (opponentRiichi && after.shanten > 0) {
@@ -840,8 +852,8 @@ class EfficiencyEngine {
         math.pow(improveProbability, steps).toDouble();
 
     // Before tenpai the exact final hand is unknown. These representative
-    // values match the desktop advisor; exact yaku/fu/dora scoring takes over
-    // as soon as a discard leaves the hand in tenpai.
+    // values keep pre-tenpai comparisons stable; exact yaku/fu/dora scoring
+    // takes over as soon as a discard leaves the hand in tenpai.
     final projectedPoints = context.closed
         ? (context.isDealer ? 5800.0 : 3900.0)
         : (context.isDealer ? 2900.0 : 2000.0);

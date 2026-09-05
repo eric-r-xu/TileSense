@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../logic/tile.dart';
 
 /// A single mahjong tile face: the tile artwork on a cream tile, with a small
-/// red index in the top-right corner (number for suits, letter for honours), as
-/// in the Vala 2D renderer. `null` [tile] with [faceDown] renders a back.
+/// red index in the top-right corner (number for suits, letter for honours).
+/// `null` [tile] with [faceDown] renders a back.
 ///
 /// The artwork is a bundled PNG per [TileType] (`assets/tiles/<name>.png`, tinted
 /// black or aka-red via [Image.color]/`BlendMode.srcIn`), not a Unicode glyph
@@ -79,9 +79,7 @@ class TileFace extends StatelessWidget {
           border: Border.all(
             color: borderColorOverride ??
                 hc ??
-                (highlight
-                    ? const Color(0xffd39e2e)
-                    : const Color(0xff403d35)),
+                (highlight ? const Color(0xffd39e2e) : const Color(0xff403d35)),
             width: (borderColorOverride != null || hc != null)
                 ? 3
                 : (highlight ? 2 : 1),

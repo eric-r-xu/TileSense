@@ -1,6 +1,5 @@
 /// The 136-tile wall: build, shuffle, deal, live-wall draws, and a dead wall
-/// with progressively revealed dora / ura-dora indicators. Condensed from the
-/// Vala client's `RoundStateWall` (`source/Game/Logic/RoundState.vala`).
+/// with progressively revealed dora / ura-dora indicators.
 library;
 
 import 'dart:math';

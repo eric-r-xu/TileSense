@@ -1,7 +1,5 @@
 /// Hand shape analysis: agari (win) detection, all standard decompositions,
-/// wait tiles, and furiten. A pragmatic subset of the Vala client's
-/// `source/Game/Logic/TileRules.vala` (`hand_reading_recursion`, `tenpai_tiles`,
-/// `winning_hand`, `in_furiten`).
+/// wait tiles, and furiten.
 library;
 
 import 'meld.dart';
@@ -63,7 +61,8 @@ List<HandDecomposition> decompose(List<int> counts34, {int openMelds = 0}) {
     final pairs = <Meld>[];
     for (var i = 0; i < 34; i++) {
       if (counts34[i] == 2) {
-        pairs.add(Meld(kind: MeldKind.pair, low: typeFrom34(i), concealed: true));
+        pairs.add(
+            Meld(kind: MeldKind.pair, low: typeFrom34(i), concealed: true));
       }
     }
     results.add(HandDecomposition(melds: pairs, pair: null, sevenPairs: true));
