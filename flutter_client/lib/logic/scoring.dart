@@ -131,6 +131,16 @@ HandScore _scoreDecomp(
   // All groups (open + concealed) for hand-shape yaku.
   final groups = <Meld>[...openMelds, ...d.melds];
 
+  // Every tile type in the hand, called melds included. [allTiles] is only the
+  // concealed part plus the winning tile, so anything scanning the *whole*
+  // hand — dora, and the honitsu/chinitsu suit check — has to add the melds
+  // back in or a ponned dora goes uncounted and a called meld in a second suit
+  // is invisible to the flush check.
+  final allTypes = <TileType>[
+    ...allTiles.map((t) => t.type),
+    ...openMelds.expand((m) => m.types),
+  ];
+
   if (d.kokushi) {
     yaku.add(const YakuResult('Kokushi Musou', 0, yakuman: 1));
     yakuman += 1;
@@ -143,7 +153,7 @@ HandScore _scoreDecomp(
   } else {
     yakuman += _yakumanYaku(groups, d, ctx, yaku, isDealer: isDealer);
     if (yakuman == 0) {
-      _standardYaku(groups, d, allTiles, winTile, openMelds, ctx, yaku);
+      _standardYaku(groups, d, allTypes, winTile, openMelds, ctx, yaku);
     }
   }
 
@@ -152,10 +162,10 @@ HandScore _scoreDecomp(
   if (!hasRealYaku) return HandScore.invalid();
 
   if (yakuman == 0) {
-    final dora = _countDora(allTiles, ctx.doraIndicators);
+    final dora = _countDora(allTypes, ctx.doraIndicators);
     if (dora > 0) yaku.add(YakuResult('Dora', dora));
     if (ctx.riichi || ctx.doubleRiichi) {
-      final ura = _countDora(allTiles, ctx.uraIndicators);
+      final ura = _countDora(allTypes, ctx.uraIndicators);
       if (ura > 0) yaku.add(YakuResult('Ura Dora', ura));
     }
     if (ctx.akaCount > 0) yaku.add(YakuResult('Aka Dora', ctx.akaCount));
@@ -239,7 +249,7 @@ int _yakumanYaku(
 void _standardYaku(
   List<Meld> groups,
   HandDecomposition d,
-  List<Tile> allTiles,
+  List<TileType> allTypes,
   Tile winTile,
   List<Meld> openMelds,
   ScoreContext ctx,
@@ -344,7 +354,7 @@ void _standardYaku(
   // Honitsu / Chinitsu.
   final suits = <int>{};
   var hasHonor = false;
-  for (final t in allTiles.map((e) => e.type)) {
+  for (final t in allTypes) {
     if (t.isHonor) {
       hasHonor = true;
     } else {
@@ -506,11 +516,11 @@ bool _allGroupsAndPair(
 bool _isYakuhaiPair(TileType pair, ScoreContext ctx) =>
     pair.isDragon || pair == ctx.roundWind.tile || pair == ctx.seatWind.tile;
 
-int _countDora(List<Tile> tiles, List<TileType> indicators) {
+int _countDora(List<TileType> types, List<TileType> indicators) {
   var n = 0;
   for (final ind in indicators) {
     final target = ind.doraTarget;
-    n += tiles.where((t) => t.type == target).length;
+    n += types.where((t) => t == target).length;
   }
   return n;
 }

@@ -96,6 +96,9 @@ class GameController extends ChangeNotifier {
   CallOption? _humanCallOption;
   CallOption? get humanCallOption => _humanCallOption;
 
+  /// The guide's verdict on [_humanCallOption], cached alongside it.
+  CallAdvice? _humanCallAdvice;
+
   Timer? _loopTimer;
   bool _disposed = false;
 
@@ -154,6 +157,7 @@ class GameController extends ChangeNotifier {
     );
     _bots = [for (var i = 0; i < 4; i++) SimpleBot(_seed + i * 7 + _roundNumber)];
     _humanCallOption = null;
+    _humanCallAdvice = null;
     phase = GamePhase.playing;
     _refreshReport();
     _scheduleLoop();
@@ -244,8 +248,12 @@ class GameController extends ChangeNotifier {
   }
 
   void _botOrAutoTurn(int seat) {
-    final bot = _bots[seat];
-    final decision = bot.decideTurn(round, seat);
+    // Your own seat is played by the guide, never by the opponents' heuristic:
+    // autoplay follows the same efficiency / expected-value / safety analysis
+    // the panel shows you. Seats 1-3 stay on [SimpleBot].
+    final decision = (seat == kHumanSeat && autoplay)
+        ? _guidedTurnDecision()
+        : _bots[seat].decideTurn(round, seat);
     if (decision.tsumo) {
       round.declareTsumo(seat);
     } else if (decision.closedKan != null) {
@@ -271,6 +279,9 @@ class GameController extends ChangeNotifier {
     for (final opt in round.callOptions) {
       if (opt.seat == kHumanSeat && !autoplay) {
         _humanCallOption = opt;
+        // Worked out once here rather than per rebuild: adviseCall runs a full
+        // analysis per option, and the overlay rebuilds on every notify.
+        _humanCallAdvice = _guidedCallAdvice(opt);
         notifyListeners();
         return; // wait for the human
       }
@@ -281,6 +292,7 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[opt.seat] = c;
     }
     _humanCallOption = null;
+    _humanCallAdvice = null;
     _playCallSfx(choices);
     round.resolveCalls(choices);
     _refreshReport();
@@ -343,10 +355,108 @@ class GameController extends ChangeNotifier {
     }
   }
 
-  CallType _autoHumanCall(CallOption opt) {
-    // Autoplay is conservative: only auto-ron.
-    return opt.types.contains(CallType.ron) ? CallType.ron : CallType.none;
+  CallType _autoHumanCall(CallOption opt) =>
+      _callTypeFor(_guidedCallAdvice(opt)?.recommended);
+
+  // --- the guide playing your seat ------------------------------------
+
+  /// Autoplay's turn decision for the human seat: the efficiency / expected
+  /// value / safety guide, never [SimpleBot].
+  BotTurn _guidedTurnDecision() {
+    final seat = round.seats[kHumanSeat];
+
+    // A win is always taken.
+    if (round.canTsumo(kHumanSeat)) return BotTurn(tsumo: true);
+
+    // Riichi freezes the hand: the drawn tile is the only legal discard.
+    if (seat.riichi) return BotTurn(discard: seat.drawn);
+
+    _refreshReport();
+
+    final riichiOpp = _riichiOpponent();
+    for (final type in round.closedKanTypes(kHumanSeat)) {
+      final advice = _efficiency.adviseClosedKan(
+        hand: seat.hand,
+        kanType: type,
+        visibleCounts34: _visibleCounts(),
+        context: _efficiencyValueContext(seat),
+        opponentRiichi: riichiOpp != null,
+      );
+      if (advice.eligible) return BotTurn(closedKan: type);
+    }
+
+    final line = _recommendedLine();
+    if (line == null) {
+      return BotTurn(discard: round.legalDiscards(kHumanSeat).first);
+    }
+    return BotTurn(
+      discard: _tileToDiscard(line.discard),
+      riichi: report.recommendRiichi && round.canRiichi(kHumanSeat),
+    );
   }
+
+  DiscardLine? _recommendedLine() {
+    for (final line in report.lines) {
+      if (line.recommended) return line;
+    }
+    return report.lines.isEmpty ? null : report.lines.first;
+  }
+
+  /// A concrete tile matching the recommended type, keeping a red five in hand
+  /// where an ordinary copy will do.
+  Tile _tileToDiscard(TileType type) {
+    final legal = round.legalDiscards(kHumanSeat);
+    for (final tile in legal) {
+      if (tile.type == type && !tile.aka) return tile;
+    }
+    for (final tile in legal) {
+      if (tile.type == type) return tile;
+    }
+    return legal.first;
+  }
+
+  CallAdvice? _guidedCallAdvice(CallOption opt) {
+    final offered = round.pendingDiscard;
+    if (offered == null) return null;
+    final seat = round.seats[opt.seat];
+    final riichiOpp = _riichiOpponent();
+    return _efficiency.adviseCall(
+      hand: seat.hand,
+      offered: offered,
+      available: _guidedActionsFor(opt.types),
+      visibleCounts34: _visibleCounts(),
+      context: _efficiencyValueContext(seat),
+      opponentDiscards:
+          riichiOpp != null ? riichiOpp.pond.map((t) => t.type).toList() : const [],
+      allDiscards: _allDiscardTypes(),
+      opponentRiichi: riichiOpp != null,
+    );
+  }
+
+  static Set<GuidedAction> _guidedActionsFor(Set<CallType> types) {
+    final out = <GuidedAction>{};
+    for (final type in types) {
+      switch (type) {
+        case CallType.ron:
+          out.add(GuidedAction.ron);
+        case CallType.pon:
+          out.add(GuidedAction.pon);
+        case CallType.kan:
+          out.add(GuidedAction.kan);
+        case CallType.none:
+          break;
+      }
+    }
+    return out;
+  }
+
+  static CallType _callTypeFor(GuidedAction? action) => switch (action) {
+        GuidedAction.ron => CallType.ron,
+        GuidedAction.pon => CallType.pon,
+        GuidedAction.kan => CallType.kan,
+        // Chi is evaluated by the engine but the round never offers it.
+        _ => CallType.none,
+      };
 
   // --- human input ---------------------------------------------------
 
@@ -397,6 +507,7 @@ class GameController extends ChangeNotifier {
       if (c != CallType.none) choices[other.seat] = c;
     }
     _humanCallOption = null;
+    _humanCallAdvice = null;
     _playCallSfx(choices); // voices every calling seat, human included
     round.resolveCalls(choices);
     _refreshReport();
@@ -512,11 +623,13 @@ class GameController extends ChangeNotifier {
 
   /// The call the guide recommends for the pending human call decision.
   CallType? get recommendedCall {
-    final opt = _humanCallOption;
-    final pd = round.pendingDiscard;
-    if (opt == null || pd == null) return null;
-    return _bots[kHumanSeat].decideCall(round, kHumanSeat, pd, opt.types);
+    if (_humanCallOption == null) return null;
+    final advice = _humanCallAdvice;
+    return advice == null ? null : _callTypeFor(advice.recommended);
   }
+
+  /// Why the guide recommends [recommendedCall] — shown under the call prompt.
+  String? get recommendedCallReason => _humanCallAdvice?.reason;
 
   bool get isHumanTurn =>
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding && !round.finished;
@@ -527,8 +640,7 @@ class GameController extends ChangeNotifier {
 
   /// The tile the auto-player would discard on the human's turn (for the green
   /// "what autoplay would do" hint). Null when it is not the human's turn.
-  TileType? get autoplayDiscardType {
-    if (!isHumanTurn) return null;
-    return _bots[kHumanSeat].decideTurn(round, kHumanSeat).discard?.type;
-  }
+  /// Autoplay follows the guide, so this is simply its recommended discard.
+  TileType? get autoplayDiscardType =>
+      isHumanTurn ? _recommendedLine()?.discard : null;
 }

@@ -99,6 +99,68 @@ class EfficiencyReport {
       );
 }
 
+/// An action the guide can weigh up — call offers (chi/pon/kan/ron) and the
+/// own-turn decisions (tsumo, concealed kan) alike.
+enum GuidedAction { pass, chi, pon, kan, ron, tsumo }
+
+/// One evaluated action, with the numbers that justify it.
+class ActionAdvice {
+  const ActionAdvice({
+    required this.action,
+    required this.expectedValue,
+    required this.shantenAfter,
+    required this.reason,
+    this.eligible = true,
+    this.discardAfter,
+    this.discardSafety,
+  });
+
+  final GuidedAction action;
+
+  /// Probability-weighted points for the hand once this action is taken. For a
+  /// winning action this is the hand's actual score.
+  final double expectedValue;
+
+  /// Shanten the hand sits at after taking this action and discarding: -1 for
+  /// a win, 99 when the action leaves nothing playable.
+  final int shantenAfter;
+
+  /// Plain-English justification, shown in the guide panel.
+  final String reason;
+
+  /// False when a hard rule rules this out regardless of [expectedValue] — no
+  /// shanten progress, no yaku to finish on, or folding under a riichi.
+  final bool eligible;
+
+  /// The tile the guide would discard after making this call.
+  final TileType? discardAfter;
+
+  /// How safe [discardAfter] is, when an opponent is in riichi.
+  final SafetyRating? discardSafety;
+}
+
+/// The guide's verdict on a pending call, with everything it considered.
+class CallAdvice {
+  const CallAdvice({required this.recommended, required this.options});
+
+  final GuidedAction recommended;
+
+  /// Every evaluated action, best first, always including [GuidedAction.pass].
+  final List<ActionAdvice> options;
+
+  ActionAdvice get best => options.first;
+
+  ActionAdvice? forAction(GuidedAction action) {
+    for (final option in options) {
+      if (option.action == action) return option;
+    }
+    return null;
+  }
+
+  /// The recommendation's own rationale.
+  String get reason => forAction(recommended)?.reason ?? '';
+}
+
 class EfficiencyEngine {
   static const _damatenMinPoints = 5200;
   static const _dealerDamatenMinPoints = 7700;
@@ -229,6 +291,499 @@ class EfficiencyEngine {
     );
   }
 
+  // --- call and turn advice ----------------------------------------------
+
+  /// Should the hand take a call that is on offer, and why?
+  ///
+  /// [hand] is the seat's 13 concealed tiles; [offered] is the discard on the
+  /// table and is *not* part of it. [available] is what the rules currently
+  /// permit — anything else is ignored.
+  ///
+  /// Every option is scored the same way: the state it leaves you in once the
+  /// dust settles (13 tiles' worth of hand, plus melds) run through the same
+  /// expected-value model the discard table uses. That makes "call" and "don't
+  /// call" directly comparable instead of a matter of taste. On top of the
+  /// numbers sit three hard rules a call has to clear: it must actually
+  /// advance the hand, it must leave a yaku to finish on, and it must not be
+  /// an act of committing while a riichi is out and you are still behind.
+  CallAdvice adviseCall({
+    required List<Tile> hand,
+    required Tile offered,
+    required Set<GuidedAction> available,
+    required List<int> visibleCounts34,
+    required EfficiencyValueContext context,
+    List<TileType> opponentDiscards = const [],
+    List<TileType> allDiscards = const [],
+    bool opponentRiichi = false,
+  }) {
+    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining = trainerCountsFromTypeCounts(remaining34);
+
+    // A win on offer ends the discussion: points now beat any hand you might
+    // still build, and passing a winning tile puts you in furiten.
+    if (available.contains(GuidedAction.ron)) {
+      final score = _scoreWait(hand, offered, isTsumo: false,
+          assumeRiichi: context.inRiichi, context: context);
+      final points = score.valid ? score.points : 0;
+      return CallAdvice(
+        recommended: GuidedAction.ron,
+        options: [
+          ActionAdvice(
+            action: GuidedAction.ron,
+            expectedValue: points.toDouble(),
+            shantenAfter: -1,
+            reason: 'Ron — $points points banked now, and passing up a winning '
+                'tile would leave you furiten.',
+          ),
+        ],
+      );
+    }
+
+    final passState = _evaluateWaitingHand(
+      concealed: hand,
+      remaining: remaining,
+      context: context,
+      // A closed hand that is already tenpai can still riichi on its own turn,
+      // so the do-nothing baseline is allowed to price that in.
+      canRiichi: context.closed && !context.inRiichi,
+    );
+    final pass = ActionAdvice(
+      action: GuidedAction.pass,
+      expectedValue: passState.ev,
+      shantenAfter: passState.shanten,
+      reason: passState.shanten <= 0
+          ? 'Stay as you are — already tenpai, worth about '
+              '${passState.ev.round()} points.'
+          : 'Stay closed at ${passState.shanten}-shanten, worth about '
+              '${passState.ev.round()} points as things stand.',
+    );
+
+    final options = <ActionAdvice>[pass];
+
+    if (available.contains(GuidedAction.pon)) {
+      final consumed = _takeFromHand(hand, offered.type, 2);
+      if (consumed.length == 2) {
+        options.add(_meldCallAdvice(
+          action: GuidedAction.pon,
+          hand: hand,
+          consumed: consumed,
+          meld: Meld(
+            kind: MeldKind.triplet,
+            low: offered.type,
+            concealed: false,
+            tiles: [...consumed, offered],
+          ),
+          remaining: remaining,
+          visibleCounts34: visibleCounts34,
+          context: context,
+          passShanten: passState.shanten,
+          opponentDiscards: opponentDiscards,
+          allDiscards: allDiscards,
+          opponentRiichi: opponentRiichi,
+        ));
+      }
+    }
+
+    if (available.contains(GuidedAction.chi)) {
+      ActionAdvice? bestChi;
+      for (final candidate in _chiCandidates(hand, offered)) {
+        final advice = _meldCallAdvice(
+          action: GuidedAction.chi,
+          hand: hand,
+          consumed: candidate.consumed,
+          meld: candidate.meld,
+          remaining: remaining,
+          visibleCounts34: visibleCounts34,
+          context: context,
+          passShanten: passState.shanten,
+          opponentDiscards: opponentDiscards,
+          allDiscards: allDiscards,
+          opponentRiichi: opponentRiichi,
+        );
+        if (bestChi == null ||
+            (advice.eligible && !bestChi.eligible) ||
+            (advice.eligible == bestChi.eligible &&
+                advice.expectedValue > bestChi.expectedValue)) {
+          bestChi = advice;
+        }
+      }
+      if (bestChi != null) options.add(bestChi);
+    }
+
+    if (available.contains(GuidedAction.kan)) {
+      final consumed = _takeFromHand(hand, offered.type, 3);
+      if (consumed.length == 3) {
+        options.add(_kanAdvice(
+          concealedAfter: _handWithout(hand, consumed),
+          meld: Meld(
+            kind: MeldKind.kan,
+            low: offered.type,
+            concealed: false,
+            tiles: [...consumed, offered],
+          ),
+          remaining: remaining,
+          context: context,
+          shantenBefore: passState.shanten,
+          evBefore: passState.ev,
+          opponentRiichi: opponentRiichi,
+        ));
+      }
+    }
+
+    // Ranking: a call has to clear its hard rules *and* beat simply staying
+    // put. Kan is judged last and only on shape, because its real payoff — an
+    // extra dora indicator — is not something the value model can price.
+    ActionAdvice? bestMeld;
+    for (final option in options) {
+      if (option.action != GuidedAction.pon &&
+          option.action != GuidedAction.chi) {
+        continue;
+      }
+      if (!option.eligible) continue;
+      if (bestMeld == null || option.expectedValue > bestMeld.expectedValue) {
+        bestMeld = option;
+      }
+    }
+
+    var recommended = GuidedAction.pass;
+    if (bestMeld != null && bestMeld.expectedValue > pass.expectedValue) {
+      recommended = bestMeld.action;
+    } else {
+      final kan = options
+          .where((o) => o.action == GuidedAction.kan && o.eligible)
+          .firstOrNull;
+      if (kan != null) recommended = GuidedAction.kan;
+    }
+
+    options.sort((a, b) {
+      if (a.eligible != b.eligible) return a.eligible ? -1 : 1;
+      return b.expectedValue.compareTo(a.expectedValue);
+    });
+    return CallAdvice(recommended: recommended, options: options);
+  }
+
+  /// Whether to declare a concealed kan on your own turn.
+  ///
+  /// [hand] is the 14 concealed tiles you are holding (13 + the draw). Unlike
+  /// pon or chi this cannot advance the hand — the triplet was already there —
+  /// so it is judged on whether it damages the shape and on whether flipping a
+  /// fresh dora indicator is safe to do right now.
+  ActionAdvice adviseClosedKan({
+    required List<Tile> hand,
+    required TileType kanType,
+    required List<int> visibleCounts34,
+    required EfficiencyValueContext context,
+    bool opponentRiichi = false,
+  }) {
+    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining = trainerCountsFromTypeCounts(remaining34);
+
+    // Where the hand sits if the kan is skipped: its best ordinary discard.
+    final current = analyze(
+      hand: hand,
+      visibleCounts34: visibleCounts34,
+      canRiichi: false,
+      valueContext: context,
+    );
+    final shantenBefore = current.currentShanten;
+    final evBefore = current.lines.isEmpty ? 0.0 : current.lines.first.expectedValue;
+
+    final consumed = _takeFromHand(hand, kanType, 4);
+    if (consumed.length < 4) {
+      return const ActionAdvice(
+        action: GuidedAction.kan,
+        expectedValue: 0,
+        shantenAfter: 99,
+        eligible: false,
+        reason: 'You do not hold all four.',
+      );
+    }
+
+    return _kanAdvice(
+      concealedAfter: _handWithout(hand, consumed),
+      meld: Meld(
+        kind: MeldKind.kan,
+        low: kanType,
+        concealed: true,
+        tiles: consumed,
+      ),
+      remaining: remaining,
+      context: context,
+      shantenBefore: shantenBefore,
+      evBefore: evBefore,
+      opponentRiichi: opponentRiichi,
+    );
+  }
+
+  /// Tsumo is never declined — this exists so the guide can show what the win
+  /// is actually worth alongside the recommendation.
+  ActionAdvice adviseTsumo({
+    required List<Tile> hand,
+    required Tile drawn,
+    required EfficiencyValueContext context,
+  }) {
+    final concealed = List<Tile>.of(hand)..remove(drawn);
+    final score = _scoreWait(concealed, drawn, isTsumo: true,
+        assumeRiichi: context.inRiichi, context: context);
+    final points = score.valid ? score.points : 0;
+    return ActionAdvice(
+      action: GuidedAction.tsumo,
+      expectedValue: points.toDouble(),
+      shantenAfter: -1,
+      reason: 'Tsumo — $points points. Always take the win.',
+    );
+  }
+
+  ActionAdvice _meldCallAdvice({
+    required GuidedAction action,
+    required List<Tile> hand,
+    required List<Tile> consumed,
+    required Meld meld,
+    required List<int> remaining,
+    required List<int> visibleCounts34,
+    required EfficiencyValueContext context,
+    required int passShanten,
+    required List<TileType> opponentDiscards,
+    required List<TileType> allDiscards,
+    required bool opponentRiichi,
+  }) {
+    final concealedAfter = _handWithout(hand, consumed);
+    final contextAfter = _contextWithMeld(context, meld);
+    final label = _actionLabel(action);
+
+    final report = analyze(
+      hand: concealedAfter,
+      visibleCounts34: visibleCounts34,
+      canRiichi: contextAfter.closed && !context.inRiichi,
+      valueContext: contextAfter,
+      defenseHand: opponentRiichi ? concealedAfter : null,
+      opponentDiscards: opponentDiscards,
+      allDiscards: allDiscards,
+      opponentRiichi: opponentRiichi,
+    );
+    if (report.lines.isEmpty) {
+      return ActionAdvice(
+        action: action,
+        expectedValue: 0,
+        shantenAfter: 99,
+        eligible: false,
+        reason: '$label leaves no playable hand.',
+      );
+    }
+
+    var best = report.lines.first;
+    for (final line in report.lines) {
+      if (line.recommended) {
+        best = line;
+        break;
+      }
+    }
+    final shape = best.shanten == 0 ? 'tenpai' : '${best.shanten}-shanten';
+
+    if (best.shanten >= passShanten) {
+      return ActionAdvice(
+        action: action,
+        expectedValue: best.expectedValue,
+        shantenAfter: best.shanten,
+        eligible: false,
+        discardAfter: best.discard,
+        discardSafety: best.safety,
+        reason: '$label gets you no closer — still $shape afterwards, and it '
+            'costs you a concealed hand.',
+      );
+    }
+    if (best.expectedValue <= 0) {
+      return ActionAdvice(
+        action: action,
+        expectedValue: 0,
+        shantenAfter: best.shanten,
+        eligible: false,
+        discardAfter: best.discard,
+        discardSafety: best.safety,
+        reason: '$label opens your hand with no yaku left to finish on, so it '
+            'could not score.',
+      );
+    }
+    if (opponentRiichi && best.shanten > 0) {
+      return ActionAdvice(
+        action: action,
+        expectedValue: best.expectedValue,
+        shantenAfter: best.shanten,
+        eligible: false,
+        discardAfter: best.discard,
+        discardSafety: best.safety,
+        reason: '$label commits you while a riichi is out and you are still '
+            '$shape — fold instead.',
+      );
+    }
+
+    final safety = best.safety;
+    final safetyNote = safety == null
+        ? ''
+        : ', then discard ${best.discard.code} (${safety.label})';
+    return ActionAdvice(
+      action: action,
+      expectedValue: best.expectedValue,
+      shantenAfter: best.shanten,
+      discardAfter: best.discard,
+      discardSafety: safety,
+      reason: '$label puts you at $shape worth about '
+          '${best.expectedValue.round()} points$safetyNote.',
+    );
+  }
+
+  ActionAdvice _kanAdvice({
+    required List<Tile> concealedAfter,
+    required Meld meld,
+    required List<int> remaining,
+    required EfficiencyValueContext context,
+    required int shantenBefore,
+    required double evBefore,
+    required bool opponentRiichi,
+  }) {
+    final contextAfter = _contextWithMeld(context, meld);
+    final after = _evaluateWaitingHand(
+      concealed: concealedAfter,
+      remaining: remaining,
+      context: contextAfter,
+      canRiichi: contextAfter.closed && !context.inRiichi,
+    );
+    final shape = after.shanten <= 0 ? 'tenpai' : '${after.shanten}-shanten';
+
+    if (after.shanten > shantenBefore) {
+      return ActionAdvice(
+        action: GuidedAction.kan,
+        expectedValue: after.ev,
+        shantenAfter: after.shanten,
+        eligible: false,
+        reason: 'Kan breaks up your shape — it would drop you to $shape.',
+      );
+    }
+    if (opponentRiichi && after.shanten > 0) {
+      return ActionAdvice(
+        action: GuidedAction.kan,
+        expectedValue: after.ev,
+        shantenAfter: after.shanten,
+        eligible: false,
+        reason: 'Kan flips a new dora indicator that helps the riichi as much '
+            'as you, and you are still $shape — skip it.',
+      );
+    }
+    return ActionAdvice(
+      action: GuidedAction.kan,
+      expectedValue: math.max(after.ev, evBefore),
+      shantenAfter: after.shanten,
+      reason: 'Kan keeps you at $shape and adds a dora indicator plus a '
+          'replacement draw, with no riichi to punish it.',
+    );
+  }
+
+  /// Shanten and expected value of a hand *between* draws — 13 tiles' worth of
+  /// hand once melds are counted. Used for the do-nothing baseline and for
+  /// kan, neither of which ends in a discard.
+  ({int shanten, double ev}) _evaluateWaitingHand({
+    required List<Tile> concealed,
+    required List<int> remaining,
+    required EfficiencyValueContext context,
+    required bool canRiichi,
+  }) {
+    final counts = toTrainerCounts(concealed);
+    final shanten = _calc.calculateWaitingShanten(counts);
+    final acceptance = _calc.acceptance(counts, remaining);
+    final value = _assessValue(
+      result: TileEfficiencyResult(
+        tileIndex: 1,
+        shanten: shanten,
+        ukeire: acceptance.count,
+        improvingTiles: acceptance.tiles,
+      ),
+      remaining: remaining,
+      concealed: concealed,
+      canRiichi: canRiichi,
+      context: context,
+    );
+    return (shanten: shanten, ev: value.expectedValue);
+  }
+
+  /// Every sequence that could be formed with [offered] plus two tiles held.
+  List<({Meld meld, List<Tile> consumed})> _chiCandidates(
+    List<Tile> hand,
+    Tile offered,
+  ) {
+    final out = <({Meld meld, List<Tile> consumed})>[];
+    final type = offered.type;
+    if (!type.isSuit) return out;
+
+    for (final offset in [-2, -1, 0]) {
+      final lowNumber = type.number + offset;
+      if (lowNumber < 1 || lowNumber + 2 > 9) continue;
+      final low = TileType.values[type.index - type.number + lowNumber];
+      final needed = [
+        for (var i = 0; i < 3; i++) TileType.values[low.index + i],
+      ]..remove(type);
+      if (needed.length != 2) continue;
+
+      final consumed = <Tile>[];
+      final pool = List<Tile>.of(hand);
+      for (final want in needed) {
+        final index = pool.indexWhere((t) => t.type == want);
+        if (index < 0) break;
+        consumed.add(pool.removeAt(index));
+      }
+      if (consumed.length != 2) continue;
+
+      out.add((
+        meld: Meld(
+          kind: MeldKind.sequence,
+          low: low,
+          concealed: false,
+          tiles: [...consumed, offered],
+        ),
+        consumed: consumed,
+      ));
+    }
+    return out;
+  }
+
+  static EfficiencyValueContext _contextWithMeld(
+    EfficiencyValueContext context,
+    Meld meld,
+  ) =>
+      EfficiencyValueContext(
+        melds: [...context.melds, meld],
+        roundWind: context.roundWind,
+        seatWind: context.seatWind,
+        isDealer: context.isDealer,
+        inRiichi: context.inRiichi,
+        wallTilesRemaining: context.wallTilesRemaining,
+        doraIndicators: context.doraIndicators,
+      );
+
+  /// [count] tiles of [type] from [hand], preferring plain copies so a red
+  /// five stays where it can still be chosen freely.
+  static List<Tile> _takeFromHand(List<Tile> hand, TileType type, int count) {
+    final matches = hand.where((t) => t.type == type).toList()
+      ..sort((a, b) => (a.aka ? 1 : 0).compareTo(b.aka ? 1 : 0));
+    return matches.take(count).toList();
+  }
+
+  static List<Tile> _handWithout(List<Tile> hand, List<Tile> removed) {
+    final out = List<Tile>.of(hand);
+    for (final tile in removed) {
+      out.remove(tile);
+    }
+    return out;
+  }
+
+  static String _actionLabel(GuidedAction action) => switch (action) {
+        GuidedAction.pass => 'Passing',
+        GuidedAction.chi => 'Chi',
+        GuidedAction.pon => 'Pon',
+        GuidedAction.kan => 'Kan',
+        GuidedAction.ron => 'Ron',
+        GuidedAction.tsumo => 'Tsumo',
+      };
+
   _ValueAssessment _assessValue({
     required TileEfficiencyResult result,
     required List<int> remaining,
@@ -262,9 +817,17 @@ class EfficiencyEngine {
     final draws = math.max(1, (context.wallTilesRemaining + 3) ~/ 4);
     final improveRate =
         unseen > 0 ? math.min(1.0, result.ukeire / unseen) : 0.0;
-    final improveProbability = 1 - math.pow(1 - improveRate, draws).toDouble();
+    // Getting home needs (shanten + 1) separate improvements, and they have to
+    // share the draws that are left — so each step gets its slice of the wall,
+    // not all of it. Spending the whole wall on every step made a wide hand
+    // three away look likelier to finish than a narrow hand one away, which
+    // made a "call vs. stay put" comparison meaningless.
+    final steps = result.shanten + 1;
+    final drawsPerStep = draws / steps;
+    final improveProbability =
+        1 - math.pow(1 - improveRate, drawsPerStep).toDouble();
     final completionProbability =
-        math.pow(improveProbability, result.shanten + 1).toDouble();
+        math.pow(improveProbability, steps).toDouble();
 
     // Before tenpai the exact final hand is unknown. These representative
     // values match the desktop advisor; exact yaku/fu/dora scoring takes over

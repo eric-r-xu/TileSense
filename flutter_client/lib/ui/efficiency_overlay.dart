@@ -164,6 +164,13 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           const SizedBox(height: 2),
           Text('Options: $offered',
               style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          if (widget.game.recommendedCallReason case final why?
+              when why.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(why,
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 10, height: 1.3)),
+          ],
         ],
       ),
     );
