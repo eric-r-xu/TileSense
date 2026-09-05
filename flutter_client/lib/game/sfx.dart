@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 /// Generic UI blips (from the Vala build's `click` / `hint` / `score_count`),
 /// played for every seat.
@@ -47,6 +48,17 @@ class Sfx {
     ..setReleaseMode(ReleaseMode.stop);
 
   bool enabled = true;
+
+  /// Test seam: when set, every line the game asks for is recorded here. The
+  /// audio stack has no plugin under a test binding, so this is the only way
+  /// to assert that a call actually voices.
+  @visibleForTesting
+  static List<(Character, VoiceKind)>? debugVoiceLog;
+
+  /// Test seam: the clip a character uses for a line, or null if it has none.
+  @visibleForTesting
+  static String? debugAssetFor(Character character, VoiceKind kind) =>
+      _voiceAsset[character]?[kind];
 
   /// A short existing clip, played muted, purely to unlock a media element.
   static const String _primeAsset = 'sfx/click.wav';
@@ -130,6 +142,10 @@ class Sfx {
   /// way.
   void unlock() {
     if (!kIsWeb) return;
+    // The first gesture is also the earliest point worth spending bandwidth on
+    // the clips themselves.
+    // ignore: discarded_futures
+    preload();
     for (final p in [_player, _voice]) {
       try {
         // Play (muted) synchronously here, with no `await` before it - any
@@ -146,6 +162,51 @@ class Sfx {
       } catch (_) {
         // Priming failed; the next gesture (or a real play) gets another shot.
       }
+    }
+  }
+
+  // --- preloading --------------------------------------------------------
+
+  bool _preloaded = false;
+
+  /// Every clip the game can actually play, blips first.
+  static Iterable<String> get _allClips sync* {
+    yield* {..._asset.values};
+    for (final lines in _voiceAsset.values) {
+      for (final path in lines.values) {
+        if (path != null) yield path;
+      }
+    }
+  }
+
+  /// Pull every clip through the browser's HTTP cache up front.
+  ///
+  /// `audioplayers` builds a fresh `<audio>` element every time the source URL
+  /// changes — and for voice lines that is *every single line* — so without
+  /// this each one is fetched at the exact moment it is needed, which is what
+  /// shows up as lag before a call. Warming the cache moves that cost to
+  /// start-up, where nothing is waiting on it. The bytes are evicted straight
+  /// away so they are not also held in Dart memory.
+  ///
+  /// Web only: elsewhere the clips are already local.
+  Future<void> preload() async {
+    if (_preloaded || !kIsWeb) return;
+    _preloaded = true;
+    final keys = {for (final path in _allClips) 'assets/$path'}.toList();
+
+    // A few at a time: one-at-a-time would serialise ~40 round trips on a
+    // mobile connection, all at once would fight the rest of the page load.
+    const batch = 6;
+    for (var i = 0; i < keys.length; i += batch) {
+      final slice = keys.skip(i).take(batch);
+      await Future.wait([
+        for (final key in slice)
+          rootBundle.load(key).then((_) => rootBundle.evict(key)).catchError(
+            (_) {
+              // A clip that will not load just stays uncached; play() copes.
+            },
+          ),
+      ]);
     }
   }
 
@@ -183,6 +244,7 @@ class Sfx {
   Timer? _voiceWatchdog;
 
   void voice(VoiceKind kind, {Character character = Character.orderic}) {
+    debugVoiceLog?.add((character, kind));
     final path = _voiceAsset[character]?[kind];
     if (path != null) _enqueueVoice([path]);
   }
@@ -192,6 +254,7 @@ class Sfx {
   /// discarder's resigned acknowledgement. Queued as one unit after anything
   /// already pending.
   void voiceChain(List<(Character, VoiceKind)> steps) {
+    debugVoiceLog?.addAll(steps);
     final paths = [
       for (final (character, k) in steps)
         if (_voiceAsset[character]?[k] != null) _voiceAsset[character]![k]!,
