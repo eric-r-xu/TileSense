@@ -12,12 +12,8 @@ against bots while a live guide grades every discard — shanten, ukeire (tile
 acceptance), probability-weighted point value, and the recommended tile — and,
 when an opponent declares riichi, ranks your hand by safety.
 
-This repo contains two implementations:
-
-| | |
-|---|---|
-| **`flutter_client/`** | The trainer as a cross-platform **Flutter** app (web, Android, iOS, desktop). This is the one you run. |
-| **`source/` + `Engine/`** | The **TileSense** **Vala** client, pruned to its single "flat 2D + efficiency" build. |
+This repo contains the cross-platform **Flutter** app for web, Android, iOS,
+and desktop under `flutter_client/`.
 
 The shanten/ukeire math follows the Riichi-Trainer algorithm; the rules, bots,
 and 2D layout are maintained as part of TileSense.
@@ -26,7 +22,7 @@ and 2D layout are maintained as part of TileSense.
 
 ## Quick start
 
-**Flutter** (`flutter_client/`, cross-platform) — install the
+Install the
 [Flutter SDK](https://docs.flutter.dev/get-started/install) (≥ 3.3, tested on
 3.47), then from `flutter_client/` run `flutter pub get` once and:
 
@@ -36,17 +32,8 @@ and 2D layout are maintained as part of TileSense.
 | Android | `flutter run -d android` | Android SDK + a running emulator or a USB device |
 | iOS | `flutter run -d ios` | macOS + Xcode + a booted Simulator or a plugged-in iPhone |
 
-**Vala** (`source/` + `Engine/`, desktop) — from the repo root, with the
-[toolchain](#the-vala-reference-client) installed:
-
-```sh
-meson setup build-tilesense -Dbuildtype=release && ninja -C build-tilesense
-./build-tilesense/TileSense --search-directory ./bin
-```
-
 Details, emulator/simulator launch, and release/store builds are in
-[The Flutter app](#the-flutter-app-flutter_client) and
-[The Vala reference client](#the-vala-reference-client) below.
+[The Flutter app](#the-flutter-app-flutter_client) below.
 
 ---
 
@@ -186,84 +173,6 @@ Both come from one line in `flutter_client/pubspec.yaml`:
 ```yaml
 version: 0.2.0+2     # 0.2.0 = version name, 2 = build number — bump +N on every store upload
 ```
-
----
-
-## The Vala reference client
-
-The Vala client is reduced to a single executable: the flat 2D renderer plus the efficiency
-trainer (built with `TWO_DIMENSIONAL` + `EFFICIENCY_LOGGING`). The 3D renderer
-and the other three build targets have been removed; the server, bots,
-networking, menus, scoring, and rules are untouched, so singleplayer and
-multiplayer both still work.
-
-`Engine/` is the rendering engine from
-[FluffyStuff/Engine](https://github.com/FluffyStuff/Engine) (GPLv3, see
-`Engine/LICENSE`), vendored directly into this repo rather than pulled as a
-submodule, with local macOS build fixes (VAO/FontConfig/cursor) and a
-`Container.process_paused` addition. `meson.build` compiles it in via
-`subdir('Engine')`.
-
-### Build & run
-
-```sh
-git clone <this repo>
-meson setup build-tilesense -Dbuildtype=release     # or -Dbuildtype=debug
-ninja -C build-tilesense
-./build-tilesense/TileSense --search-directory ./bin
-```
-
-`build-tilesense/` is the Meson build directory for this repository. If you
-already have a `build/` directory from another checkout, do not use its
-executable path: it may point at a different project and may not contain
-`TileSense`.
-
-If you prefer to use the directory name `build/`, configure it explicitly for
-this repository first:
-
-```sh
-meson setup --wipe build . -Dbuildtype=release
-ninja -C build
-./build/TileSense --search-directory ./bin
-```
-
-If `ninja -C build` reports that its source directory is
-`OpenRiichiFlutter`, the directory contains stale Meson metadata. Run the
-commands above, or use `build-tilesense/` instead. Do not edit `build.ninja`
-by hand; Meson regenerates it.
-
-In the app: **Singleplayer → Create Game → Start**. The other seats fill with
-`SimpleBot`; the efficiency panel appears on your turn (shift-click to
-minimize/expand). Guide results are also written to the `application` log.
-
-`ninja -C build-tilesense install` installs it (needs the `bin/Data` folder on a
-search path); `ninja -C build-tilesense uninstall` removes it. If you used the
-alternative `build/` directory, substitute `build` in those commands.
-
-<details>
-<summary>Toolchain setup (Vala / meson / SDL2 / GTK3 / libgee / GLEW / pango)</summary>
-
-**macOS** (MacPorts):
-
-```sh
-sudo port install git vala pkgconfig meson libgee gtk3 \
-  libsdl2 libsdl2_image libsdl2_mixer glew pango
-```
-
-**Linux (Debian/Ubuntu):**
-
-```sh
-sudo apt install -y git valac gcc meson libgee-0.8-dev libgtk-3-dev \
-  libglew-dev libpango1.0-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-dev
-```
-
-**Windows:** use MSYS2 + MinGW-w64 and install the `mingw-w64-x86_64-` builds of
-the same packages (`vala`, `meson`, `gcc`, `pkg-config`, `libgee`, `gtk3`,
-`glew`, `SDL2_image`, `SDL2_mixer`, `pango`). VS Code with a Vala extension is
-the recommended editor; a `tasks.json` running `ninja -C build-tilesense` gives
-you incremental builds.
-
-</details>
 
 ---
 

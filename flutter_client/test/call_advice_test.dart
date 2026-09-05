@@ -234,4 +234,23 @@ void main() {
       expect(advice.eligible, isFalse);
     });
   });
+
+  group('open kan', () {
+    test('a shape-neutral kan with no yaku path is refused', () {
+      // Calling 2s leaves three complete mixed-suit sequences and a 5p tanki.
+      // The shape survives, but the open hand has no yaku and cannot score.
+      final advice = advise(
+        '123m 456p 789s 5p 222s',
+        TileType.sou2,
+        available: const {GuidedAction.kan},
+      );
+      final kan = optionFor(advice, GuidedAction.kan);
+
+      expect(kan.shantenAfter, 0);
+      expect(kan.eligible, isFalse);
+      expect(kan.expectedValue, 0);
+      expect(kan.reason, contains('yaku'));
+      expect(advice.recommended, GuidedAction.pass);
+    });
+  });
 }

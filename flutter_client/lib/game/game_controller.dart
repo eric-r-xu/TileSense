@@ -1,7 +1,5 @@
 /// Drives an offline hanchan: owns the [Round], three [SimpleBot]s, the async
-/// turn loop, and the live [EfficiencyReport]. Rough analogue of the Vala
-/// client's `GameController` + in-process server, collapsed to a single
-/// cooperative loop (no threads, no sockets).
+/// turn loop, and the live [EfficiencyReport] in one cooperative loop.
 library;
 
 import 'dart:async';
@@ -39,7 +37,8 @@ const int kRoundsPerGame = 4;
 enum GamePhase { playing, roundEnd, gameEnd }
 
 class GameController extends ChangeNotifier {
-  GameController({int? seed}) : _seed = seed ?? DateTime.now().millisecondsSinceEpoch {
+  GameController({int? seed})
+      : _seed = seed ?? DateTime.now().millisecondsSinceEpoch {
     _startGame();
   }
 
@@ -155,7 +154,9 @@ class GameController extends ChangeNotifier {
       riichiSticks: _riichiSticks,
       startingPoints: List.of(_points),
     );
-    _bots = [for (var i = 0; i < 4; i++) SimpleBot(_seed + i * 7 + _roundNumber)];
+    _bots = [
+      for (var i = 0; i < 4; i++) SimpleBot(_seed + i * 7 + _roundNumber)
+    ];
     _humanCallOption = null;
     _humanCallAdvice = null;
     phase = GamePhase.playing;
@@ -208,8 +209,7 @@ class GameController extends ChangeNotifier {
 
   // Opponents act at half the old pace (960 ms vs 480 ms per step); fast mode
   // halves that again for a 2x run.
-  Duration get _stepDelay =>
-      Duration(milliseconds: fastMode ? 480 : 960);
+  Duration get _stepDelay => Duration(milliseconds: fastMode ? 480 : 960);
 
   void _scheduleLoop() {
     if (_disposed || paused || (_loopTimer?.isActive ?? false)) return;
@@ -324,7 +324,8 @@ class GameController extends ChangeNotifier {
     // acknowledgement right after.
     for (var wi = 0; wi < res.winners.length; wi++) {
       final seat = res.winners[wi];
-      final bigHand = wi < res.scores.length && res.scores[wi].limitName.isNotEmpty;
+      final bigHand =
+          wi < res.scores.length && res.scores[wi].limitName.isNotEmpty;
       final winner = _characterForSeat(seat);
       if (!bigHand) {
         Sfx.i.voice(winLine, character: winner);
@@ -433,8 +434,9 @@ class GameController extends ChangeNotifier {
       available: _guidedActionsFor(opt.types),
       visibleCounts34: _visibleCounts(),
       context: _efficiencyValueContext(seat),
-      opponentDiscards:
-          riichiOpp != null ? riichiOpp.pond.map((t) => t.type).toList() : const [],
+      opponentDiscards: riichiOpp != null
+          ? riichiOpp.pond.map((t) => t.type).toList()
+          : const [],
       allDiscards: _allDiscardTypes(),
       opponentRiichi: riichiOpp != null,
     );
@@ -476,7 +478,9 @@ class GameController extends ChangeNotifier {
   // --- human input ---------------------------------------------------
 
   void humanDiscard(Tile tile, {bool declareRiichi = false}) {
-    if (round.finished || round.turn != kHumanSeat || round.phase != RoundPhase.discarding) {
+    if (round.finished ||
+        round.turn != kHumanSeat ||
+        round.phase != RoundPhase.discarding) {
       return;
     }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
@@ -578,8 +582,9 @@ class GameController extends ChangeNotifier {
       canRiichi: round.canRiichi(kHumanSeat),
       valueContext: _efficiencyValueContext(human),
       defenseHand: riichiOpp != null ? human.hand : null,
-      opponentDiscards:
-          riichiOpp != null ? riichiOpp.pond.map((t) => t.type).toList() : const [],
+      opponentDiscards: riichiOpp != null
+          ? riichiOpp.pond.map((t) => t.type).toList()
+          : const [],
       allDiscards: _allDiscardTypes(),
       opponentRiichi: riichiOpp != null,
     );
@@ -639,10 +644,10 @@ class GameController extends ChangeNotifier {
       round.phase == RoundPhase.discarding &&
       round.canRiichi(kHumanSeat);
 
-  List<TileType> get humanClosedKanTypes => round.turn == kHumanSeat &&
-          round.phase == RoundPhase.discarding
-      ? round.closedKanTypes(kHumanSeat)
-      : const [];
+  List<TileType> get humanClosedKanTypes =>
+      round.turn == kHumanSeat && round.phase == RoundPhase.discarding
+          ? round.closedKanTypes(kHumanSeat)
+          : const [];
 
   /// The call the guide recommends for the pending human call decision.
   CallType? get recommendedCall {
@@ -655,7 +660,9 @@ class GameController extends ChangeNotifier {
   String? get recommendedCallReason => _humanCallAdvice?.reason;
 
   bool get isHumanTurn =>
-      round.turn == kHumanSeat && round.phase == RoundPhase.discarding && !round.finished;
+      round.turn == kHumanSeat &&
+      round.phase == RoundPhase.discarding &&
+      !round.finished;
 
   /// True when the human seat is tenpai but in furiten, so ron is unavailable
   /// (tsumo still is). Drives the FURITEN marker on the hand bar and placard.

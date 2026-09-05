@@ -1,7 +1,0 @@
-.vscode
-*.code-workspace
-*.shader
-bin/*
-*.c
-*.o
-*.DS_Store

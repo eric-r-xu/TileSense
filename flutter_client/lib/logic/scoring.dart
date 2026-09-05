@@ -1,10 +1,8 @@
 /// Hand scoring: yaku detection and han/fu -> points.
 ///
-/// A documented *subset* of the Vala client's `source/Game/Logic/TileRules.vala`
-/// (`Yaku.get_yaku`, `Scoring`). It covers the common yaku, the standard fu
-/// table, the yakuman set, and dora/ura/aka. Rare fu corner cases and some
-/// double-yakuman rules are approximated — this is a trainer, not a ruleset
-/// arbiter.
+/// Covers the common yaku, the standard fu table, the yakuman set, and
+/// dora/ura/aka. Rare fu corner cases and some double-yakuman rules are
+/// approximated — this is a trainer, not a ruleset arbiter.
 library;
 
 import 'hand_parse.dart';
@@ -278,7 +276,9 @@ void _standardYaku(
 
   // Yakuhai.
   for (final g in triplets) {
-    if (g.low.isDragon) out.add(YakuResult('Yakuhai (${g.low.displayName})', 1));
+    if (g.low.isDragon) {
+      out.add(YakuResult('Yakuhai (${g.low.displayName})', 1));
+    }
     if (g.low == ctx.roundWind.tile) out.add(const YakuResult('Round Wind', 1));
     if (g.low == ctx.seatWind.tile) out.add(const YakuResult('Seat Wind', 1));
   }
@@ -326,18 +326,19 @@ void _standardYaku(
   final everyGroupHasTOrH = groups.every((g) => g.hasTerminalOrHonor) &&
       (d.pair == null || d.pair!.isTerminalOrHonor);
   if (everyGroupHasTOrH && seqs.isNotEmpty) {
-    final junchan = groups.every((g) => !_groupTypes(g).any((t) => t.isHonor)) &&
-        (d.pair == null || !d.pair!.isHonor);
-    out.add(YakuResult(junchan ? 'Junchan' : 'Chanta', closed ? (junchan ? 3 : 2) : (junchan ? 2 : 1)));
+    final junchan =
+        groups.every((g) => !_groupTypes(g).any((t) => t.isHonor)) &&
+            (d.pair == null || !d.pair!.isHonor);
+    out.add(YakuResult(junchan ? 'Junchan' : 'Chanta',
+        closed ? (junchan ? 3 : 2) : (junchan ? 2 : 1)));
   }
 
   // Toitoi.
   if (triplets.length == 4) out.add(const YakuResult('Toitoi', 2));
 
   // Sanankou: three concealed triplets.
-  final concealedTriplets = d.melds
-      .where((g) => g.isTripletLike && g.concealed)
-      .length;
+  final concealedTriplets =
+      d.melds.where((g) => g.isTripletLike && g.concealed).length;
   if (concealedTriplets == 3) out.add(const YakuResult('Sanankou', 2));
 
   // Sankantsu.
@@ -526,7 +527,10 @@ int _countDora(List<TileType> types, List<TileType> indicators) {
 }
 
 int _identicalSequencePairs(List<Meld> concealedMelds) {
-  final seqs = concealedMelds.where((m) => m.isSequence).map((m) => m.low).toList()
+  final seqs = concealedMelds
+      .where((m) => m.isSequence)
+      .map((m) => m.low)
+      .toList()
     ..sort((a, b) => a.index.compareTo(b.index));
   var pairs = 0;
   for (var i = 0; i + 1 < seqs.length; i += 1) {
@@ -564,10 +568,8 @@ bool _hasSanshokuDoukou(List<Meld> triplets) {
 
 bool _hasIttsu(List<Meld> seqs) {
   for (final suit in [0, 1, 2]) {
-    final lows = seqs
-        .where((s) => s.low.suit == suit)
-        .map((s) => s.low.number)
-        .toSet();
+    final lows =
+        seqs.where((s) => s.low.suit == suit).map((s) => s.low.number).toSet();
     if (lows.contains(1) && lows.contains(4) && lows.contains(7)) return true;
   }
   return false;

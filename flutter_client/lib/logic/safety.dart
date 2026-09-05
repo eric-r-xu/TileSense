@@ -1,9 +1,7 @@
 /// Defensive tile-safety ranking against a player who has declared riichi.
 ///
-/// A simplified port of `EfficiencyLogging.evaluate_safety` / `is_suji` /
-/// `safety_explanation` from the Vala client's `TileEfficiency.vala`. Ratings
-/// run 0 (very dangerous) to 15 (genbutsu). No hidden-wall information is used;
-/// only public discards and visible tiles.
+/// Ratings run 0 (very dangerous) to 15 (genbutsu). No hidden-wall information
+/// is used; only public discards and visible tiles.
 library;
 
 import 'tile.dart';
@@ -57,14 +55,17 @@ SafetyRating _rate(
 
   if (t.isHonor) {
     final left = 4 - visible[t.index - 1];
-    if (left <= 1) return SafetyRating(t, 13, 'honor, 1 live — cannot be shanpon');
+    if (left <= 1) {
+      return SafetyRating(t, 13, 'honor, 1 live — cannot be shanpon');
+    }
     if (left == 2) return SafetyRating(t, 9, 'honor, 2 live');
     return SafetyRating(t, 6, 'honor, 3 live — shanpon/tanki risk');
   }
 
   final n = t.number;
   final suit = t.suit;
-  final suji = oppDiscards.where((d) => d.suit == suit).map((d) => d.number).toSet();
+  final suji =
+      oppDiscards.where((d) => d.suit == suit).map((d) => d.number).toSet();
 
   // Terminal suji (1/9 covered by 4/6 in the pond).
   if (n == 1 && suji.contains(4)) {
@@ -89,7 +90,8 @@ SafetyRating _rate(
   // 2,3,7,8: suji covers the ryanmen but not penchan/kanchan/shanpon.
   final sujiPartner = (n == 2 || n == 3) ? n + 3 : n - 3;
   if (suji.contains(sujiPartner)) {
-    return SafetyRating(t, 6, 'suji ($sujiPartner discarded) — penchan/kanchan risk');
+    return SafetyRating(
+        t, 6, 'suji ($sujiPartner discarded) — penchan/kanchan risk');
   }
 
   // No-chance / one-chance: all four of an adjacent connector visible.

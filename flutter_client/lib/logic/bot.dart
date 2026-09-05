@@ -1,6 +1,5 @@
-/// SimpleBot — a close port of the Vala client's
-/// `source/GameServer/Bots/SimpleBot.vala`. Pure heuristics over the seat's
-/// public view plus a small "should I stay damaten?" value check.
+/// SimpleBot — pure heuristics over the seat's public view plus a small
+/// "should I stay damaten?" value check.
 library;
 
 import 'dart:math';
@@ -11,7 +10,8 @@ import 'scoring.dart';
 import 'tile.dart';
 
 class BotTurn {
-  BotTurn({this.tsumo = false, this.closedKan, this.discard, this.riichi = false});
+  BotTurn(
+      {this.tsumo = false, this.closedKan, this.discard, this.riichi = false});
   final bool tsumo;
   final TileType? closedKan;
   final Tile? discard;
@@ -49,7 +49,8 @@ class SimpleBot {
     return BotTurn(discard: _discardTile(round, seat));
   }
 
-  CallType decideCall(Round round, int seat, Tile discard, Set<CallType> allowed) {
+  CallType decideCall(
+      Round round, int seat, Tile discard, Set<CallType> allowed) {
     if (allowed.contains(CallType.ron)) return CallType.ron;
     if (allowed.contains(CallType.pon)) {
       final s = round.seats[seat];
@@ -82,7 +83,8 @@ class SimpleBot {
   /// Approximates `EfficiencyLogging.qualifying_damaten_discard`: stay silent
   /// only if every live wait already has a real yaku and the hand clears
   /// 5200 (7700 as dealer).
-  Tile? _qualifyingDamatenDiscard(Round round, int seat, List<Tile> tenpaiTiles) {
+  Tile? _qualifyingDamatenDiscard(
+      Round round, int seat, List<Tile> tenpaiTiles) {
     final s = round.seats[seat];
     final threshold = s.isDealer ? 7700 : 5200;
 
@@ -102,7 +104,8 @@ class SimpleBot {
           closed: s.closed,
           doraIndicators: round.wall.doraIndicators(),
         );
-        final score = scoreHand(rest, winTile, s.melds, ctx, isDealer: s.isDealer);
+        final score =
+            scoreHand(rest, winTile, s.melds, ctx, isDealer: s.isDealer);
         if (!score.valid) {
           ok = false;
           break;
@@ -128,11 +131,15 @@ class SimpleBot {
     bool neighbour(Tile t) =>
         t.type.isSuit &&
         s.hand.any((x) =>
-            x != t && x.type.suit == t.type.suit && (x.type.number - t.type.number).abs() == 1);
+            x != t &&
+            x.type.suit == t.type.suit &&
+            (x.type.number - t.type.number).abs() == 1);
     bool secondNeighbour(Tile t) =>
         t.type.isSuit &&
         s.hand.any((x) =>
-            x != t && x.type.suit == t.type.suit && (x.type.number - t.type.number).abs() == 2);
+            x != t &&
+            x.type.suit == t.type.suit &&
+            (x.type.number - t.type.number).abs() == 2);
 
     List<Tile> filter(List<Tile> src, bool Function(Tile) drop) {
       final kept = src.where((t) => !drop(t)).toList();
@@ -154,8 +161,12 @@ class SimpleBot {
       if (t.type.isDragon && count(t) <= 1) return t;
     }
 
-    tiles = filter(tiles, (t) =>
-        t.type.isDragon || t.type == s.wind.tile || t.type == round.roundWind.tile);
+    tiles = filter(
+        tiles,
+        (t) =>
+            t.type.isDragon ||
+            t.type == s.wind.tile ||
+            t.type == round.roundWind.tile);
     tiles = filter(tiles, neighbour);
     tiles = filter(tiles, (t) => count(t) >= 2);
     tiles = filter(tiles, secondNeighbour);

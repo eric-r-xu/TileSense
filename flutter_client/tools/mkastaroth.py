@@ -1,4 +1,4 @@
-"""Build Astaroth call-out wavs from his existing mood takes.
+"""Build Astaroth call-out wavs from source takes kept outside app assets.
 
 No TTS exists for this voice, so each call is derived from the closest mood
 recording: trim silence, a small pitch/tempo shift for character, clamp length,
@@ -8,10 +8,9 @@ import array
 import os
 import wave
 
-SRC = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "assets", "astaroth",
-)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(ROOT, "tools", "audio_sources", "astaroth")
+OUT = os.path.join(ROOT, "assets", "astaroth")
 
 # out name <- (source, pitch factor >1 = higher/faster, max seconds)
 JOBS = {
@@ -113,5 +112,5 @@ for out_name, (src_name, factor, max_sec) in JOBS.items():
     s = clamp(s, max_sec)
     s = fades(s)
     s = normalize(s)
-    write(os.path.join(SRC, out_name), s)
+    write(os.path.join(OUT, out_name), s)
     print(f"{out_name:22s} <- {src_name:28s} {len(s)/RATE:.3f}s")

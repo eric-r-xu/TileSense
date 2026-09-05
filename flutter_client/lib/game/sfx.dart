@@ -4,8 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-/// Generic UI blips (from the Vala build's `click` / `hint` / `score_count`),
-/// played for every seat.
+/// Generic UI blips (`click` / `hint` / `score_count`), played for every seat.
 enum SfxKind { riichi, chi, pon, kan, ron, tsumo, discard }
 
 /// A spoken line. Each seat's character has its own recording of every kind
@@ -105,7 +104,7 @@ class Sfx {
       VoiceKind.riichi: 'hubert/Hubert_Riichi.wav',
       VoiceKind.ron: 'hubert/Hubert_ron.wav',
       VoiceKind.tsumo: 'hubert/Hubert_Tsumo.wav',
-      VoiceKind.yeah: 'hubert/Hubert_YEAH.wav',
+      VoiceKind.yeah: 'hubert/Hubert_Yeah.wav',
       VoiceKind.acquiescement: 'hubert/Hubert_Acquiescement.wav',
       VoiceKind.win: 'hubert/Hubert_Win.wav',
     },
@@ -212,8 +211,8 @@ class Sfx {
 
   // --- blips -----------------------------------------------------------
 
-  void play(SfxKind kind) => _fire(_asset[kind],
-      volume: kind == SfxKind.discard ? 0.35 : 0.7);
+  void play(SfxKind kind) =>
+      _fire(_asset[kind], volume: kind == SfxKind.discard ? 0.35 : 0.7);
 
   void _fire(String? path, {required double volume}) {
     if (!enabled || path == null) return;
