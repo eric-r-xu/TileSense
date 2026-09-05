@@ -5,10 +5,15 @@ import 'package:web/web.dart' as web;
 
 import 'sfx.dart';
 
-/// Pointer events cover mouse, touch, and pen without the duplicate synthetic
-/// mouse event that follows a mobile touch. Keyboard remains an accessibility
-/// path for desktop browsers.
-const _kFirstGestureEvents = ['pointerdown', 'keydown'];
+/// HTML user activation occurs on mouse-down, but on touch/pen it occurs at
+/// pointer-up or touch-end. Keep both touch events for older iOS WebKit; the
+/// repeated resume is harmless and protects the widest range of Safari builds.
+const _kFirstGestureEvents = [
+  'mousedown',
+  'pointerup',
+  'touchend',
+  'keydown',
+];
 
 /// Hooks native pointer/touch/key events directly via the DOM — entirely
 /// outside Flutter's widget tree and gesture system — to resume TileSense's
@@ -27,8 +32,14 @@ void armFirstGestureUnlock() {
   unawaited(Sfx.i.preload());
   void onEvent(web.Event event) => Sfx.i.unlock();
   final handler = onEvent.toJS;
-  final options = web.AddEventListenerOptions(passive: true);
+  final options = web.AddEventListenerOptions(passive: true, capture: true);
   for (final type in _kFirstGestureEvents) {
     web.window.addEventListener(type, handler, options);
   }
+
+  void onVisibilityChange(web.Event event) {
+    if (!web.document.hidden) Sfx.i.recoverAfterForeground();
+  }
+
+  web.document.addEventListener('visibilitychange', onVisibilityChange.toJS);
 }

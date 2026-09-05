@@ -24,6 +24,9 @@ class AudioBackend {
   /// Native apps are not subject to browser autoplay policy.
   void unlock() {}
 
+  /// Browser-only recovery hook; native audio lifecycle is unchanged.
+  void recoverAfterForeground() {}
+
   Future<void> playEffect(String path, {required double volume}) =>
       _effects.play(AssetSource(path), volume: volume);
 
