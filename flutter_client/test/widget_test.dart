@@ -14,13 +14,18 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
 
+    // Welcome screen first — Start hands off to the table.
+    expect(find.text('Start'), findsOneWidget);
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+
     expect(find.text('TileSense'), findsWidgets);
     expect(find.byType(TableView), findsOneWidget);
     expect(find.byType(HandView), findsOneWidget);
     expect(find.byType(EfficiencyOverlay), findsNothing);
 
     // The clefairy button next to the GitHub link turns it on.
-    await tester.tap(find.byTooltip('Show guide'));
+    await tester.tap(find.byTooltip('TileSense — show guide'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
 
@@ -30,6 +35,8 @@ void main() {
 
   testWidgets('tapping a hand tile discards without crashing', (tester) async {
     await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Start'));
     for (var i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }
