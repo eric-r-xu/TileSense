@@ -1,8 +1,4 @@
-# TileSense — Flutter 2D efficiency trainer
-
-A standalone Flutter re-implementation of the **singleplayer 2D tile-efficiency
-mode** of the Vala TileSense client (the pruned `TileSense` build in the
-repository root). It is intentionally independent of the Vala/Meson build.
+# TileSense — Flutter Riichi Mahjong efficiency trainer
 
 ## What it does
 
