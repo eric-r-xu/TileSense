@@ -55,8 +55,8 @@ Details, emulator/simulator launch, and release/store builds are in
 ### What it does
 
 - A shuffled 136-tile wall and a full offline round vs three bots: draws,
-  discards, **pon** and **closed kan** (chi omitted, matching the reference
-  `SimpleBot`), riichi, tsumo, ron, and exhaustive draw with tenpai payments.
+  discards, **chi**, **pon** and **closed kan**, riichi, tsumo, ron, and
+  exhaustive draw with tenpai payments.
 - A **live efficiency guide**: for every tile in your hand — resulting shanten,
   ukeire count, accepted tiles, and expected value. In tenpai, EV scores every
   live wait (including yaku, han/fu, visible dora, tsumo/ron, and dealer value)
