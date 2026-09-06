@@ -49,6 +49,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _kanReason(),
                       if (r.lines.isEmpty)
                         Text(r.headline ?? 'Waiting…',
                             style: const TextStyle(color: Colors.white70))
@@ -106,6 +107,39 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
+  /// Whether to declare the closed/added kan available on the human's turn
+  /// right now, and why — the same treatment as [_planReason], just for the
+  /// kan decision, which (unlike riichi/damaten) can come up on any turn.
+  Widget _kanReason() {
+    final k = widget.game.kanAdvice;
+    if (k == null || k.advice.reason.isEmpty) return const SizedBox.shrink();
+    final act = k.advice.eligible;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: act ? const Color(0x334527a0) : const Color(0x22ffffff),
+        border: Border.all(
+            color: act ? const Color(0xff7e57c2) : const Color(0x44ffffff)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('KAN ${k.type.code} — ${act ? 'take it' : 'skip it'}',
+              style: TextStyle(
+                  color: act ? const Color(0xffb39ddb) : Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(k.advice.reason,
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 10, height: 1.3)),
+        ],
+      ),
+    );
+  }
+
   Widget _header(EfficiencyReport r) {
     return InkWell(
       onTap: () => setState(() => _minimized = !_minimized),
@@ -146,6 +180,17 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text('DAMATEN',
+                  style: TextStyle(color: Colors.white, fontSize: 10)),
+            ),
+          if ((widget.game.kanAdvice?.advice.eligible ?? false) && !_minimized)
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xff4527a0),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text('KAN',
                   style: TextStyle(color: Colors.white, fontSize: 10)),
             ),
           Icon(_minimized ? Icons.expand_more : Icons.expand_less,

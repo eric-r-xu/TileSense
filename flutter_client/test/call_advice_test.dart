@@ -235,6 +235,88 @@ void main() {
     });
   });
 
+  group('added kan (shouminkan)', () {
+    ActionAdvice addedKanAdvice({
+      required String handSpec,
+      required TileType kanType,
+      bool withMatchingPon = true,
+      bool opponentRiichi = false,
+      List<TileType> opponentDiscards = const [],
+      List<TileType> allDiscards = const [],
+    }) {
+      final hand = parseTiles(handSpec);
+      final melds = withMatchingPon
+          ? [
+              Meld(
+                kind: MeldKind.triplet,
+                low: kanType,
+                concealed: false,
+                tiles: [Tile(-1, kanType), Tile(-2, kanType), Tile(-3, kanType)],
+              ),
+            ]
+          : const <Meld>[];
+      return EfficiencyEngine().adviseAddedKan(
+        hand: hand,
+        kanType: kanType,
+        melds: melds,
+        visibleCounts34: toCounts34(hand),
+        context: EfficiencyValueContext(
+          melds: melds,
+          roundWind: Wind.east,
+          seatWind: Wind.south,
+          isDealer: false,
+          inRiichi: false,
+          wallTilesRemaining: 40,
+          doraIndicators: const [],
+        ),
+        opponentRiichi: opponentRiichi,
+        opponentDiscards: opponentDiscards,
+        allDiscards: allDiscards,
+      );
+    }
+
+    test('a calm table takes the free kan', () {
+      final advice = addedKanAdvice(
+        handSpec: '123m 456m 789m 9s 5p',
+        kanType: TileType.pin5,
+      );
+      expect(advice.eligible, isTrue);
+    });
+
+    test('a dangerous tile against a live riichi is declined (chankan risk)',
+        () {
+      final advice = addedKanAdvice(
+        handSpec: '123m 456m 789m 9s 5p',
+        kanType: TileType.pin5,
+        opponentRiichi: true,
+        // No genbutsu/suji information at all reads as a plain dangerous
+        // middle tile (rating well under the safety cutoff).
+      );
+      expect(advice.eligible, isFalse);
+      expect(advice.reason, contains('Chankan'));
+    });
+
+    test('a genbutsu tile against a live riichi is still taken', () {
+      final advice = addedKanAdvice(
+        handSpec: '123m 456m 789m 9s 5p',
+        kanType: TileType.pin5,
+        opponentRiichi: true,
+        opponentDiscards: const [TileType.pin5],
+        allDiscards: const [TileType.pin5],
+      );
+      expect(advice.eligible, isTrue);
+    });
+
+    test('with no matching open pon, refused', () {
+      final advice = addedKanAdvice(
+        handSpec: '123m 456m 789m 9s 5p',
+        kanType: TileType.pin5,
+        withMatchingPon: false,
+      );
+      expect(advice.eligible, isFalse);
+    });
+  });
+
   group('open kan', () {
     test('a shape-neutral kan with no yaku path is refused', () {
       // Calling 2s leaves three complete mixed-suit sequences and a 5p tanki.

@@ -291,6 +291,10 @@ class _HandViewState extends State<HandView> {
         buttons.add(_btn('KAN ${t.code}', const Color(0xff4527a0),
             () => game.humanClosedKan(t)));
       }
+      for (final t in game.humanAddedKanTypes) {
+        buttons.add(_btn('KAN ${t.code}', const Color(0xff4527a0),
+            () => game.humanAddKan(t)));
+      }
       if (game.report.recommendRiichi) {
         buttons.add(const Chip(
           label: Text('Riichi available', style: TextStyle(fontSize: 11)),

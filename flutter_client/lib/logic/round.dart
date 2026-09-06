@@ -1,5 +1,5 @@
 /// A self-contained offline round of four-player riichi: draws, discards,
-/// riichi, chi / pon / closed-kan,
+/// riichi, chi / pon / closed kan / added kan (with chankan robbing),
 /// tsumo, ron, exhaustive draw with tenpai payments, honba and riichi sticks.
 library;
 
@@ -142,6 +142,12 @@ class Round {
   int pendingDiscardSeat = -1;
   List<CallOption> callOptions = const [];
 
+  /// True while [callOptions] is a chankan window (ron-only, offered on a
+  /// tile being added to upgrade a pon into a kan) rather than an ordinary
+  /// post-discard call offer. Distinguishes the two in [resolveCalls], since
+  /// an unclaimed chankan resumes the kan instead of advancing the turn.
+  bool _chankanPending = false;
+
   SeatState get current => seats[turn];
 
   // --- turn flow -----------------------------------------------------------
@@ -190,12 +196,12 @@ class Round {
     return _winsWith(s, concealed, winTile, isTsumo: true);
   }
 
-  bool canRon(int seat, Tile discard) {
+  bool canRon(int seat, Tile discard, {bool chankan = false}) {
     final s = seats[seat];
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
     if (_isFuriten(s)) return false;
-    return _winsWith(s, s.hand, discard, isTsumo: false);
+    return _winsWith(s, s.hand, discard, isTsumo: false, chankan: chankan);
   }
 
   /// Whether [seat] is tenpai but barred from declaring ron by furiten. Drives
@@ -289,11 +295,27 @@ class Round {
     return out;
   }
 
+  /// Shouminkan candidates: an existing open pon this seat could extend into
+  /// a kan by adding the matching tile it's currently holding. Blocked while
+  /// in riichi (the hand is frozen) — real rules allow it in narrow cases,
+  /// but this trainer keeps riichi hands fixed for simplicity.
+  List<TileType> addedKanTypes(int seat) {
+    final s = seats[seat];
+    if (s.riichi || !wall.canKan) return const [];
+    final ponTypes = {
+      for (final m in s.melds)
+        if (m.kind == MeldKind.triplet) m.low,
+    };
+    final handTypes = s.hand.map((t) => t.type).toSet();
+    return ponTypes.where(handTypes.contains).toList();
+  }
+
   bool _winsWith(SeatState s, List<Tile> concealed, Tile winTile,
-      {required bool isTsumo}) {
+      {required bool isTsumo, bool chankan = false}) {
     final counts = toCounts34([...concealed, winTile]);
     if (!isAgari(counts, meldCount: s.melds.length)) return false;
-    final score = _score(s, concealed, winTile, isTsumo: isTsumo, dryRun: true);
+    final score = _score(s, concealed, winTile,
+        isTsumo: isTsumo, dryRun: true, chankan: chankan);
     return score.valid;
   }
 
@@ -423,6 +445,23 @@ class Round {
   }) {
     assert(phase == RoundPhase.callOffer);
 
+    if (_chankanPending) {
+      final ronners = choice.entries
+          .where((e) => e.value == CallType.ron)
+          .map((e) => e.key)
+          .toList();
+      _chankanPending = false;
+      if (ronners.isNotEmpty) {
+        _applyRon(ronners, pendingDiscard!, pendingDiscardSeat, chankan: true);
+        return;
+      }
+      // No one robbed the kan: the missed tile satisfied a real wait, so it
+      // counts as a missed ron exactly like an unclaimed discard.
+      _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
+      _completeAddedKan();
+      return;
+    }
+
     final ronners = choice.entries
         .where((e) => e.value == CallType.ron)
         .map((e) => e.key)
@@ -490,6 +529,52 @@ class Round {
     s.melds.add(
         Meld(kind: MeldKind.kan, low: type, concealed: true, tiles: taken));
     s.drawn = null;
+    _drawReplacement();
+  }
+
+  /// Shouminkan: fold the matching tile [type] this seat is holding into its
+  /// existing open pon, upgrading it to a kan. Every other seat gets one
+  /// chankan window to ron the added tile before the kan completes — see
+  /// [resolveCalls]'s `_chankanPending` branch.
+  void addKan(int seat, TileType type) {
+    assert(seat == turn && phase == RoundPhase.discarding);
+    final s = current;
+    final ponIndex =
+        s.melds.indexWhere((m) => m.kind == MeldKind.triplet && m.low == type);
+    assert(ponIndex != -1, 'addKan requires an existing open pon of $type');
+    final pon = s.melds[ponIndex];
+    final addedIndex = s.hand.indexWhere((t) => t.type == type);
+    final added = s.hand.removeAt(addedIndex);
+    s.melds[ponIndex] = Meld(
+      kind: MeldKind.kan,
+      low: type,
+      concealed: false,
+      addedKan: true,
+      calledFromSeatOffset: pon.calledFromSeatOffset,
+      tiles: [...pon.tiles, added],
+    );
+    s.drawn = null;
+
+    pendingDiscard = added;
+    pendingDiscardSeat = seat;
+    _chankanPending = true;
+    final options = <CallOption>[
+      for (var i = 0; i < 4; i++)
+        if (i != seat && canRon(i, added, chankan: true))
+          CallOption(i, {CallType.ron}),
+    ];
+    callOptions = options;
+    if (options.isEmpty) {
+      _completeAddedKan();
+    } else {
+      phase = RoundPhase.callOffer;
+    }
+  }
+
+  void _completeAddedKan() {
+    pendingDiscard = null;
+    pendingDiscardSeat = -1;
+    callOptions = const [];
     _drawReplacement();
   }
 
@@ -577,14 +662,15 @@ class Round {
     }
   }
 
-  void _applyRon(List<int> ronners, Tile discard, int discarder) {
+  void _applyRon(List<int> ronners, Tile discard, int discarder,
+      {bool chankan = false}) {
     // Score each winner; sum deltas. Head-bump is not modelled — all valid
     // ronners win (double/triple ron).
     HandScore? firstScore;
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     for (final w in ronners) {
       final s = seats[w];
-      final score = _score(s, s.hand, discard, isTsumo: false);
+      final score = _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
       firstScore ??= score;
       deltas[w] = deltas[w]! + score.points + honba * 300;
       deltas[discarder] = deltas[discarder]! - score.points - honba * 300;
@@ -608,11 +694,14 @@ class Round {
       score: firstScore,
       scores: [
         for (final w in ronners)
-          _score(seats[w], seats[w].hand, discard, isTsumo: false)
+          _score(seats[w], seats[w].hand, discard,
+              isTsumo: false, chankan: chankan)
       ],
       winTiles: {for (final w in ronners) w: discard},
       pointDeltas: _handDeltas(),
-      label: ronners.length > 1 ? 'Multiple Ron' : 'Ron',
+      label: ronners.length > 1
+          ? 'Multiple Ron'
+          : (chankan ? 'Chankan' : 'Ron'),
     );
     _postFinish(dealerRepeat: dealerWins);
   }
@@ -718,7 +807,7 @@ class Round {
   // --- scoring bridge --------------------------------------------------
 
   HandScore _score(SeatState s, List<Tile> concealed, Tile winTile,
-      {required bool isTsumo, bool dryRun = false}) {
+      {required bool isTsumo, bool dryRun = false, bool chankan = false}) {
     final ctx = ScoreContext(
       roundWind: roundWind,
       seatWind: s.wind,
@@ -729,6 +818,7 @@ class Round {
       ippatsu: s.ippatsu,
       haitei: isTsumo && wall.isEmpty,
       houtei: !isTsumo && wall.isEmpty,
+      chankan: chankan,
       doraIndicators: wall.doraIndicators(),
       uraIndicators: wall.uraDoraIndicators(),
       akaCount: [...concealed, winTile].where((t) => t.aka).length +

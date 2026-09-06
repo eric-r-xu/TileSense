@@ -448,14 +448,16 @@ class EfficiencyEngine {
       if (consumed.length == 3) {
         options.add(_kanAdvice(
           concealedAfter: _handWithout(hand, consumed),
-          meld: Meld(
-            kind: MeldKind.kan,
-            low: offered.type,
-            concealed: false,
-            tiles: [...consumed, offered],
+          contextAfter: _contextWithMeld(
+            context,
+            Meld(
+              kind: MeldKind.kan,
+              low: offered.type,
+              concealed: false,
+              tiles: [...consumed, offered],
+            ),
           ),
           remaining: remaining,
-          context: context,
           shantenBefore: passState.shanten,
           evBefore: passState.ev,
           opponentRiichi: opponentRiichi,
@@ -535,14 +537,105 @@ class EfficiencyEngine {
 
     return _kanAdvice(
       concealedAfter: _handWithout(hand, consumed),
-      meld: Meld(
-        kind: MeldKind.kan,
-        low: kanType,
-        concealed: true,
-        tiles: consumed,
+      contextAfter: _contextWithMeld(
+        context,
+        Meld(kind: MeldKind.kan, low: kanType, concealed: true, tiles: consumed),
       ),
       remaining: remaining,
-      context: context,
+      shantenBefore: shantenBefore,
+      evBefore: evBefore,
+      opponentRiichi: opponentRiichi,
+    );
+  }
+
+  /// Whether to fold a matching tile into an existing open pon (shouminkan).
+  /// This never changes the hand's shape or waits at all — the triplet was
+  /// already committed — so it comes down to two questions any kan raises
+  /// (is a fresh dora indicator safe to flip, does the hand still have a
+  /// yaku to finish on) plus one unique to adding to an *open* meld: could
+  /// the tile you're folding in be ronned straight out from under you
+  /// (chankan) before it ever reaches the meld?
+  ActionAdvice adviseAddedKan({
+    required List<Tile> hand,
+    required TileType kanType,
+    required List<Meld> melds,
+    required List<int> visibleCounts34,
+    required EfficiencyValueContext context,
+    bool opponentRiichi = false,
+    List<TileType> opponentDiscards = const [],
+    List<TileType> allDiscards = const [],
+  }) {
+    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining = trainerCountsFromTypeCounts(remaining34);
+
+    final current = analyze(
+      hand: hand,
+      visibleCounts34: visibleCounts34,
+      canRiichi: false,
+      valueContext: context,
+    );
+    final shantenBefore = current.currentShanten;
+    final evBefore =
+        current.lines.isEmpty ? 0.0 : current.lines.first.expectedValue;
+
+    final ponIndex = melds
+        .indexWhere((m) => m.kind == MeldKind.triplet && m.low == kanType);
+    final consumed = _takeFromHand(hand, kanType, 1);
+    if (ponIndex == -1 || consumed.isEmpty) {
+      return const ActionAdvice(
+        action: GuidedAction.kan,
+        expectedValue: 0,
+        shantenAfter: 99,
+        eligible: false,
+        reason: 'No matching open pon and tile to add it to.',
+      );
+    }
+    final addedTile = consumed.single;
+
+    // Chankan risk: this exact tile could be ronned by a live riichi before
+    // it ever locks into the meld — rated the same way a discard would be.
+    if (opponentRiichi) {
+      final rating = rankSafety(
+        [addedTile],
+        opponentDiscards: opponentDiscards,
+        allDiscards: allDiscards,
+        visibleCounts34: visibleCounts34,
+      ).firstOrNull;
+      if (rating != null && rating.rating < 8) {
+        return ActionAdvice(
+          action: GuidedAction.kan,
+          expectedValue: evBefore,
+          shantenAfter: shantenBefore,
+          eligible: false,
+          reason: 'Chankan risk — ${rating.label} against the live riichi, '
+              'not worth risking the tile being ronned.',
+        );
+      }
+    }
+
+    final pon = melds[ponIndex];
+    final meldsAfter = [...melds]..removeAt(ponIndex);
+    meldsAfter.add(Meld(
+      kind: MeldKind.kan,
+      low: kanType,
+      concealed: false,
+      addedKan: true,
+      calledFromSeatOffset: pon.calledFromSeatOffset,
+      tiles: [...pon.tiles, addedTile],
+    ));
+
+    return _kanAdvice(
+      concealedAfter: _handWithout(hand, consumed),
+      contextAfter: EfficiencyValueContext(
+        melds: meldsAfter,
+        roundWind: context.roundWind,
+        seatWind: context.seatWind,
+        isDealer: context.isDealer,
+        inRiichi: context.inRiichi,
+        wallTilesRemaining: context.wallTilesRemaining,
+        doraIndicators: context.doraIndicators,
+      ),
+      remaining: remaining,
       shantenBefore: shantenBefore,
       evBefore: evBefore,
       opponentRiichi: opponentRiichi,
@@ -671,21 +764,23 @@ class EfficiencyEngine {
     );
   }
 
+  /// [contextAfter] must already reflect the hand's melds *after* the kan —
+  /// callers building a genuinely new meld can get there via
+  /// [_contextWithMeld]; shouminkan instead has to replace the pon it
+  /// extends rather than append alongside it, so it builds its own.
   ActionAdvice _kanAdvice({
     required List<Tile> concealedAfter,
-    required Meld meld,
+    required EfficiencyValueContext contextAfter,
     required List<int> remaining,
-    required EfficiencyValueContext context,
     required int shantenBefore,
     required double evBefore,
     required bool opponentRiichi,
   }) {
-    final contextAfter = _contextWithMeld(context, meld);
     final after = _evaluateWaitingHand(
       concealed: concealedAfter,
       remaining: remaining,
       context: contextAfter,
-      canRiichi: contextAfter.closed && !context.inRiichi,
+      canRiichi: contextAfter.closed && !contextAfter.inRiichi,
     );
     final shape = after.shanten <= 0 ? 'tenpai' : '${after.shanten}-shanten';
 

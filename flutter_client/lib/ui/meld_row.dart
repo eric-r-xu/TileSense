@@ -47,8 +47,11 @@ class MeldRow extends StatelessWidget {
       );
     }
 
-    final need = m.kind == MeldKind.kan ? 3 : 2;
-    final Tile? called = m.tiles.length > need ? m.tiles.last : null;
+    // An added kan's 4th tile came from this seat's own hand, not a call —
+    // so the *called* tile to rotate is still the pon's original 3rd tile
+    // (index 2), matching a plain pon's "need" rather than a kan's.
+    final need = m.kind == MeldKind.kan && !m.addedKan ? 3 : 2;
+    final Tile? called = m.tiles.length > need ? m.tiles[need] : null;
     final rest = [
       for (final t in m.tiles)
         if (!identical(t, called)) t,

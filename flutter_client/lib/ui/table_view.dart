@@ -54,7 +54,7 @@ class TableView extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _portrait(0),
+                    _portrait(0, size: 55),
                     const SizedBox(width: 8),
                     _placard(round, 0),
                   ],
@@ -303,7 +303,7 @@ class TableView extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _portrait(seat, size: 38),
+            _portrait(seat, size: 49, tooltip: kSeatNames[seat]),
             const SizedBox(width: 6),
             _placard(round, seat),
           ],
@@ -335,7 +335,7 @@ class TableView extends StatelessWidget {
     final placard = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _portrait(seat, size: 34),
+        _portrait(seat, size: 44, tooltip: kSeatNames[seat]),
         const SizedBox(height: 4),
         RotatedBox(
           quarterTurns: isLeft ? 3 : 1,
@@ -394,9 +394,10 @@ class TableView extends StatelessWidget {
   ];
 
   /// A seat's character portrait, tucked beside its placard and sized to sit
-  /// level with it.
-  Widget _portrait(int seat, {double size = 42}) {
-    return Container(
+  /// level with it. [tooltip], when given, names the player on hover — the
+  /// same mechanism as the AppBar's clefairy guide toggle.
+  Widget _portrait(int seat, {double size = 42, String? tooltip}) {
+    final avatar = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -412,6 +413,7 @@ class TableView extends StatelessWidget {
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
+    return tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
   }
 
   /// Seat placard (wind + score).

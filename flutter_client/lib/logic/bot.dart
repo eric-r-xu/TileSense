@@ -11,9 +11,14 @@ import 'tile.dart';
 
 class BotTurn {
   BotTurn(
-      {this.tsumo = false, this.closedKan, this.discard, this.riichi = false});
+      {this.tsumo = false,
+      this.closedKan,
+      this.addedKan,
+      this.discard,
+      this.riichi = false});
   final bool tsumo;
   final TileType? closedKan;
+  final TileType? addedKan;
   final Tile? discard;
   final bool riichi;
 }
@@ -43,6 +48,13 @@ class SimpleBot {
     // so a riichi hand may still declare a concealed kan.
     final kanTypes = round.closedKanTypes(seat);
     if (kanTypes.isNotEmpty) return BotTurn(closedKan: kanTypes.first);
+
+    // Extending an existing pon into a kan never changes this hand's shape
+    // or waits, so SimpleBot always takes it, same as a closed kan.
+    final addedKanTypes = round.addedKanTypes(seat);
+    if (addedKanTypes.isNotEmpty) {
+      return BotTurn(addedKan: addedKanTypes.first);
+    }
 
     if (s.riichi) return BotTurn(discard: s.drawn);
 
