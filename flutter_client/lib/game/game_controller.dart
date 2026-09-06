@@ -260,6 +260,10 @@ class GameController extends ChangeNotifier {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
       round.closedKan(seat, decision.closedKan!);
+    } else if (decision.addedKan != null) {
+      Sfx.i.play(SfxKind.kan);
+      Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
+      round.addKan(seat, decision.addedKan!);
     } else {
       if (decision.riichi) {
         Sfx.i.play(SfxKind.riichi);
@@ -392,6 +396,21 @@ class GameController extends ChangeNotifier {
       );
       if (advice.eligible) return BotTurn(closedKan: type);
     }
+    for (final type in round.addedKanTypes(kHumanSeat)) {
+      final advice = _efficiency.adviseAddedKan(
+        hand: seat.hand,
+        kanType: type,
+        melds: seat.melds,
+        visibleCounts34: _visibleCounts(),
+        context: _efficiencyValueContext(seat),
+        opponentRiichi: riichiOpp != null,
+        opponentDiscards: riichiOpp != null
+            ? riichiOpp.pond.map((t) => t.type).toList()
+            : const [],
+        allDiscards: _allDiscardTypes(),
+      );
+      if (advice.eligible) return BotTurn(addedKan: type);
+    }
 
     final line = _recommendedLine();
     if (line == null) {
@@ -506,6 +525,17 @@ class GameController extends ChangeNotifier {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan);
       round.closedKan(kHumanSeat, type);
+      _refreshReport();
+      notifyListeners();
+      _scheduleLoop();
+    }
+  }
+
+  void humanAddKan(TileType type) {
+    if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
+      Sfx.i.play(SfxKind.kan);
+      Sfx.i.voice(VoiceKind.kan);
+      round.addKan(kHumanSeat, type);
       _refreshReport();
       notifyListeners();
       _scheduleLoop();
@@ -648,6 +678,48 @@ class GameController extends ChangeNotifier {
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding
           ? round.closedKanTypes(kHumanSeat)
           : const [];
+
+  List<TileType> get humanAddedKanTypes =>
+      round.turn == kHumanSeat && round.phase == RoundPhase.discarding
+          ? round.addedKanTypes(kHumanSeat)
+          : const [];
+
+  /// The guide's verdict on whichever kan (closed or added) is available on
+  /// the human's turn right now — null when there's nothing to decide.
+  /// Closed kan is checked first, matching [_guidedTurnDecision]'s priority.
+  ({TileType type, bool isAdded, ActionAdvice advice})? get kanAdvice {
+    if (round.turn != kHumanSeat || round.phase != RoundPhase.discarding) {
+      return null;
+    }
+    final seat = round.seats[kHumanSeat];
+    final riichiOpp = _riichiOpponent();
+    for (final type in round.closedKanTypes(kHumanSeat)) {
+      final advice = _efficiency.adviseClosedKan(
+        hand: seat.hand,
+        kanType: type,
+        visibleCounts34: _visibleCounts(),
+        context: _efficiencyValueContext(seat),
+        opponentRiichi: riichiOpp != null,
+      );
+      return (type: type, isAdded: false, advice: advice);
+    }
+    for (final type in round.addedKanTypes(kHumanSeat)) {
+      final advice = _efficiency.adviseAddedKan(
+        hand: seat.hand,
+        kanType: type,
+        melds: seat.melds,
+        visibleCounts34: _visibleCounts(),
+        context: _efficiencyValueContext(seat),
+        opponentRiichi: riichiOpp != null,
+        opponentDiscards: riichiOpp != null
+            ? riichiOpp.pond.map((t) => t.type).toList()
+            : const [],
+        allDiscards: _allDiscardTypes(),
+      );
+      return (type: type, isAdded: true, advice: advice);
+    }
+    return null;
+  }
 
   /// The call the guide recommends for the pending human call decision.
   CallType? get recommendedCall {

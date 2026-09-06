@@ -277,6 +277,14 @@ class _GamePageState extends State<GamePage> {
               ],
             ),
           ),
+          AnimatedBuilder(
+            animation: _game,
+            builder: (context, _) => IconButton(
+              tooltip: _game.paused ? 'Resume' : 'Pause',
+              icon: Icon(_game.paused ? Icons.play_arrow : Icons.pause),
+              onPressed: _game.togglePause,
+            ),
+          ),
           IconButton(
             tooltip: 'New game',
             icon: const Icon(Icons.refresh),
@@ -309,16 +317,20 @@ class _GamePageState extends State<GamePage> {
                   ),
                 if (_game.paused)
                   Positioned.fill(
-                    child: ColoredBox(
-                      color: const Color(0xcc000000),
-                      child: const Center(
-                        child: Text(
-                          'PAUSED\npress Esc to resume',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _game.togglePause,
+                      child: ColoredBox(
+                        color: const Color(0xcc000000),
+                        child: const Center(
+                          child: Text(
+                            'PAUSED\ntap, or press Esc, to resume',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),

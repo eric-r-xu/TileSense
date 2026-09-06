@@ -33,6 +33,35 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets(
+      'the pause button toggles the paused overlay, which itself resumes on tap',
+      (tester) async {
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.textContaining('PAUSED'), findsNothing);
+    expect(find.byTooltip('Pause'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Pause'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.textContaining('PAUSED'), findsOneWidget);
+    expect(find.byTooltip('Resume'), findsOneWidget);
+
+    // The full-screen overlay itself is also tappable to resume, for mobile
+    // users who'd rather tap anywhere than hunt for the small AppBar button.
+    await tester.tap(find.textContaining('PAUSED'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.textContaining('PAUSED'), findsNothing);
+    expect(find.byTooltip('Pause'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   testWidgets('tapping a hand tile discards without crashing', (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
