@@ -47,6 +47,7 @@ class DiscardLine {
     required this.averagePoints,
     required this.valuePlan,
     required this.recommendRiichi,
+    this.reason = '',
     this.safety,
     this.bestUkeire = false,
     this.bestExpectedValue = false,
@@ -61,6 +62,9 @@ class DiscardLine {
   final double averagePoints;
   final String valuePlan;
   final bool recommendRiichi;
+
+  /// Plain-English justification for [valuePlan] — why riichi, damaten, etc.
+  final String reason;
   SafetyRating? safety;
   bool bestUkeire;
   bool bestExpectedValue;
@@ -187,6 +191,20 @@ class EfficiencyEngine {
     final concealed = toTrainerCounts(hand);
     final remaining = trainerCountsFromTypeCounts(remaining34);
 
+    // How dangerous your OWN riichi lock-in would be against a live opponent
+    // riichi: the weighted-average safety (the same 0..15 scale used for
+    // defensive discards) of every tile you might still draw and be forced
+    // to tsumogiri, weighted by how many copies remain. 0 = your live draws
+    // are all safe right now, 1 = they're all live danger tiles.
+    final riichiDangerFactor = opponentRiichi
+        ? _riichiDangerFactor(
+            remaining34: remaining34,
+            opponentDiscards: opponentDiscards,
+            allDiscards: allDiscards,
+            visibleCounts34: visibleCounts34,
+          )
+        : 0.0;
+
     final raw = _calc.calculate(concealed, remaining);
 
     // Deduplicate by tile type (multiple copies of the same tile in hand).
@@ -205,6 +223,8 @@ class EfficiencyEngine {
         concealed: afterDiscard,
         canRiichi: canRiichi,
         context: valueContext,
+        opponentRiichi: opponentRiichi,
+        riichiDangerFactor: riichiDangerFactor,
       );
       return DiscardLine(
         discard: r.discard,
@@ -215,6 +235,7 @@ class EfficiencyEngine {
         averagePoints: value.averagePoints,
         valuePlan: value.plan,
         recommendRiichi: value.recommendRiichi,
+        reason: value.reason,
       );
     }).toList();
 
@@ -282,9 +303,11 @@ class EfficiencyEngine {
       lines.insert(0, recommended);
     }
 
+    // Whether to riichi against a live opponent riichi is now weighed as an
+    // expected-value trade-off (see _riichiDangerFactor) rather than blocked
+    // outright — a big enough hand can still be worth the extra lock-in risk.
     final tenpai = currentShanten == 0;
-    final recommendRiichi =
-        tenpai && !opponentRiichi && (recommended?.recommendRiichi ?? false);
+    final recommendRiichi = tenpai && (recommended?.recommendRiichi ?? false);
 
     return EfficiencyReport(
       lines: lines,
@@ -813,12 +836,48 @@ class EfficiencyEngine {
         GuidedAction.tsumo => 'Tsumo',
       };
 
+  /// Weighted-average danger (0 safe .. 1 dangerous) of the tiles you might
+  /// still draw and be forced to tsumogiri under your own riichi, rated on
+  /// the same 0..15 safety scale [rankSafety] uses for defensive discards.
+  double _riichiDangerFactor({
+    required List<int> remaining34,
+    required List<TileType> opponentDiscards,
+    required List<TileType> allDiscards,
+    required List<int> visibleCounts34,
+  }) {
+    final everyType = [
+      for (var i = 0; i < 34; i++) Tile(-2000 - i, typeFrom34(i)),
+    ];
+    final ratingByType = {
+      for (final r in rankSafety(
+        everyType,
+        opponentDiscards: opponentDiscards,
+        allDiscards: allDiscards,
+        visibleCounts34: visibleCounts34,
+      ))
+        r.type: r.rating,
+    };
+    var weightedRating = 0.0;
+    var totalWeight = 0;
+    for (var i = 0; i < 34; i++) {
+      final left = remaining34[i];
+      if (left <= 0) continue;
+      weightedRating += left * (ratingByType[typeFrom34(i)] ?? 3);
+      totalWeight += left;
+    }
+    if (totalWeight == 0) return 0.0;
+    final avgRating = weightedRating / totalWeight;
+    return ((15 - avgRating) / 15).clamp(0.0, 1.0);
+  }
+
   _ValueAssessment _assessValue({
     required TileEfficiencyResult result,
     required List<int> remaining,
     required List<Tile> concealed,
     required bool canRiichi,
     required EfficiencyValueContext context,
+    bool opponentRiichi = false,
+    double riichiDangerFactor = 0.0,
   }) {
     // A normal discard analysis starts with 14 tiles including open melds.
     // Off-turn defensive reads can have only 13, so avoid pretending those
@@ -836,6 +895,8 @@ class EfficiencyEngine {
         concealed: concealed,
         canRiichi: canRiichi,
         context: context,
+        opponentRiichi: opponentRiichi,
+        riichiDangerFactor: riichiDangerFactor,
       );
     }
 
@@ -871,12 +932,20 @@ class EfficiencyEngine {
     );
   }
 
+  /// Points-scale magnitude for the opponent-riichi lock-in danger penalty
+  /// below — roughly a modest riichi hand's payout, so a genuinely dangerous
+  /// board can outweigh a middling-value riichi but a big enough hand still
+  /// clears it.
+  static const _opponentRiichiRiskScale = 4000.0;
+
   _ValueAssessment _assessTenpaiValue({
     required List<TileType> waits,
     required List<int> remaining,
     required List<Tile> concealed,
     required bool canRiichi,
     required EfficiencyValueContext context,
+    bool opponentRiichi = false,
+    double riichiDangerFactor = 0.0,
   }) {
     var liveWaits = 0;
     var damaPoints = 0.0;
@@ -939,7 +1008,12 @@ class EfficiencyEngine {
       liveWaits += copies;
     }
 
-    if (liveWaits == 0) return const _ValueAssessment(plan: 'DEAD WAIT');
+    if (liveWaits == 0) {
+      return const _ValueAssessment(
+        plan: 'DEAD WAIT',
+        reason: 'No live tiles left for this wait.',
+      );
+    }
 
     damaPoints /= liveWaits;
     riichiPoints /= liveWaits;
@@ -950,34 +1024,49 @@ class EfficiencyEngine {
     late final String plan;
     late final double selectedPoints;
     late final bool ronAvailable;
+    late final String reason;
     var recommendRiichi = false;
     if (context.inRiichi) {
       plan = 'RIICHI';
       selectedPoints = riichiPoints;
       ronAvailable = true;
+      reason = 'Already in riichi — locked into tsumogiri until it hits.';
     } else if (qualifyingDamaten) {
       plan = 'DAMATEN';
       selectedPoints = damaPoints;
       ronAvailable = true;
+      reason = 'Damaten — yaku guaranteed and worth ${damaPoints.round()}+ '
+          'already, not worth the riichi lock-in.';
     } else if (riichiAvailable) {
       plan = 'RIICHI';
       selectedPoints = riichiPoints;
       ronAvailable = true;
       recommendRiichi = true;
+      reason = opponentRiichi
+          ? 'Riichi — no qualifying damaten here, and the value still '
+              'clears the added risk of the live opponent riichi.'
+          : 'Riichi — the only way to guarantee a yaku on this wait.';
     } else if (everyDamaRon) {
       plan = context.closed ? 'DAMATEN' : 'OPEN YAKU';
       selectedPoints = damaPoints;
       ronAvailable = true;
+      reason = 'Yaku already secured on every wait.';
     } else if (anyDamaRon) {
       plan = 'PARTIAL YAKU';
       selectedPoints = damaPoints;
       ronAvailable = true;
+      reason = 'Only some waits carry a yaku — ron isn\'t guaranteed on '
+          'every tile.';
     } else if (anyDamaTsumo) {
       plan = 'TSUMO ONLY';
       selectedPoints = damaPoints;
       ronAvailable = false;
+      reason = 'No yaku for ron on any wait — tsumo only.';
     } else {
-      return const _ValueAssessment(plan: 'NO YAKU');
+      return const _ValueAssessment(
+        plan: 'NO YAKU',
+        reason: 'No yaku on any wait — can\'t declare a win yet.',
+      );
     }
 
     final unseen = _countRemaining(remaining);
@@ -986,13 +1075,23 @@ class EfficiencyEngine {
     final hitRate = unseen > 0 ? math.min(1.0, liveWaits / unseen) : 0.0;
     final winProbability = 1 - math.pow(1 - hitRate, opportunities).toDouble();
     var expectedValue = winProbability * selectedPoints;
-    if (recommendRiichi) expectedValue -= (1 - winProbability) * 1000;
+    if (recommendRiichi) {
+      expectedValue -= (1 - winProbability) * 1000;
+      // Extra cost of locking into tsumogiri against a live opponent riichi,
+      // scaled by how dangerous your remaining draws currently look — still
+      // lets a high-value riichi win out over a merely-risky board.
+      if (opponentRiichi) {
+        expectedValue -=
+            (1 - winProbability) * riichiDangerFactor * _opponentRiichiRiskScale;
+      }
+    }
 
     return _ValueAssessment(
       expectedValue: expectedValue,
       averagePoints: selectedPoints,
       plan: plan,
       recommendRiichi: recommendRiichi,
+      reason: reason,
     );
   }
 
@@ -1068,10 +1167,15 @@ class _ValueAssessment {
     this.averagePoints = 0,
     required this.plan,
     this.recommendRiichi = false,
+    this.reason = '',
   });
 
   final double expectedValue;
   final double averagePoints;
   final String plan;
   final bool recommendRiichi;
+
+  /// Plain-English justification for [plan], shown in the guide panel.
+  /// Only populated at tenpai — earlier shanten has nothing to explain yet.
+  final String reason;
 }

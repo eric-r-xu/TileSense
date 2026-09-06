@@ -52,8 +52,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                       if (r.lines.isEmpty)
                         Text(r.headline ?? 'Waiting…',
                             style: const TextStyle(color: Colors.white70))
-                      else
+                      else ...[
+                        if (r.tenpai) _planReason(r.lines.first),
                         _efficiencyTable(r),
+                      ],
                       const SizedBox(height: 10),
                       _glossary(),
                     ],
@@ -63,6 +65,43 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// The recommended line's plan ('RIICHI', 'DAMATEN', ...) once tenpai, for
+  /// the header badge — null before tenpai or with nothing to recommend.
+  String? _topPlan(EfficiencyReport r) =>
+      r.tenpai && r.lines.isNotEmpty ? r.lines.first.valuePlan : null;
+
+  /// Why the recommended tenpai line is riichi, damaten, or otherwise — the
+  /// same reasoning [GameController.recommendedCallReason] gives for calls,
+  /// just for the riichi/damaten decision instead.
+  Widget _planReason(DiscardLine top) {
+    if (top.reason.isEmpty) return const SizedBox.shrink();
+    final act = top.valuePlan == 'RIICHI' || top.valuePlan == 'DAMATEN';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: act ? const Color(0x3343a047) : const Color(0x22ffffff),
+        border: Border.all(
+            color: act ? const Color(0xff43a047) : const Color(0x44ffffff)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(top.valuePlan,
+              style: TextStyle(
+                  color: act ? const Color(0xff9ccc65) : Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(top.reason,
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 10, height: 1.3)),
+        ],
       ),
     );
   }
@@ -96,6 +135,17 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text('RIICHI',
+                  style: TextStyle(color: Colors.white, fontSize: 10)),
+            ),
+          if (_topPlan(r) == 'DAMATEN' && !_minimized)
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xff33691e),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text('DAMATEN',
                   style: TextStyle(color: Colors.white, fontSize: 10)),
             ),
           Icon(_minimized ? Icons.expand_more : Icons.expand_less,
