@@ -274,6 +274,13 @@ class EfficiencyEngine {
       recommended = bestValue;
     }
     recommended?.recommended = true;
+    // The panel always shows the recommended line first — while defending,
+    // it can be the safest discard rather than the best-EV one, which the
+    // EV sort above would otherwise bury anywhere in the list.
+    if (recommended != null) {
+      lines.remove(recommended);
+      lines.insert(0, recommended);
+    }
 
     final tenpai = currentShanten == 0;
     final recommendRiichi =

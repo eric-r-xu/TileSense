@@ -16,16 +16,12 @@ class HandView extends StatefulWidget {
     super.key,
     required this.game,
     this.showGuide = true,
-    this.onToggleGuide,
   });
   final GameController game;
 
   /// When false the guide is off: no yellow (drawn tile) or green (best discard)
   /// tile highlights.
   final bool showGuide;
-
-  /// Toggles [showGuide]. Fired by the clefairy button next to the GitHub link.
-  final VoidCallback? onToggleGuide;
 
   @override
   State<HandView> createState() => _HandViewState();
@@ -66,28 +62,16 @@ class _HandViewState extends State<HandView> {
     // After riichi the hand is frozen — only the drawn tile can be discarded.
     final riichiLocked = seat.riichi && drawn != null;
 
-    // Green = every discard tied for the best choice (all of them, if >1).
-    // Yellow = the freshly drawn tile. A drawn tile that is also a top choice
-    // gets both: a green tint with a yellow border.
+    // Green = the guide's recommended discard — the very row it marks
+    // recommended in the panel, so the hand and the panel never disagree.
+    // Yellow = the freshly drawn tile. A drawn tile that is also the
+    // recommended one gets both: a green tint with a yellow border.
     final showGuide = widget.showGuide;
-    final topTypes = <TileType>{};
-    if (canPlay && showGuide) {
-      final lines = game.report.lines;
-      final low = lines.isEmpty
-          ? 99
-          : lines.map((l) => l.shanten).reduce((a, b) => a < b ? a : b);
-      final cands = lines.where((l) => l.shanten == low).toList();
-      if (cands.isNotEmpty) {
-        final topEv = cands
-            .map((l) => l.expectedValue.round())
-            .reduce((a, b) => a > b ? a : b);
-        for (final l in cands) {
-          if (l.recommended || l.expectedValue.round() == topEv) {
-            topTypes.add(l.discard);
-          }
-        }
-      }
-    }
+    final topTypes = <TileType>{
+      if (canPlay && showGuide)
+        for (final l in game.report.lines)
+          if (l.recommended) l.discard,
+    };
 
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
@@ -179,29 +163,10 @@ class _HandViewState extends State<HandView> {
                     ],
                   ),
                 ),
-              // Guide toggle (clefairy, TileSense's mascot) then the GitHub
-              // link — centred in this bottom band, never covered by melds.
-              // The clefairy is the largest of the three (it's the app's own
-              // mark); GitHub and the Flutter credit stay smaller.
+              // GitHub link then the Flutter credit — centred in this bottom
+              // band, never covered by melds. The clefairy guide toggle now
+              // lives in the AppBar, top-left of the whole page.
               const SizedBox(width: 10),
-              if (widget.onToggleGuide != null)
-                IconButton(
-                  tooltip: widget.showGuide
-                      ? 'TileSense — hide guide'
-                      : 'TileSense — show guide',
-                  iconSize: 56,
-                  onPressed: widget.onToggleGuide,
-                  icon: Opacity(
-                    opacity: widget.showGuide ? 1.0 : 0.4,
-                    child: Image.asset(
-                      'assets/clefairy.png',
-                      height: 56,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.school, size: 56),
-                    ),
-                  ),
-                ),
               IconButton(
                 tooltip: 'View on GitHub',
                 iconSize: 32,

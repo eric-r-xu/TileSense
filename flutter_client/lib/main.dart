@@ -199,11 +199,26 @@ class _GamePageState extends State<GamePage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/tilesense.png',
-              height: 28,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            // The clefairy mascot doubles as the guide toggle — tap to show
+            // or hide the efficiency panel, dimmed while it's off.
+            IconButton(
+              key: const Key('guideToggle'),
+              tooltip: _showGuide
+                  ? 'TileSense — hide guide'
+                  : 'TileSense — show guide',
+              iconSize: 32,
+              padding: EdgeInsets.zero,
+              onPressed: () => setState(() => _showGuide = !_showGuide),
+              icon: Opacity(
+                opacity: _showGuide ? 1.0 : 0.4,
+                child: Image.asset(
+                  'assets/clefairy.png',
+                  height: 32,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.school, size: 32),
+                ),
+              ),
             ),
             const SizedBox(width: 6),
             const Text('TileSense'),
@@ -283,8 +298,6 @@ class _GamePageState extends State<GamePage> {
                     HandView(
                       game: _game,
                       showGuide: _showGuide,
-                      onToggleGuide: () =>
-                          setState(() => _showGuide = !_showGuide),
                     ),
                   ],
                 ),
