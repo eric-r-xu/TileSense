@@ -24,8 +24,8 @@ void main() {
     expect(find.byType(HandView), findsOneWidget);
     expect(find.byType(EfficiencyOverlay), findsNothing);
 
-    // The clefairy button next to the GitHub link turns it on.
-    await tester.tap(find.byTooltip('TileSense — show guide'));
+    // The clefairy mascot in the AppBar turns it on.
+    await tester.tap(find.byKey(const Key('guideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
 

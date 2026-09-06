@@ -6,8 +6,8 @@ import '../logic/round.dart';
 import 'tile_face.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
-/// table, a defensive safety table when an opponent is in riichi, and — when a
-/// call is on offer — the recommended response.
+/// table — with two extra safety columns folded in while an opponent is in
+/// riichi — and, when a call is on offer, the recommended response.
 class EfficiencyOverlay extends StatefulWidget {
   const EfficiencyOverlay({super.key, required this.game, required this.report});
   final GameController game;
@@ -24,13 +24,17 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   Widget build(BuildContext context) {
     final r = widget.report;
     final panelWidth =
-        (MediaQuery.sizeOf(context).width - 16).clamp(260.0, 340.0).toDouble();
+        (MediaQuery.sizeOf(context).width - 16).clamp(260.0, 380.0).toDouble();
     return Material(
       color: const Color(0xdd031213),
       borderRadius: BorderRadius.circular(10),
       child: Container(
         width: panelWidth,
-        constraints: const BoxConstraints(maxHeight: 460),
+        // Tall enough to reach the hand bar's darker band below (design
+        // canvas height 820, minus the 56px AppBar, the ~120px hand bar,
+        // and the 8px top/bottom margins) — the inner ScrollView still
+        // handles anything taller than that.
+        constraints: const BoxConstraints(maxHeight: 628),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -50,10 +54,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                             style: const TextStyle(color: Colors.white70))
                       else
                         _efficiencyTable(r),
-                      if (r.defending) ...[
-                        const SizedBox(height: 12),
-                        _defenseTable(r),
-                      ],
                       const SizedBox(height: 10),
                       _glossary(),
                     ],
@@ -177,35 +177,53 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  /// One-line glossary, bulleted, with every column term spelled out.
+  /// Succinct bulleted glossary: controls, column terms, and the tile-
+  /// highlight legend, all in one small white footnote block.
   Widget _glossary() {
-    const style = TextStyle(color: Colors.white38, fontSize: 10, height: 1.35);
+    const style = TextStyle(color: Colors.white70, fontSize: 9, height: 1.35);
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text('• Esc — pause the game', style: style),
         Text('• Shanten — tiles away from a ready hand (0 = tenpai)',
             style: style),
         Text('• Ukeire — live tiles that reduce shanten', style: style),
         Text('• Expected Value — probability-weighted points', style: style),
-        Text('• Safety 15 — genbutsu (fully safe discard)', style: style),
+        Text('• Safety — 0 (dangerous) to 15 (genbutsu, fully safe)',
+            style: style),
+        Text('• Green tile — the guide\'s recommended discard', style: style),
+        Text('• Yellow tile — the tile you just drew', style: style),
       ],
     );
   }
 
+  /// The efficiency table — every distinct discard in hand, recommended line
+  /// always first (see [EfficiencyEngine.analyze]). While defending against a
+  /// riichi, two more (narrow) columns fold the safety ranking in rather than
+  /// showing it as a second table.
   Widget _efficiencyTable(EfficiencyReport r) {
-    final rows = r.lines.take(8).toList();
     return Table(
-      columnWidths: const {
-        0: FixedColumnWidth(34),
-        1: FixedColumnWidth(52),
-        2: FixedColumnWidth(48),
-        3: FixedColumnWidth(50),
+      columnWidths: {
+        0: const FixedColumnWidth(34),
+        1: const FixedColumnWidth(52),
+        2: const FixedColumnWidth(48),
+        3: const FixedColumnWidth(50),
+        if (r.defending) ...{
+          4: const FixedColumnWidth(34),
+          5: const FixedColumnWidth(92),
+        },
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
-        _headerRow(const ['', 'Shanten', 'Ukeire', 'Expected Value']),
-        for (final line in rows)
+        _headerRow([
+          '',
+          'Shanten',
+          'Ukeire',
+          'Expected Value',
+          if (r.defending) ...['Safety', 'Detail'],
+        ]),
+        for (final line in r.lines)
           TableRow(
             decoration: BoxDecoration(
               color: line.recommended
@@ -227,52 +245,27 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 bold: line.bestExpectedValue,
                 color: const Color(0xff80cbc4),
               ),
+              if (r.defending) ...[
+                _cell(
+                  line.safety == null ? '—' : '${line.safety!.rating}',
+                  color: switch (line.safety?.rating) {
+                    null => Colors.white38,
+                    >= 15 => const Color(0xff81c784),
+                    >= 8 => const Color(0xffe9d58f),
+                    _ => const Color(0xffff8a80),
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Text(
+                    line.safety?.label ?? '—',
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 9),
+                  ),
+                ),
+              ],
             ],
           ),
-      ],
-    );
-  }
-
-  Widget _defenseTable(EfficiencyReport r) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('DEFENSIVE PLAY',
-            style: TextStyle(
-                color: Color(0xffff8a80),
-                fontWeight: FontWeight.w600,
-                fontSize: 12)),
-        const SizedBox(height: 4),
-        Table(
-          columnWidths: const {
-            0: FixedColumnWidth(34),
-            1: FixedColumnWidth(42),
-            2: FlexColumnWidth(),
-          },
-          border: TableBorder.all(color: const Color(0x33ffffff)),
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          children: [
-            _headerRow(const ['', 'safety', 'read']),
-            for (final s in r.defense.take(8))
-              TableRow(children: [
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: TileFace(type: s.type, size: TileSize.small),
-                ),
-                _cell('${s.rating}',
-                    color: s.rating >= 15
-                        ? const Color(0xff81c784)
-                        : s.rating >= 8
-                            ? const Color(0xffe9d58f)
-                            : const Color(0xffff8a80)),
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Text(s.label,
-                      style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                ),
-              ]),
-          ],
-        ),
       ],
     );
   }
