@@ -194,6 +194,6 @@ version: 0.2.0+2     # 0.2.0 = version name, 2 = build number — bump +N on eve
 
 ## License
 
-TileSense is licensed under GPLv3. Its efficiency calculations follow the
-Riichi-Trainer algorithm. See
+TileSense is licensed under GPLv3. Its efficiency calculations are adapted from
+the Riichi-Trainer algorithm. See
 [`LICENSE`](LICENSE). Contributions welcome.
