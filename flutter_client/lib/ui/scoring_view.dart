@@ -25,6 +25,9 @@ class _ScoringViewState extends State<ScoringView> {
 
   int _page = 0;
   bool _autoEnabled = true;
+  // When true the panel drops to 25% opacity (and its scrim clears) so the
+  // player can read the table behind it.
+  bool _dimmed = false;
   int _secondsLeft = _autoContinueSeconds;
   Timer? _timer;
 
@@ -104,88 +107,147 @@ class _ScoringViewState extends State<ScoringView> {
             ? 'Next'
             : 'Continue';
 
-    return Container(
-      color: const Color(0xcc021617),
-      alignment: Alignment.center,
-      child: SingleChildScrollView(
-        child: Container(
-          margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxWidth: 520),
-          decoration: BoxDecoration(
-            color: const Color(0xff0b2f2f),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xffcaa24e)),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Scrim behind the panel — cleared while "see through" is on so the
+        // table reads clearly through the faded panel.
+        IgnorePointer(
+          child: ColoredBox(
+            color: _dimmed ? Colors.transparent : const Color(0xcc021617),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                multi
-                    ? '${r.label}  (${page + 1} / ${winners.length})'
-                    : r.label,
-                style: const TextStyle(
-                    color: Color(0xffffdf76),
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              if (winners.isNotEmpty &&
-                  scoreFor(page) != null &&
-                  scoreFor(page)!.valid)
-                _handBlock(round, winners[page], scoreFor(page)!,
-                    r.winTiles[winners[page]]),
-              if (r.kind == RoundEndKind.exhaustiveDraw)
-                _tenpaiReveal(round, r),
-              const SizedBox(height: 12),
-              _transfers(round, r),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xffcaa24e),
-                  foregroundColor: Colors.black,
-                ),
-                onPressed: () {
-                  _timer?.cancel();
-                  if (hasMore) {
-                    setState(() => _page = page + 1);
-                    _startCountdown();
-                  } else if (gameOver) {
-                    game.newGame();
-                  } else {
-                    game.continueFromRoundEnd();
-                  }
-                },
-                child: Text(label),
-              ),
-              if (!gameOver)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: TextButton(
-                    onPressed: _toggleAuto,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+        ),
+        Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Opacity(
+                  opacity: _dimmed ? 0.25 : 1.0,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    constraints: const BoxConstraints(maxWidth: 880),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff0b2f2f),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xffcaa24e)),
                     ),
-                    child: Text(
-                      !_autoEnabled
-                          ? 'Auto Continue paused  ·  tap to resume'
-                          : game.paused
-                              ? 'Auto Continue held — game paused'
-                              : 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s  ·  tap to pause',
-                      style: const TextStyle(fontSize: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          multi
+                              ? '${r.label}  (${page + 1} / ${winners.length})'
+                              : r.label,
+                          style: const TextStyle(
+                              color: Color(0xffffdf76),
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        if (winners.isNotEmpty &&
+                            scoreFor(page) != null &&
+                            scoreFor(page)!.valid)
+                          _handBlock(round, winners[page], scoreFor(page)!,
+                              r.winTiles[winners[page]]),
+                        if (r.kind == RoundEndKind.exhaustiveDraw)
+                          _tenpaiReveal(round, r),
+                        const SizedBox(height: 12),
+                        _transfers(round, r),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xffcaa24e),
+                            foregroundColor: Colors.black,
+                          ),
+                          onPressed: () {
+                            _timer?.cancel();
+                            if (hasMore) {
+                              setState(() => _page = page + 1);
+                              _startCountdown();
+                            } else if (gameOver) {
+                              game.newGame();
+                            } else {
+                              game.continueFromRoundEnd();
+                            }
+                          },
+                          child: Text(label),
+                        ),
+                        if (!gameOver)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: TextButton(
+                              onPressed: _toggleAuto,
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white70,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
+                              ),
+                              child: Text(
+                                !_autoEnabled
+                                    ? 'Auto Continue paused  ·  tap to resume'
+                                    : game.paused
+                                        ? 'Auto Continue held — game paused'
+                                        : 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s  ·  tap to pause',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                        if (gameOver)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            // One line: the final standings scale down to fit rather
+                            // than wrapping.
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _standings(game),
+                                maxLines: 1,
+                                softWrap: false,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
-              if (gameOver)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(_standings(game),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70)),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _transparencyToggle(),
                 ),
-            ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Toggles the panel to 25% opacity (with the scrim cleared) so the table
+  /// behind it is readable, and back. Sits outside the [Opacity] so it stays
+  /// fully visible either way.
+  Widget _transparencyToggle() {
+    return Tooltip(
+      message: _dimmed ? 'Show panel' : 'See through panel',
+      child: Material(
+        color: const Color(0xff0b2f2f),
+        shape: const CircleBorder(
+            side: BorderSide(color: Color(0x66caa24e), width: 1)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => setState(() => _dimmed = !_dimmed),
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Icon(
+              _dimmed
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 18,
+              color: const Color(0xffcaa24e),
+            ),
           ),
         ),
       ),
@@ -197,7 +259,8 @@ class _ScoringViewState extends State<ScoringView> {
     // The dora indicators always show; ura only counts (and only shows) for a
     // hand that won in riichi.
     final doraInd = round.wall.doraIndicators();
-    final uraInd = w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
+    final uraInd =
+        w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
     return Column(
       children: [
         Text(
@@ -205,22 +268,33 @@ class _ScoringViewState extends State<ScoringView> {
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 4),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 2,
-          runSpacing: 2,
-          children: [
-            for (final t in sortByType(w.hand))
-              TileFace(tile: t, size: TileSize.normal),
-            if (winTile != null) ...[
-              const SizedBox(width: 6),
-              TileFace(tile: winTile, size: TileSize.normal),
+        // Always one row: the panel is wide enough for a full hand at native
+        // size, and FittedBox shrinks (never wraps) the rare over-wide hand
+        // with open melds.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final t in sortByType(w.hand))
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1),
+                  child: TileFace(tile: t, size: TileSize.normal),
+                ),
+              if (winTile != null) ...[
+                const SizedBox(width: 8),
+                TileFace(tile: winTile, size: TileSize.normal),
+              ],
+              for (final m in w.melds) ...[
+                const SizedBox(width: 8),
+                for (final ty in m.types)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: TileFace(type: ty, size: TileSize.normal),
+                  ),
+              ],
             ],
-            for (final m in w.melds) ...[
-              const SizedBox(width: 6),
-              for (final ty in m.types) TileFace(type: ty, size: TileSize.normal),
-            ],
-          ],
+          ),
         ),
         const SizedBox(height: 8),
         _indicatorRow('Dora', doraInd),
@@ -265,7 +339,8 @@ class _ScoringViewState extends State<ScoringView> {
           Text('$label indicator${indicators.length > 1 ? 's' : ''}:',
               style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(width: 2),
-          for (final ty in indicators) TileFace(type: ty, size: TileSize.normal),
+          for (final ty in indicators)
+            TileFace(type: ty, size: TileSize.normal),
         ],
       ),
     );
@@ -280,9 +355,7 @@ class _ScoringViewState extends State<ScoringView> {
         Text(
           seats.isEmpty ? 'All players noten' : 'Tenpai hands revealed',
           style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.bold),
+              color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
         ),
         for (final seat in seats) ...[
           const SizedBox(height: 6),
@@ -311,7 +384,8 @@ class _ScoringViewState extends State<ScoringView> {
               TileFace(tile: t, size: TileSize.small),
             for (final m in s.melds) ...[
               const SizedBox(width: 6),
-              for (final ty in m.types) TileFace(type: ty, size: TileSize.small),
+              for (final ty in m.types)
+                TileFace(type: ty, size: TileSize.small),
             ],
           ],
         ),
@@ -327,7 +401,8 @@ class _ScoringViewState extends State<ScoringView> {
                 const Text('waits',
                     style: TextStyle(color: Colors.white54, fontSize: 11)),
                 const SizedBox(width: 2),
-                for (final wt in waits) TileFace(type: wt, size: TileSize.small),
+                for (final wt in waits)
+                  TileFace(type: wt, size: TileSize.small),
               ],
             ),
           ),
@@ -369,8 +444,7 @@ class _ScoringViewState extends State<ScoringView> {
 
   String _standings(GameController game) {
     final entries = [
-      for (var i = 0; i < 4; i++)
-        (seatDisplayName(i), game.tablePoints[i])
+      for (var i = 0; i < 4; i++) (seatDisplayName(i), game.tablePoints[i])
     ]..sort((a, b) => b.$2.compareTo(a.$2));
     return [
       for (var i = 0; i < entries.length; i++)
