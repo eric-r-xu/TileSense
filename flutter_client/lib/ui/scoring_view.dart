@@ -48,6 +48,10 @@ class _ScoringViewState extends State<ScoringView> {
     _secondsLeft = _autoContinueSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+      // Freeze the countdown while the game is paused — pausing on the score
+      // screen must not let it auto-continue out from under you. It resumes
+      // ticking from where it left off once unpaused.
+      if (game.paused) return;
       setState(() => _secondsLeft--);
       if (_secondsLeft <= 0) {
         _timer?.cancel();
@@ -165,9 +169,11 @@ class _ScoringViewState extends State<ScoringView> {
                           horizontal: 12, vertical: 4),
                     ),
                     child: Text(
-                      _autoEnabled
-                          ? 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s  ·  tap to pause'
-                          : 'Auto Continue paused  ·  tap to resume',
+                      !_autoEnabled
+                          ? 'Auto Continue paused  ·  tap to resume'
+                          : game.paused
+                              ? 'Auto Continue held — game paused'
+                              : 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s  ·  tap to pause',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
