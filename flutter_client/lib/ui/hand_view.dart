@@ -39,10 +39,17 @@ class _HandViewState extends State<HandView> {
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);
 
-  /// Fixed width for the concealed-tile strip: 13 resting tiles at 50 px
-  /// (46 face + 2 + 2 padding) plus the 64 px slot the separated drawn tile
-  /// takes. Sizing for the full 14 keeps tiles from shifting on every draw.
-  static const double _handStripWidth = 13 * 50.0 + 64;
+  /// How much bigger the human hand (and its open melds) render than the
+  /// authored `TileSize.large` / `TileSize.normal` steps.
+  static const double _handScale = 1.5;
+
+  /// Fixed width for the concealed-tile strip: 13 resting tiles plus the wider
+  /// slot the separated drawn tile takes, at [_handScale]. A `large` face is
+  /// 46 px wide (→ 46·1.5 ≈ 69) with 4 px of padding, and the drawn tile is
+  /// inset a further 14 px. Sizing for the full 14 keeps tiles from shifting on
+  /// every draw.
+  static const double _handStripWidth =
+      13 * (46 * _handScale + 4) + (46 * _handScale + 4 + 14);
 
   List<Tile> _drawOrdered(List<Tile> resting) {
     final present = {for (final t in resting) t.id: t};
@@ -91,6 +98,7 @@ class _HandViewState extends State<HandView> {
           child: TileFace(
             tile: tile,
             size: TileSize.large,
+            scale: _handScale,
             highlightColor: hc,
             borderColorOverride: border,
             dimmed: riichiLocked && !isDrawn,
@@ -159,7 +167,7 @@ class _HandViewState extends State<HandView> {
                     spacing: 6,
                     children: [
                       for (final m in seat.melds)
-                        MeldRow(m, size: TileSize.normal),
+                        MeldRow(m, size: TileSize.normal, scale: _handScale),
                     ],
                   ),
                 ),

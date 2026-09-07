@@ -201,17 +201,18 @@ class _ScoringViewState extends State<ScoringView> {
         const SizedBox(height: 4),
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 1,
+          spacing: 2,
+          runSpacing: 2,
           children: [
             for (final t in sortByType(w.hand))
-              TileFace(tile: t, size: TileSize.small),
+              TileFace(tile: t, size: TileSize.normal),
             if (winTile != null) ...[
               const SizedBox(width: 6),
-              TileFace(tile: winTile, size: TileSize.small),
+              TileFace(tile: winTile, size: TileSize.normal),
             ],
             for (final m in w.melds) ...[
               const SizedBox(width: 6),
-              for (final ty in m.types) TileFace(type: ty, size: TileSize.small),
+              for (final ty in m.types) TileFace(type: ty, size: TileSize.normal),
             ],
           ],
         ),
@@ -256,9 +257,9 @@ class _ScoringViewState extends State<ScoringView> {
         spacing: 3,
         children: [
           Text('$label indicator${indicators.length > 1 ? 's' : ''}:',
-              style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(width: 2),
-          for (final ty in indicators) TileFace(type: ty, size: TileSize.tiny),
+          for (final ty in indicators) TileFace(type: ty, size: TileSize.normal),
         ],
       ),
     );
@@ -365,6 +366,9 @@ class _ScoringViewState extends State<ScoringView> {
       for (var i = 0; i < 4; i++)
         (seatDisplayName(i), game.tablePoints[i])
     ]..sort((a, b) => b.$2.compareTo(a.$2));
-    return entries.map((e) => '${e.$1}: ${e.$2}').join('    ');
+    return [
+      for (var i = 0; i < entries.length; i++)
+        '#${i + 1}  ${entries[i].$1}: ${entries[i].$2}'
+    ].join('     ');
   }
 }

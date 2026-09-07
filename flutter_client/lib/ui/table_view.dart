@@ -17,9 +17,11 @@ class TableView extends StatelessWidget {
   final GameController game;
 
   static const int _pondCols = 6;
-  // normal tile (32w / 44h) + EdgeInsets.all(0.5) on both sides.
-  static const double _pondTileW = 33;
-  static const double _pondTileH = 45;
+  // Discard tiles render 25% larger than the authored `TileSize.normal` step.
+  static const double _pondScale = 1.25;
+  // normal tile (32w / 44h) · _pondScale + EdgeInsets.all(0.5) on both sides.
+  static const double _pondTileW = 32 * _pondScale + 1;
+  static const double _pondTileH = 44 * _pondScale + 1;
   // Fixed footprint: one riichi stick + four full rows. Anchored top-left so
   // earlier tiles stay put as later rows come in.
   static const double _pondBoxW =
@@ -32,13 +34,13 @@ class TableView extends StatelessWidget {
     // Seat mapping from the human's perspective: 0 self, 1 right, 2 across, 3 left.
     return Container(
       color: const Color(0xff063a3a),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
       child: Stack(
         children: [
           Column(
             children: [
               _opponentRow(round, 2),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,7 +51,7 @@ class TableView extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -65,19 +67,19 @@ class TableView extends StatelessWidget {
 
           // The four discard ponds, bracketing the centre so they form a square.
           Align(
-            alignment: const Alignment(0, -0.76),
+            alignment: const Alignment(0, -0.90),
             child: _pond(round, 2, quarterTurns: 2),
           ),
           Align(
-            alignment: const Alignment(-0.48, -0.04),
+            alignment: const Alignment(-0.52, -0.04),
             child: _pond(round, 3, quarterTurns: 1),
           ),
           Align(
-            alignment: const Alignment(0.48, -0.04),
+            alignment: const Alignment(0.52, -0.04),
             child: _pond(round, 1, quarterTurns: 3),
           ),
           Align(
-            alignment: const Alignment(0, 0.76),
+            alignment: const Alignment(0, 0.92),
             child: _pond(round, 0, quarterTurns: 0),
           ),
 
@@ -100,14 +102,17 @@ class TableView extends StatelessWidget {
             color: const Color(0xffe9d58f),
             fontSize: size,
             fontWeight: weight,
-            height: 1.25,
+            height: 1.15,
           ),
         );
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      // Fixed width so the panel reads as a panel, not a tight label — ~30%
+      // wider than the widest line ("Honba 0 · Riichi 0") needs.
+      width: 250,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       decoration: BoxDecoration(
         color: const Color(0xe61f3a1c),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0x66e9d58f), width: 1.5),
       ),
       child: Column(
@@ -115,12 +120,12 @@ class TableView extends StatelessWidget {
         children: [
           line(
               '${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
-              17,
+              15,
               FontWeight.w800),
-          const SizedBox(height: 3),
-          line('Wall ${round.wall.remaining}', 13, FontWeight.w700),
           const SizedBox(height: 2),
-          line('Honba ${game.honba}  ·  Riichi ${round.riichiSticks}', 11,
+          line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
+          const SizedBox(height: 1),
+          line('Honba ${game.honba}  ·  Riichi ${round.riichiSticks}', 10,
               FontWeight.w600),
         ],
       ),
@@ -229,6 +234,7 @@ class TableView extends StatelessWidget {
                           child: TileFace(
                             tile: s.pond[i],
                             size: TileSize.normal,
+                            scale: _pondScale,
                             rotationQuarterTurns:
                                 i == s.riichiPondIndex ? 1 : 0,
                           ),
@@ -238,6 +244,7 @@ class TableView extends StatelessWidget {
                           TileFace(
                             tile: s.pond[i],
                             size: TileSize.normal,
+                            scale: _pondScale,
                             rotationQuarterTurns:
                                 i == s.riichiPondIndex ? 1 : 0,
                           ),
@@ -245,6 +252,7 @@ class TableView extends StatelessWidget {
                   : TileFace(
                       tile: s.pond[i],
                       size: TileSize.normal,
+                      scale: _pondScale,
                       rotationQuarterTurns: i == s.riichiPondIndex ? 1 : 0,
                     ),
             ),
@@ -290,7 +298,10 @@ class TableView extends StatelessWidget {
     return Wrap(
       spacing: 4,
       runSpacing: 2,
-      children: [for (final m in s.melds) MeldRow(m, size: TileSize.small)],
+      children: [
+        for (final m in s.melds)
+          MeldRow(m, size: TileSize.small, scale: _pondScale)
+      ],
     );
   }
 
