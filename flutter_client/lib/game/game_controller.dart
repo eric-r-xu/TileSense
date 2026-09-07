@@ -164,23 +164,54 @@ class GameController extends ChangeNotifier {
     _scheduleLoop();
   }
 
+  /// Pure seat-wind / honba bookkeeping applied between rounds.
+  ///
+  /// [dealerKept] is renchan — the dealer won, or was tenpai at an exhaustive
+  /// draw. When the dealer does not keep, the button passes (dealer + 1) and the
+  /// round-wind counter advances; this holds for a noten-dealer exhaustive draw
+  /// too, which an earlier version wrongly froze in place. A ryuukyoku always
+  /// adds a honba; otherwise a honba is added only on renchan and reset to 0.
+  @visibleForTesting
+  static ({int dealer, int roundNumber, int honba}) rotateAfterRound({
+    required bool exhaustiveDraw,
+    required bool dealerKept,
+    required int dealer,
+    required int roundNumber,
+    required int honba,
+  }) {
+    final nextHonba = (exhaustiveDraw || dealerKept) ? honba + 1 : 0;
+    if (dealerKept) {
+      return (dealer: dealer, roundNumber: roundNumber, honba: nextHonba);
+    }
+    return (
+      dealer: (dealer + 1) % 4,
+      roundNumber: roundNumber + 1,
+      honba: nextHonba,
+    );
+  }
+
   void continueFromRoundEnd() {
     if (phase != GamePhase.roundEnd) return;
     final r = round.result!;
 
-    // Apply honba / dealer rotation.
-    final dealerKept = r.kind == RoundEndKind.exhaustiveDraw
+    // Apply honba / dealer rotation. The dealer keeps their seat (renchan) on a
+    // win of their own or, at an exhaustive draw, on being tenpai.
+    final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
+    final dealerKept = isExhaustiveDraw
         ? r.tenpaiAtDraw.contains(_dealer)
         : r.winners.contains(_dealer);
 
     _riichiSticks = round.riichiSticks; // leftover sticks (draw) carry
-    if (r.kind == RoundEndKind.exhaustiveDraw || dealerKept) {
-      _honba += 1;
-    } else {
-      _honba = 0;
-      _dealer = (_dealer + 1) % 4;
-      _roundNumber += 1;
-    }
+    final rot = rotateAfterRound(
+      exhaustiveDraw: isExhaustiveDraw,
+      dealerKept: dealerKept,
+      dealer: _dealer,
+      roundNumber: _roundNumber,
+      honba: _honba,
+    );
+    _dealer = rot.dealer;
+    _roundNumber = rot.roundNumber;
+    _honba = rot.honba;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
     final tobi = _points.any((p) => p < 0);

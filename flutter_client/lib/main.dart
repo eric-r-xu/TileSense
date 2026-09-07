@@ -195,6 +195,7 @@ class _GamePageState extends State<GamePage> {
     }
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 50,
         titleSpacing: 12,
         title: Row(
           mainAxisSize: MainAxisSize.min,

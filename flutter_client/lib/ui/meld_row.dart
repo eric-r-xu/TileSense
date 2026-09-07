@@ -9,9 +9,10 @@ import 'tile_face.dart';
 /// (kamicha = left, toimen = middle, shimocha = right). A concealed kan shows
 /// its two outer tiles face down.
 class MeldRow extends StatelessWidget {
-  const MeldRow(this.meld, {super.key, this.size = TileSize.normal});
+  const MeldRow(this.meld, {super.key, this.size = TileSize.normal, this.scale = 1.0});
   final Meld meld;
   final TileSize size;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +28,7 @@ class MeldRow extends StatelessWidget {
             TileFace(
               type: m.types[i],
               size: size,
+              scale: scale,
               faceDown: concealedKan && (i == 0 || i == m.types.length - 1),
             ),
         ],
@@ -41,6 +43,7 @@ class MeldRow extends StatelessWidget {
             TileFace(
               tile: m.tiles[i],
               size: size,
+              scale: scale,
               faceDown: i == 0 || i == m.tiles.length - 1,
             ),
         ],
@@ -68,6 +71,7 @@ class MeldRow extends StatelessWidget {
           TileFace(
             tile: t,
             size: size,
+            scale: scale,
             rotationQuarterTurns: identical(t, called) ? 1 : 0,
           ),
       ],
