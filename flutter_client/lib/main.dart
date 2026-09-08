@@ -166,14 +166,24 @@ class _GamePageState extends State<GamePage> {
   // for the rest of the session.
   bool _showWelcome = true;
 
+  // Push buffered telemetry when the tab is hidden or the app is torn down, so
+  // completed rounds aren't stranded. No-op unless the app was built with
+  // --dart-define=TELEMETRY=true.
+  late final AppLifecycleListener _lifecycle = AppLifecycleListener(
+    onHide: _game.flushTelemetry,
+    onDetach: _game.flushTelemetry,
+  );
+
   @override
   void initState() {
     super.initState();
     HardwareKeyboard.instance.addHandler(_onKey);
+    _lifecycle; // instantiate the listener
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     HardwareKeyboard.instance.removeHandler(_onKey);
     _game.dispose();
     super.dispose();
@@ -193,6 +203,7 @@ class _GamePageState extends State<GamePage> {
     if (_showWelcome) {
       return _WelcomeScreen(onStart: () => setState(() => _showWelcome = false));
     }
+    _game.guideVisible = _showGuide; // read only by telemetry
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 50,

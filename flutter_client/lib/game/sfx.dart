@@ -136,8 +136,14 @@ class Sfx {
     if (!enabled || path == null) return;
     // ignore: discarded_futures
     _audio.playEffect(path, volume: volume).catchError((e) {
-      if (kDebugMode) debugPrint('Sfx($path) failed: $e');
+      _warnPlaybackFailed('effect', path, e);
     });
+  }
+
+  /// Playback failures are non-fatal (missing plugin, blocked autoplay, decode
+  /// error). Surfaced only in debug builds so a silent clip is diagnosable.
+  static void _warnPlaybackFailed(String channel, String path, Object error) {
+    if (kDebugMode) debugPrint('Sfx: $channel "$path" failed: $error');
   }
 
   // --- voice queue ---------------------------------------------------
@@ -205,7 +211,7 @@ class Sfx {
       _voiceWatchdog?.cancel();
       _voiceWatchdog = Timer(const Duration(seconds: 8), () => _stepDone(gen));
     }).catchError((e) {
-      if (kDebugMode) debugPrint('Sfx($path) failed: $e');
+      _warnPlaybackFailed('voice', path, e);
       _stepDone(gen);
     });
   }

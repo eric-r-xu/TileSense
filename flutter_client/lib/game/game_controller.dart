@@ -10,6 +10,7 @@ import '../logic/bot.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
 import '../logic/tile.dart';
+import '../telemetry/telemetry.dart';
 import 'sfx.dart';
 
 const int kHumanSeat = 0;
@@ -45,6 +46,17 @@ class GameController extends ChangeNotifier {
   int _seed;
   final _efficiency = EfficiencyEngine();
 
+  /// Optional gameplay logging — `null` unless the app was built with
+  /// `--dart-define=TELEMETRY=true` and a `TELEMETRY_ENDPOINT`. Every call site
+  /// uses `_tel?.` so a null instance is a no-op.
+  final Telemetry? _tel = Telemetry.maybe();
+  String _matchId = '';
+  String _roundId = '';
+
+  /// Whether the efficiency guide panel is currently on screen. Set by the
+  /// widget layer; only read for telemetry.
+  bool guideVisible = false;
+
   late Round round;
   late List<SimpleBot> _bots;
   List<int> _points = List.filled(4, 25000);
@@ -61,6 +73,8 @@ class GameController extends ChangeNotifier {
   void setFastMode(bool value) {
     if (fastMode == value) return;
     fastMode = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'fast_mode', value: value);
     // Re-arm the pending step so the new pace takes effect immediately.
     if (_loopTimer?.isActive ?? false) {
       _loopTimer!.cancel();
@@ -136,14 +150,37 @@ class GameController extends ChangeNotifier {
     _honba = 0;
     _riichiSticks = 0;
     phase = GamePhase.playing;
+    _matchId = newUuid();
+    _tel?.matchStart(
+      matchId: _matchId,
+      seed: _seed,
+      hanchan: hanchan,
+      fastMode: fastMode,
+      autoplay: autoplay,
+      guideVisible: guideVisible,
+    );
     _startRound();
   }
 
   void newGame() {
+    // A match already in progress is being abandoned for a fresh one.
+    if (_matchId.isNotEmpty && phase != GamePhase.gameEnd) {
+      _tel?.matchEnd(
+        matchId: _matchId,
+        reason: 'new_game',
+        finalPoints: List.of(_points),
+        humanSeat: kHumanSeat,
+        humanPlace: _humanPlace(),
+      );
+    }
     _seed = DateTime.now().millisecondsSinceEpoch;
     _startGame();
     notifyListeners();
   }
+
+  /// 1..4 — the human seat's current standing by points (ties share the higher
+  /// place).
+  int _humanPlace() => 1 + _points.where((p) => p > _points[kHumanSeat]).length;
 
   void _startRound() {
     round = Round(
@@ -160,6 +197,17 @@ class GameController extends ChangeNotifier {
     _humanCallOption = null;
     _humanCallAdvice = null;
     phase = GamePhase.playing;
+    _roundId = newUuid();
+    _tel?.roundStart(
+      matchId: _matchId,
+      roundId: _roundId,
+      roundIndex: _roundNumber,
+      roundWind: roundWind.name,
+      handNumber: handInWind,
+      dealerSeat: _dealer,
+      honba: _honba,
+      riichiSticks: _riichiSticks,
+    );
     _refreshReport();
     _scheduleLoop();
   }
@@ -201,6 +249,21 @@ class GameController extends ChangeNotifier {
         ? r.tenpaiAtDraw.contains(_dealer)
         : r.winners.contains(_dealer);
 
+    _tel?.roundEnd(
+      matchId: _matchId,
+      roundId: _roundId,
+      endKind: r.kind.name,
+      winners: r.winners,
+      loser: r.loser,
+      han: r.score?.han,
+      fu: r.score?.fu,
+      points: r.score?.points,
+      yaku: [for (final y in r.score?.yaku ?? const []) y.name],
+      pointDeltas: r.pointDeltas,
+      tenpaiAtDraw: r.tenpaiAtDraw,
+      dealerKept: dealerKept,
+    );
+
     _riichiSticks = round.riichiSticks; // leftover sticks (draw) carry
     final rot = rotateAfterRound(
       exhaustiveDraw: isExhaustiveDraw,
@@ -217,6 +280,13 @@ class GameController extends ChangeNotifier {
     final tobi = _points.any((p) => p < 0);
     if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
       phase = GamePhase.gameEnd;
+      _tel?.matchEnd(
+        matchId: _matchId,
+        reason: 'game_end',
+        finalPoints: List.of(_points),
+        humanSeat: kHumanSeat,
+        humanPlace: _humanPlace(),
+      );
       // The overall points leader (ties broken by seat order) gives their win
       // line for the whole match.
       final best = _points.reduce((a, b) => a > b ? a : b);
@@ -229,10 +299,25 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Push buffered telemetry to the network now. Safe to call often — used on
+  /// tab-hide so completed rounds aren't stranded in the buffer. A match with
+  /// round events but no terminal `match_end` reads as abandoned in analysis.
+  void flushTelemetry() => _tel?.flushBeacon();
+
   @override
   void dispose() {
     _disposed = true;
     _loopTimer?.cancel();
+    if (_matchId.isNotEmpty && phase != GamePhase.gameEnd) {
+      _tel?.matchEnd(
+        matchId: _matchId,
+        reason: 'abandoned',
+        finalPoints: List.of(_points),
+        humanSeat: kHumanSeat,
+        humanPlace: _humanPlace(),
+      );
+    }
+    _tel?.dispose();
     super.dispose();
   }
 
@@ -535,6 +620,22 @@ class GameController extends ChangeNotifier {
     }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
     if (declareRiichi) Sfx.i.voice(VoiceKind.riichi);
+    if (_tel != null) {
+      final recos = [
+        for (final l in report.lines)
+          if (l.recommended) l.discard,
+      ];
+      _tel.humanDecision(
+        matchId: _matchId,
+        roundId: _roundId,
+        kind: 'discard',
+        tile: tile.code,
+        auto: autoplay,
+        guideVisible: guideVisible,
+        guideReco: recos.isEmpty ? null : [for (final t in recos) t.code].join(','),
+        followedGuide: recos.isEmpty ? null : recos.contains(tile.type),
+      );
+    }
     _noteDiscard(kHumanSeat, tile);
     round.discard(kHumanSeat, tile, declareRiichi: declareRiichi);
     _refreshReport();
@@ -594,6 +695,20 @@ class GameController extends ChangeNotifier {
           .decideCall(round, other.seat, round.pendingDiscard!, other.types);
       if (c != CallType.none) choices[other.seat] = c;
     }
+    if (_tel != null) {
+      final advised = _humanCallAdvice?.recommended;
+      _tel.humanDecision(
+        matchId: _matchId,
+        roundId: _roundId,
+        kind: choice == CallType.none ? 'pass' : 'call',
+        tile: round.pendingDiscard?.code,
+        auto: autoplay,
+        guideVisible: guideVisible,
+        guideReco: advised?.name,
+        followedGuide:
+            advised == null ? null : _callTypeFor(advised) == choice,
+      );
+    }
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices); // voices every calling seat, human included
@@ -605,6 +720,8 @@ class GameController extends ChangeNotifier {
 
   void setAutoplay(bool value) {
     autoplay = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'autoplay', value: value);
     notifyListeners();
     if (value) _scheduleLoop();
   }

@@ -1,0 +1,54 @@
+# DO App Platform spec for Option B (containers). Adds the ingest service and a
+# managed DB alongside the existing static web component. Apply with:
+#   doctl apps update <app-id> --spec server/deploy/app-platform.yaml
+# or paste into the control panel.
+name: tilesense
+region: nyc
+services:
+  # --- existing game build, unchanged (see flutter_client/DEPLOYMENT.md Option B)
+  - name: web
+    dockerfile_path: flutter_client/Dockerfile
+    source_dir: flutter_client
+    github:
+      repo: eric-r-xu/TileSense
+      branch: ericrxu_dev
+      deploy_on_push: true
+    http_port: 8080
+    instance_size_slug: basic-xxs
+    instance_count: 1
+
+  # --- new: telemetry ingest, same origin at /ingest
+  - name: ingest
+    dockerfile_path: server/Dockerfile
+    source_dir: server
+    github:
+      repo: eric-r-xu/TileSense
+      branch: ericrxu_dev
+      deploy_on_push: true
+    http_port: 8787
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    routes:
+      - path: /ingest
+    health_check:
+      http_path: /healthz
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: IP_HMAC_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: PUT-A-REAL-SECRET-HERE
+      - key: ALLOW_ORIGIN
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: BIND_ADDR
+        scope: RUN_TIME
+        value: "0.0.0.0"        # App Platform reaches the container by IP
+
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: true
