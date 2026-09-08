@@ -76,7 +76,7 @@ Future<void> main() async {
 
   final handler = const Pipeline().addMiddleware(logRequests()).addHandler(router.call);
   final server = await shelf_io.serve(handler, bindAddr, port);
-  stdout.writeln('ingest listening on $bindAddr:${server.port}');
+  _log('listening on $bindAddr:${server.port}');
 }
 
 Future<Response> _ingest(Request req) async {
@@ -131,7 +131,7 @@ Future<Response> _ingest(Request req) async {
     });
     return _cors(Response(204));
   } catch (e, st) {
-    stderr.writeln('ingest error: $e\n$st');
+    _logErr('ingest failed: $e\n$st');
     // A beacon can't retry — swallow and move on.
     return _cors(Response(204));
   }
@@ -243,6 +243,11 @@ Future<void> _applyEvent(
 
 // --- helpers ---------------------------------------------------------------
 
+/// Single-line operational logging, `[ingest]`-tagged so it stands apart from
+/// shelf's own `logRequests()` output. Info to stdout, failures to stderr.
+void _log(String msg) => stdout.writeln('[ingest] $msg');
+void _logErr(String msg) => stderr.writeln('[ingest] $msg');
+
 Response _cors(Response r) => r.change(headers: {
       'access-control-allow-origin': _allowOrigin,
       'access-control-allow-methods': 'POST, OPTIONS',
@@ -276,7 +281,7 @@ List<int>? _intList(Object? v) =>
 String _require(Map<String, String> env, String key) {
   final v = env[key];
   if (v == null || v.isEmpty) {
-    stderr.writeln('missing required env $key');
+    _logErr('missing required env $key');
     exit(2);
   }
   return v;

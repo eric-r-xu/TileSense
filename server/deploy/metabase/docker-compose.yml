@@ -1,0 +1,46 @@
+# Metabase analytics dashboard for the telemetry database.
+# Runbook: server/DEPLOYMENT.md  §5 "Metabase".
+#   cd /opt/metabase && docker compose up -d
+#
+# Two containers:
+#   db       - Postgres for Metabase's OWN state (questions, dashboards, users).
+#   metabase - the app, bound to 127.0.0.1 so only the host's nginx reaches it.
+name: metabase
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: metabase
+      POSTGRES_USER: metabase
+      POSTGRES_PASSWORD: ${MB_DB_PASSWORD:?set MB_DB_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metabase -d metabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  metabase:
+    image: metabase/metabase:${MB_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"          # nginx on the host proxies to this
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: db
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: metabase
+      MB_DB_PASS: ${MB_DB_PASSWORD:?}
+      MB_SITE_URL: ${MB_SITE_URL:?set MB_SITE_URL in .env}
+      JAVA_TIMEZONE: UTC
+      JAVA_OPTS: ${MB_JAVA_OPTS:--Xmx1g}
+
+volumes:
+  db-data:

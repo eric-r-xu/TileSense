@@ -5,15 +5,15 @@
 
 --- 
 
-[Flutter Desktop Web App](https://app.ericrxu.com/tilesense/)
+[Play the live web app](https://app.ericrxu.com/tilesense/)
 
 A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
 against bots while a live guide grades every discard — shanten, ukeire (tile
 acceptance), probability-weighted point value, and the recommended tile — and,
 when an opponent declares riichi, ranks your hand by safety.
 
-This repo contains the cross-platform **Flutter** app for web, Android, iOS,
-and desktop under `flutter_client/`.
+This repo contains the cross-platform **Flutter** app for web, Android, and iOS
+under `flutter_client/`.
 
 The shanten/ukeire math follows the Riichi-Trainer algorithm; the rules, bots,
 and 2D layout are maintained as part of TileSense.
@@ -187,7 +187,7 @@ Upload to App Store Connect (Xcode Organizer → Distribute App, or Transporter)
 Both come from one line in `flutter_client/pubspec.yaml`:
 
 ```yaml
-version: 0.2.0+2     # 0.2.0 = version name, 2 = build number — bump +N on every store upload
+version: 0.2.1+4     # 0.2.1 = version name, 4 = build number — bump +N on every store upload
 ```
 
 ---

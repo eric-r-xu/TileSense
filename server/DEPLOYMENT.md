@@ -6,7 +6,7 @@ served (see `README.md` for the design and safety properties).
 
 Contents: `bin/server.dart`, `migrations/0001_init.sql`, `docker-compose.yml`,
 `Dockerfile`, `deploy/` (systemd unit, Nginx snippet, retention timer, App
-Platform spec).
+Platform spec, and `deploy/metabase/` for the analytics dashboard — §5).
 
 ---
 
@@ -36,7 +36,7 @@ DATABASE_URL='postgres://tilesense:devpassword@localhost:5432/tilesense?sslmode=
 IP_HMAC_SECRET=dev-only-not-secret \
 ALLOW_ORIGIN='*' PORT=8787 \
   dart run bin/server.dart
-# -> ingest listening on :8787
+# -> [ingest] listening on :8787
 curl -s localhost:8787/healthz           # -> ok
 ```
 
@@ -359,4 +359,136 @@ order by decisions desc;
 -- human placement distribution
 select human_place, count(*) from matches
 where ended_reason = 'game_end' group by 1 order by 1;
+```
+
+---
+
+## 5. Metabase (analytics dashboard)
+
+Run Metabase on the Droplet (already a trusted source for the managed DB,
+always-on, behind the existing nginx + Certbot). Config lives in
+`server/deploy/metabase/`. All commands are on the Droplet as `root` unless
+noted.
+
+### 5.1 Docker (skip if `docker compose version` already works)
+
+```sh
+apt-get update && apt-get install -y ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
+docker compose version
+```
+
+### 5.2 Memory — add swap if under 2 GB
+
+```sh
+free -m                                   # look at "Mem: total"
+# if total < ~2000:
+fallocate -l 2G /swapfile && chmod 600 /swapfile
+mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+printf 'vm.swappiness=10\n' > /etc/sysctl.d/99-swap.conf && sysctl --system
+```
+
+### 5.3 Read-only DB user (for querying telemetry)
+
+As `doadmin` (`psql "$DATABASE_URL"` — the value from
+`/etc/tilesense-ingest.env`):
+
+```sql
+CREATE ROLE metabase_ro WITH LOGIN PASSWORD 'GENERATE_A_STRONG_ONE';
+GRANT CONNECT ON DATABASE defaultdb TO metabase_ro;
+GRANT USAGE ON SCHEMA public TO metabase_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO metabase_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO metabase_ro;
+```
+
+### 5.4 DNS
+
+Add an `A` record: `analytics.app.ericrxu.com` -> the same IP the apex uses
+(`143.198.245.111`). Confirm before continuing:
+
+```sh
+dig +short analytics.app.ericrxu.com      # must return that IP
+```
+
+### 5.5 Bring up Metabase
+
+```sh
+mkdir -p /opt/metabase
+# copy the two files from the repo (scp from your Mac, or paste):
+#   server/deploy/metabase/docker-compose.yml -> /opt/metabase/docker-compose.yml
+#   server/deploy/metabase/.env.example       -> /opt/metabase/.env
+cd /opt/metabase
+
+# fill in .env
+MB_VERSION=$(curl -s https://api.github.com/repos/metabase/metabase/releases/latest \
+  | grep -oE '"tag_name": *"[^"]+"' | grep -oE 'v[0-9.]+')
+sed -i "s|^MB_VERSION=.*|MB_VERSION=$MB_VERSION|" .env
+sed -i "s|^MB_DB_PASSWORD=.*|MB_DB_PASSWORD=$(openssl rand -hex 24)|" .env
+chmod 600 .env
+cat .env                                  # sanity check
+
+docker compose up -d
+docker compose logs -f metabase           # wait for "Metabase Initialization COMPLETE"  (~1-2 min)
+curl -fsS http://127.0.0.1:3000/api/health   # {"status":"ok"}
+```
+
+### 5.6 nginx + TLS
+
+```sh
+cp server/deploy/metabase/nginx-analytics.conf \
+   /etc/nginx/sites-available/analytics.app.ericrxu.com          # scp/paste
+ln -s /etc/nginx/sites-available/analytics.app.ericrxu.com /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d analytics.app.ericrxu.com                     # pick "redirect"
+curl -sI https://analytics.app.ericrxu.com/                      # 200 or 302 to /setup
+```
+
+### 5.7 First-run + connect the telemetry DB
+
+Open `https://analytics.app.ericrxu.com`:
+
+1. Create the admin account (name / email / password).
+2. Add data -> **PostgreSQL**:
+   - Host: run `psql "$DATABASE_URL" -c 'select inet_server_addr()'` on the
+     droplet, or take the host from `/etc/tilesense-ingest.env`'s `DATABASE_URL`
+   - Port `25060`, Database `defaultdb`, Username `metabase_ro`, the password
+     from 5.3
+   - **Use a secure connection (SSL): ON**, SSL Mode `require`
+3. Finish. Metabase syncs the schema in ~30 s.
+
+### 5.8 Build the dashboard
+
+**+ New -> SQL query -> (the telemetry DB) ->** paste e.g. the queries in §4 ->
+Run -> Visualization -> Save -> add to a new dashboard. Add a date filter bound
+to `matches.started_at`; set the dashboard to auto-refresh from its menu.
+
+### 5.9 Backups + updates
+
+```sh
+cp server/deploy/metabase/backup.sh /usr/local/bin/metabase-backup.sh
+chmod +x /usr/local/bin/metabase-backup.sh
+echo '0 4 * * * root /usr/local/bin/metabase-backup.sh' > /etc/cron.d/metabase-backup
+
+# update to a newer Metabase:
+cd /opt/metabase
+sed -i "s|^MB_VERSION=.*|MB_VERSION=vX.Y.Z|" .env      # a released tag
+docker compose pull && docker compose up -d            # app DB (and dashboards) persist
+```
+
+### 5.10 Rollback
+
+```sh
+cd /opt/metabase && docker compose down                # stop; volume + data kept
+rm /etc/nginx/sites-enabled/analytics.app.ericrxu.com  # drop the vhost
+nginx -t && systemctl reload nginx
+# full wipe (loses dashboards): docker compose down -v
 ```
