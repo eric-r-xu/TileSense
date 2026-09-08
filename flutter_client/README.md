@@ -33,7 +33,8 @@
 
 `lib/logic/efficiency_calc.dart` implements the Riichi-Trainer shanten/ukeire
 algorithm, and `efficiency_engine.dart` adds the scoring-aware expected-value
-model. `lib/logic/bot.dart` drives seats 1–3 only; your own seat is always played
+model (walked through in [`EXPECTED_VALUE.md`](EXPECTED_VALUE.md)).
+`lib/logic/bot.dart` drives seats 1–3 only; your own seat is always played
 by the guide. The bots never call chi, though the round offers it and the guide
 advises on it. Scoring covers the common yaku, the standard fu table, and the
 yakuman set; rare fu corner cases and some double-yakuman rules are
@@ -87,8 +88,9 @@ flutter test
 See [`DEPLOYMENT.md`](DEPLOYMENT.md) for web, Android, and iOS build and release
 instructions.
 
-## How the bots actually play
+## How the guide and bots decide
 
-See [`BOT_STRATEGY.md`](BOT_STRATEGY.md) for a plain-language comparison of
-the opponents' `SimpleBot` heuristic against the efficiency/safety guide you
-get as Orderic.
+- [`EXPECTED_VALUE.md`](EXPECTED_VALUE.md) — how the guide turns a discard into
+  the Expected Value number, the recommended tile, and Autoplay's moves.
+- [`BOT_STRATEGY.md`](BOT_STRATEGY.md) — a plain-language comparison of the
+  opponents' `SimpleBot` heuristic against that guide.
