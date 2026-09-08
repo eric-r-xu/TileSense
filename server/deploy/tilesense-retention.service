@@ -1,0 +1,8 @@
+# /etc/systemd/system/tilesense-retention.service
+[Unit]
+Description=TileSense telemetry retention sweep
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/tilesense-ingest.env
+ExecStart=/usr/local/bin/tilesense-retention.sh

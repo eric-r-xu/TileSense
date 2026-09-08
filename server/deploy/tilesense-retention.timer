@@ -1,0 +1,10 @@
+# /etc/systemd/system/tilesense-retention.timer
+[Unit]
+Description=Run TileSense retention sweep nightly
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

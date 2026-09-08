@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Gameplay telemetry.** A new `server/` Dart service ingests
+  match / round / decision batches into Postgres; the client
+  (`lib/telemetry/`) buffers them and sends with `navigator.sendBeacon`
+  (fire-and-forget, batched — a dead endpoint never touches gameplay). **On by
+  default in release web builds**, pointed at `https://app.ericrxu.com/ingest`;
+  debug builds, `flutter run`, and every VM test are inert. Opt out with
+  `--dart-define=TELEMETRY=false`; repoint with `--dart-define=TELEMETRY_ENDPOINT`.
+  Records whether the guide's recommended action was taken (`followed_guide`)
+  and whether autoplay was on (`auto`). No raw IP is stored — only a keyed hash
+  and a `/24`–`/48` prefix. Deploy runbook: `server/DEPLOYMENT.md`.
 - **Chi is now part of the game.** The round offers it to the seat immediately
   after the discarder (and only that seat), bars it during riichi, and ranks it
   below pon, kan and ron. Where a discard could complete more than one run
