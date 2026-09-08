@@ -38,6 +38,10 @@ All notable changes to this project will be documented in this file.
   spells out its waits, as at a real ryuukyoku.
 - `BOT_STRATEGY.md`: a plain-language comparison of the opponents' `SimpleBot`
   heuristic against the guide that plays your seat.
+- `EXPECTED_VALUE.md`: a walkthrough of the expected-value model — the inputs,
+  the pre-tenpai vs. tenpai estimators and their formulas, the riichi/damaten
+  plan selection, the riichi-danger discount, and how calls are scored on the
+  same scale.
 
 ### Changed
 - The repository is Flutter-only; the retired desktop client and its build
