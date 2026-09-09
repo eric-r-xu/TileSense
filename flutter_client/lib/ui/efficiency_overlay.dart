@@ -4,6 +4,7 @@ import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
+import '../main.dart' show playStyleColor;
 import 'tile_face.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
@@ -56,7 +57,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           children: [
             _header(r),
             if (!_minimized) ...[
-              const SizedBox(height: 6),
+              _styleDial(),
+              const SizedBox(height: 8),
               if (widget.game.awaitingHumanCall) _callAdvice(),
               Flexible(
                 child: SingleChildScrollView(
@@ -89,6 +91,64 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  /// The play-style dial, mirrored here from the app bar (live game) or the
+  /// tool bar (scenario builder). It is not a second setting: both read and
+  /// write the one [GuideHost.playStyle], so moving either moves the other.
+  Widget _styleDial() {
+    final current = widget.game.playStyle;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          const Text(
+            'STYLE',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(width: 8),
+          for (final style in PlayStyle.values)
+            Expanded(child: _styleChip(style, style == current)),
+        ],
+      ),
+    );
+  }
+
+  Widget _styleChip(PlayStyle style, bool active) {
+    final colour = playStyleColor(style);
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: InkWell(
+        key: Key('guidePlayStyle_${style.name}'),
+        onTap: () => widget.game.setPlayStyle(style),
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          decoration: BoxDecoration(
+            color: active
+                ? colour.withValues(alpha: 0.22)
+                : const Color(0x14ffffff),
+            border: Border.all(
+                color: active ? colour : const Color(0x33ffffff)),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            style.label,
+            style: TextStyle(
+              color: active ? colour : Colors.white54,
+              fontSize: 9,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
         ),
       ),
     );

@@ -125,6 +125,14 @@ class _FixedCanvas extends StatelessWidget {
 /// Blocks portrait orientation: web can't reliably lock rotation, so instead of
 /// squashing the landscape layout we show a rotate prompt until the viewport is
 /// wider than it is tall.
+///
+/// The prompt is laid *over* [child] rather than swapped in for it. Swapping
+/// unmounts the whole game subtree, which disposes [GameController] and drops
+/// the match on the floor — so on web, where this gate is the only rotation
+/// handling there is, turning a phone (or dragging a desktop window taller than
+/// it is wide) silently restarted the game and bounced you back to the welcome
+/// screen. Keeping the subtree mounted means the match you were playing is
+/// still there, mid-hand, when the viewport goes back to landscape.
 class _LandscapeGate extends StatelessWidget {
   const _LandscapeGate({required this.child});
   final Widget child;
@@ -132,32 +140,55 @@ class _LandscapeGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    if (size.width >= size.height) return child;
-    return const ColoredBox(
-      color: kLetterboxColor,
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.screen_rotation, color: Colors.white70, size: 48),
-              SizedBox(height: 16),
-              Text(
-                'Rotate your device to landscape to play TileSense',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+    final landscape = size.width >= size.height;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // maintainState keeps the game alive while portrait hides it: no
+        // painting, no hit testing, no ticking — but no teardown either.
+        Visibility(
+          visible: landscape,
+          maintainState: true,
+          child: child,
         ),
-      ),
+        if (!landscape) const _RotatePrompt(),
+      ],
     );
   }
+}
+
+/// Full-screen cover shown while the viewport is portrait. Opaque to hit tests
+/// so nothing reaches the game held behind it.
+class _RotatePrompt extends StatelessWidget {
+  const _RotatePrompt();
+
+  @override
+  Widget build(BuildContext context) => const AbsorbPointer(
+        child: ColoredBox(
+          color: kLetterboxColor,
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.screen_rotation, color: Colors.white70, size: 48),
+                  SizedBox(height: 16),
+                  Text(
+                    'Rotate your device to landscape to play TileSense',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class GamePage extends StatefulWidget {
@@ -274,23 +305,6 @@ class _GamePageState extends State<GamePage> {
                 ),
               ),
             ),
-            // How hard the guide (and so Autoplay) pushes.
-            AnimatedBuilder(
-              animation: _game,
-              builder: (context, _) => TextButton(
-                key: const Key('playStyle'),
-                onPressed: () => _game.setPlayStyle(_game.playStyle.next),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor: playStyleColor(_game.playStyle),
-                ),
-                child: Text(
-                  _game.playStyle.label,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
             // 2x fast-mode toggle.
             AnimatedBuilder(
               animation: _game,
@@ -316,6 +330,28 @@ class _GamePageState extends State<GamePage> {
           ],
         ),
         actions: [
+          // How hard the guide (and so Autoplay) pushes — kept beside the
+          // Auto-Play switch it steers. The guide panel carries a second,
+          // synced copy of this dial; both drive GameController.playStyle.
+          AnimatedBuilder(
+            animation: _game,
+            builder: (context, _) => Tooltip(
+              message: 'How hard the guide (and Auto-Play) pushes',
+              child: TextButton(
+                key: const Key('playStyle'),
+                onPressed: () => _game.setPlayStyle(_game.playStyle.next),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: playStyleColor(_game.playStyle),
+                ),
+                child: Text(
+                  _game.playStyle.label,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ),
           AnimatedBuilder(
             animation: _game,
             builder: (context, _) => Row(
