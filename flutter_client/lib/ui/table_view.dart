@@ -65,6 +65,27 @@ class TableView extends StatelessWidget {
   static double _pondScaleFor(int seat) =>
       (seat == 0 || seat == 2) ? _verticalPondScale : _pondScale;
 
+  /// Half the centre status block, plus the breathing room to leave around it.
+  /// Your pond and the one across from you are placed this far from the middle
+  /// of the table, measured in pixels rather than as a fraction of its height —
+  /// so they sit as close in as they can on a tall table and still clear the
+  /// block on a short one. As a fraction they drifted out to a 300px gap on the
+  /// game's table while nearly touching on the builder's shorter one.
+  static const double _centreBlockHalfHeight = 30;
+  static const double _centreBlockClearance = 16;
+
+  /// Where to put the pond above (or below) the centre block so its inner edge
+  /// lands exactly that clearance away.
+  static double _verticalPondAlign(double tableHeight, {required bool above}) {
+    final boxHeight = _pondBoxH(_verticalPondScale);
+    final free = tableHeight - boxHeight;
+    if (free <= 0) return above ? -1 : 1;
+    const offset = _centreBlockHalfHeight + _centreBlockClearance;
+    final top =
+        above ? tableHeight / 2 - offset - boxHeight : tableHeight / 2 + offset;
+    return (2 * top / free - 1).clamp(-1.0, 1.0);
+  }
+
   // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
   static double _pondTileW(double scale) => 32 * scale + 1;
   static double _pondTileH(double scale) => 44 * scale + 1;
@@ -81,61 +102,69 @@ class TableView extends StatelessWidget {
     return Container(
       color: const Color(0xff063a3a),
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
-      child: Stack(
-        children: [
-          Column(
-            children: [
-              _opponentRow(round, 2),
-              const SizedBox(height: 2),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _sideOpponent(round, 3, isLeft: true),
-                    const Expanded(child: SizedBox()),
-                    _sideOpponent(round, 1, isLeft: false),
-                  ],
+      child: LayoutBuilder(builder: (context, constraints) {
+        // The two ponds stacked against the centre block are placed off the
+        // table's real height, not a fraction of it — see [_verticalPondAlign].
+        final height = constraints.maxHeight;
+        return Stack(
+          children: [
+            Column(
+              children: [
+                _opponentRow(round, 2),
+                const SizedBox(height: 2),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _sideOpponent(round, 3, isLeft: true),
+                      const Expanded(child: SizedBox()),
+                      _sideOpponent(round, 1, isLeft: false),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _portrait(0, size: 55),
-                    const SizedBox(width: 8),
-                    _placard(round, 0),
-                  ],
+                const SizedBox(height: 2),
+                Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _portrait(0, size: 55),
+                      const SizedBox(width: 8),
+                      _placard(round, 0),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          // The four discard ponds, bracketing the centre so they form a square.
-          Align(
-            alignment: const Alignment(0, -0.90),
-            child: _pond(round, 2, quarterTurns: 2),
-          ),
-          Align(
-            alignment: const Alignment(-0.52, -0.04),
-            child: _pond(round, 3, quarterTurns: 1),
-          ),
-          Align(
-            alignment: const Alignment(0.52, -0.04),
-            child: _pond(round, 1, quarterTurns: 3),
-          ),
-          Align(
-            alignment: const Alignment(0, 0.92),
-            child: _pond(round, 0, quarterTurns: 0),
-          ),
+            // The four discard ponds, bracketing the centre so they form a
+            // square. The turned side ponds run out horizontally and keep their
+            // fractional placement; the two stacked against the centre block are
+            // pinned a fixed distance from it.
+            Align(
+              alignment: Alignment(0, _verticalPondAlign(height, above: true)),
+              child: _pond(round, 2, quarterTurns: 2),
+            ),
+            Align(
+              alignment: const Alignment(-0.52, -0.04),
+              child: _pond(round, 3, quarterTurns: 1),
+            ),
+            Align(
+              alignment: const Alignment(0.52, -0.04),
+              child: _pond(round, 1, quarterTurns: 3),
+            ),
+            Align(
+              alignment: Alignment(0, _verticalPondAlign(height, above: false)),
+              child: _pond(round, 0, quarterTurns: 0),
+            ),
 
-          // Round / honba / riichi / wall — dead centre of the pond square.
-          Align(alignment: Alignment.center, child: _statusBox(round)),
+            // Round / honba / riichi / wall — dead centre of the pond square.
+            Align(alignment: Alignment.center, child: _statusBox(round)),
 
-          // Dead wall — top-right corner.
-          Positioned(top: 0, right: 0, child: _deadWall(round)),
-        ],
-      ),
+            // Dead wall — top-right corner.
+            Positioned(top: 0, right: 0, child: _deadWall(round)),
+          ],
+        );
+      }),
     );
   }
 

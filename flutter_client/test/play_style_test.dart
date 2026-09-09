@@ -1,0 +1,238 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tilesense/game/game_controller.dart';
+import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/logic/round.dart';
+import 'package:tilesense/logic/efficiency_engine.dart';
+import 'package:tilesense/logic/tile.dart';
+import 'package:tilesense/main.dart';
+
+import 'helpers.dart';
+
+/// The play-style dial. It scales what danger is charged and how readily a
+/// hand is kept quiet, so it should move push/fold and riichi/damaten in one
+/// direction each — without changing what any hand is actually worth.
+void main() {
+  EfficiencyReport read(
+    String spec, {
+    required PlayStyle style,
+    List<TileType> pond = const [],
+    List<TileType> dora = const [TileType.pei],
+    int wall = 40,
+    bool riichi = false,
+  }) {
+    final hand = parseTiles(spec);
+    expect(hand.length, 14);
+    final visible = toCounts34(hand);
+    for (final t in [...pond, ...dora]) {
+      visible[t.index - 1]++;
+    }
+    return EfficiencyEngine().analyze(
+      hand: hand,
+      visibleCounts34: visible,
+      canRiichi: true,
+      defenseHand: riichi ? hand : null,
+      opponentRiichi: riichi,
+      opponentDiscards: pond,
+      valueContext: EfficiencyValueContext(
+        melds: const [],
+        roundWind: Wind.east,
+        seatWind: Wind.south,
+        isDealer: false,
+        inRiichi: false,
+        wallTilesRemaining: wall,
+        doraIndicators: dora,
+        style: style,
+      ),
+    );
+  }
+
+  group('what the dial moves', () {
+    const spec = '234m 567m 234p 99s 45s 1m';
+    const pond = [TileType.sou5, TileType.pin3];
+
+    test('the more defensive the style, the dearer the same danger', () {
+      double push(PlayStyle s) => read(spec, style: s, pond: pond, riichi: true)
+          .lines
+          .firstWhere((l) => l.shanten == 0)
+          .expectedValue;
+
+      // Same hand, same board — only what the risk is charged at changes.
+      expect(push(PlayStyle.defensive), lessThan(push(PlayStyle.balanced)));
+      expect(push(PlayStyle.balanced), lessThan(push(PlayStyle.aggressive)));
+    });
+
+    test('it does not change what the hand is worth', () {
+      double points(PlayStyle s) =>
+          read(spec, style: s, pond: pond, riichi: true)
+              .lines
+              .firstWhere((l) => l.shanten == 0)
+              .averagePoints;
+      expect(points(PlayStyle.defensive), points(PlayStyle.balanced));
+      expect(points(PlayStyle.aggressive), points(PlayStyle.balanced));
+    });
+
+    test('aggressive pushes a hand the others fold', () {
+      // Two dora, wall running down: the boundary case.
+      bool pushes(PlayStyle s) =>
+          read(spec,
+                  style: s,
+                  pond: pond,
+                  dora: const [TileType.sou8],
+                  wall: 12,
+                  riichi: true)
+              .lines
+              .firstWhere((l) => l.recommended)
+              .shanten ==
+          0;
+      expect(pushes(PlayStyle.aggressive), isTrue);
+      expect(pushes(PlayStyle.balanced), isFalse);
+      expect(pushes(PlayStyle.defensive), isFalse);
+    });
+
+    test('defensive keeps a good hand quiet where the others declare', () {
+      String plan(PlayStyle s) => read('123m 456m 789m 22p 45s 9s', style: s)
+          .lines
+          .firstWhere((l) => l.recommended)
+          .valuePlan;
+      // Nothing threatening here at all — the styles still differ, because
+      // damaten keeps you able to fold later and riichi does not.
+      expect(plan(PlayStyle.defensive), 'DAMATEN');
+      expect(plan(PlayStyle.balanced), 'RIICHI');
+      expect(plan(PlayStyle.aggressive), 'RIICHI');
+    });
+  });
+
+  test('across many defending tables, the ordering holds', () {
+    int notSafest(PlayStyle style) {
+      final rng = Random(12345);
+      var count = 0;
+      for (var trial = 0; trial < 400; trial++) {
+        final bag = <TileType>[
+          for (var i = 0; i < 34; i++)
+            for (var c = 0; c < 4; c++) typeFrom34(i),
+        ]..shuffle(rng);
+        var k = 0;
+        final hand = [for (var i = 0; i < 14; i++) Tile(i, bag[k++])];
+        final pond = [for (var i = 0; i < 4 + rng.nextInt(8); i++) bag[k++]];
+        final dora = [bag[k++]];
+        final visible = List<int>.filled(34, 0);
+        for (final t in hand) {
+          visible[t.type.index - 1]++;
+        }
+        for (final t in [...pond, ...dora]) {
+          visible[t.index - 1]++;
+        }
+        final r = EfficiencyEngine().analyze(
+          hand: hand,
+          visibleCounts34: visible,
+          canRiichi: true,
+          defenseHand: hand,
+          opponentRiichi: true,
+          opponentDiscards: pond,
+          valueContext: EfficiencyValueContext(
+            melds: const [],
+            roundWind: Wind.east,
+            seatWind: Wind.south,
+            isDealer: false,
+            inRiichi: false,
+            wallTilesRemaining: 8 + rng.nextInt(60),
+            doraIndicators: dora,
+            style: style,
+          ),
+        );
+        if (r.lines.isEmpty || !r.defending || r.currentShanten <= 0) continue;
+        final reco = r.lines.firstWhere((l) => l.recommended);
+        final safest = r.lines
+            .map((l) => l.safety?.rating ?? 0)
+            .reduce((a, b) => a > b ? a : b);
+        if ((reco.safety?.rating ?? 0) < safest) count++;
+      }
+      return count;
+    }
+
+    final defensive = notSafest(PlayStyle.defensive);
+    final balanced = notSafest(PlayStyle.balanced);
+    final aggressive = notSafest(PlayStyle.aggressive);
+    expect(defensive, lessThanOrEqualTo(balanced),
+        reason: 'defensive took the unsafe tile more often than balanced');
+    expect(balanced, lessThan(aggressive),
+        reason: 'aggressive did not push any more than balanced');
+  });
+
+  testWidgets('the game exposes the dial and it drives the guide',
+      (tester) async {
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Balanced'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('playStyle')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Aggressive'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('playStyle')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Defensive'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('the setting reaches the guide, and so Autoplay', (tester) async {
+    // Autoplay plays the guide's recommended line, so proving the setting
+    // changes the report proves it changes Autoplay.
+    Sfx.i.enabled = false;
+    final game = GameController(seed: 7);
+    try {
+      final round = game.round;
+      // Put a riichi opponent out so the risk terms are live.
+      round.seats[1].riichi = true;
+      round.seats[1].pond.add(Tile(800, TileType.pin9));
+      round.seats[1].allDiscards.add(round.seats[1].pond.last);
+      round.seats[kHumanSeat].hand =
+          parseTiles('1m 234m 567m 99s 78p 33p W 5s');
+      round.turn = kHumanSeat;
+      round.phase = RoundPhase.discarding;
+
+      double topEv(PlayStyle style) {
+        game.setPlayStyle(style);
+        return game.report.lines
+            .firstWhere((l) => l.recommended)
+            .expectedValue;
+      }
+
+      final defensive = topEv(PlayStyle.defensive);
+      final balanced = topEv(PlayStyle.balanced);
+      final aggressive = topEv(PlayStyle.aggressive);
+      expect(game.playStyle, PlayStyle.aggressive);
+      expect({defensive, balanced, aggressive}.length, 3,
+          reason: 'the style did not reach the report at all');
+      expect(defensive, lessThan(aggressive));
+    } finally {
+      game.dispose();
+      Sfx.i.enabled = true;
+    }
+  });
+
+  testWidgets('the builder exposes it too', (tester) async {
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('openBuilder')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Balanced'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('builderPlayStyle')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Aggressive'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+}

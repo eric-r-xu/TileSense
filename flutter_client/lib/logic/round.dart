@@ -608,6 +608,12 @@ class Round {
   }
 
   void _completeAddedKan() {
+    // Clearing the chankan flag here covers both ways in: nobody could rob it
+    // in the first place, or the window opened and closed unclaimed. Leaving it
+    // set meant the next discard that offered a call took the chankan branch in
+    // [resolveCalls] instead of its own — drawing a second replacement tile and
+    // flipping a dora indicator that no kan had earned.
+    _chankanPending = false;
     pendingDiscard = null;
     pendingDiscardSeat = -1;
     callOptions = const [];

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
+import 'logic/efficiency_engine.dart' show PlayStyle;
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/scenario_page.dart';
@@ -25,6 +26,14 @@ void main() {
   armFirstGestureUnlock();
   runApp(const TileSenseApp());
 }
+
+/// Colour for a play style, so the setting reads at a glance wherever it is
+/// shown: cool when it is folding, warm when it is pushing.
+Color playStyleColor(PlayStyle style) => switch (style) {
+      PlayStyle.defensive => const Color(0xff80cbc4),
+      PlayStyle.balanced => const Color(0xffe9d58f),
+      PlayStyle.aggressive => const Color(0xffff8a65),
+    };
 
 /// The design resolution the UI is authored at. Everything is laid out in these
 /// logical pixels and then scaled as one unit, so the table never reflows. The
@@ -260,6 +269,23 @@ class _GamePageState extends State<GamePage> {
                 ),
                 child: Text(
                   _game.hanchan ? 'Hanchan' : 'East only',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            // How hard the guide (and so Autoplay) pushes.
+            AnimatedBuilder(
+              animation: _game,
+              builder: (context, _) => TextButton(
+                key: const Key('playStyle'),
+                onPressed: () => _game.setPlayStyle(_game.playStyle.next),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: playStyleColor(_game.playStyle),
+                ),
+                child: Text(
+                  _game.playStyle.label,
                   style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w600),
                 ),

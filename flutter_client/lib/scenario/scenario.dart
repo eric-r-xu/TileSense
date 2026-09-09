@@ -7,6 +7,7 @@
 library;
 
 import '../game/game_controller.dart' show kHumanSeat, kSeatNames;
+import '../logic/efficiency_engine.dart' show PlayStyle;
 import '../logic/meld.dart';
 import '../logic/tile.dart';
 
@@ -50,6 +51,9 @@ class Scenario {
   /// Revealed dora indicators — the *indicator*, not the dora itself, exactly
   /// as the dead wall shows them.
   final List<TileType> dora = [TileType.man1];
+
+  /// How the guide weighs danger against value when scoring this table.
+  PlayStyle style = PlayStyle.balanced;
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;
