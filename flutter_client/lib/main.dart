@@ -283,7 +283,8 @@ class _GamePageState extends State<GamePage> {
             animation: _game,
             builder: (context, _) => Row(
               children: [
-                const Text('Auto', style: TextStyle(fontSize: 12)),
+                const Text('\u{1F916} Auto-Play',
+                    style: TextStyle(fontSize: 12)),
                 Switch(
                   value: _game.autoplay,
                   onChanged: _game.setAutoplay,
@@ -324,11 +325,29 @@ class _GamePageState extends State<GamePage> {
                     ),
                   ],
                 ),
+                // The guide runs from the top of the body down to just above
+                // the hand's tile row — so it grows with the window instead of
+                // stopping at a fixed cut-off, while never covering a tile you
+                // might want to discard.
                 if (_showGuide)
-                  Positioned(
-                    left: 8,
-                    top: 8,
-                    child: EfficiencyOverlay(game: _game, report: _game.report),
+                  Positioned.fill(
+                    child: LayoutBuilder(
+                      builder: (context, c) => Stack(
+                        children: [
+                          Positioned(
+                            left: 8,
+                            top: 8,
+                            child: EfficiencyOverlay(
+                              game: _game,
+                              report: _game.report,
+                              maxHeight: c.maxHeight -
+                                  HandView.tileRowBandHeight -
+                                  16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 if (_game.paused)
                   Positioned.fill(

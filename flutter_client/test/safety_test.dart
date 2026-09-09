@@ -166,6 +166,54 @@ void main() {
     expect(rating(round, 1, TileType.man4).isSafe, isTrue);
   });
 
+  testWidgets(
+      'your own discards are genbutsu only from the riichi declaration on',
+      (tester) async {
+    Sfx.i.enabled = false;
+    final game = GameController(seed: 1);
+    try {
+      final round = game.round;
+      final human = round.seats[kHumanSeat];
+
+      // The rest of the hand keeps a spare 4p and 4s so both types stay in
+      // the defence table after they have been cut once.
+      void humanCut(Tile tile) {
+        human.hand = [...parseTiles('1m 234m 567m 44p 44s'), tile];
+        human.drawn = tile;
+        round.turn = kHumanSeat;
+        round.phase = RoundPhase.discarding;
+        game.humanDiscard(tile);
+        if (round.phase == RoundPhase.callOffer) round.resolveCalls({});
+      }
+
+      // You cut 4p while the table is still quiet.
+      humanCut(Tile(900, TileType.pin4));
+
+      final opp = round.seats[1];
+      opp.hand = [
+        ...parseTiles('234m 567m 234p 67p 88s'),
+        Tile(901, TileType.ton)
+      ];
+      opp.drawn = Tile(901, TileType.ton);
+      round.turn = 1;
+      round.phase = RoundPhase.discarding;
+      round.discard(1, Tile(901, TileType.ton), declareRiichi: true);
+      if (round.phase == RoundPhase.callOffer) round.resolveCalls({});
+
+      // ...and cut 4s once they are in riichi.
+      humanCut(Tile(902, TileType.sou4));
+
+      final byType = {for (final r in game.report.defense) r.type: r};
+      expect(byType[TileType.pin4]?.isSafe, isFalse,
+          reason: 'your own pre-riichi discard is not genbutsu');
+      expect(byType[TileType.sou4]?.isSafe, isTrue,
+          reason: 'your own discard that passed after their riichi is');
+    } finally {
+      game.dispose();
+      Sfx.i.enabled = true;
+    }
+  });
+
   test('the guide does not assign safety scores without an opponent riichi',
       () {
     final hand = parseTiles('1m 234m 567m 99s 78p 3p W 5s');
