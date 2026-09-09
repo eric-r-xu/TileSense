@@ -258,18 +258,17 @@ class _ScenarioPageState extends State<ScenarioPage> {
         ],
       ),
       actions: [
-        TextButton(
-          key: const Key('builderPlayStyle'),
-          onPressed: () => _edit((sc) => sc.style = sc.style.next),
-          style: TextButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            foregroundColor: playStyleColor(s.style),
+        Tooltip(
+          message: 'How hard the guide pushes',
+          child: TextButton(
+            key: const Key('builderPlayStyle'),
+            onPressed: () => _edit((sc) => sc.style = sc.style.next),
+            style: _barButton(playStyleColor(s.style)),
+            child: Text(s.style.label),
           ),
-          child: Text(s.style.label,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
         ),
         _windPicker(),
+        _seatWindPicker(),
         const SizedBox(width: 8),
         _stepper('Wall', s.wallRemaining,
             (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, 122))),
@@ -282,29 +281,66 @@ class _ScenarioPageState extends State<ScenarioPage> {
         const SizedBox(width: 12),
         TextButton.icon(
           onPressed: _randomize,
-          icon: const Icon(Icons.casino, size: 18),
+          icon: const Icon(Icons.casino, size: 16),
           label: const Text('Random'),
-          style: TextButton.styleFrom(foregroundColor: const Color(0xffe9d58f)),
+          style: _barButton(const Color(0xffe9d58f)),
         ),
         TextButton.icon(
           onPressed: () => _edit((sc) => sc.clear()),
-          icon: const Icon(Icons.delete_outline, size: 18),
+          icon: const Icon(Icons.delete_outline, size: 16),
           label: const Text('Clear'),
-          style: TextButton.styleFrom(foregroundColor: Colors.white70),
+          style: _barButton(Colors.white70),
         ),
         const SizedBox(width: 8),
       ],
     );
   }
 
+  /// The bar carries a lot of controls; every one is tightened so they fit
+  /// across the design width without wrapping.
+  static ButtonStyle _barButton(Color colour, {bool bold = false}) =>
+      TextButton.styleFrom(
+        foregroundColor: colour,
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
+      );
+
   Widget _windPicker() {
     const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
-    return TextButton(
-      onPressed: () => _edit((sc) => sc.roundWind =
-          winds[(winds.indexOf(sc.roundWind) + 1) % winds.length]),
-      style: TextButton.styleFrom(foregroundColor: const Color(0xffe9d58f)),
-      child: Text('Round ${s.roundWind.name[0].toUpperCase()}',
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+    return Tooltip(
+      message: 'Round wind',
+      child: TextButton(
+        onPressed: () => _edit((sc) => sc.roundWind =
+            winds[(winds.indexOf(sc.roundWind) + 1) % winds.length]),
+        style: _barButton(const Color(0xffe9d58f)),
+        child: Text('Round ${s.roundWind.kanji}'),
+      ),
+    );
+  }
+
+  /// Your own seat wind — and with it the dealership, since East deals.
+  Widget _seatWindPicker() {
+    const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
+    final dealer = s.isDealer;
+    return Tooltip(
+      message: dealer
+          ? 'You are the dealer: wins pay half again, and the button passes if '
+              'you lose it'
+          : 'Your seat wind — set it to East to play as the dealer',
+      child: TextButton(
+        key: const Key('seatWind'),
+        onPressed: () => _edit((sc) => sc.seatWind =
+            winds[(winds.indexOf(sc.seatWind) + 1) % winds.length]),
+        style: _barButton(
+            dealer ? const Color(0xffffdf76) : const Color(0xffe9d58f),
+            bold: dealer),
+        child: Text('Seat ${s.seatWind.kanji}${dealer ? ' ★' : ''}'),
+      ),
     );
   }
 
