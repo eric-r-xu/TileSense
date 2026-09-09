@@ -24,6 +24,8 @@ class EfficiencyValueContext {
     required this.inRiichi,
     required this.wallTilesRemaining,
     required this.doraIndicators,
+    this.honba = 0,
+    this.riichiSticks = 0,
   });
 
   final List<Meld> melds;
@@ -33,6 +35,21 @@ class EfficiencyValueContext {
   final bool inRiichi;
   final int wallTilesRemaining;
   final List<TileType> doraIndicators;
+
+  /// Repeat counter. Worth 300 to whoever wins the hand — 300 straight from
+  /// the discarder on ron, 100 from each of the three on tsumo.
+  final int honba;
+
+  /// Riichi deposits already on the table, collected whole by the winner.
+  /// A deposit you have not placed yet is not in here; the cost of placing one
+  /// is priced separately, against the hands you *don't* win.
+  final int riichiSticks;
+
+  /// What winning this hand pays on top of the hand's own value, however it is
+  /// won. It rides on the win, so expected value multiplies it by the chance of
+  /// getting there — it never changes which hand shape is worth chasing, only
+  /// how much the chase is worth.
+  int get winBonus => honba * 300 + riichiSticks * 1000;
 
   bool get closed => melds.every((m) => m.kind == MeldKind.kan && m.concealed);
 }
@@ -49,6 +66,11 @@ class DiscardLine {
     required this.recommendRiichi,
     this.reason = '',
     this.safety,
+    this.dealInCost = 0,
+    this.commitmentCost = 0,
+    this.winProbability = 0,
+    this.riichiLockCost = 0,
+    this.winBonus = 0,
     this.bestUkeire = false,
     this.bestExpectedValue = false,
     this.recommended = false,
@@ -66,6 +88,32 @@ class DiscardLine {
   /// Plain-English justification for [valuePlan] — why riichi, damaten, etc.
   final String reason;
   SafetyRating? safety;
+
+  /// Points already subtracted from [expectedValue] for the chance this cut
+  /// deals into the live riichi. Zero when nobody is in riichi.
+  final double dealInCost;
+
+  /// Points subtracted for the turns this cut commits you to *after* this one.
+  /// Zero on a safe cut — folding commits you to nothing — and zero once
+  /// tenpai, where declaring riichi is priced by [riichiLockCost] instead.
+  final double commitmentCost;
+
+  /// The total risk charged against this cut.
+  double get riskCost => dealInCost + commitmentCost;
+
+  /// The rest of the arithmetic behind [expectedValue], so the panel can show
+  /// its working:
+  ///
+  ///   expectedValue = winProbability × (averagePoints + winBonus)
+  ///                   − riichiLockCost − dealInCost − commitmentCost
+  ///
+  /// [winProbability] is the chance this line gets home — a win once tenpai, a
+  /// completed hand before it. [riichiLockCost] is what declaring riichi costs
+  /// against the hands it doesn't win; zero unless the plan is to declare.
+  final double winProbability;
+  final double riichiLockCost;
+  final double winBonus;
+
   bool bestUkeire;
   bool bestExpectedValue;
   bool recommended;
@@ -188,6 +236,7 @@ class EfficiencyEngine {
     List<TileType> opponentDiscards = const [],
     List<TileType> passedDiscardsAfterRiichi = const [],
     bool opponentRiichi = false,
+    bool opponentIsDealer = false,
   }) {
     final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
     final concealed = toTrainerCounts(hand);
@@ -207,6 +256,19 @@ class EfficiencyEngine {
           )
         : 0.0;
 
+    // Safety is needed before the lines are priced, not after: what a discard
+    // can cost you when it deals in is part of what that discard is worth.
+    final defending = opponentRiichi && defenseHand != null;
+    final defense = defending
+        ? rankSafety(
+            defenseHand,
+            opponentDiscards: opponentDiscards,
+            passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
+            visibleCounts34: visibleCounts34,
+          )
+        : <SafetyRating>[];
+    final safeByType = {for (final s in defense) s.type: s};
+
     final raw = _calc.calculate(concealed, remaining);
 
     // Deduplicate by tile type (multiple copies of the same tile in hand).
@@ -217,27 +279,70 @@ class EfficiencyEngine {
       if (existing == null || r.ukeire > existing.ukeire) byType[t] = r;
     }
 
+    // If any discard leaves this hand tenpai, that line is scored exactly —
+    // yaku, fu, dora, the lot. Use its payout as the yardstick for the hand's
+    // pre-tenpai lines too, so lines at different distances are quoted in the
+    // same money and a cheap hand cannot appear to gain by stepping back.
+    final tenpaiResult =
+        byType.values.where((r) => r.shanten == 0).firstOrNull;
+    double? projectedPointsOverride;
+    if (tenpaiResult != null) {
+      final probe = _assessValue(
+        result: tenpaiResult,
+        remaining: remaining,
+        concealed: _handAfterDiscard(hand, tenpaiResult.discard),
+        canRiichi: canRiichi,
+        context: valueContext,
+        opponentRiichi: opponentRiichi,
+        opponentIsDealer: opponentIsDealer,
+        riichiDangerFactor: riichiDangerFactor,
+      );
+      if (probe.averagePoints > 0) projectedPointsOverride = probe.averagePoints;
+    }
+
     final lines = byType.values.map((r) {
       final afterDiscard = _handAfterDiscard(hand, r.discard);
       final value = _assessValue(
+        projectedPointsOverride: projectedPointsOverride,
         result: r,
         remaining: remaining,
         concealed: afterDiscard,
         canRiichi: canRiichi,
         context: valueContext,
         opponentRiichi: opponentRiichi,
+        opponentIsDealer: opponentIsDealer,
         riichiDangerFactor: riichiDangerFactor,
       );
+      final safety = safeByType[r.discard];
+      final dealInCost = _dealInPenalty(
+        safety: safety,
+        opponentIsDealer: opponentIsDealer,
+        honba: valueContext.honba,
+      );
+      // The tile you choose says whether you are folding or pushing, so it also
+      // prices the turns that choice commits you to. A genbutsu cut commits you
+      // to nothing; a live one commits you to more of the same.
+      final laterTurns = math.max(0.0, value.turnsExposed - 1);
+      final commitmentCost = dealInCost * laterTurns * _pushCommitment;
       return DiscardLine(
         discard: r.discard,
         shanten: r.shanten,
         ukeire: r.ukeire,
         accepts: r.accepts,
-        expectedValue: value.expectedValue,
+        // What the cut is worth, less what it can cost you. Folding to a safe
+        // tile now reads as the better line whenever the hand behind it isn't
+        // worth the risk — no separate push/fold switch needed.
+        expectedValue: value.expectedValue - dealInCost - commitmentCost,
         averagePoints: value.averagePoints,
         valuePlan: value.plan,
         recommendRiichi: value.recommendRiichi,
         reason: value.reason,
+        safety: safety,
+        dealInCost: dealInCost,
+        commitmentCost: commitmentCost,
+        winProbability: value.winProbability,
+        riichiLockCost: value.riichiLockCost,
+        winBonus: valueContext.winBonus.toDouble(),
       );
     }).toList();
 
@@ -269,33 +374,17 @@ class EfficiencyEngine {
     final bestValue = lines.isEmpty ? null : lines.first;
     bestValue?.bestExpectedValue = true;
 
-    final defending = opponentRiichi && defenseHand != null;
-    var defense = <SafetyRating>[];
-    if (defending) {
-      defense = rankSafety(
-        defenseHand,
-        opponentDiscards: opponentDiscards,
-        passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
-        visibleCounts34: visibleCounts34,
-      );
-      final safeByType = {for (final s in defense) s.type: s};
-      for (final l in lines) {
-        l.safety = safeByType[l.discard];
-      }
-    }
-
-    // Recommendation: while defending against riichi and not already tenpai,
-    // prefer the safest discard; otherwise the best expected-value discard.
-    DiscardLine? recommended;
-    if (defending && currentShanten > 0 && defense.isNotEmpty) {
-      final safest = defense.first;
-      recommended = lines.firstWhere(
-        (l) => l.discard == safest.type,
-        orElse: () => bestValue ?? lines.first,
-      );
-    } else {
-      recommended = bestValue;
-    }
+    // Recommendation: the best expected value, full stop — at tenpai and
+    // before it, defending or not.
+    //
+    // This used to switch to "cut the safest tile" whenever you were defending
+    // and not yet tenpai, because the value model could not express folding.
+    // It can now: every line carries the deal-in cost of the tile itself plus
+    // the turns that choice commits you to, so a fold is priced as the cheap,
+    // low-value line it is and a push has to actually be worth it. Across the
+    // random defending positions in `push_fold_sweep_test.dart` the two agreed
+    // on better than 99% of decisions before the switch came out.
+    final recommended = bestValue;
     recommended?.recommended = true;
     // The panel always shows the recommended line first — while defending,
     // it can be the safest discard rather than the best-EV one, which the
@@ -350,6 +439,7 @@ class EfficiencyEngine {
     List<TileType> opponentDiscards = const [],
     List<TileType> passedDiscardsAfterRiichi = const [],
     bool opponentRiichi = false,
+    bool opponentIsDealer = false,
   }) {
     final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
     final remaining = trainerCountsFromTypeCounts(remaining34);
@@ -415,6 +505,7 @@ class EfficiencyEngine {
           opponentDiscards: opponentDiscards,
           passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
           opponentRiichi: opponentRiichi,
+          opponentIsDealer: opponentIsDealer,
         ));
       }
     }
@@ -434,6 +525,7 @@ class EfficiencyEngine {
           opponentDiscards: opponentDiscards,
           passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
           opponentRiichi: opponentRiichi,
+          opponentIsDealer: opponentIsDealer,
         );
         if (bestChi == null ||
             (advice.eligible && !bestChi.eligible) ||
@@ -511,6 +603,7 @@ class EfficiencyEngine {
     required List<int> visibleCounts34,
     required EfficiencyValueContext context,
     bool opponentRiichi = false,
+    bool opponentIsDealer = false,
   }) {
     final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
     final remaining = trainerCountsFromTypeCounts(remaining34);
@@ -565,6 +658,7 @@ class EfficiencyEngine {
     required List<int> visibleCounts34,
     required EfficiencyValueContext context,
     bool opponentRiichi = false,
+    bool opponentIsDealer = false,
     List<TileType> opponentDiscards = const [],
     List<TileType> passedDiscardsAfterRiichi = const [],
   }) {
@@ -676,6 +770,7 @@ class EfficiencyEngine {
     required List<TileType> opponentDiscards,
     required List<TileType> passedDiscardsAfterRiichi,
     required bool opponentRiichi,
+    required bool opponentIsDealer,
   }) {
     final concealedAfter = _handWithout(hand, consumed);
     final contextAfter = _contextWithMeld(context, meld);
@@ -690,6 +785,7 @@ class EfficiencyEngine {
       opponentDiscards: opponentDiscards,
       passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
       opponentRiichi: opponentRiichi,
+      opponentIsDealer: opponentIsDealer,
     );
     if (report.lines.isEmpty) {
       return ActionAdvice(
@@ -934,6 +1030,171 @@ class EfficiencyEngine {
         GuidedAction.tsumo => 'Tsumo',
       };
 
+  /// Typical acceptance at each shanten, used to shape how a hand's ukeire
+  /// narrows as it closes up. Only the *ratios* matter: the hand's own measured
+  /// ukeire anchors the schedule, and these scale the steps it has not taken
+  /// yet. Index is shanten; index 0 is the width of a finished hand's wait,
+  /// which is what the last step has to hit.
+  static const List<double> _typicalUkeire = [8, 20, 28, 35, 40, 44, 48];
+
+  /// Chance the hand is still running after one more of your turns — the other
+  /// three seats are drawing too, and one of them ending the hand (or an
+  /// exhaustive draw) stops yours dead.
+  ///
+  /// Calibrated against the figure worth trusting: a hand wins a little over
+  /// one time in five, and a dealt hand is typically three to four away. With
+  /// [_typicalUkeire] this lands a full wall at roughly 52% from 1-shanten,
+  /// 37% from 2, 26% from 3 and 17% from 4 — so an average starting hand comes
+  /// out near 21%, and the ordering by shanten is the one you would expect.
+  static const double _handSurvivesTurn = 0.955;
+
+  /// How much of a hand's width carries through to the wait it finishes on.
+  /// 1 would mean a hand with twice the acceptance also ends on twice the wait;
+  /// 0 would mean every hand ends on the same average wait. Neither is true.
+  static const double _waitInheritance = 0.5;
+
+  /// Effective chances to win per turn once the hand is complete: your own
+  /// draw, plus whatever the other three seats actually let you ron — far less
+  /// than three discards' worth, since anyone who reads the wait stops feeding
+  /// it. Calibrated so an early riichi on a ryanmen wins a little over half the
+  /// time, a kanchan around a third, a tanki around a fifth.
+  ///
+  /// Without a ron — no yaku on the wait, so the hand can only be drawn — you
+  /// lose roughly the half of wins that come off someone else's discard.
+  static const double _winChancesPerTurn = 1.0;
+  static const double _tsumoOnlyChancesPerTurn = 0.5;
+
+  /// How much of a push's later turns to charge for up front.
+  ///
+  /// Cutting a live tile before tenpai is not one decision, it is the start of
+  /// a policy: you will keep discarding into the same riichi for as long as you
+  /// stay in the hand. Charging only the tile in front of you undercounts that.
+  /// Unlike a declared riichi, though, you can still change your mind next
+  /// turn, so the later turns are charged at a discount rather than in full.
+  ///
+  /// Set so that a typical pre-tenpai push carries about two to three turns of
+  /// risk in total, which is where a sweep of random defending positions stops
+  /// disagreeing with folding outright.
+  static const double _pushCommitment = 0.3;
+
+  /// The chance of hitting a wait this wide before the hand ends.
+  ///
+  /// Shared by both estimators, so a hand does not jump in value the moment it
+  /// reaches tenpai. Each turn offers [chancesPerTurn] shots at the wait, and
+  /// whatever has not won yet only carries on if the hand is still running —
+  /// the other three seats are drawing too, and one of them winning (or the
+  /// wall running out) ends yours.
+  static ({double win, double turns}) _winChanceOverTurns({
+    required double waitWidth,
+    required int unseen,
+    required int draws,
+    required double chancesPerTurn,
+  }) {
+    if (unseen <= 0 || draws <= 0 || waitWidth <= 0) {
+      return (win: 0, turns: 0);
+    }
+    final rate = math.min(1.0, waitWidth / unseen);
+    final perTurn = 1 - math.pow(1 - rate, chancesPerTurn).toDouble();
+    var alive = 1.0;
+    var won = 0.0;
+    var turns = 0.0;
+    for (var turn = 0; turn < draws; turn++) {
+      turns += alive; // this turn is only played if the hand got this far
+      won += alive * perTurn;
+      alive *= (1 - perTurn) * _handSurvivesTurn;
+    }
+    return (win: won.clamp(0.0, 1.0), turns: turns);
+  }
+
+  /// The chance a hand this far from home actually wins, over the draws it has
+  /// left.
+  ///
+  /// Walks the hand forward one turn at a time. Each turn it may take a step
+  /// (shanten − 1), and the acceptance for each step is scaled off the hand's
+  /// own ukeire by [_typicalUkeire], because a hand two away does not keep its
+  /// current width all the way in — the last step is hitting a wait, not
+  /// picking up any useful tile. Every turn also carries the chance the hand
+  /// ends first, which is what the old estimator missed entirely: it multiplied
+  /// out to well over 90% for a 2-shanten hand with most of the wall left.
+  ///
+  /// [shanten] must be ≥ 1; tenpai is scored exactly by [_assessTenpaiValue].
+  static ({double win, double reachedTenpai, double turns})
+      _winProbabilityFromShanten({
+    required int shanten,
+    required int ukeire,
+    required int unseen,
+    required int draws,
+  }) {
+    if (shanten < 1 || draws <= 0 || unseen <= 0 || ukeire <= 0) {
+      return (win: 0, reachedTenpai: 0, turns: 0);
+    }
+
+    // How much wider (or narrower) this hand is than a typical one that far
+    // out. It applies in full to the step the hand is about to take and fades
+    // as the hand closes up: being wide open now says a great deal about
+    // picking up the next useful tile, and much less about the wait you
+    // eventually sit on. It does not fade away entirely — a hand short of
+    // acceptance is short of it because it is full of kanchan and tanki
+    // shapes, and those are what it ends up waiting on.
+    final scale = ukeire / _typicalUkeire[shanten.clamp(0, 6)];
+
+    /// Chance one turn takes the step that leaves the hand at [to] shanten.
+    /// The final step — tenpai to a win — gets two chances a turn, since a
+    /// finished hand can be ronned off someone else's discard as well as drawn.
+    double stepChance(int to) {
+      final exponent =
+          _waitInheritance + (1 - _waitInheritance) * (to / shanten);
+      // Being wide open gets you to tenpai sooner — that is what the earlier
+      // steps price. It does not hand you a wider wait than an ordinary hand
+      // when you get there, so the last step never scales above typical.
+      // Without this a wide 1-shanten came out likelier to win than the very
+      // same hand already tenpai, which cannot be.
+      var multiplier = math.pow(scale, exponent).toDouble();
+      if (to == 0) multiplier = math.min(1.0, multiplier);
+      final width = _typicalUkeire[to.clamp(0, 6)] * multiplier;
+      final rate = math.min(1.0, width / unseen);
+      // Only the last step — the win itself — can come off a discard.
+      final tries = to == 0 ? _winChancesPerTurn : 1.0;
+      return 1 - math.pow(1 - rate, tries).toDouble();
+    }
+
+    // states[s] = chance the hand is alive and still s steps from a win.
+    // A step from shanten 1 lands on 0 (tenpai); one more wins.
+    final states = List<double>.filled(shanten + 2, 0);
+    states[shanten + 1] = 1;
+    var won = 0.0;
+    var reached = 0.0;
+    var turnsPlayed = 0.0;
+
+    for (var turn = 0; turn < draws; turn++) {
+      // Only the turns the hand actually reaches are turns you discard on.
+      turnsPlayed += states.fold<double>(0, (a, b) => a + b);
+      final next = List<double>.filled(shanten + 2, 0);
+      for (var s = shanten + 1; s >= 1; s--) {
+        final mass = states[s];
+        if (mass <= 0) continue;
+        final p = stepChance(s - 1);
+        if (s == 1) {
+          won += mass * p; // that step was the win itself
+        } else {
+          next[s - 1] += mass * p;
+          if (s == 2) reached += mass * p; // just became tenpai
+        }
+        next[s] += mass * (1 - p);
+      }
+      // Whatever has not won yet only continues if the hand is still going.
+      for (var s = 0; s < next.length; s++) {
+        next[s] *= _handSurvivesTurn;
+      }
+      states.setAll(0, next);
+    }
+    return (
+      win: won.clamp(0.0, 1.0),
+      reachedTenpai: reached.clamp(0.0, 1.0),
+      turns: turnsPlayed,
+    );
+  }
+
   /// Weighted-average danger (0 safe .. 1 dangerous) of the tiles you might
   /// still draw and be forced to tsumogiri under your own riichi, rated on
   /// the same 0..15 safety scale [rankSafety] uses for defensive discards.
@@ -975,7 +1236,9 @@ class EfficiencyEngine {
     required bool canRiichi,
     required EfficiencyValueContext context,
     bool opponentRiichi = false,
+    bool opponentIsDealer = false,
     double riichiDangerFactor = 0.0,
+    double? projectedPointsOverride,
   }) {
     // A normal discard analysis starts with 14 tiles including open melds.
     // Off-turn defensive reads can have only 13, so avoid pretending those
@@ -994,6 +1257,7 @@ class EfficiencyEngine {
         canRiichi: canRiichi,
         context: context,
         opponentRiichi: opponentRiichi,
+        opponentIsDealer: opponentIsDealer,
         riichiDangerFactor: riichiDangerFactor,
       );
     }
@@ -1003,38 +1267,83 @@ class EfficiencyEngine {
 
     final unseen = _countRemaining(remaining);
     final draws = math.max(1, (context.wallTilesRemaining + 3) ~/ 4);
-    final improveRate =
-        unseen > 0 ? math.min(1.0, result.ukeire / unseen) : 0.0;
-    // Getting home needs (shanten + 1) separate improvements, and they have to
-    // share the draws that are left — so each step gets its slice of the wall,
-    // not all of it. Spending the whole wall on every step made a wide hand
-    // three away look likelier to finish than a narrow hand one away, which
-    // made a "call vs. stay put" comparison meaningless.
-    final steps = result.shanten + 1;
-    final drawsPerStep = draws / steps;
-    final improveProbability =
-        1 - math.pow(1 - improveRate, drawsPerStep).toDouble();
-    final completionProbability =
-        math.pow(improveProbability, steps).toDouble();
+    final outlook = _winProbabilityFromShanten(
+      shanten: result.shanten,
+      ukeire: result.ukeire,
+      unseen: unseen,
+      draws: draws,
+    );
+    final completionProbability = outlook.win;
 
     // Before tenpai the exact final hand is unknown. These representative
     // values keep pre-tenpai comparisons stable; exact yaku/fu/dora scoring
     // takes over as soon as a discard leaves the hand in tenpai.
-    final projectedPoints = context.closed
-        ? (context.isDealer ? 5800.0 : 3900.0)
-        : (context.isDealer ? 2900.0 : 2000.0);
+    // When some other discard leaves this same hand tenpai we know exactly
+    // what it is worth, so use that instead of the table. Otherwise a cheap
+    // hand's pre-tenpai lines get credited with an average hand's payout and
+    // outrank its own tenpai line, which reads as "break tenpai to rebuild".
+    final projectedPoints = projectedPointsOverride ??
+        (context.closed
+            ? (context.isDealer ? 5800.0 : 3900.0)
+            : (context.isDealer ? 2900.0 : 2000.0));
+
+    // A closed hand on this path means to riichi when it arrives, so it owes
+    // the same 1000 the tenpai lines are charged — payable once it declares,
+    // refunded if it wins. Without this, not being tenpai yet looks cheaper
+    // than being tenpai purely because the deposit had not been billed.
+    final deposit = context.closed
+        ? math.max(0.0, outlook.reachedTenpai - completionProbability) * 1000
+        : 0.0;
+
     return _ValueAssessment(
-      expectedValue: completionProbability * projectedPoints,
+      expectedValue:
+          completionProbability * (projectedPoints + context.winBonus) -
+              deposit,
       averagePoints: projectedPoints,
       plan: context.closed ? 'RIICHI PATH' : 'YAKU PATH',
+      winProbability: completionProbability,
+      riichiLockCost: deposit,
+      turnsExposed: outlook.turns,
     );
   }
 
-  /// Points-scale magnitude for the opponent-riichi lock-in danger penalty
-  /// below — roughly a modest riichi hand's payout, so a genuinely dangerous
-  /// board can outweigh a middling-value riichi but a big enough hand still
-  /// clears it.
-  static const _opponentRiichiRiskScale = 4000.0;
+  /// What a discard costs when it deals in, and how often each safety rating
+  /// does. Both are representative averages in the same spirit as the
+  /// pre-tenpai `projectedPoints` above — good enough to rank pushes against
+  /// folds, not a substitute for a solver.
+  ///
+  /// The rates are keyed by the 0..15 rating [rankSafety] produces, and follow
+  /// the shape the standard tables give: genbutsu never deals in, a non-suji
+  /// middle tile is the worst ordinary cut at roughly one in fifteen, and suji
+  /// / one-chance / thin honours sit between. Monotonic by construction, so a
+  /// tile the safety model calls safer is never charged more.
+  static const List<double> _dealInRateByRating = [
+    0.070, 0.068, 0.065, 0.058, 0.055, 0.052, 0.048, 0.045, //
+    0.038, 0.030, 0.028, 0.025, 0.022, 0.012, 0.006, 0.000,
+  ];
+
+  /// Average ron payment to a riichi hand, dealer and non-dealer. Riichi hands
+  /// average a little over mangan-adjacent value once ura and ippatsu are in.
+  static const double _dealInCost = 5800;
+  static const double _dealerDealInCost = 8700;
+
+  /// The points a discard is expected to cost, given how safe it is. Zero
+  /// without a live riichi to deal into, and zero on genbutsu.
+  static double _dealInPenalty({
+    required SafetyRating? safety,
+    required bool opponentIsDealer,
+    required int honba,
+  }) {
+    if (safety == null) return 0;
+    final rate = _dealInRateByRating[
+        safety.rating.clamp(0, _dealInRateByRating.length - 1)];
+    // Honba rides on their win too — you pay it.
+    final cost =
+        (opponentIsDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
+    return rate * cost;
+  }
+
+
 
   _ValueAssessment _assessTenpaiValue({
     required List<TileType> waits,
@@ -1043,6 +1352,7 @@ class EfficiencyEngine {
     required bool canRiichi,
     required EfficiencyValueContext context,
     bool opponentRiichi = false,
+    bool opponentIsDealer = false,
     double riichiDangerFactor = 0.0,
   }) {
     var liveWaits = 0;
@@ -1169,20 +1479,33 @@ class EfficiencyEngine {
 
     final unseen = _countRemaining(remaining);
     final draws = math.max(1, (context.wallTilesRemaining + 3) ~/ 4);
-    final opportunities = draws * (ronAvailable ? 2.0 : 1.0);
-    final hitRate = unseen > 0 ? math.min(1.0, liveWaits / unseen) : 0.0;
-    final winProbability = 1 - math.pow(1 - hitRate, opportunities).toDouble();
-    var expectedValue = winProbability * selectedPoints;
+    final outlook = _winChanceOverTurns(
+      waitWidth: liveWaits.toDouble(),
+      unseen: unseen,
+      draws: draws,
+      chancesPerTurn:
+          ronAvailable ? _winChancesPerTurn : _tsumoOnlyChancesPerTurn,
+    );
+    final winProbability = outlook.win;
+    // Honba and the riichi deposits already on the table go to the winner
+    // whatever the hand is worth, so they scale with the chance of winning it.
+    var expectedValue = winProbability * (selectedPoints + context.winBonus);
+    var lockCost = 0.0;
     if (recommendRiichi) {
-      expectedValue -= (1 - winProbability) * 1000;
-      // Extra cost of locking into tsumogiri against a live opponent riichi,
-      // scaled by how dangerous your remaining draws currently look — still
-      // lets a high-value riichi win out over a merely-risky board.
+      // Your own deposit, which is not yet in [context.riichiSticks]: you get
+      // it back on a win, so it only costs you on the hands you don't win.
+      lockCost += (1 - winProbability) * 1000;
+      // Locking into tsumogiri against a live riichi means every tile you
+      // draw from here goes straight out, unlooked at. That is the real cost
+      // of declaring, and it is the same arithmetic a single dangerous cut is
+      // charged — just repeated for every turn the hand is expected to last.
       if (opponentRiichi) {
-        expectedValue -= (1 - winProbability) *
-            riichiDangerFactor *
-            _opponentRiichiRiskScale;
+        final perDiscard = riichiDangerFactor * _dealInRateByRating.first;
+        lockCost += outlook.turns *
+            perDiscard *
+            (opponentIsDealer ? _dealerDealInCost : _dealInCost);
       }
+      expectedValue -= lockCost;
     }
 
     return _ValueAssessment(
@@ -1191,6 +1514,8 @@ class EfficiencyEngine {
       plan: plan,
       recommendRiichi: recommendRiichi,
       reason: reason,
+      winProbability: winProbability,
+      riichiLockCost: lockCost,
     );
   }
 
@@ -1267,12 +1592,27 @@ class _ValueAssessment {
     required this.plan,
     this.recommendRiichi = false,
     this.reason = '',
+    this.winProbability = 0,
+    this.riichiLockCost = 0,
+    this.turnsExposed = 0,
   });
 
   final double expectedValue;
   final double averagePoints;
   final String plan;
   final bool recommendRiichi;
+
+  /// The two terms the panel shows its arithmetic with: how often this line
+  /// gets home, and what declaring riichi on it costs against the hands it
+  /// does not win. Together with [averagePoints] and the deal-in cost they
+  /// reconstruct [expectedValue] exactly.
+  final double winProbability;
+  final double riichiLockCost;
+
+  /// How many more turns this line expects to still be in the hand, and so how
+  /// many more discards it commits you to. Zero once tenpai — declaring riichi
+  /// is priced by [riichiLockCost] instead.
+  final double turnsExposed;
 
   /// Plain-English justification for [plan], shown in the guide panel.
   /// Only populated at tenpai — earlier shanten has nothing to explain yet.

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
+import '../game/guide_host.dart';
 import '../logic/round.dart';
 import 'meld_row.dart';
 import 'tile_face.dart';
@@ -12,21 +13,66 @@ import 'tile_face.dart';
 /// the four discard ponds bracket the centre on a fixed six-column grid whose
 /// origin never moves as it fills; the round/wall status sits dead centre and
 /// the dead wall in the top-right corner.
+/// Which part of the table the scenario builder is currently pointing at.
+enum TableArea { pond, melds, dora }
+
+/// In-place editing hooks. Null in the live game — the table there is a
+/// read-out, never an editor — and supplied only by the scenario builder, which
+/// uses them to select a slot to fill and to pull tiles back out of it.
+class TableEdits {
+  const TableEdits({
+    required this.onSelect,
+    required this.onRemovePondTile,
+    required this.onRemoveDora,
+    this.area,
+    this.seat,
+  });
+
+  /// Tapping a pond, a seat's melds, or the dead wall points the tile palette
+  /// at it.
+  final void Function(TableArea area, int seat) onSelect;
+
+  /// Tapping a placed tile takes it back off the table.
+  final void Function(int seat, int index) onRemovePondTile;
+  final void Function(int index) onRemoveDora;
+
+  /// The slot currently selected, drawn with a highlight ring.
+  final TableArea? area;
+  final int? seat;
+
+  bool isSelected(TableArea a, int s) =>
+      area == a && (a == TableArea.dora || seat == s);
+}
+
 class TableView extends StatelessWidget {
-  const TableView({super.key, required this.game});
-  final GameController game;
+  const TableView({super.key, required this.game, this.edits});
+  final GuideHost game;
+
+  /// Non-null only in the scenario builder; see [TableEdits].
+  final TableEdits? edits;
 
   static const int _pondCols = 6;
   // Discard tiles render 25% larger than the authored `TileSize.normal` step.
   static const double _pondScale = 1.25;
-  // normal tile (32w / 44h) · _pondScale + EdgeInsets.all(0.5) on both sides.
-  static const double _pondTileW = 32 * _pondScale + 1;
-  static const double _pondTileH = 44 * _pondScale + 1;
+
+  /// Your pond and the one across from you are the only two whose *height*
+  /// stacks against the centre status box — the left and right ponds are
+  /// turned, so their rows run sideways. Those two render a step smaller so
+  /// all four of their rows clear the box, on the short table the scenario
+  /// builder lays out as well as the taller one the game does.
+  static const double _verticalPondScale = 1.0;
+
+  static double _pondScaleFor(int seat) =>
+      (seat == 0 || seat == 2) ? _verticalPondScale : _pondScale;
+
+  // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
+  static double _pondTileW(double scale) => 32 * scale + 1;
+  static double _pondTileH(double scale) => 44 * scale + 1;
   // Fixed footprint: one riichi stick + four full rows. Anchored top-left so
   // earlier tiles stay put as later rows come in.
-  static const double _pondBoxW =
-      _pondCols * _pondTileW + 16; // room for a turned tile
-  static const double _pondBoxH = 16 + 4 * _pondTileH;
+  static double _pondBoxW(double scale) =>
+      _pondCols * _pondTileW(scale) + 16; // room for a turned tile
+  static double _pondBoxH(double scale) => 16 + 4 * _pondTileH(scale);
 
   @override
   Widget build(BuildContext context) {
@@ -164,15 +210,31 @@ class TableView extends StatelessWidget {
             result.kind == RoundEndKind.ron) &&
         result.winners.any((w) => round.seats[w].riichi);
     final tiles = round.wall.deadWallDisplay(revealUra: revealUra);
+    // Dead-wall slots 4,6,8,10,12 are the dora indicators; in the builder each
+    // revealed one can be tapped off again.
+    int? doraIndexAt(int slot) =>
+        (slot >= 4 && slot.isEven && tiles[slot] != null)
+            ? (slot - 4) ~/ 2
+            : null;
     List<Widget> row(bool top) => [
           for (var col = 0; col < 7; col++)
             Padding(
               padding: const EdgeInsets.all(0.5),
-              child: TileFace(
-                tile: tiles[col * 2 + (top ? 0 : 1)],
-                faceDown: tiles[col * 2 + (top ? 0 : 1)] == null,
-                size: TileSize.normal,
-              ),
+              child: switch ((edits, doraIndexAt(col * 2 + (top ? 0 : 1)))) {
+                (final e?, final d?) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => e.onRemoveDora(d),
+                    child: TileFace(
+                      tile: tiles[col * 2 + (top ? 0 : 1)],
+                      size: TileSize.normal,
+                    ),
+                  ),
+                _ => TileFace(
+                    tile: tiles[col * 2 + (top ? 0 : 1)],
+                    faceDown: tiles[col * 2 + (top ? 0 : 1)] == null,
+                    size: TileSize.normal,
+                  ),
+              },
             ),
         ];
     // 44-high normal tile + 0.5 padding on both sides, so each label lines up
@@ -198,12 +260,16 @@ class TableView extends StatelessWidget {
             ],
           ),
         ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(mainAxisSize: MainAxisSize.min, children: row(true)),
-            Row(mainAxisSize: MainAxisSize.min, children: row(false)),
-          ],
+        _selectable(
+          TableArea.dora,
+          -1,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(mainAxisSize: MainAxisSize.min, children: row(true)),
+              Row(mainAxisSize: MainAxisSize.min, children: row(false)),
+            ],
+          ),
         ),
       ],
     );
@@ -214,6 +280,7 @@ class TableView extends StatelessWidget {
   /// The newest tile pops in so you can see it land.
   Widget _pond(Round round, int seat, {required int quarterTurns}) {
     final s = round.seats[seat];
+    final scale = _pondScaleFor(seat);
     if (s.pond.isEmpty && !s.riichi) return const SizedBox.shrink();
     final last = s.pond.length - 1;
     // Pulse the just-cut tile while the human is being offered a call on it.
@@ -234,7 +301,7 @@ class TableView extends StatelessWidget {
                           child: TileFace(
                             tile: s.pond[i],
                             size: TileSize.normal,
-                            scale: _pondScale,
+                            scale: scale,
                             rotationQuarterTurns:
                                 i == s.riichiPondIndex ? 1 : 0,
                           ),
@@ -244,7 +311,7 @@ class TableView extends StatelessWidget {
                           TileFace(
                             tile: s.pond[i],
                             size: TileSize.normal,
-                            scale: _pondScale,
+                            scale: scale,
                             rotationQuarterTurns:
                                 i == s.riichiPondIndex ? 1 : 0,
                           ),
@@ -252,16 +319,27 @@ class TableView extends StatelessWidget {
                   : TileFace(
                       tile: s.pond[i],
                       size: TileSize.normal,
-                      scale: _pondScale,
+                      scale: scale,
                       rotationQuarterTurns: i == s.riichiPondIndex ? 1 : 0,
                     ),
             ),
         ],
       ));
     }
+    if (edits case final e?) {
+      for (var row = 0; row < rows.length; row++) {
+        final base = row * _pondCols;
+        rows[row] = _RemovableRow(
+          row: rows[row],
+          count: (s.pond.length - base).clamp(0, _pondCols),
+          onTap: (i) => e.onRemovePondTile(seat, base + i),
+          tileWidth: _pondTileW(scale),
+        );
+      }
+    }
     final boxed = SizedBox(
-      width: _pondBoxW,
-      height: _pondBoxH,
+      width: _pondBoxW(scale),
+      height: _pondBoxH(scale),
       child: Align(
         alignment: Alignment.topLeft,
         child: Column(
@@ -274,9 +352,33 @@ class TableView extends StatelessWidget {
         ),
       ),
     );
+    final selectable = _selectable(TableArea.pond, seat, boxed);
     return quarterTurns == 0
-        ? boxed
-        : RotatedBox(quarterTurns: quarterTurns, child: boxed);
+        ? selectable
+        : RotatedBox(quarterTurns: quarterTurns, child: selectable);
+  }
+
+  /// Wraps a slot so the builder can point the palette at it. In the live game
+  /// [edits] is null and this returns [child] untouched.
+  Widget _selectable(TableArea area, int seat, Widget child) {
+    final e = edits;
+    if (e == null) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => e.onSelect(area, seat),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: e.isSelected(area, seat)
+                ? const Color(0xffe9d58f)
+                : const Color(0x22ffffff),
+            width: e.isSelected(area, seat) ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: child,
+      ),
+    );
   }
 
   /// A one-shot pop-in used for the freshly discarded tile.
@@ -295,13 +397,27 @@ class TableView extends StatelessWidget {
   }
 
   Widget _meldGroup(SeatState s) {
-    return Wrap(
+    final group = Wrap(
       spacing: 4,
       runSpacing: 2,
       children: [
         for (final m in s.melds)
           MeldRow(m, size: TileSize.small, scale: _pondScale)
       ],
+    );
+    if (edits == null) return group;
+    // The builder needs somewhere to tap even before a seat has any calls.
+    return _selectable(
+      TableArea.melds,
+      s.seat,
+      s.melds.isEmpty
+          ? const SizedBox(
+              width: 54,
+              height: 30,
+              child: Center(
+                  child: Text('calls',
+                      style: TextStyle(color: Colors.white38, fontSize: 9))))
+          : group,
     );
   }
 
@@ -551,7 +667,7 @@ class _OpponentHand extends StatefulWidget {
     this.rotate = 0,
   });
 
-  final GameController game;
+  final GuideHost game;
   final int seat;
   final bool vertical;
   final int rotate;
@@ -649,6 +765,47 @@ class _OpponentHandState extends State<_OpponentHand> {
         alignment: widget.vertical ? Alignment.topCenter : Alignment.centerLeft,
         child: content,
       ),
+    );
+  }
+}
+
+/// Overlays tap targets on one already-laid-out pond row so the scenario
+/// builder can pull a discard back off the table. Sized from the row's own
+/// fixed tile pitch, so the hit boxes line up with what is drawn.
+class _RemovableRow extends StatelessWidget {
+  const _RemovableRow({
+    required this.row,
+    required this.count,
+    required this.onTap,
+    required this.tileWidth,
+  });
+
+  final Widget row;
+  final int count;
+  final void Function(int indexInRow) onTap;
+  final double tileWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        row,
+        Positioned.fill(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < count; i++)
+                SizedBox(
+                  width: tileWidth,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onTap(i),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

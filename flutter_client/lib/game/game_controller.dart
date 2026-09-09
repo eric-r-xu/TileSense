@@ -11,6 +11,7 @@ import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
 import '../logic/tile.dart';
 import '../telemetry/telemetry.dart';
+import 'guide_host.dart';
 import 'sfx.dart';
 
 const int kHumanSeat = 0;
@@ -37,7 +38,7 @@ const int kRoundsPerGame = 4;
 
 enum GamePhase { playing, roundEnd, gameEnd }
 
-class GameController extends ChangeNotifier {
+class GameController extends ChangeNotifier implements GuideHost {
   GameController({int? seed})
       : _seed = seed ?? DateTime.now().millisecondsSinceEpoch {
     _startGame();
@@ -57,6 +58,7 @@ class GameController extends ChangeNotifier {
   /// widget layer; only read for telemetry.
   bool guideVisible = false;
 
+  @override
   late Round round;
   late List<SimpleBot> _bots;
   List<int> _points = List.filled(4, 25000);
@@ -88,13 +90,17 @@ class GameController extends ChangeNotifier {
   bool hanchan = true;
   int get _handsPerGame => hanchan ? 8 : 4;
 
+  @override
   EfficiencyReport report = EfficiencyReport.waiting();
 
   /// Bumped on every discard so the UI can run a one-shot animation. When the
   /// discard was NOT the drawn tile (a cut from the concealed hand), the
   /// opponent's hand briefly shows a blank slot so you can see it left.
+  @override
   int discardSerial = 0;
+  @override
   int? lastDiscardSeat;
+  @override
   bool lastDiscardTsumogiri = false;
 
   void _noteDiscard(int seat, Tile tile) {
@@ -104,8 +110,10 @@ class GameController extends ChangeNotifier {
   }
 
   /// True while the human seat has a pending call to answer.
+  @override
   bool get awaitingHumanCall => _humanCallOption != null;
   CallOption? _humanCallOption;
+  @override
   CallOption? get humanCallOption => _humanCallOption;
 
   /// The guide's verdict on [_humanCallOption], cached alongside it.
@@ -124,6 +132,7 @@ class GameController extends ChangeNotifier {
   }
 
   int get roundNumber => _roundNumber;
+  @override
   int get honba => _honba;
   int get riichiSticks => _riichiSticks;
 
@@ -131,6 +140,7 @@ class GameController extends ChangeNotifier {
   Wind get roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
 
   /// 1-4 within the current round wind.
+  @override
   int get handInWind => (_roundNumber % 4) + 1;
   List<int> get tablePoints => _points;
 
@@ -508,6 +518,7 @@ class GameController extends ChangeNotifier {
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
         opponentRiichi: riichiOpp != null,
+        opponentIsDealer: riichiOpp?.isDealer ?? false,
       );
       if (advice.eligible) return BotTurn(closedKan: type);
     }
@@ -519,6 +530,7 @@ class GameController extends ChangeNotifier {
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
         opponentRiichi: riichiOpp != null,
+        opponentIsDealer: riichiOpp?.isDealer ?? false,
         opponentDiscards: riichiOpp != null
             ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
@@ -575,6 +587,7 @@ class GameController extends ChangeNotifier {
       passedDiscardsAfterRiichi:
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
+      opponentIsDealer: riichiOpp?.isDealer ?? false,
     );
   }
 
@@ -767,6 +780,7 @@ class GameController extends ChangeNotifier {
       passedDiscardsAfterRiichi:
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
+      opponentIsDealer: riichiOpp?.isDealer ?? false,
     );
   }
 
@@ -779,6 +793,8 @@ class GameController extends ChangeNotifier {
         inRiichi: seat.riichi,
         wallTilesRemaining: round.wall.remaining,
         doraIndicators: round.wall.doraIndicators(),
+        honba: round.honba,
+        riichiSticks: round.riichiSticks,
       );
 
   SeatState? _riichiOpponent() {
@@ -789,6 +805,7 @@ class GameController extends ChangeNotifier {
   }
 
   /// The opponent the guide's safety scores refer to.
+  @override
   int? get safetyOpponentSeat => _riichiOpponent()?.seat;
 
   List<int> _visibleCounts() {
@@ -837,6 +854,7 @@ class GameController extends ChangeNotifier {
   /// The guide's verdict on whichever kan (closed or added) is available on
   /// the human's turn right now — null when there's nothing to decide.
   /// Closed kan is checked first, matching [_guidedTurnDecision]'s priority.
+  @override
   ({TileType type, bool isAdded, ActionAdvice advice})? get kanAdvice {
     if (round.turn != kHumanSeat || round.phase != RoundPhase.discarding) {
       return null;
@@ -850,6 +868,7 @@ class GameController extends ChangeNotifier {
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
         opponentRiichi: riichiOpp != null,
+        opponentIsDealer: riichiOpp?.isDealer ?? false,
       );
       return (type: type, isAdded: false, advice: advice);
     }
@@ -861,6 +880,7 @@ class GameController extends ChangeNotifier {
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
         opponentRiichi: riichiOpp != null,
+        opponentIsDealer: riichiOpp?.isDealer ?? false,
         opponentDiscards: riichiOpp != null
             ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
@@ -873,6 +893,7 @@ class GameController extends ChangeNotifier {
   }
 
   /// The call the guide recommends for the pending human call decision.
+  @override
   CallType? get recommendedCall {
     if (_humanCallOption == null) return null;
     final advice = _humanCallAdvice;
@@ -880,6 +901,7 @@ class GameController extends ChangeNotifier {
   }
 
   /// Why the guide recommends [recommendedCall] — shown under the call prompt.
+  @override
   String? get recommendedCallReason => _humanCallAdvice?.reason;
 
   bool get isHumanTurn =>
@@ -889,6 +911,7 @@ class GameController extends ChangeNotifier {
 
   /// True when the human seat is tenpai but in furiten, so ron is unavailable
   /// (tsumo still is). Drives the FURITEN marker on the hand bar and placard.
+  @override
   bool get humanFuriten => !round.finished && round.isFuriten(kHumanSeat);
 
   /// The tile the auto-player would discard on the human's turn (for the green

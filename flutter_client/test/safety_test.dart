@@ -84,8 +84,31 @@ void main() {
 
       expect(find.text('Safety vs Grant (riichi only)'), findsOneWidget);
       expect(find.text('Genbutsu (riichi only)'), findsOneWidget);
-      expect(find.textContaining('their own discards'), findsOneWidget);
       expect(find.textContaining('riichi opponent only'), findsOneWidget);
+      // The glossary no longer restates what genbutsu is; the rating's own
+      // label in the table carries it.
+      expect(find.textContaining('their own discards'), findsNothing);
+      // Every mention of Expected Value explains the number on hover: the
+      // column heading, the glossary entry, and each row's own cell.
+      Finder evTips({bool worked = false}) => find.byWidgetPredicate((w) {
+            if (w is! Tooltip) return false;
+            final t = w.richMessage?.toPlainText() ?? '';
+            return t.contains('EV  =  chance of finishing') &&
+                t.contains('THIS CUT') == worked;
+          });
+      expect(evTips(), findsNWidgets(2), reason: 'heading and glossary');
+      expect(evTips(worked: true), findsNWidgets(report.lines.length),
+          reason: 'one per discard row');
+
+      // The general explainer surfaces, in plain English rather than symbols.
+      tester.state<TooltipState>(evTips().first).ensureTooltipVisible();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('The average points this discard is worth'),
+          findsOneWidget);
+      expect(find.textContaining('EV  =  chance of finishing'), findsOneWidget);
+      // Generalised: no tenpai/pre-tenpai split and no raw coefficients.
+      expect(find.textContaining('pre-tenpai'), findsNothing);
+      expect(find.textContaining('5800'), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       await tester.pumpWidget(const SizedBox());

@@ -12,13 +12,22 @@
   probability-weighted point value. Tenpai EV uses yaku/han/fu scoring, visible
   dora, dealer status, live wait counts, estimated ron/tsumo opportunities, and
   the riichi deposit; earlier shapes use projected completion probability and
-  hand value. Best-efficiency, best-EV, and recommended discards are marked,
-  together with a riichi/damaten plan.
+  hand value. Honba (300 a stick to the winner) and the riichi deposits
+  already on the table (1000 each) ride on the win, so they are added to the
+  payout before it is weighted by win probability — never to the hand's own
+  value, so they cannot change which shape is worth chasing. Best-efficiency,
+  best-EV, and recommended discards are marked, together with a riichi/damaten
+  plan.
 - A **defensive panel** when an opponent declares riichi: each of your tiles is
   ranked 0–15 (genbutsu / suji / one-chance / honor-by-copies) with a short
   explanation, and the recommendation switches to the safest discard. Scores
   refer only to the named riichi opponent: genbutsu includes their own discards
   (even before riichi) and other players' discards they passed after riichi.
+  Every discard is also priced: its deal-in chance (from that 0–15 rating)
+  times what a riichi hand pays, plus the turns that choosing it commits you
+  to — subtracted from its expected value and shown in a Risk column. Push and
+  fold then fall out of the numbers, with no separate rule: the recommendation
+  is always simply the best expected value.
 - **Call advice** on every pon / kan / ron offer: each option is scored through
   the same expected-value model as the discard table (the state it leaves you
   in, once melds are counted), then filtered by three hard rules — a call must
@@ -26,6 +35,15 @@
   riichi is out and you are still behind. The panel shows the verdict and why.
 - Hand scoring at the end of a round: yaku list, han/fu, dora/ura/aka, limit
   hands and yakuman, and the point transfers.
+- A **Custom Hand & Context Builder**, reached from the start screen and
+  isolated from the game: it poses a [`Round`](lib/logic/round.dart) by hand
+  rather than playing one, then feeds the same `EfficiencyEngine` the live
+  guide uses. You set your concealed tiles and calls, every seat's pond and
+  melds, the dora indicators, wall count, round wind, honba/sticks, and each
+  seat's riichi (and which discard declared it). The tile palette enforces four
+  copies of anything across the whole table. Genbutsu on a posed table is
+  derived from discard order — a seat's own pond, plus other seats' discards
+  that fall later in turn order than the declaration.
 - An **Autoplay** toggle that plays your seat from that same guide — the
   recommended discard, its riichi/damaten verdict, its call advice and its
   concealed-kan verdict. It never falls back to the opponents' heuristic; see

@@ -10,12 +10,17 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
 
 - **Expected Value (EV) = how likely this hand is to finish × what it pays,
   minus a couple of risk penalties.** It's in points, not a shanten count.
-- Every legal discard gets its own EV. The guide recommends the **highest-EV**
-  one — except when an opponent is in riichi and you are not yet tenpai, when it
-  recommends the **safest** tile instead.
+- Every legal discard gets its own EV — including discards that step *back* a
+  shanten, which is what folding usually costs — and every discard is charged
+  what it risks: while an opponent is in riichi, its chance of dealing in times
+  what that hand would cost you, plus the turns choosing it commits you to.
+- The guide recommends the **highest-EV** discard. Always — at tenpai and
+  before it, defending or not. Push and fold fall out of the numbers rather
+  than from a switch.
 - Two different estimators depending on where the hand sits:
-  - **Not yet tenpai:** a rough "will I even get there, and roughly what will it
-    be worth" figure with flat placeholder point values.
+  - **Not yet tenpai:** a turn-by-turn walk of the hand towards a win — each
+    turn it may take a step, each step is narrower than the last, and each turn
+    the hand may end first — against flat placeholder point values.
   - **Tenpai:** the real thing — every wait scored with actual yaku / fu / han /
     dora, blended across ron vs. tsumo and by how many copies are still live.
 - Calls (chi / pon / kan) and "just pass" are scored on the **same EV scale**,
@@ -65,26 +70,88 @@ one suit going, or a yakuhai triplet). No path → **EV = 0**, plan `YAKU NEEDED
 
 Then:
 
+Then `_winProbabilityFromShanten` walks the hand forward one turn at a time,
+tracking the chance it is still alive and still `s` steps from a win:
+
 ```
-draws        = max(1, (wallTilesRemaining + 3) / 4)      // your remaining draws
-improveRate  = min(1, ukeire / unseenTiles)              // chance one draw helps
-steps        = shanten + 1                               // improvements still needed
-drawsPerStep = draws / steps                             // draws are SHARED across the steps
-improveProb  = 1 − (1 − improveRate) ^ drawsPerStep
-completion   = improveProb ^ steps
-EV           = completion × projectedPoints
+draws  = max(1, (wallTilesRemaining + 3) / 4)     // your remaining draws
+scale  = ukeire / typicalUkeire[shanten]          // how wide this hand is
+                                                  // for its distance out
+
+// width of the step that leaves the hand at `to` shanten
+exponent  = waitInheritance + (1 − waitInheritance) × (to / shanten)
+width(to) = typicalUkeire[to] × scale ^ exponent
+rate(to)  = min(1, width(to) / unseenTiles)
+step(to)  = 1 − (1 − rate(to)) ^ (to == 0 ? 2 : 1)   // the win can be ronned
+
+// each turn: take a step or don't, then see whether the hand is still running
+repeat `draws` times:
+    mass moves s → s−1 with probability step(s−1);  reaching 0 is the win
+    everything not yet won ×= handSurvivesTurn
+
+EV = won × (projectedPoints + winBonus)
 ```
 
-`drawsPerStep` splitting the wall across the steps is the important bit: without
-it, a wide hand three tiles away looked likelier to finish than a narrow hand
-one tile away, which made "call vs. don't" meaningless.
+| constant | value | what it is |
+|---|---|---|
+| `typicalUkeire` | `[8, 20, 28, 35, 40, 44, 48]` by shanten | typical acceptance at each distance; index 0 is a finished hand's wait |
+| `handSurvivesTurn` | `0.955` | chance the hand is still running after one more of your turns |
+| `waitInheritance` | `0.5` | how much of a hand's width carries through to the wait it finishes on |
 
-`projectedPoints` is a flat stand-in until the hand is actually tenpai:
+Three things this gets right that the previous estimator did not:
+
+- **Acceptance narrows as the hand closes up.** The old version reused the
+  hand's *current* ukeire for every remaining step, so a wide hand two away was
+  scored as if it kept that width all the way to the wait. It doesn't — the last
+  step is hitting a wait, not picking up any useful tile.
+- **The hand can end before you get there.** Nothing modelled the other three
+  seats winning, or an exhaustive draw. This was the dominant error: a 2-shanten
+  hand with most of the wall left came out at **83–96%**.
+- **Distance matters more than width.** The old numbers were driven almost
+  entirely by ukeire, so a wide 2-shanten hand (89%) outscored a narrow
+  1-shanten one (42%) — the wrong way round.
+
+`handSurvivesTurn` is calibrated on the tenpai end, where the real numbers are
+firmest: an early riichi on a ryanmen wins a little over half the time. Off a
+full wall the pre-tenpai walk then gives roughly 35% from 1-shanten, 24% from 2,
+16% from 3 and 11% from 4 — each rung comfortably below tenpai's ~53%, which is
+the ordering that matters when the panel is ranking one discard against
+another.
+
+`projectedPoints` is what the hand is assumed to pay when it lands. If **any**
+discard leaves this same hand tenpai, that line is scored exactly — yaku, fu,
+dora and all — and its payout is used here too, so every line of a hand is
+quoted in the same money. Only when nothing reaches tenpai does it fall back to
+a flat table:
 
 | | dealer | non-dealer |
 |---|---|---|
 | closed | 5800 | 3900 |
 | open | 2900 | 2000 |
+
+A closed pre-tenpai line also owes the riichi deposit it intends to place:
+`(reachedTenpai − winProb) × 1000`, which is the same 1000 the tenpai lines are
+charged, payable when it declares and refunded when it wins. Without both of
+these a cheap hand's *backwards* lines were credited with an average hand's
+payout and billed no deposit, and the guide would recommend breaking its own
+tenpai to rebuild.
+
+### Every discard is scored, including backwards ones
+
+`efficiency_calc.dart` measures acceptance against **each line's own** shanten.
+Riichi-Trainer measures it against the best shanten on offer, because it only
+ever ranks optimal discards; that made every shanten-worsening discard report
+`ukeire = 0`, so folding — which usually means breaking your own shape — landed
+at a constant `EV = 0` instead of a real number. With that corrected a fold is
+scored as what it is: a worse hand you can still win with. Three things have to
+hold for the comparison to mean anything, and each is covered by a test:
+
+- a backwards line is priced off the same hand's payout, not a generic one;
+- a wide shape reaches tenpai sooner but is never handed a *wider wait* than an
+  ordinary hand, or a 1-shanten line could out-run the very same hand already
+  tenpai;
+- a sound tenpai is kept — while a three-tile tanki may still be worth trading
+  for a thirty-six-tile 1-shanten, which the numbers now say on their own.
 
 ## EV at tenpai  (`_assessTenpaiValue`, shanten = 0)
 
@@ -112,22 +179,63 @@ Pick a **plan** — first row that applies:
 Then the win chance:
 
 ```
-draws         = max(1, (wallTilesRemaining + 3) / 4)
-opportunities = draws × 2   if ron is possible   (someone's discard OR your draw can hit)
-              = draws × 1   otherwise
-hitRate       = liveWaits / unseenTiles
-winProb       = 1 − (1 − hitRate) ^ opportunities
-EV            = winProb × selectedPoints
+draws    = max(1, (wallTilesRemaining + 3) / 4)
+winProb  = winChanceOverTurns(liveWaits, unseenTiles, draws,
+                              ron possible ? 1.0 : 0.5)
+winBonus = 300 × honba + 1000 × riichiSticks
+EV       = winProb × (selectedPoints + winBonus)
 ```
+
+`winChanceOverTurns` is the same helper the pre-tenpai walk uses for its last
+step, so a hand does not jump in value the moment it reaches tenpai:
+
+```
+rate    = min(1, waitWidth / unseenTiles)
+perTurn = 1 − (1 − rate) ^ chancesPerTurn
+repeat `draws` times:
+    won   += alive × perTurn
+    alive ×= (1 − perTurn) × handSurvivesTurn
+```
+
+| constant | value | what it is |
+|---|---|---|
+| `winChancesPerTurn` | `1.0` | your draw plus whatever the table actually lets you ron |
+| `tsumoOnlyChancesPerTurn` | `0.5` | no yaku on the wait, so it has to be drawn |
+| `handSurvivesTurn` | `0.955` | shared with the pre-tenpai walk |
+
+The old version counted `draws × 2` independent shots and never asked whether
+the hand was still running, so an early riichi on a ryanmen read **93%**. It now
+reads about 53%, with a kanchan near a third and a tanki near a fifth — which is
+what riichi actually wins. `winChancesPerTurn` is well under the three discards
+a turn nominally offers, because anyone who reads the wait stops feeding it.
+
+`winBonus` is what the table pays the winner on top of the hand: a honba is
+worth 300 (300 straight from the discarder on ron, 100 from each of the three on
+tsumo), and every riichi deposit already on the table is worth 1000. It rides on
+the win, so it scales with `winProb` and never with the hand's own value — it
+cannot change which shape is worth chasing, only how much the chase is worth.
+A deposit *you* have not placed yet is not in here; see the riichi penalty
+below, which prices it against the hands you don't win.
 
 **Riichi penalties** — only applied when the guide is actually recommending
 riichi:
 
 - `EV −= (1 − winProb) × 1000` — the 1000-point stick you forfeit if you do not
   win.
-- If an opponent is *also* in riichi:
-  `EV −= (1 − winProb) × riichiDangerFactor × 4000` — the cost of being locked
-  into tsumogiri on a live board. A big enough hand still clears it.
+- If an opponent is *also* in riichi, the cost of being locked into tsumogiri on
+  a live board:
+
+  ```
+  EV −= turnsExposed × (riichiDangerFactor × maxDealInRate) × dealInBaseCost
+  ```
+
+  `turnsExposed` is how many turns the hand is expected to last, which
+  `winChanceOverTurns` already accumulates. This is the same arithmetic a single
+  dangerous discard is charged, repeated for every turn you can no longer fold —
+  which is exactly what declaring costs. It used to be a tuned
+  `(1 − winProb) × danger × 4000`, whose scale was implicitly calibrated against
+  win probabilities that ran near 0.9; once those were corrected the same
+  expression grew about eightfold and folded every tenpai hand.
 
 ### `riichiDangerFactor`  (0 = safe … 1 = dangerous)
 
@@ -135,6 +243,62 @@ The weighted-average danger of **every tile you might still draw and be forced
 to tsumogiri** under your own riichi, using the same 0–15 `safety.dart` rating
 the defensive panel uses, weighted by how many copies of each remain. It is
 purely a discount on your own riichi when someone else has already declared.
+
+## Deal-in cost  (charged on every discard, both estimators)
+
+While an opponent is in riichi, each line is charged what the cut itself can
+cost you, and the charge is subtracted from that line's EV:
+
+```
+dealInCost     = rate(safetyRating) × (baseCost + 300 × honba)
+commitmentCost = dealInCost × (turnsExposed − 1) × pushCommitment
+baseCost       = 5800   non-dealer riichi
+               = 8700   dealer riichi
+pushCommitment = 0.3
+```
+
+`dealInCost` is the tile in front of you. `commitmentCost` is the rest of the
+hand: cutting a live tile before tenpai is not one decision but the start of a
+policy — you keep discarding into the same riichi for as long as you stay in.
+The tile you pick is what says which policy you are on, so a genbutsu cut is
+charged nothing for the later turns and a live one is charged for all of them,
+at a discount because (unlike a declared riichi) you can still change your mind
+next turn. `turnsExposed` comes from the same walk that produces the win
+probability, and this works out at roughly two extra turns of risk on a typical
+push.
+
+It applies only before tenpai. At tenpai the equivalent is the riichi lock-in
+below — the same idea at full strength, because there you *cannot* change your
+mind.
+
+`rate` is keyed by the 0–15 `safety.dart` rating, and is monotonic by
+construction — a tile the safety model calls safer is never charged more:
+
+| rating | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| rate | .070 | .068 | .065 | .058 | .055 | .052 | .048 | .045 | .038 | .030 | .028 | .025 | .022 | .012 | .006 | .000 |
+
+So genbutsu is free, a non-suji middle tile is the worst ordinary cut at roughly
+one in fifteen, and suji / one-chance / thin honours fall between. The rates and
+the two base costs are tuned constants in the same spirit as the projected-point
+tables — enough to rank a push against a fold, not solver output.
+
+**Does this replace the fold switch?** Nearly. Across 600 random defending
+positions (`test/push_fold_sweep_test.dart`) the expected-value ranking alone
+reaches the switch's discard in over 99% of them. Charging only the tile in
+front of you left 3.7% disagreeing — every one of those the value model taking a
+materially more dangerous tile for a median of 43 points, because it priced one
+discard when the choice committed you to several. With `commitmentCost` that
+falls under 1%, and what remains is between tiles of near-equal danger (safety 6
+against 7) where the value model prefers the better shape, rather than a fold
+being overruled. The test bounds both the rate and the worst safety gap.
+
+**The switch is gone.** With both charges in place the recommendation is simply
+the best expected value everywhere. `push_fold_sweep_test.dart` holds the
+resulting behaviour to account over 600 random defending positions: where a
+genbutsu existed the guide took it in **513 of 513**, and it picked the safest
+available tile in **595 of 600** — the five exceptions being hands with nothing
+safe in them at all, where it chose between tiles of near-identical danger.
 
 ## Calls, kan, ron, tsumo  (`adviseCall`)
 
@@ -156,9 +320,21 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 ## What the panel shows
 
 - **Expected Value** column = `DiscardLine.expectedValue`, rounded.
+- **Risk** column = `DiscardLine.riskCost` — the charge on the tile itself plus
+  the turns it commits you to, both already taken off the value beside it.
+  Shown only while defending.
 - The value / "average" figure = `averagePoints` — what it pays *if* you win,
   before multiplying by the win chance.
 - The plan tag and reason string come straight from `_ValueAssessment`.
+- Hovering any mention of Expected Value — the column heading, the glossary
+  entry, or a single row's cell — explains the number in plain English. On a row
+  it also shows that line's own arithmetic. The terms it prints are exposed on
+  `DiscardLine` and reconstruct the number exactly:
+
+  ```
+  expectedValue = winProbability × (averagePoints + winBonus)
+                  − riichiLockCost − dealInCost − commitmentCost
+  ```
 
 ## Known simplifications (by design)
 
@@ -170,8 +346,12 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
   chankan.
 - One exchange of lookahead — no deep search.
 - The `0.65 / 0.35` ron/tsumo split, the projected-point tables, the `1000` and
-  `4000` penalty scales, and the `5200 / 7700` damaten thresholds are tuned
-  constants, not derived.
+  `4000` penalty scales, the `5200 / 7700` damaten thresholds, and the deal-in
+  rate table with its `5800 / 8700` base costs are tuned constants, not derived.
+- Neither estimator credits **calling**. Advancing steps are drawn-only, so an
+  open hand that pons its way home is undersold. This is the main reason the
+  absolute pre-tenpai numbers sit below the ~21% a hand wins on average, even
+  though the ordering between hands is right.
 
 ## Where it lives
 
