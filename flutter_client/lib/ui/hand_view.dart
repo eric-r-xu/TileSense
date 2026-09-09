@@ -25,6 +25,12 @@ class HandView extends StatefulWidget {
   /// tile highlights.
   final bool showGuide;
 
+  /// Height of the bar's bottom band: the tile row (whose height the TileSense
+  /// button beside it sets, at 104px — taller than a `large` face at
+  /// [_HandViewState._handScale]) plus the bar's 10px bottom padding. The
+  /// efficiency overlay stops above this band so it never covers a tile.
+  static const double tileRowBandHeight = 114;
+
   @override
   State<HandView> createState() => _HandViewState();
 }
@@ -241,19 +247,34 @@ class _HandViewState extends State<HandView> {
     return Tooltip(
       message: _autoSort ? 'Auto-sort: on' : 'Auto-sort: off (draw order)',
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
         onTap: () => setState(() => _autoSort = !_autoSort),
         child: Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             color:
                 _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            _autoSort ? Icons.sort : Icons.sort_outlined,
-            size: 15,
-            color: _autoSort ? Colors.white : Colors.white60,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _autoSort ? Icons.sort : Icons.sort_outlined,
+                size: 30,
+                color: _autoSort ? Colors.white : Colors.white60,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Sort Tiles',
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                  color: _autoSort ? Colors.white : Colors.white60,
+                ),
+              ),
+            ],
           ),
         ),
       ),

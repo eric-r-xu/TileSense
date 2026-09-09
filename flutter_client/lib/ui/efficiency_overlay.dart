@@ -10,9 +10,17 @@ import 'tile_face.dart';
 /// riichi — and, when a call is on offer, the recommended response.
 class EfficiencyOverlay extends StatefulWidget {
   const EfficiencyOverlay(
-      {super.key, required this.game, required this.report});
+      {super.key,
+      required this.game,
+      required this.report,
+      this.maxHeight = 628});
   final GameController game;
   final EfficiencyReport report;
+
+  /// How far the panel may run down the screen before its inner ScrollView
+  /// takes over. Callers pass the space actually available above the hand bar;
+  /// the default matches the 820px design canvas.
+  final double maxHeight;
 
   @override
   State<EfficiencyOverlay> createState() => _EfficiencyOverlayState();
@@ -31,11 +39,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       borderRadius: BorderRadius.circular(10),
       child: Container(
         width: panelWidth,
-        // Tall enough to reach the hand bar's darker band below (design
-        // canvas height 820, minus the 56px AppBar, the ~120px hand bar,
-        // and the 8px top/bottom margins) — the inner ScrollView still
-        // handles anything taller than that.
-        constraints: const BoxConstraints(maxHeight: 628),
+        // Runs down to just above the hand bar, whatever the window height —
+        // the inner ScrollView still handles anything taller than that.
+        constraints:
+            BoxConstraints(maxHeight: widget.maxHeight.clamp(200.0, 4000.0)),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
