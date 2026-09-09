@@ -16,7 +16,9 @@
   together with a riichi/damaten plan.
 - A **defensive panel** when an opponent declares riichi: each of your tiles is
   ranked 0–15 (genbutsu / suji / one-chance / honor-by-copies) with a short
-  explanation, and the recommendation switches to the safest discard.
+  explanation, and the recommendation switches to the safest discard. Scores
+  refer only to the named riichi opponent: genbutsu includes their own discards
+  (even before riichi) and other players' discards they passed after riichi.
 - **Call advice** on every pon / kan / ron offer: each option is scored through
   the same expected-value model as the discard table (the state it leaves you
   in, once melds are counted), then filtered by three hard rules — a call must

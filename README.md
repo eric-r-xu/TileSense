@@ -53,7 +53,9 @@ Details, emulator/simulator launch, and release/store builds are in
   riichi/damaten plan at tenpai.
 - A **defensive panel** when an opponent is in riichi: each tile rated 0–15
   (genbutsu / suji / one-chance / honor-by-copies) with a short reason; the
-  recommendation switches to the safest discard.
+  recommendation switches to the safest discard. Scores refer only to the
+  named riichi opponent: genbutsu includes their own discards (even before
+  riichi) and other players' discards they passed after declaring riichi.
 - End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
   yakuman, and the point transfers.
 - An **Autoplay** toggle that plays your seat with the recommended discard.

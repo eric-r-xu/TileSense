@@ -39,6 +39,10 @@ class SeatState {
   /// tiles that were later called away, so own-discard furiten still applies.
   final List<Tile> allDiscards = [];
 
+  /// Other players' discards that cleared the ron window after this seat
+  /// declared riichi. Kept even if subsequently called into a meld.
+  final Set<TileType> passedDiscardsAfterRiichi = {};
+
   /// Temporary furiten: set when this seat passed up a winning tile (any
   /// player's discard that completed its wait) and cleared on this seat's next
   /// draw. While the seat is in riichi the same miss instead latches
@@ -347,6 +351,14 @@ class Round {
     }
   }
 
+  void _registerPassedDiscard(Tile discard, int discarder) {
+    for (final s in seats) {
+      if (s.seat != discarder && s.riichi) {
+        s.passedDiscardsAfterRiichi.add(discard.type);
+      }
+    }
+  }
+
   bool _anyRiichiDiscardTenpai(SeatState s) {
     for (var i = 0; i < s.hand.length; i++) {
       final rest = [...s.hand]..removeAt(i);
@@ -413,6 +425,7 @@ class Round {
     if (callOptions.isEmpty) {
       // No one can act on it, so no one is claiming it: register the miss now.
       _registerMissedRon(tile, seat);
+      _registerPassedDiscard(tile, seat);
       phase = RoundPhase.drawing;
       _advanceTurn();
     } else {
@@ -476,6 +489,8 @@ class Round {
     // permanently if it is in riichi, otherwise until its next draw. This runs
     // even when the tile is then ponned/kanned: the missed ron still counts.
     _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
+
+    _registerPassedDiscard(pendingDiscard!, pendingDiscardSeat);
 
     int? kanSeat;
     int? ponSeat;
@@ -670,7 +685,8 @@ class Round {
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     for (final w in ronners) {
       final s = seats[w];
-      final score = _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
+      final score =
+          _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
       firstScore ??= score;
       deltas[w] = deltas[w]! + score.points + honba * 300;
       deltas[discarder] = deltas[discarder]! - score.points - honba * 300;
@@ -699,9 +715,8 @@ class Round {
       ],
       winTiles: {for (final w in ronners) w: discard},
       pointDeltas: _handDeltas(),
-      label: ronners.length > 1
-          ? 'Multiple Ron'
-          : (chankan ? 'Chankan' : 'Ron'),
+      label:
+          ronners.length > 1 ? 'Multiple Ron' : (chankan ? 'Chankan' : 'Ron'),
     );
     _postFinish(dealerRepeat: dealerWins);
   }

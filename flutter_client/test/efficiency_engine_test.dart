@@ -13,7 +13,7 @@ void main() {
     List<TileType> doraIndicators = const [],
     bool opponentRiichi = false,
     List<TileType> opponentDiscards = const [],
-    List<TileType> allDiscards = const [],
+    List<TileType> passedDiscardsAfterRiichi = const [],
     int wallTilesRemaining = 40,
   }) {
     final hand = parseTiles('123m 456m 789m 34p 55p 9s');
@@ -21,7 +21,7 @@ void main() {
     for (final indicator in doraIndicators) {
       visible[indicator.index - 1]++;
     }
-    for (final t in {...opponentDiscards, ...allDiscards}) {
+    for (final t in {...opponentDiscards, ...passedDiscardsAfterRiichi}) {
       visible[t.index - 1]++;
     }
 
@@ -40,7 +40,7 @@ void main() {
       ),
       opponentRiichi: opponentRiichi,
       opponentDiscards: opponentDiscards,
-      allDiscards: allDiscards,
+      passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
     );
     return report.lines.singleWhere((line) => line.discard == discard);
   }
@@ -129,7 +129,7 @@ void main() {
       canRiichi: true,
       opponentRiichi: true,
       opponentDiscards: knownSafe,
-      allDiscards: knownSafe,
+      passedDiscardsAfterRiichi: knownSafe,
     );
 
     expect(informed.expectedValue, greaterThan(blind.expectedValue));
@@ -137,8 +137,7 @@ void main() {
 
   test(
       'more draws left still recommends riichi against a live opponent '
-      'riichi, and is worth more than fewer draws under the same danger',
-      () {
+      'riichi, and is worth more than fewer draws under the same danger', () {
     // Same hand, same board danger, same points on offer — just more
     // chances left to actually hit the wait. Higher win probability both
     // raises the payoff term and shrinks the risk terms (they scale by

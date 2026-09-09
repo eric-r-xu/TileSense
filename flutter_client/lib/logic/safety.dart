@@ -19,21 +19,22 @@ class SafetyRating {
 
 /// Rank each distinct tile type in [hand] for safety against the riichi player.
 ///
-/// - [opponentDiscards]: the riichi player's own discard pond.
-/// - [allDiscards]: every player's discards (genbutsu also covers tiles others
-///   discarded after the declaration without being ronned).
+/// - [opponentDiscards]: all of the riichi player's own discards, including
+///   those before riichi and those called into melds.
+/// - [passedDiscardsAfterRiichi]: other players' discards that cleared the ron
+///   window after this opponent's declaration. Never pass earlier discards.
 /// - [visibleCounts34]: how many of each tile type are visible anywhere
 ///   (discards, melds, dora indicators, own hand) — length 34.
 List<SafetyRating> rankSafety(
   List<Tile> hand, {
   required List<TileType> opponentDiscards,
-  required List<TileType> allDiscards,
+  required List<TileType> passedDiscardsAfterRiichi,
   required List<int> visibleCounts34,
 }) {
   final seen = <TileType>{};
   final out = <SafetyRating>[];
 
-  final genbutsu = {...opponentDiscards, ...allDiscards};
+  final genbutsu = {...opponentDiscards, ...passedDiscardsAfterRiichi};
 
   for (final tile in hand) {
     if (!seen.add(tile.type)) continue;
@@ -50,7 +51,7 @@ SafetyRating _rate(
   List<int> visible,
 ) {
   if (genbutsu.contains(t)) {
-    return SafetyRating(t, 15, 'genbutsu (in discards)');
+    return SafetyRating(t, 15, 'Genbutsu (riichi only)');
   }
 
   if (t.isHonor) {
