@@ -84,6 +84,28 @@ lib/
 test/                     shanten / ukeire / EV / scoring / round / widget tests
 ```
 
+## Web and mobile
+
+The whole UI is one fixed 1600×820 canvas scaled to fit, so nothing reflows —
+which also means every device-specific concern is settled in `_FixedCanvas`.
+
+- The canvas is fitted **inside the safe area**, not under it. A notched iPhone
+  in landscape insets ~59px on the cutout side, which is more than the letterbox
+  bars this aspect ratio leaves, so without it the guide panel's outer edge sits
+  under the notch. The letterbox colour fills the inset.
+- **Pinch to zoom** on touch platforms only, up to 4×, clamped to fit at the
+  bottom. Panning turns on only once you have zoomed in, so at rest a one-finger
+  drag still belongs to the hand strip and the builder's tile palette. Desktop
+  is left alone deliberately.
+- `touch-action: none` in `web/index.html`, because iOS has ignored
+  `user-scalable=no` since iOS 10 — without it Safari's own pinch stacks on top
+  of the app's. Every iOS browser is WebKit, so this covers Chrome and Firefox
+  on iPhone too.
+- Browser zoom (⌘/Ctrl +/−) is a no-op by design: it changes the device pixel
+  ratio, and the canvas simply re-fits into the new viewport.
+
+`test/canvas_fit_test.dart` covers all of it.
+
 ## Run
 
 Install the [Flutter SDK](https://docs.flutter.dev/get-started/install), then:

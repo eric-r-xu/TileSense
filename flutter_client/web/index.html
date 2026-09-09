@@ -45,6 +45,19 @@
       padding: 0;
       overflow: hidden;
       background: #042020; /* matches kLetterboxColor so there's no flash */
+
+      /* iOS has ignored user-scalable=no since iOS 10, so Safari's own
+         pinch-zoom would otherwise stack on top of the app's — pinch once and
+         you zoom twice, with the page able to scroll away from the canvas.
+         touch-action tells the browser this element handles its own gestures,
+         which leaves the pinch to Flutter. Every iOS browser is WebKit, so this
+         covers Chrome and Firefox on iPhone too. Android's Chrome already
+         honours user-scalable=no; this is harmless there.
+
+         The app never scrolls the page — it is one fixed canvas — so taking
+         the browser's touch gestures away costs nothing. */
+      touch-action: none;
+      overscroll-behavior: none;
     }
   </style>
 </head>
