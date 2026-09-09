@@ -15,6 +15,43 @@ import 'tile.dart';
 ///
 /// Ura-dora and situational yaku are deliberately omitted: they are either
 /// hidden information or cannot be known for a hypothetical future win.
+/// How much weight to give what a discard can cost you, against what the hand
+/// can win. It scales every risk the guide charges — the danger of the tile
+/// itself, the turns pushing it commits you to, and the cost of locking into a
+/// riichi — so one dial moves push/fold, riichi/damaten and call/pass together
+/// without changing what any hand is actually worth.
+enum PlayStyle {
+  /// Folds early and cheaply, and keeps a good hand quiet rather than locking
+  /// it into a riichi.
+  defensive(riskWeight: 2.0, damatenBar: 0.55, label: 'Defensive'),
+
+  /// The reference model: risk charged at what it is estimated to cost, and
+  /// damaten reserved for hands that are already worth a mangan-ish ron.
+  balanced(riskWeight: 1.0, damatenBar: 1.0, label: 'Balanced'),
+
+  /// Pushes thin hands and declares on almost anything; treats the same danger
+  /// as costing about half.
+  aggressive(riskWeight: 0.45, damatenBar: 2.0, label: 'Aggressive');
+
+  const PlayStyle({
+    required this.riskWeight,
+    required this.damatenBar,
+    required this.label,
+  });
+
+  /// Multiplier applied to every risk charge.
+  final double riskWeight;
+
+  /// Multiplier on how much a hand must already be worth for damaten to beat
+  /// riichi. Below 1 takes damaten readily — quiet, flexible, still able to
+  /// fold; above 1 pushes almost everything into a riichi.
+  final double damatenBar;
+
+  final String label;
+
+  PlayStyle get next => PlayStyle.values[(index + 1) % PlayStyle.values.length];
+}
+
 class EfficiencyValueContext {
   const EfficiencyValueContext({
     required this.melds,
@@ -26,6 +63,7 @@ class EfficiencyValueContext {
     required this.doraIndicators,
     this.honba = 0,
     this.riichiSticks = 0,
+    this.style = PlayStyle.balanced,
   });
 
   final List<Meld> melds;
@@ -39,6 +77,9 @@ class EfficiencyValueContext {
   /// Repeat counter. Worth 300 to whoever wins the hand — 300 straight from
   /// the discarder on ron, 100 from each of the three on tsumo.
   final int honba;
+
+  /// How heavily to weigh danger against value. See [PlayStyle].
+  final PlayStyle style;
 
   /// Riichi deposits already on the table, collected whole by the winner.
   /// A deposit you have not placed yet is not in here; the cost of placing one
@@ -315,10 +356,11 @@ class EfficiencyEngine {
       );
       final safety = safeByType[r.discard];
       final dealInCost = _dealInPenalty(
-        safety: safety,
-        opponentIsDealer: opponentIsDealer,
-        honba: valueContext.honba,
-      );
+            safety: safety,
+            opponentIsDealer: opponentIsDealer,
+            honba: valueContext.honba,
+          ) *
+          valueContext.style.riskWeight;
       // The tile you choose says whether you are folding or pushing, so it also
       // prices the turns that choice commits you to. A genbutsu cut commits you
       // to nothing; a live one commits you to more of the same.
@@ -1426,7 +1468,8 @@ class EfficiencyEngine {
     damaPoints /= liveWaits;
     riichiPoints /= liveWaits;
     final damatenMinimum =
-        context.isDealer ? _dealerDamatenMinPoints : _damatenMinPoints;
+        (context.isDealer ? _dealerDamatenMinPoints : _damatenMinPoints) *
+            context.style.damatenBar;
     final qualifyingDamaten = everyDamaRon && minimumDamaRon >= damatenMinimum;
 
     late final String plan;
@@ -1503,7 +1546,8 @@ class EfficiencyEngine {
         final perDiscard = riichiDangerFactor * _dealInRateByRating.first;
         lockCost += outlook.turns *
             perDiscard *
-            (opponentIsDealer ? _dealerDealInCost : _dealInCost);
+            (opponentIsDealer ? _dealerDealInCost : _dealInCost) *
+            context.style.riskWeight;
       }
       expectedValue -= lockCost;
     }
@@ -1516,6 +1560,11 @@ class EfficiencyEngine {
       reason: reason,
       winProbability: winProbability,
       riichiLockCost: lockCost,
+      // Staying tenpai without declaring still commits you to discarding for
+      // the rest of the hand — less than a riichi does, since you can still
+      // back out, but not nothing. Declaring is priced by [riichiLockCost]
+      // instead, so only one of the two ever applies.
+      turnsExposed: recommendRiichi ? 0 : outlook.turns,
     );
   }
 

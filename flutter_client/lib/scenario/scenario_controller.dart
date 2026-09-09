@@ -117,6 +117,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       doraIndicators: scenario.dora,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
+      style: scenario.style,
     );
 
     if (scenario.isDiscardRead) {

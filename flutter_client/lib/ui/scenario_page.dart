@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
+import '../../main.dart' show playStyleColor;
 import '../logic/meld.dart';
 import '../logic/tile.dart';
 import '../scenario/scenario.dart';
@@ -257,6 +258,17 @@ class _ScenarioPageState extends State<ScenarioPage> {
         ],
       ),
       actions: [
+        TextButton(
+          key: const Key('builderPlayStyle'),
+          onPressed: () => _edit((sc) => sc.style = sc.style.next),
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            foregroundColor: playStyleColor(s.style),
+          ),
+          child: Text(s.style.label,
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        ),
         _windPicker(),
         const SizedBox(width: 8),
         _stepper('Wall', s.wallRemaining,

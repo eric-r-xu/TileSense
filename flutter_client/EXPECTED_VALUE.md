@@ -17,6 +17,10 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
 - The guide recommends the **highest-EV** discard. Always — at tenpai and
   before it, defending or not. Push and fold fall out of the numbers rather
   than from a switch.
+- A **play style** — defensive, balanced or aggressive — scales every risk
+  charge and how readily a hand is kept quiet. It never changes what a hand is
+  worth, only what danger costs, and it steers Autoplay through the same
+  scores.
 - Two different estimators depending on where the hand sits:
   - **Not yet tenpai:** a turn-by-turn walk of the hand towards a win — each
     turn it may take a step, each step is narrower than the last, and each turn
@@ -299,6 +303,36 @@ resulting behaviour to account over 600 random defending positions: where a
 genbutsu existed the guide took it in **513 of 513**, and it picked the safest
 available tile in **595 of 600** — the five exceptions being hands with nothing
 safe in them at all, where it chose between tiles of near-identical danger.
+
+## Play style  (`PlayStyle`)
+
+One dial on `EfficiencyValueContext`, applied to every score the engine
+produces — the discard table, call advice, kan advice, and therefore Autoplay,
+which plays the recommended line.
+
+| style | risk × | damaten bar × |
+|---|---|---|
+| Defensive | 2.0 | 0.55 |
+| Balanced | 1.0 | 1.0 |
+| Aggressive | 0.45 | 2.0 |
+
+**Risk weight** multiplies the deal-in charge on a tile, the commitment charge
+for the turns it takes on, and the riichi lock-in. It moves push against fold
+without touching `averagePoints` — the hand is worth what it is worth, only
+danger is repriced.
+
+**Damaten bar** multiplies how much a hand must already pay for damaten to beat
+riichi. Below 1 the hand is kept quiet more often, which is the defensive line
+because a quiet hand can still fold; above 1 almost everything is declared. This
+is what makes the styles differ on a calm table, where there is no danger to
+reprice.
+
+The two interact, and that interaction had to be paid for: making damaten easier
+dodges the riichi lock-in, which briefly made *defensive* the style most willing
+to push a tenpai. A tenpai hand that stays quiet is now charged the ordinary
+commitment cost for the turns it stays in, so only one of the two ever applies
+and the ordering holds. `test/play_style_test.dart` pins that ordering down,
+here and over 400 random defending tables.
 
 ## Calls, kan, ron, tsumo  (`adviseCall`)
 

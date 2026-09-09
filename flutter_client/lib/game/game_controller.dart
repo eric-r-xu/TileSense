@@ -85,6 +85,19 @@ class GameController extends ChangeNotifier implements GuideHost {
     notifyListeners();
   }
 
+  /// How the guide weighs danger against value. Feeds every score it produces,
+  /// so it steers Autoplay — which plays from those scores — as well as the
+  /// panel.
+  PlayStyle playStyle = PlayStyle.balanced;
+  void setPlayStyle(PlayStyle value) {
+    if (playStyle == value) return;
+    playStyle = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'play_style', value: value.name);
+    _refreshReport();
+    notifyListeners();
+  }
+
   /// Hanchan (East + South, 8 hands) when true; East-only (tonpuusen, 4 hands)
   /// when false. Hanchan is the default.
   bool hanchan = true;
@@ -795,6 +808,7 @@ class GameController extends ChangeNotifier implements GuideHost {
         doraIndicators: round.wall.doraIndicators(),
         honba: round.honba,
         riichiSticks: round.riichiSticks,
+        style: playStyle,
       );
 
   SeatState? _riichiOpponent() {

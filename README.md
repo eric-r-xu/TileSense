@@ -66,6 +66,10 @@ Details, emulator/simulator launch, and release/store builds are in
 - End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
   yakuman, and the point transfers.
 - An **Autoplay** toggle that plays your seat with the recommended discard.
+- A **play style** — defensive, balanced or aggressive — that changes how
+  dearly the guide prices danger and how readily it keeps a hand quiet rather
+  than declaring riichi. It never changes what a hand is worth, and it steers
+  Autoplay through the same scores.
 - A **Custom Hand & Context Builder**, on its own screen from the start
   page: pose any table by hand — your tiles, every seat's discards and calls,
   the dora indicators, the wall counter and who is in riichi — and the same
