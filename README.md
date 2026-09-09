@@ -72,8 +72,8 @@ Details, emulator/simulator launch, and release/store builds are in
   Autoplay through the same scores.
 - A **Custom Hand & Context Builder**, on its own screen from the start
   page: pose any table by hand — your tiles, every seat's discards and calls,
-  the dora indicators, the wall counter and who is in riichi — and the same
-  guide scores it. A 14-tile hand gets a discard recommendation; 13 tiles plus
+  the dora indicators, the wall counter, your seat wind (East deals) and who is
+  in riichi — and the same guide scores it. A 14-tile hand gets a discard recommendation; 13 tiles plus
   a tile on offer gets a call recommendation. Nothing on the table can exceed
   four copies, and it runs no game behind it: no bots, no turn timer, no
   autoplay.

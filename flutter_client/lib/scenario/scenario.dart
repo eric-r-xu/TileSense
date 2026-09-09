@@ -57,6 +57,10 @@ class Scenario {
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;
+
+  /// Which seat holds the dealership. Rather than set this directly, set
+  /// [seatWind] — where the button sits is what fixes everyone's wind, and
+  /// being East is what makes you the dealer.
   int dealer = 0;
   int honba = 0;
   int riichiSticks = 0;
@@ -65,6 +69,15 @@ class Scenario {
   /// Null in the 14-tile discard read.
   Tile? offered;
   int offeredFrom = 1;
+
+  /// Your own seat wind. It decides your seat's yakuhai, and — when it is East
+  /// — that you are the dealer, worth half again on a win and more to deal
+  /// into. [Round.posed] derives every seat's wind from [dealer], so this is
+  /// the same setting read from the other end.
+  Wind get seatWind => Wind.values[(4 - dealer) % 4];
+  set seatWind(Wind wind) => dealer = (4 - wind.index) % 4;
+
+  bool get isDealer => dealer == kHumanSeat;
 
   int _nextId = 0;
   Tile mint(TileType type, {bool aka = false}) =>
@@ -208,5 +221,7 @@ class Scenario {
     wallRemaining = 70;
     honba = 0;
     riichiSticks = 0;
+    // Round wind, seat wind and play style are settings, not table state —
+    // clearing the tiles leaves them where you put them.
   }
 }

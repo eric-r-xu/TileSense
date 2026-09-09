@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tilesense/game/game_controller.dart' show kHumanSeat;
 import 'package:tilesense/logic/meld.dart';
 import 'package:tilesense/logic/round.dart';
 import 'package:tilesense/logic/tile.dart';
@@ -190,6 +191,62 @@ void main() {
         s.offeredFrom = 2;
       });
       expect(c.blockedReason, contains('cannot call'));
+    });
+  });
+
+  group('your seat wind', () {
+    test('setting it moves the dealer button, and East is the dealer', () {
+      final s = Scenario();
+      expect(s.seatWind, Wind.east, reason: 'you start as dealer');
+      expect(s.isDealer, isTrue);
+      expect(s.dealer, kHumanSeat);
+
+      for (final wind in [Wind.south, Wind.west, Wind.north, Wind.east]) {
+        s.seatWind = wind;
+        expect(s.seatWind, wind, reason: 'round-trips through the dealer seat');
+        expect(s.isDealer, wind == Wind.east);
+      }
+    });
+
+    test('the table and the guide both see it', () {
+      final c = ScenarioController();
+      c.edit((s) {
+        fill(s, s.hand, '1m 234m 567m 99s 78p 33p W');
+        s.dora
+          ..clear()
+          ..add(TileType.pei);
+        s.seatWind = Wind.south;
+      });
+      expect(c.round.seats[kHumanSeat].wind, Wind.south);
+      expect(c.round.seats[kHumanSeat].isDealer, isFalse);
+      final asSouth = c.report.lines.firstWhere((l) => l.recommended);
+
+      c.edit((s) => s.seatWind = Wind.east);
+      expect(c.round.seats[kHumanSeat].wind, Wind.east);
+      expect(c.round.seats[kHumanSeat].isDealer, isTrue);
+      final asDealer = c.report.lines.firstWhere((l) => l.recommended);
+
+      // Dealer hands pay half again, so the same tiles are worth more.
+      expect(asDealer.averagePoints, greaterThan(asSouth.averagePoints));
+      expect(asDealer.expectedValue, greaterThan(asSouth.expectedValue));
+    });
+
+    testWidgets('the builder exposes it', (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const Key('openBuilder')));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Seat 東 ★'), findsOneWidget, reason: 'dealer by default');
+      await tester.tap(find.byKey(const Key('seatWind')));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Seat 南'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
   });
 

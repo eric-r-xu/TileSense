@@ -39,8 +39,9 @@
   isolated from the game: it poses a [`Round`](lib/logic/round.dart) by hand
   rather than playing one, then feeds the same `EfficiencyEngine` the live
   guide uses. You set your concealed tiles and calls, every seat's pond and
-  melds, the dora indicators, wall count, round wind, honba/sticks, and each
-  seat's riichi (and which discard declared it). The tile palette enforces four
+  melds, the dora indicators, wall count, round wind, your own seat wind (East
+  makes you the dealer, worth half again on a win), honba/sticks, the play
+  style, and each seat's riichi (and which discard declared it). The tile palette enforces four
   copies of anything across the whole table. Genbutsu on a posed table is
   derived from discard order — a seat's own pond, plus other seats' discards
   that fall later in turn order than the declaration.
