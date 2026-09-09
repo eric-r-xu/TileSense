@@ -9,7 +9,8 @@ import 'tile_face.dart';
 /// table — with two extra safety columns folded in while an opponent is in
 /// riichi — and, when a call is on offer, the recommended response.
 class EfficiencyOverlay extends StatefulWidget {
-  const EfficiencyOverlay({super.key, required this.game, required this.report});
+  const EfficiencyOverlay(
+      {super.key, required this.game, required this.report});
   final GameController game;
   final EfficiencyReport report;
 
@@ -55,6 +56,16 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                             style: const TextStyle(color: Colors.white70))
                       else ...[
                         if (r.tenpai) _planReason(r.lines.first),
+                        if (r.defending &&
+                            widget.game.safetyOpponentSeat != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              'Safety vs ${seatDisplayName(widget.game.safetyOpponentSeat!)} (riichi only)',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 9),
+                            ),
+                          ),
                         _efficiencyTable(r),
                       ],
                       const SizedBox(height: 10),
@@ -247,9 +258,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                             fontWeight: FontWeight.w700)),
                     Text('Recommended: $recLabel',
                         style: TextStyle(
-                            color: act
-                                ? const Color(0xff9ccc65)
-                                : Colors.white,
+                            color: act ? const Color(0xff9ccc65) : Colors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.bold)),
                   ],
@@ -284,7 +293,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             style: style),
         Text('• Ukeire — live tiles that reduce shanten', style: style),
         Text('• Expected Value — probability-weighted points', style: style),
-        Text('• Safety — 0 (dangerous) to 15 (genbutsu, fully safe)',
+        Text('• Safety — 0 (dangerous) to 15 (genbutsu); riichi opponent only',
+            style: style),
+        Text(
+            '• Genbutsu — their own discards, or others passed after their riichi',
             style: style),
         Text('• Green tile — the guide\'s recommended discard', style: style),
         Text('• Yellow tile — the tile you just drew', style: style),
@@ -354,8 +366,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   padding: const EdgeInsets.all(3),
                   child: Text(
                     line.safety?.label ?? '—',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 9),
+                    style: const TextStyle(color: Colors.white70, fontSize: 9),
                   ),
                 ),
               ],
@@ -369,7 +380,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         decoration: const BoxDecoration(color: Color(0x22ffffff)),
         children: labels
             .map((l) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
                   child: Text(l,
                       textAlign: TextAlign.center,
                       style: const TextStyle(

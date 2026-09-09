@@ -73,8 +73,7 @@ class GameController extends ChangeNotifier {
   void setFastMode(bool value) {
     if (fastMode == value) return;
     fastMode = value;
-    _tel?.settingChange(
-        matchId: _matchId, setting: 'fast_mode', value: value);
+    _tel?.settingChange(matchId: _matchId, setting: 'fast_mode', value: value);
     // Re-arm the pending step so the new pace takes effect immediately.
     if (_loopTimer?.isActive ?? false) {
       _loopTimer!.cancel();
@@ -521,9 +520,10 @@ class GameController extends ChangeNotifier {
         context: _efficiencyValueContext(seat),
         opponentRiichi: riichiOpp != null,
         opponentDiscards: riichiOpp != null
-            ? riichiOpp.pond.map((t) => t.type).toList()
+            ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
-        allDiscards: _allDiscardTypes(),
+        passedDiscardsAfterRiichi:
+            riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
       if (advice.eligible) return BotTurn(addedKan: type);
     }
@@ -570,9 +570,10 @@ class GameController extends ChangeNotifier {
       visibleCounts34: _visibleCounts(),
       context: _efficiencyValueContext(seat),
       opponentDiscards: riichiOpp != null
-          ? riichiOpp.pond.map((t) => t.type).toList()
+          ? riichiOpp.allDiscards.map((t) => t.type).toList()
           : const [],
-      allDiscards: _allDiscardTypes(),
+      passedDiscardsAfterRiichi:
+          riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
     );
   }
@@ -632,7 +633,8 @@ class GameController extends ChangeNotifier {
         tile: tile.code,
         auto: autoplay,
         guideVisible: guideVisible,
-        guideReco: recos.isEmpty ? null : [for (final t in recos) t.code].join(','),
+        guideReco:
+            recos.isEmpty ? null : [for (final t in recos) t.code].join(','),
         followedGuide: recos.isEmpty ? null : recos.contains(tile.type),
       );
     }
@@ -705,8 +707,7 @@ class GameController extends ChangeNotifier {
         auto: autoplay,
         guideVisible: guideVisible,
         guideReco: advised?.name,
-        followedGuide:
-            advised == null ? null : _callTypeFor(advised) == choice,
+        followedGuide: advised == null ? null : _callTypeFor(advised) == choice,
       );
     }
     _humanCallOption = null;
@@ -720,8 +721,7 @@ class GameController extends ChangeNotifier {
 
   void setAutoplay(bool value) {
     autoplay = value;
-    _tel?.settingChange(
-        matchId: _matchId, setting: 'autoplay', value: value);
+    _tel?.settingChange(matchId: _matchId, setting: 'autoplay', value: value);
     notifyListeners();
     if (value) _scheduleLoop();
   }
@@ -742,8 +742,9 @@ class GameController extends ChangeNotifier {
           canRiichi: false,
           valueContext: _efficiencyValueContext(human),
           defenseHand: human.hand,
-          opponentDiscards: riichiOpp.pond.map((t) => t.type).toList(),
-          allDiscards: _allDiscardTypes(),
+          opponentDiscards: riichiOpp.allDiscards.map((t) => t.type).toList(),
+          passedDiscardsAfterRiichi:
+              riichiOpp.passedDiscardsAfterRiichi.toList(),
           opponentRiichi: true,
         );
       } else {
@@ -761,9 +762,10 @@ class GameController extends ChangeNotifier {
       valueContext: _efficiencyValueContext(human),
       defenseHand: riichiOpp != null ? human.hand : null,
       opponentDiscards: riichiOpp != null
-          ? riichiOpp.pond.map((t) => t.type).toList()
+          ? riichiOpp.allDiscards.map((t) => t.type).toList()
           : const [],
-      allDiscards: _allDiscardTypes(),
+      passedDiscardsAfterRiichi:
+          riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
     );
   }
@@ -786,8 +788,8 @@ class GameController extends ChangeNotifier {
     return null;
   }
 
-  List<TileType> _allDiscardTypes() =>
-      [for (final s in round.seats) ...s.pond.map((t) => t.type)];
+  /// The opponent the guide's safety scores refer to.
+  int? get safetyOpponentSeat => _riichiOpponent()?.seat;
 
   List<int> _visibleCounts() {
     final counts = List<int>.filled(34, 0);
@@ -860,9 +862,10 @@ class GameController extends ChangeNotifier {
         context: _efficiencyValueContext(seat),
         opponentRiichi: riichiOpp != null,
         opponentDiscards: riichiOpp != null
-            ? riichiOpp.pond.map((t) => t.type).toList()
+            ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
-        allDiscards: _allDiscardTypes(),
+        passedDiscardsAfterRiichi:
+            riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
       return (type: type, isAdded: true, advice: advice);
     }

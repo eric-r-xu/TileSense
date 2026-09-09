@@ -40,7 +40,7 @@ void main() {
         doraIndicators: doraIndicators,
       ),
       opponentDiscards: opponentDiscards,
-      allDiscards: opponentDiscards,
+      passedDiscardsAfterRiichi: opponentDiscards,
       opponentRiichi: opponentRiichi,
     );
   }
@@ -242,7 +242,7 @@ void main() {
       bool withMatchingPon = true,
       bool opponentRiichi = false,
       List<TileType> opponentDiscards = const [],
-      List<TileType> allDiscards = const [],
+      List<TileType> passedDiscardsAfterRiichi = const [],
     }) {
       final hand = parseTiles(handSpec);
       final melds = withMatchingPon
@@ -251,7 +251,11 @@ void main() {
                 kind: MeldKind.triplet,
                 low: kanType,
                 concealed: false,
-                tiles: [Tile(-1, kanType), Tile(-2, kanType), Tile(-3, kanType)],
+                tiles: [
+                  Tile(-1, kanType),
+                  Tile(-2, kanType),
+                  Tile(-3, kanType)
+                ],
               ),
             ]
           : const <Meld>[];
@@ -271,7 +275,7 @@ void main() {
         ),
         opponentRiichi: opponentRiichi,
         opponentDiscards: opponentDiscards,
-        allDiscards: allDiscards,
+        passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
       );
     }
 
@@ -302,7 +306,7 @@ void main() {
         kanType: TileType.pin5,
         opponentRiichi: true,
         opponentDiscards: const [TileType.pin5],
-        allDiscards: const [TileType.pin5],
+        passedDiscardsAfterRiichi: const [TileType.pin5],
       );
       expect(advice.eligible, isTrue);
     });

@@ -21,6 +21,11 @@ void main() {
       // Seat 1 has declared riichi, and has already cut 1m — so 1m is genbutsu.
       round.seats[1].riichi = true;
       round.seats[1].pond.add(Tile(800, TileType.man1));
+      round.seats[1].allDiscards.add(round.seats[1].pond.last);
+      // Another player's earlier west discard is not safe against seat 1.
+      final earlyWest = Tile(803, TileType.shaa);
+      round.seats[2].pond.add(earlyWest);
+      round.seats[2].allDiscards.add(earlyWest);
 
       // Your hand is 2-shanten and holds both a worthless west wind (what a
       // shape-only heuristic reaches for) and that genbutsu 1m (what a
@@ -47,6 +52,11 @@ void main() {
         round.seats[kHumanSeat].pond.first.type,
         TileType.man1,
         reason: 'autoplay should fold to the genbutsu, not cut by shape',
+      );
+      expect(
+        game.report.defense.singleWhere((r) => r.type == TileType.shaa).isSafe,
+        isFalse,
+        reason: 'an earlier discard by another player is not genbutsu',
       );
     } finally {
       game.dispose();

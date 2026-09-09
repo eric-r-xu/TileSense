@@ -177,6 +177,8 @@ class EfficiencyEngine {
   /// [hand] is the 14-tile concealed hand on the player's turn (13 + draw).
   /// [visibleCounts34] counts every tile the player can see (own hand, all
   /// discards, all melds, revealed dora indicators).
+  /// Safety uses the riichi opponent's complete [opponentDiscards] and only
+  /// their [passedDiscardsAfterRiichi], never the table's entire discard history.
   EfficiencyReport analyze({
     required List<Tile> hand,
     required List<int> visibleCounts34,
@@ -184,7 +186,7 @@ class EfficiencyEngine {
     required EfficiencyValueContext valueContext,
     List<Tile>? defenseHand,
     List<TileType> opponentDiscards = const [],
-    List<TileType> allDiscards = const [],
+    List<TileType> passedDiscardsAfterRiichi = const [],
     bool opponentRiichi = false,
   }) {
     final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
@@ -200,7 +202,7 @@ class EfficiencyEngine {
         ? _riichiDangerFactor(
             remaining34: remaining34,
             opponentDiscards: opponentDiscards,
-            allDiscards: allDiscards,
+            passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
             visibleCounts34: visibleCounts34,
           )
         : 0.0;
@@ -273,7 +275,7 @@ class EfficiencyEngine {
       defense = rankSafety(
         defenseHand,
         opponentDiscards: opponentDiscards,
-        allDiscards: allDiscards,
+        passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
         visibleCounts34: visibleCounts34,
       );
       final safeByType = {for (final s in defense) s.type: s};
@@ -346,7 +348,7 @@ class EfficiencyEngine {
     required List<int> visibleCounts34,
     required EfficiencyValueContext context,
     List<TileType> opponentDiscards = const [],
-    List<TileType> allDiscards = const [],
+    List<TileType> passedDiscardsAfterRiichi = const [],
     bool opponentRiichi = false,
   }) {
     final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
@@ -411,7 +413,7 @@ class EfficiencyEngine {
           context: context,
           passShanten: passState.shanten,
           opponentDiscards: opponentDiscards,
-          allDiscards: allDiscards,
+          passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
           opponentRiichi: opponentRiichi,
         ));
       }
@@ -430,7 +432,7 @@ class EfficiencyEngine {
           context: context,
           passShanten: passState.shanten,
           opponentDiscards: opponentDiscards,
-          allDiscards: allDiscards,
+          passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
           opponentRiichi: opponentRiichi,
         );
         if (bestChi == null ||
@@ -539,7 +541,8 @@ class EfficiencyEngine {
       concealedAfter: _handWithout(hand, consumed),
       contextAfter: _contextWithMeld(
         context,
-        Meld(kind: MeldKind.kan, low: kanType, concealed: true, tiles: consumed),
+        Meld(
+            kind: MeldKind.kan, low: kanType, concealed: true, tiles: consumed),
       ),
       remaining: remaining,
       shantenBefore: shantenBefore,
@@ -563,7 +566,7 @@ class EfficiencyEngine {
     required EfficiencyValueContext context,
     bool opponentRiichi = false,
     List<TileType> opponentDiscards = const [],
-    List<TileType> allDiscards = const [],
+    List<TileType> passedDiscardsAfterRiichi = const [],
   }) {
     final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
     final remaining = trainerCountsFromTypeCounts(remaining34);
@@ -578,8 +581,8 @@ class EfficiencyEngine {
     final evBefore =
         current.lines.isEmpty ? 0.0 : current.lines.first.expectedValue;
 
-    final ponIndex = melds
-        .indexWhere((m) => m.kind == MeldKind.triplet && m.low == kanType);
+    final ponIndex =
+        melds.indexWhere((m) => m.kind == MeldKind.triplet && m.low == kanType);
     final consumed = _takeFromHand(hand, kanType, 1);
     if (ponIndex == -1 || consumed.isEmpty) {
       return const ActionAdvice(
@@ -598,7 +601,7 @@ class EfficiencyEngine {
       final rating = rankSafety(
         [addedTile],
         opponentDiscards: opponentDiscards,
-        allDiscards: allDiscards,
+        passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
         visibleCounts34: visibleCounts34,
       ).firstOrNull;
       if (rating != null && rating.rating < 8) {
@@ -671,7 +674,7 @@ class EfficiencyEngine {
     required EfficiencyValueContext context,
     required int passShanten,
     required List<TileType> opponentDiscards,
-    required List<TileType> allDiscards,
+    required List<TileType> passedDiscardsAfterRiichi,
     required bool opponentRiichi,
   }) {
     final concealedAfter = _handWithout(hand, consumed);
@@ -685,7 +688,7 @@ class EfficiencyEngine {
       valueContext: contextAfter,
       defenseHand: opponentRiichi ? concealedAfter : null,
       opponentDiscards: opponentDiscards,
-      allDiscards: allDiscards,
+      passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
       opponentRiichi: opponentRiichi,
     );
     if (report.lines.isEmpty) {
@@ -937,7 +940,7 @@ class EfficiencyEngine {
   double _riichiDangerFactor({
     required List<int> remaining34,
     required List<TileType> opponentDiscards,
-    required List<TileType> allDiscards,
+    required List<TileType> passedDiscardsAfterRiichi,
     required List<int> visibleCounts34,
   }) {
     final everyType = [
@@ -947,7 +950,7 @@ class EfficiencyEngine {
       for (final r in rankSafety(
         everyType,
         opponentDiscards: opponentDiscards,
-        allDiscards: allDiscards,
+        passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
         visibleCounts34: visibleCounts34,
       ))
         r.type: r.rating,
@@ -1176,8 +1179,9 @@ class EfficiencyEngine {
       // scaled by how dangerous your remaining draws currently look — still
       // lets a high-value riichi win out over a merely-risky board.
       if (opponentRiichi) {
-        expectedValue -=
-            (1 - winProbability) * riichiDangerFactor * _opponentRiichiRiskScale;
+        expectedValue -= (1 - winProbability) *
+            riichiDangerFactor *
+            _opponentRiichiRiskScale;
       }
     }
 
