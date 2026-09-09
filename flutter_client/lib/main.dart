@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -90,33 +91,98 @@ class TileSenseApp extends StatelessWidget {
 /// Chrome window you get the app at its exact native pixels, centred, with
 /// letterbox bars; on a smaller window or a phone in landscape it shrinks
 /// uniformly to fit. Swap to [BoxFit.contain] if you'd rather it also scale up.
-class _FixedCanvas extends StatelessWidget {
+class _FixedCanvas extends StatefulWidget {
   const _FixedCanvas({required this.child});
   final Widget child;
 
+  /// Pinch-to-zoom is offered on touch platforms only. On a desktop browser
+  /// the window is already big enough and a stray trackpad pinch scaling the
+  /// table would be a nuisance, so it is left alone there.
+  ///
+  /// An iPad running Safari in its "desktop" mode reports macOS and so misses
+  /// out; that is the one gap, and the cost of it is only that pinch does
+  /// nothing.
+  static bool get _pinchZoomable => switch (defaultTargetPlatform) {
+        TargetPlatform.android ||
+        TargetPlatform.iOS ||
+        TargetPlatform.fuchsia =>
+          true,
+        _ => false,
+      };
+
+  @override
+  State<_FixedCanvas> createState() => _FixedCanvasState();
+}
+
+class _FixedCanvasState extends State<_FixedCanvas> {
+  final TransformationController _zoom = TransformationController();
+
+  /// Panning is off until you have actually zoomed in. At rest the canvas
+  /// exactly fills its box so there is nowhere to pan to anyway, and leaving it
+  /// on would have one-finger drags fighting the hand strip and the builder's
+  /// tile palette for the same gesture.
+  bool _zoomedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _zoom.addListener(_onZoom);
+  }
+
+  @override
+  void dispose() {
+    _zoom.removeListener(_onZoom);
+    _zoom.dispose();
+    super.dispose();
+  }
+
+  void _onZoom() {
+    final zoomedIn = _zoom.value.getMaxScaleOnAxis() > 1.01;
+    if (zoomedIn != _zoomedIn) setState(() => _zoomedIn = zoomedIn);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: kLetterboxColor,
-      child: Center(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: SizedBox(
-            width: kDesignSize.width,
-            height: kDesignSize.height,
-            // Give the subtree a MediaQuery that reflects the fixed canvas, not
-            // the browser window, so SafeArea / layout math stays stable.
-            child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                size: kDesignSize,
-                padding: EdgeInsets.zero,
-                viewInsets: EdgeInsets.zero,
-                viewPadding: EdgeInsets.zero,
-              ),
-              child: child,
+    final canvas = Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: SizedBox(
+          width: kDesignSize.width,
+          height: kDesignSize.height,
+          // Give the subtree a MediaQuery that reflects the fixed canvas, not
+          // the browser window, so SafeArea / layout math stays stable. The
+          // real insets are handled by the SafeArea below, before the canvas is
+          // sized, so there is nothing left for the subtree to dodge.
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              size: kDesignSize,
+              padding: EdgeInsets.zero,
+              viewInsets: EdgeInsets.zero,
+              viewPadding: EdgeInsets.zero,
             ),
+            child: widget.child,
           ),
         ),
+      ),
+    );
+
+    return ColoredBox(
+      color: kLetterboxColor,
+      // Fit the canvas inside the real safe area rather than under it. A
+      // notched iPhone held in landscape insets ~59px on the notch side, which
+      // is more than the letterbox bars this aspect ratio leaves — so without
+      // this the guide panel's outer edge sits under the notch. The letterbox
+      // colour fills the inset, so nothing looks cut off.
+      child: SafeArea(
+        child: _FixedCanvas._pinchZoomable
+            ? InteractiveViewer(
+                transformationController: _zoom,
+                minScale: 1,
+                maxScale: 4,
+                panEnabled: _zoomedIn,
+                child: canvas,
+              )
+            : canvas,
       ),
     );
   }
