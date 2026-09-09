@@ -11,6 +11,25 @@ class Wall {
     _build();
   }
 
+  /// A wall posed for a hand-built scenario rather than dealt out: exactly
+  /// [remaining] tiles left in the live wall and exactly [dora] revealed as
+  /// dora indicators (with matching ura beneath them). Nothing is ever drawn
+  /// from it — the scenario builder never advances a turn — so only the count
+  /// and the revealed indicators matter, not which physical tiles they are.
+  Wall.posed({required int remaining, required List<TileType> dora})
+      : _rng = Random(0) {
+    _dead.addAll([
+      for (var i = 0; i < 14; i++) Tile(-1 - i, TileType.blank),
+    ]);
+    for (var i = 0; i < dora.length && i < 5; i++) {
+      _dead[4 + i * 2] = Tile(-100 - i, dora[i]);
+    }
+    _doraRevealed = dora.isEmpty ? 0 : dora.length.clamp(1, 5);
+    _live.addAll([
+      for (var i = 0; i < remaining; i++) Tile(-200 - i, TileType.blank),
+    ]);
+  }
+
   final Random _rng;
 
   /// Live wall, drawn from the end.

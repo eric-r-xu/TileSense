@@ -67,7 +67,6 @@ class TileEfficiencyCalculator {
       hand[31] += 3;
     }
 
-    final baseShanten = _shanten(hand, openHand);
     final results = <TileEfficiencyResult>[];
 
     for (var discard = 1; discard < hand.length; discard++) {
@@ -75,8 +74,14 @@ class TileEfficiencyCalculator {
 
       hand[discard]--;
       final resultingShanten = _shanten(hand, openHand);
+      // Acceptance is measured against *this* line's shanten, not the best
+      // shanten on offer. Riichi-Trainer passes `baseShanten` here because it
+      // only ever ranks optimal discards; that made every shanten-worsening
+      // discard report zero acceptance, since drawing back to `baseShanten` is
+      // not "below" it. The guide scores those lines too — folding usually
+      // means breaking your own shape — so they need a real number.
       final ukeire =
-          _calculateUkeire(hand, remainingTiles, openHand, baseShanten);
+          _calculateUkeire(hand, remainingTiles, openHand, resultingShanten);
       hand[discard]++;
 
       results.add(TileEfficiencyResult(

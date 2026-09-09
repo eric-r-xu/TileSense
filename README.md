@@ -50,7 +50,14 @@ Details, emulator/simulator launch, and release/store builds are in
   and weights it by remaining copies and estimated win probability. Before
   tenpai, it uses completion probability and a dealer/open-hand value estimate.
   Best-efficiency, best-EV, and recommended discards are highlighted, with a
-  riichi/damaten plan at tenpai.
+  riichi/damaten plan at tenpai. Honba and the riichi deposits already on the
+  table are counted too: they pay out on any win, so they scale with the
+  chance of winning rather than with what the hand is worth. Against a live
+  riichi each discard is also charged what it can cost you: its chance of
+  dealing in, from its own safety rating, times what that hand pays, plus the
+  turns that choosing it commits you to. Folding therefore wins on the numbers
+  when the hand is not worth pushing, rather than by a separate rule. The panel
+  shows the charge as a Risk column beside the value it came off.
 - A **defensive panel** when an opponent is in riichi: each tile rated 0–15
   (genbutsu / suji / one-chance / honor-by-copies) with a short reason; the
   recommendation switches to the safest discard. Scores refer only to the
@@ -59,6 +66,13 @@ Details, emulator/simulator launch, and release/store builds are in
 - End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
   yakuman, and the point transfers.
 - An **Autoplay** toggle that plays your seat with the recommended discard.
+- A **Custom Hand & Context Builder**, on its own screen from the start
+  page: pose any table by hand — your tiles, every seat's discards and calls,
+  the dora indicators, the wall counter and who is in riichi — and the same
+  guide scores it. A 14-tile hand gets a discard recommendation; 13 tiles plus
+  a tile on offer gets a call recommendation. Nothing on the table can exceed
+  four copies, and it runs no game behind it: no bots, no turn timer, no
+  autoplay.
 
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No

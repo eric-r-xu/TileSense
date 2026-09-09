@@ -117,6 +117,27 @@ class Round {
     _beginDraw();
   }
 
+  /// A round posed for the scenario builder: seats start empty and the caller
+  /// fills in hands, ponds and melds directly. Nothing is dealt and no turn is
+  /// begun, so the posed [wall] keeps exactly the count it was handed. The
+  /// builder never calls [discard] or any other action on it — it exists so
+  /// the real table, hand and guide widgets have a [Round] to render.
+  Round.posed({
+    required this.dealer,
+    required this.roundWind,
+    required this.honba,
+    required this.riichiSticks,
+    required this.wall,
+    required List<int> startingPoints,
+  }) : startPoints = List.of(startingPoints) {
+    seats = List.generate(4, (i) {
+      final wind = Wind.values[(i - dealer + 4) % 4];
+      return SeatState(i, wind, i == dealer, startingPoints[i]);
+    });
+    turn = 0;
+    phase = RoundPhase.discarding;
+  }
+
   final Wall wall;
   final int dealer;
   final Wind roundWind;

@@ -6,6 +6,7 @@ import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
+import 'ui/scenario_page.dart';
 import 'ui/scoring_view.dart';
 import 'ui/table_view.dart';
 
@@ -166,6 +167,11 @@ class _GamePageState extends State<GamePage> {
   // for the rest of the session.
   bool _showWelcome = true;
 
+  // The Custom Hand & Context Builder, reached from the welcome screen. It
+  // owns its own controller and never touches [_game], so a game in progress
+  // is still here when you come back.
+  bool _showBuilder = false;
+
   // Push buffered telemetry when the tab is hidden or the app is torn down, so
   // completed rounds aren't stranded. No-op unless the app was built with
   // --dart-define=TELEMETRY=true.
@@ -202,9 +208,14 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showBuilder) {
+      return ScenarioPage(onExit: () => setState(() => _showBuilder = false));
+    }
     if (_showWelcome) {
       return _WelcomeScreen(
-          onStart: () => setState(() => _showWelcome = false));
+        onStart: () => setState(() => _showWelcome = false),
+        onBuild: () => setState(() => _showBuilder = true),
+      );
     }
     _game.guideVisible = _showGuide; // read only by telemetry
     return Scaffold(
@@ -340,9 +351,8 @@ class _GamePageState extends State<GamePage> {
                             child: EfficiencyOverlay(
                               game: _game,
                               report: _game.report,
-                              maxHeight: c.maxHeight -
-                                  HandView.tileRowBandHeight -
-                                  16,
+                              maxHeight:
+                                  c.maxHeight - HandView.tileRowBandHeight - 16,
                             ),
                           ),
                         ],
@@ -383,8 +393,12 @@ class _GamePageState extends State<GamePage> {
 /// First thing shown on app load: the clefairy mark, the app name, a short
 /// explanation of what TileSense does, and a Start button into the table.
 class _WelcomeScreen extends StatelessWidget {
-  const _WelcomeScreen({required this.onStart});
+  const _WelcomeScreen({required this.onStart, required this.onBuild});
   final VoidCallback onStart;
+
+  /// Opens the Custom Hand & Context Builder — a posed table, scored by the
+  /// same guide, with no game running behind it.
+  final VoidCallback onBuild;
 
   @override
   Widget build(BuildContext context) {
@@ -425,12 +439,19 @@ class _WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
+              // Three balanced lines, broken by hand rather than by the
+              // wrapper. Left to itself at a snug width the first line lands
+              // within a pixel of the limit, so any browser whose default face
+              // runs a hair wider than Roboto spills it to four. The box is
+              // ~30% wider than the longest line needs, which keeps these
+              // three lines three lines. Re-balance the breaks if the text
+              // changes — the longest line here measures ~560px.
               const SizedBox(
-                width: 560,
+                width: 720,
                 child: Text(
-                  "TileSense is a Flutter Web App built to give you a feel for "
-                  'optimal Riichi Mahjong play, with recommended actions scored '
-                  'by efficiency, expected value, and safety.',
+                  'TileSense is a Flutter Web App built to give you a feel for\n'
+                  'optimal Riichi Mahjong play, with recommended actions\n'
+                  'scored by efficiency, expected value, and safety.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
@@ -440,17 +461,46 @@ class _WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: onStart,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xffcaa24e),
-                  foregroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                  textStyle: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                child: const Text('Start'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: onStart,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xffcaa24e),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Start'),
+                  ),
+                  const SizedBox(width: 18),
+                  OutlinedButton(
+                    key: const Key('openBuilder'),
+                    onPressed: onBuild,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xffe9d58f),
+                      side: const BorderSide(color: Color(0xffcaa24e)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Custom Hand & Context Builder',
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 2),
+                        Text(
+                          'Pose any table and have TileSense score it',
+                          style: TextStyle(fontSize: 12, color: Colors.white60),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
