@@ -227,12 +227,95 @@ void main() {
     await tester.tap(find.byKey(const Key('openBuilder')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Balanced'), findsOneWidget);
+    expect(labelOf(const Key('builderPlayStyle')), 'Balanced');
     await tester.tap(find.byKey(const Key('builderPlayStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Aggressive'), findsOneWidget);
+    expect(labelOf(const Key('builderPlayStyle')), 'Aggressive');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });
+
+  testWidgets('the guide carries a synced copy of the dial', (tester) async {
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+    // The guide is off by default; the clefairy mark opens it.
+    await tester.tap(find.byKey(const Key('guideToggle')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(labelOf(const Key('playStyle')), 'Balanced');
+
+    // Guide -> app bar.
+    await tester.tap(find.byKey(const Key('guidePlayStyle_aggressive')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(const Key('playStyle')), 'Aggressive');
+
+    // App bar -> guide: cycling past aggressive lands on defensive, and the
+    // guide's own chip has to be the one showing as picked.
+    await tester.tap(find.byKey(const Key('playStyle')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(const Key('playStyle')), 'Defensive');
+    expect(guideChipPicked(tester, PlayStyle.defensive), isTrue);
+    expect(guideChipPicked(tester, PlayStyle.aggressive), isFalse);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('rotating to portrait and back keeps the same match',
+      (tester) async {
+    // The gate reads MediaQuery, which follows the view rather than
+    // setSurfaceSize — so drive the view here.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = kDesignSize;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Move the dial off its default so we can tell a surviving match from a
+    // freshly built one.
+    await tester.tap(find.byKey(const Key('playStyle')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(const Key('playStyle')), 'Aggressive');
+
+    // Portrait: the rotate prompt covers the table, and the welcome screen
+    // must not come back.
+    tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Rotate your device'), findsOneWidget);
+
+    // Back to landscape: same match, same setting, no welcome screen.
+    tester.view.physicalSize = kDesignSize;
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('Rotate your device'), findsNothing);
+    expect(find.text('Start'), findsNothing);
+    expect(labelOf(const Key('playStyle')), 'Aggressive');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+}
+
+/// The label a cycling play-style button is currently showing.
+String labelOf(Key key) => (find
+        .descendant(of: find.byKey(key), matching: find.byType(Text))
+        .evaluate()
+        .first
+        .widget as Text)
+    .data!;
+
+/// Whether the guide panel's chip for [style] is rendering as the picked one —
+/// picked chips draw their label in the style's own colour, the rest grey out.
+bool guideChipPicked(WidgetTester tester, PlayStyle style) {
+  final text = tester.widget<Text>(find.descendant(
+    of: find.byKey(Key('guidePlayStyle_${style.name}')),
+    matching: find.byType(Text),
+  ));
+  return text.style?.color == playStyleColor(style);
 }

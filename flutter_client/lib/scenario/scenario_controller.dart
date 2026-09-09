@@ -33,6 +33,18 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   /// Why the guide has nothing to say, when it has nothing to say.
   String? blockedReason;
 
+  // The dial lives on the scenario itself, so the tool bar's button and the
+  // guide panel's copy are two views of the same value.
+  @override
+  PlayStyle get playStyle => scenario.style;
+
+  @override
+  void setPlayStyle(PlayStyle value) {
+    if (scenario.style == value) return;
+    scenario.style = value;
+    rebuild();
+  }
+
   // A posed table never animates a discard.
   @override
   int get discardSerial => 0;

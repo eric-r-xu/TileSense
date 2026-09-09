@@ -46,8 +46,23 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// Height of the editor band below the table.
   static const double _editorHeight = 214;
 
+  // The tool bar is built outside the body's AnimatedBuilder, so it needs its
+  // own nudge to follow controller-side edits — the guide panel's play-style
+  // dial writes straight to the controller, and the tool bar's copy of that
+  // dial has to move with it.
+  @override
+  void initState() {
+    super.initState();
+    _c.addListener(_onControllerChanged);
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _c.removeListener(_onControllerChanged);
     _c.dispose();
     super.dispose();
   }

@@ -88,7 +88,9 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// How the guide weighs danger against value. Feeds every score it produces,
   /// so it steers Autoplay — which plays from those scores — as well as the
   /// panel.
+  @override
   PlayStyle playStyle = PlayStyle.balanced;
+  @override
   void setPlayStyle(PlayStyle value) {
     if (playStyle == value) return;
     playStyle = value;

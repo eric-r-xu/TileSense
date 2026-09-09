@@ -20,6 +20,13 @@ abstract class GuideHost implements Listenable {
   /// The guide's current read of the human seat.
   EfficiencyReport get report;
 
+  /// How hard the guide pushes. Exposed on the interface — rather than only on
+  /// [GameController] — so the guide panel can carry its own copy of the dial
+  /// and stay in sync with whatever else sets it (the app bar in the live game,
+  /// the tool bar in the scenario builder).
+  PlayStyle get playStyle;
+  void setPlayStyle(PlayStyle value);
+
   /// True while the human seat has a call (chi/pon/kan/ron) to answer.
   bool get awaitingHumanCall;
   CallOption? get humanCallOption;
