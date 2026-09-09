@@ -15,9 +15,11 @@ class HandView extends StatefulWidget {
   const HandView({
     super.key,
     required this.game,
+    required this.onToggleGuide,
     this.showGuide = true,
   });
   final GameController game;
+  final VoidCallback onToggleGuide;
 
   /// When false the guide is off: no yellow (drawn tile) or green (best discard)
   /// tile highlights.
@@ -132,6 +134,8 @@ class _HandViewState extends State<HandView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              _guideButton(),
+              const SizedBox(width: 10),
               // The tile strip has a fixed width (always sized for 14 tiles), so
               // the resting tiles never drift as the drawn tile comes and goes;
               // that strip is then centred in the band. Scrolls if it overflows.
@@ -172,8 +176,7 @@ class _HandViewState extends State<HandView> {
                   ),
                 ),
               // GitHub link then the Flutter credit — centred in this bottom
-              // band, never covered by melds. The clefairy guide toggle now
-              // lives in the AppBar, top-left of the whole page.
+              // band, never covered by melds.
               const SizedBox(width: 10),
               IconButton(
                 tooltip: 'View on GitHub',
@@ -194,6 +197,46 @@ class _HandViewState extends State<HandView> {
     );
   }
 
+  Widget _guideButton() {
+    final action = widget.showGuide ? 'Hide guide' : 'Show guide';
+    return Tooltip(
+      message: 'TileSense — ${action.toLowerCase()}',
+      child: TextButton(
+        key: const Key('bottomGuideToggle'),
+        onPressed: widget.onToggleGuide,
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xffe9d58f),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Opacity(
+              opacity: widget.showGuide ? 1.0 : 0.4,
+              child: Image.asset(
+                'assets/clefairy.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.school, size: 64),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text('TileSense',
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600, height: 1.15)),
+            Text(action,
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 11, height: 1.2)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sortButton() {
     return Tooltip(
       message: _autoSort ? 'Auto-sort: on' : 'Auto-sort: off (draw order)',
@@ -203,7 +246,8 @@ class _HandViewState extends State<HandView> {
         child: Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
+            color:
+                _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(
@@ -218,7 +262,8 @@ class _HandViewState extends State<HandView> {
 
   void _discard(BuildContext context, Tile tile) {
     final canRiichi = game.humanCanRiichi;
-    final line = game.report.lines.where((l) => l.discard == tile.type).toList();
+    final line =
+        game.report.lines.where((l) => l.discard == tile.type).toList();
     final keepsTenpai = line.isNotEmpty && line.first.shanten == 0;
     if (canRiichi && keepsTenpai) {
       showModalBottomSheet<void>(
@@ -229,7 +274,8 @@ class _HandViewState extends State<HandView> {
             children: [
               ListTile(
                 leading: const Icon(Icons.campaign),
-                title: Text('Declare Riichi and discard ${tile.type.displayName}'),
+                title:
+                    Text('Declare Riichi and discard ${tile.type.displayName}'),
                 onTap: () {
                   Navigator.pop(context);
                   game.humanDiscard(tile, declareRiichi: true);

@@ -160,7 +160,7 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   late final GameController _game = GameController();
   // Off by default so a new player sees the plain table first; the clefairy
-  // button next to the GitHub link turns it on.
+  // buttons in the AppBar and bottom hand bar turn it on.
   bool _showGuide = false;
   // Shown once per app load, ahead of the table; the Start button hides it
   // for the rest of the session.
@@ -198,10 +198,13 @@ class _GamePageState extends State<GamePage> {
     return false;
   }
 
+  void _toggleGuide() => setState(() => _showGuide = !_showGuide);
+
   @override
   Widget build(BuildContext context) {
     if (_showWelcome) {
-      return _WelcomeScreen(onStart: () => setState(() => _showWelcome = false));
+      return _WelcomeScreen(
+          onStart: () => setState(() => _showWelcome = false));
     }
     _game.guideVisible = _showGuide; // read only by telemetry
     return Scaffold(
@@ -220,7 +223,7 @@ class _GamePageState extends State<GamePage> {
                   : 'TileSense — show guide',
               iconSize: 32,
               padding: EdgeInsets.zero,
-              onPressed: () => setState(() => _showGuide = !_showGuide),
+              onPressed: _toggleGuide,
               icon: Opacity(
                 opacity: _showGuide ? 1.0 : 0.4,
                 child: Image.asset(
@@ -258,9 +261,8 @@ class _GamePageState extends State<GamePage> {
                 onPressed: () => _game.setFastMode(!_game.fastMode),
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  foregroundColor: _game.fastMode
-                      ? const Color(0xffffdf76)
-                      : Colors.white38,
+                  foregroundColor:
+                      _game.fastMode ? const Color(0xffffdf76) : Colors.white38,
                 ),
                 child: Text(
                   '2x',
@@ -318,6 +320,7 @@ class _GamePageState extends State<GamePage> {
                     HandView(
                       game: _game,
                       showGuide: _showGuide,
+                      onToggleGuide: _toggleGuide,
                     ),
                   ],
                 ),
@@ -389,7 +392,7 @@ class _WelcomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 42,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -398,7 +401,7 @@ class _WelcomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xffe9d58f),
-                  fontSize: 44,
+                  fontSize: 66,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -412,7 +415,7 @@ class _WelcomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 15,
+                    fontSize: 22.5,
                     height: 1.4,
                   ),
                 ),
@@ -425,8 +428,8 @@ class _WelcomeScreen extends StatelessWidget {
                   foregroundColor: Colors.black,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                  textStyle:
-                      const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textStyle: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 child: const Text('Start'),
               ),
