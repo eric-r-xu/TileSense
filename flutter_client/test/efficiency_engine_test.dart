@@ -638,15 +638,21 @@ void main() {
       'more draws left still recommends riichi against a live opponent '
       'riichi, and is worth more than fewer draws under the same danger', () {
     // Same hand, same board danger, same points on offer — just more
-    // chances left to actually hit the wait. Higher win probability both
-    // raises the payoff term and shrinks the risk terms (they scale by
-    // 1 - winProbability), so this should be unambiguously better while
-    // staying on the same RIICHI plan (the damaten gate never enters it).
+    // chances left to actually hit the wait. Higher win probability raises
+    // the payoff term and shrinks the deposit (it scales by 1 - win), so this
+    // should be better while staying on the same RIICHI plan (the damaten
+    // gate never enters it).
+    //
+    // Both samples sit above the turn where the curve bottoms out. Under a
+    // live riichi, the third term — being locked into tsumogiri — grows with
+    // the turns left rather than shrinking, so from a nearly dead wall the
+    // value first falls as draws are added and only then climbs. Comparing
+    // across that turning point says nothing about draws.
     final fewDraws = analyzeTenpai(
       isDealer: false,
       canRiichi: true,
       opponentRiichi: true,
-      wallTilesRemaining: 8,
+      wallTilesRemaining: 24,
     );
     final manyDraws = analyzeTenpai(
       isDealer: false,

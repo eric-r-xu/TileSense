@@ -75,18 +75,26 @@ void main() {
     });
 
     test('aggressive pushes a hand the others fold', () {
-      // Two dora, wall running down: the boundary case.
+      // The boundary case, on a hand where only the risk weighting can move
+      // it: 345m 678m 234p 99s 45s is tenpai on 3s/6s the moment 1m goes, and
+      // balanced and aggressive both land on the same RIICHI plan there. The
+      // damaten gate is what would otherwise muddy this — a style whose bar
+      // the hand clears is handed a lock-free damaten, which is a different
+      // lever from the one under test.
+      const readyAt = '345m 678m 234p 99s 45s 1m';
+      EfficiencyReport at(PlayStyle s) => read(readyAt,
+          style: s,
+          pond: pond,
+          dora: const [TileType.sou8],
+          wall: 24,
+          riichi: true);
       bool pushes(PlayStyle s) =>
-          read(spec,
-                  style: s,
-                  pond: pond,
-                  dora: const [TileType.sou8],
-                  wall: 12,
-                  riichi: true)
-              .lines
-              .firstWhere((l) => l.recommended)
-              .shanten ==
-          0;
+          at(s).lines.firstWhere((l) => l.recommended).shanten == 0;
+
+      expect(at(PlayStyle.balanced).lines.firstWhere((l) => l.shanten == 0)
+          .valuePlan, at(PlayStyle.aggressive).lines
+          .firstWhere((l) => l.shanten == 0).valuePlan,
+          reason: 'same plan either way, so only riskWeight is in play');
       expect(pushes(PlayStyle.aggressive), isTrue);
       expect(pushes(PlayStyle.balanced), isFalse);
       expect(pushes(PlayStyle.defensive), isFalse);
