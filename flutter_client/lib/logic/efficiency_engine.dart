@@ -5,6 +5,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
+
 import 'efficiency_calc.dart';
 import 'meld.dart';
 import 'safety.dart';
@@ -327,6 +329,7 @@ class EfficiencyEngine {
     final tenpaiResult =
         byType.values.where((r) => r.shanten == 0).firstOrNull;
     double? projectedPointsOverride;
+    double? projectedDamaOverride;
     if (tenpaiResult != null) {
       final probe = _assessValue(
         result: tenpaiResult,
@@ -338,13 +341,17 @@ class EfficiencyEngine {
         opponentIsDealer: opponentIsDealer,
         riichiDangerFactor: riichiDangerFactor,
       );
-      if (probe.averagePoints > 0) projectedPointsOverride = probe.averagePoints;
+      if (probe.averagePoints > 0) {
+        projectedPointsOverride = probe.averagePoints;
+        projectedDamaOverride = probe.damaPoints;
+      }
     }
 
     final lines = byType.values.map((r) {
       final afterDiscard = _handAfterDiscard(hand, r.discard);
       final value = _assessValue(
         projectedPointsOverride: projectedPointsOverride,
+        projectedDamaOverride: projectedDamaOverride,
         result: r,
         remaining: remaining,
         concealed: afterDiscard,
@@ -849,7 +856,12 @@ class EfficiencyEngine {
     }
     final shape = best.shanten == 0 ? 'tenpai' : '${best.shanten}-shanten';
 
-    if (best.shanten >= passShanten) {
+    // "Does it advance the hand" is a question about the shape the call makes
+    // available, not about which line the value model then prefers — a call
+    // that reaches tenpai has advanced the hand even when the tenpai it
+    // reaches is too thin to be worth taking. That comparison belongs to the
+    // expected values below, which is where it happens.
+    if (report.currentShanten >= passShanten) {
       return ActionAdvice(
         action: action,
         expectedValue: best.expectedValue,
@@ -1072,12 +1084,33 @@ class EfficiencyEngine {
         GuidedAction.tsumo => 'Tsumo',
       };
 
-  /// Typical acceptance at each shanten, used to shape how a hand's ukeire
-  /// narrows as it closes up. Only the *ratios* matter: the hand's own measured
-  /// ukeire anchors the schedule, and these scale the steps it has not taken
-  /// yet. Index is shanten; index 0 is the width of a finished hand's wait,
-  /// which is what the last step has to hit.
-  static const List<double> _typicalUkeire = [8, 20, 28, 35, 40, 44, 48];
+  /// What an ordinary hand's measured ukeire actually is at each shanten, used
+  /// only to say how far above or below ordinary *this* hand is. Index is
+  /// shanten; index 0 is a finished hand's wait.
+  ///
+  /// Measured, not guessed: these are the mean acceptances of the best line
+  /// over simulated play, and `ev_calibration_test.dart` re-runs that
+  /// simulation and fails if they drift apart. Getting them right matters
+  /// because they are a *divisor* — understating them, as this table did from
+  /// 3-shanten out, hands every far-from-tenpai hand a scale above 1 and
+  /// compounds it over each of the many steps that hand has left, until a
+  /// 5-shanten hand scores like a 1-shanten one.
+  static const List<double> _typicalUkeire = [5, 14, 25, 43, 63, 73, 80];
+
+  /// [_typicalUkeire], for `ev_calibration_test.dart` to hold against what
+  /// simulated play actually produces.
+  @visibleForTesting
+  static List<double> get typicalUkeireByShanten => _typicalUkeire;
+
+  /// The width an ordinary hand behaves as if it had at each remaining step.
+  ///
+  /// Deliberately not [_typicalUkeire]. A shanten step three away is not the
+  /// same event as hitting a wait: much of a far hand's raw acceptance buys a
+  /// step that barely moves it toward an actual win, and the model collapses
+  /// each step into a single per-turn rate. These are the effective rates that
+  /// reproduce real win frequencies, so a hand of ordinary width (scale 1) at
+  /// each shanten lands where it should — see [_handSurvivesTurn].
+  static const List<double> _stepWidth = [8, 20, 28, 35, 40, 44, 48];
 
   /// Chance the hand is still running after one more of your turns — the other
   /// three seats are drawing too, and one of them ending the hand (or an
@@ -1085,9 +1118,10 @@ class EfficiencyEngine {
   ///
   /// Calibrated against the figure worth trusting: a hand wins a little over
   /// one time in five, and a dealt hand is typically three to four away. With
-  /// [_typicalUkeire] this lands a full wall at roughly 52% from 1-shanten,
-  /// 37% from 2, 26% from 3 and 17% from 4 — so an average starting hand comes
-  /// out near 21%, and the ordering by shanten is the one you would expect.
+  /// [_stepWidth] this lands an ordinary hand with a full wall at roughly 35%
+  /// from 1-shanten, 24% from 2, 16% from 3 and 10% from 4, against 53% from
+  /// tenpai — so an average starting hand comes out near one in seven before
+  /// any call, and the ordering by shanten is the one you would expect.
   static const double _handSurvivesTurn = 0.955;
 
   /// How much of a hand's width carries through to the wait it finishes on.
@@ -1193,7 +1227,7 @@ class EfficiencyEngine {
       // same hand already tenpai, which cannot be.
       var multiplier = math.pow(scale, exponent).toDouble();
       if (to == 0) multiplier = math.min(1.0, multiplier);
-      final width = _typicalUkeire[to.clamp(0, 6)] * multiplier;
+      final width = _stepWidth[to.clamp(0, 6)] * multiplier;
       final rate = math.min(1.0, width / unseen);
       // Only the last step — the win itself — can come off a discard.
       final tries = to == 0 ? _winChancesPerTurn : 1.0;
@@ -1281,6 +1315,7 @@ class EfficiencyEngine {
     bool opponentIsDealer = false,
     double riichiDangerFactor = 0.0,
     double? projectedPointsOverride,
+    double? projectedDamaOverride,
   }) {
     // A normal discard analysis starts with 14 tiles including open melds.
     // Off-turn defensive reads can have only 13, so avoid pretending those
@@ -1333,21 +1368,54 @@ class EfficiencyEngine {
     // the same 1000 the tenpai lines are charged — payable once it declares,
     // refunded if it wins. Without this, not being tenpai yet looks cheaper
     // than being tenpai purely because the deposit had not been billed.
+    //
+    // Billed with care, though. The deposit rides on *reaching tenpai* while
+    // the payout rides on *winning*, and the first is far likelier than the
+    // second, so charging it in full punished a hand for being close to home:
+    // a hopeless line could outscore a good one purely by being too far away
+    // to owe anything. Declaring is a choice made at tenpai, not now, and a
+    // hand that cannot pay for the stick stays quiet — so cap the charge at
+    // what declaring actually buys.
+    //
+    // Two readings of that uplift, and the *larger* wins. The representative
+    // one is what riichi is usually worth; the exact one comes from the tenpai
+    // some other discard already reaches, and can be far bigger on a cheap
+    // hand — where riichi, ippatsu and ura are most of the payout — so taking
+    // it keeps a wide 1-shanten from undercutting the hand's own tenpai. It is
+    // never allowed to shrink the charge, because that tenpai is only one of
+    // the ones these lines might reach, and the others may well want the
+    // stick.
     final deposit = context.closed
         ? math.max(0.0, outlook.reachedTenpai - completionProbability) * 1000
         : 0.0;
+    final representativeUplift =
+        projectedPoints * (1 - 1 / _riichiValueMultiple);
+    final knownUplift = projectedDamaOverride == null
+        ? 0.0
+        : projectedPoints - projectedDamaOverride;
+    final riichiUplift = context.closed
+        ? math.max(representativeUplift, knownUplift)
+        : 0.0;
+    final chargedDeposit =
+        math.min(deposit, completionProbability * riichiUplift);
 
     return _ValueAssessment(
       expectedValue:
           completionProbability * (projectedPoints + context.winBonus) -
-              deposit,
+              chargedDeposit,
       averagePoints: projectedPoints,
       plan: context.closed ? 'RIICHI PATH' : 'YAKU PATH',
       winProbability: completionProbability,
-      riichiLockCost: deposit,
+      riichiLockCost: chargedDeposit,
       turnsExposed: outlook.turns,
     );
   }
+
+  /// How much of a closed hand's value comes from declaring — riichi itself,
+  /// plus the ippatsu and ura it drags along. Used to bound the deposit
+  /// before tenpai, where the hand's exact shape is not yet known and only the
+  /// representative payout is on hand.
+  static const double _riichiValueMultiple = 1.5;
 
   /// What a discard costs when it deals in, and how often each safety rating
   /// does. Both are representative averages in the same spirit as the
@@ -1537,7 +1605,38 @@ class EfficiencyEngine {
     if (recommendRiichi) {
       // Your own deposit, which is not yet in [context.riichiSticks]: you get
       // it back on a win, so it only costs you on the hands you don't win.
-      lockCost += (1 - winProbability) * 1000;
+      //
+      // Capped at what declaring actually buys, because declaring is a choice.
+      // A wait too thin or too cheap to pay for the stick just stays quiet, so
+      // the deposit can never charge more than the riichi uplift over standing
+      // pat — nor, when the wait has no yaku without riichi and standing pat is
+      // worth nothing, more than the whole hand. Uncapped, a thin late wait
+      // priced out *negative*, and a line with no tenpai to declare at all
+      // scored above it.
+      //
+      // Only the stick is weighed here. What pushing costs against a live
+      // riichi is charged below and stays in the line's expected value, where
+      // it competes against the folding lines — that trade-off belongs to
+      // `analyze`, which can see the alternatives this method cannot.
+      final standPat = _standPatValue(
+        everyDamaRon: everyDamaRon,
+        anyDamaRon: anyDamaRon,
+        anyDamaTsumo: anyDamaTsumo,
+        damaPoints: damaPoints,
+        closed: context.closed,
+        liveWaits: liveWaits,
+        unseen: unseen,
+        draws: draws,
+        winBonus: context.winBonus,
+      );
+      lockCost += math.max(
+        0.0,
+        math.min(
+          (1 - winProbability) * 1000,
+          expectedValue - standPat.expectedValue,
+        ),
+      );
+
       // Locking into tsumogiri against a live riichi means every tile you
       // draw from here goes straight out, unlooked at. That is the real cost
       // of declaring, and it is the same arithmetic a single dangerous cut is
@@ -1560,11 +1659,71 @@ class EfficiencyEngine {
       reason: reason,
       winProbability: winProbability,
       riichiLockCost: lockCost,
+      damaPoints: damaPoints,
       // Staying tenpai without declaring still commits you to discarding for
       // the rest of the hand — less than a riichi does, since you can still
       // back out, but not nothing. Declaring is priced by [riichiLockCost]
       // instead, so only one of the two ever applies.
       turnsExposed: recommendRiichi ? 0 : outlook.turns,
+    );
+  }
+
+  /// What this tenpai is worth if it never declares — the alternative every
+  /// riichi is measured against. Mirrors the non-riichi arms of
+  /// [_assessTenpaiValue]: a wait with no yaku at all cannot be won on, so it
+  /// is worth nothing rather than worth less than nothing.
+  static _ValueAssessment _standPatValue({
+    required bool everyDamaRon,
+    required bool anyDamaRon,
+    required bool anyDamaTsumo,
+    required double damaPoints,
+    required bool closed,
+    required int liveWaits,
+    required int unseen,
+    required int draws,
+    required int winBonus,
+  }) {
+    final String plan;
+    final String reason;
+    final bool ronAvailable;
+    if (everyDamaRon) {
+      plan = closed ? 'DAMATEN' : 'OPEN YAKU';
+      ronAvailable = true;
+      reason = 'Damaten — declaring costs more than the riichi is worth on '
+          'this wait.';
+    } else if (anyDamaRon) {
+      plan = 'PARTIAL YAKU';
+      ronAvailable = true;
+      reason = 'Staying quiet — riichi costs more than it buys here, and only '
+          'some waits carry a yaku without it.';
+    } else if (anyDamaTsumo) {
+      plan = 'TSUMO ONLY';
+      ronAvailable = false;
+      reason = 'Staying quiet — riichi costs more than it buys here, so this '
+          'wait is tsumo only.';
+    } else {
+      return const _ValueAssessment(
+        plan: 'NO YAKU',
+        reason: 'Riichi costs more than it buys on this wait, and there is no '
+            'yaku without it.',
+      );
+    }
+
+    final outlook = _winChanceOverTurns(
+      waitWidth: liveWaits.toDouble(),
+      unseen: unseen,
+      draws: draws,
+      chancesPerTurn:
+          ronAvailable ? _winChancesPerTurn : _tsumoOnlyChancesPerTurn,
+    );
+    return _ValueAssessment(
+      expectedValue: outlook.win * (damaPoints + winBonus),
+      averagePoints: damaPoints,
+      plan: plan,
+      reason: reason,
+      winProbability: outlook.win,
+      turnsExposed: outlook.turns,
+      damaPoints: damaPoints,
     );
   }
 
@@ -1644,12 +1803,19 @@ class _ValueAssessment {
     this.winProbability = 0,
     this.riichiLockCost = 0,
     this.turnsExposed = 0,
+    this.damaPoints = 0,
   });
 
   final double expectedValue;
   final double averagePoints;
   final String plan;
   final bool recommendRiichi;
+
+  /// What this same wait pays without declaring. Only a tenpai assessment
+  /// knows it exactly; the pre-tenpai lines of the same hand borrow it so the
+  /// riichi uplift they cap the deposit against is this hand's, not a
+  /// representative one.
+  final double damaPoints;
 
   /// The two terms the panel shows its arithmetic with: how often this line
   /// gets home, and what declaring riichi on it costs against the hands it
