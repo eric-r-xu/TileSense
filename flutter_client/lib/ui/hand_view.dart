@@ -59,6 +59,31 @@ class _HandViewState extends State<HandView> {
   static const double _handStripWidth =
       13 * (46 * _handScale + 4) + (46 * _handScale + 4 + 14);
 
+  /// Move the tile [id] into the slot [targetId] currently occupies, shifting
+  /// the rest along — the ordinary meaning of dropping one thing onto another.
+  ///
+  /// Indices are read *before* the removal, which is what makes a drag to the
+  /// right land after the tile you dropped on and a drag to the left land
+  /// before it, without either direction needing a special case.
+  void _reorder(int id, int targetId, List<Tile> shown) {
+    if (id == targetId) return;
+    setState(() {
+      if (_autoSort) {
+        // Adopt what is on screen and drop out of auto-sort, or the next
+        // rebuild would sort the move straight back out again.
+        _order
+          ..clear()
+          ..addAll(shown.map((t) => t.id));
+        _autoSort = false;
+      }
+      final from = _order.indexOf(id);
+      final to = _order.indexOf(targetId);
+      if (from < 0 || to < 0) return;
+      _order.removeAt(from);
+      _order.insert(to.clamp(0, _order.length), id);
+    });
+  }
+
   List<Tile> _drawOrdered(List<Tile> resting) {
     final present = {for (final t in resting) t.id: t};
     _order.removeWhere((id) => !present.containsKey(id));
@@ -115,15 +140,64 @@ class _HandViewState extends State<HandView> {
       );
     }
 
-    // Auto-sort on: show all 14 tiles in tile order (drawn marked by its border).
-    // Off: resting tiles in draw order, drawn tile separated on the right.
+    /// A tile you can pick up and drop somewhere else in the strip.
+    ///
+    /// Long-press to lift rather than plain drag: the strip sits inside a
+    /// horizontal scroll view and the tiles themselves are tap-to-discard, so
+    /// a bare horizontal drag is already spoken for twice over. A long press
+    /// is unambiguous, and means no gesture here can be started by accident.
+    Widget draggableTile(Tile tile, List<Tile> shown, {bool separated = false}) {
+      final child = tileButton(tile, separated: separated);
+      return DragTarget<int>(
+        onWillAcceptWithDetails: (details) => details.data != tile.id,
+        onAcceptWithDetails: (details) =>
+            _reorder(details.data, tile.id, shown),
+        builder: (context, candidate, rejected) {
+          final marked = candidate.isNotEmpty;
+          return LongPressDraggable<int>(
+            data: tile.id,
+            axis: Axis.horizontal,
+            // Feedback rides above the app, outside this subtree's Material,
+            // so it brings its own.
+            feedback: Material(
+              color: Colors.transparent,
+              child: Opacity(
+                opacity: 0.9,
+                child: TileFace(
+                  tile: tile,
+                  size: TileSize.large,
+                  scale: _handScale,
+                ),
+              ),
+            ),
+            childWhenDragging: Opacity(opacity: 0.25, child: child),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: marked ? const Color(0x3380cbc4) : null,
+              ),
+              child: child,
+            ),
+          );
+        },
+      );
+    }
+
+    // Auto-sort on: show all 14 tiles in tile order (drawn marked by its
+    // border). Off: resting tiles in the order you have put them in, drawn
+    // tile separated on the right. Either way the tiles can be dragged into a
+    // different order — doing it while sorted just turns auto-sort off.
     final List<Widget> tiles;
     if (_autoSort) {
-      tiles = [for (final t in sortByType(seat.hand)) tileButton(t)];
+      final shown = sortByType(seat.hand);
+      tiles = [for (final t in shown) draggableTile(t, shown)];
     } else {
       final resting = [...seat.hand]..remove(drawn);
+      final shown = _drawOrdered(resting);
       tiles = [
-        for (final t in _drawOrdered(resting)) tileButton(t),
+        for (final t in shown) draggableTile(t, shown),
+        // The drawn tile is held apart until you keep it, so it has no slot in
+        // the order yet and is not a drop target.
         if (drawn != null) tileButton(drawn, separated: true),
       ];
     }
@@ -245,8 +319,13 @@ class _HandViewState extends State<HandView> {
 
   Widget _sortButton() {
     return Tooltip(
-      message: _autoSort ? 'Auto-sort: on' : 'Auto-sort: off (draw order)',
+      message: _autoSort
+          ? 'Auto-sort: on — tiles kept in tile order.\n'
+              'Tap for your own order, or drag a tile to start one.'
+          : 'Auto-sort: off — your own order.\n'
+              'Long-press a tile and drag it to move it. Tap to auto-sort.',
       child: InkWell(
+        key: const Key('sortHand'),
         borderRadius: BorderRadius.circular(10),
         onTap: () => setState(() => _autoSort = !_autoSort),
         child: Container(

@@ -7,7 +7,7 @@
 library;
 
 import '../game/game_controller.dart' show kHumanSeat, kSeatNames;
-import '../logic/efficiency_engine.dart' show PlayStyle;
+import '../logic/efficiency_engine.dart' show HandFocus, PlayStyle;
 import '../logic/meld.dart';
 import '../logic/tile.dart';
 
@@ -54,6 +54,9 @@ class Scenario {
 
   /// How the guide weighs danger against value when scoring this table.
   PlayStyle style = PlayStyle.balanced;
+
+  /// Whether the guide chases the faster hand or the bigger one here.
+  HandFocus focus = HandFocus.balanced;
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;

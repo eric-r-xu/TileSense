@@ -45,6 +45,16 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     rebuild();
   }
 
+  @override
+  HandFocus get handFocus => scenario.focus;
+
+  @override
+  void setHandFocus(HandFocus value) {
+    if (scenario.focus == value) return;
+    scenario.focus = value;
+    rebuild();
+  }
+
   // A posed table never animates a discard.
   @override
   int get discardSerial => 0;
@@ -130,6 +140,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
       style: scenario.style,
+      focus: scenario.focus,
     );
 
     if (scenario.isDiscardRead) {

@@ -179,13 +179,26 @@ void main() {
     await tester.tap(find.text('Start'));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Balanced'), findsOneWidget);
+    // Read off the button itself: the bar carries two dials now, and they both
+    // start on a setting called "Balanced".
+    expect(labelOf(const Key('playStyle')), 'Balanced');
+    expect(labelOf(const Key('handFocus')), 'Balanced');
+
     await tester.tap(find.byKey(const Key('playStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Aggressive'), findsOneWidget);
+    expect(labelOf(const Key('playStyle')), 'Aggressive');
+    expect(labelOf(const Key('handFocus')), 'Balanced',
+        reason: 'cycling one dial moved the other');
+
     await tester.tap(find.byKey(const Key('playStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Defensive'), findsOneWidget);
+    expect(labelOf(const Key('playStyle')), 'Defensive');
+
+    // And the focus dial cycles on its own.
+    await tester.tap(find.byKey(const Key('handFocus')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(const Key('handFocus')), 'Value');
+    expect(labelOf(const Key('playStyle')), 'Defensive');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

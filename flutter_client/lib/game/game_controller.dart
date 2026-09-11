@@ -100,6 +100,21 @@ class GameController extends ChangeNotifier implements GuideHost {
     notifyListeners();
   }
 
+  /// Which hand the guide chases when two are worth the same. Independent of
+  /// [playStyle] — that one weighs danger, this one weighs speed against
+  /// value — and it steers Autoplay the same way.
+  @override
+  HandFocus handFocus = HandFocus.balanced;
+  @override
+  void setHandFocus(HandFocus value) {
+    if (handFocus == value) return;
+    handFocus = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'hand_focus', value: value.name);
+    _refreshReport();
+    notifyListeners();
+  }
+
   /// Hanchan (East + South, 8 hands) when true; East-only (tonpuusen, 4 hands)
   /// when false. Hanchan is the default.
   bool hanchan = true;
@@ -811,6 +826,7 @@ class GameController extends ChangeNotifier implements GuideHost {
         honba: round.honba,
         riichiSticks: round.riichiSticks,
         style: playStyle,
+        focus: handFocus,
       );
 
   SeatState? _riichiOpponent() {
