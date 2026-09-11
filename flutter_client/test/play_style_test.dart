@@ -170,6 +170,73 @@ void main() {
         reason: 'aggressive did not push any more than balanced');
   });
 
+  group('a call against a riichi is only worth it if you will push', () {
+    // Ponning red reaches tenpai, but the tile it leaves you cutting is live
+    // against the riichi. A style that will push it takes the call; one that
+    // would fold straight afterwards gets nothing from opening up, and stays
+    // closed. On a quiet board there is no danger to weigh, and the styles
+    // agree.
+    GuidedAction advise(
+      String spec,
+      PlayStyle style, {
+      required List<TileType> dora,
+      required int wall,
+      bool riichi = true,
+    }) {
+      final hand = parseTiles(spec);
+      final pond = parseTypes('9p 3s 6m N');
+      final visible = toCounts34(hand)..[TileType.chun.index - 1] += 1;
+      for (final t in [...pond, ...dora]) {
+        visible[t.index - 1]++;
+      }
+      return EfficiencyEngine()
+          .adviseCall(
+            hand: hand,
+            offered: Tile(999, TileType.chun),
+            available: const {GuidedAction.pon},
+            visibleCounts34: visible,
+            context: EfficiencyValueContext(
+              melds: const [],
+              roundWind: Wind.east,
+              seatWind: Wind.south,
+              isDealer: false,
+              inRiichi: false,
+              wallTilesRemaining: wall,
+              doraIndicators: dora,
+              style: style,
+            ),
+            opponentRiichi: riichi,
+            opponentDiscards: riichi ? pond : const [],
+          )
+          .recommended;
+    }
+
+    test('Defensive is the first to turn it down', () {
+      // Red is dora, so the hand is worth pushing — to anyone who does not
+      // charge double for the danger.
+      GuidedAction at(PlayStyle s, {bool riichi = true}) =>
+          advise('1m 234m 567m 78p 99s RR', s,
+              dora: const [TileType.hatsu], wall: 50, riichi: riichi);
+      expect(at(PlayStyle.defensive), GuidedAction.pass);
+      expect(at(PlayStyle.balanced), GuidedAction.pon);
+      expect(at(PlayStyle.aggressive), GuidedAction.pon);
+      for (final s in PlayStyle.values) {
+        expect(at(s, riichi: false), GuidedAction.pon,
+            reason: '${s.label} turned it down with nothing to fear');
+      }
+    });
+
+    test('Aggressive is the last to', () {
+      // No dora and little wall left: only the style that halves the danger
+      // still finds the push worth it.
+      GuidedAction at(PlayStyle s) => advise('9m 234m 567m 78p 99s RR', s,
+          dora: const [TileType.pei], wall: 14);
+      expect(at(PlayStyle.defensive), GuidedAction.pass);
+      expect(at(PlayStyle.balanced), GuidedAction.pass);
+      expect(at(PlayStyle.aggressive), GuidedAction.pon);
+    });
+  });
+
   testWidgets('the game exposes the dial and it drives the guide',
       (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);

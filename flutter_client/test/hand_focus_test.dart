@@ -191,6 +191,179 @@ void main() {
     });
   });
 
+  group('it changes what the guide tells you to do', () {
+    test('Speed throws a lone dora for width; the others keep it', () {
+      // The S indicator makes W the dora, and it sits alone. Cutting it is the
+      // wide, quick line; cutting 4p keeps the dora and what it pays. That is
+      // exactly the trade the dial is there to make.
+      DiscardLine pick(HandFocus focus) => read('345m 7m 345p 4p 3s 566s 9s W',
+              focus: focus,
+              dora: const [TileType.sou8, TileType.nan],
+              wall: 40)
+          .lines
+          .firstWhere((l) => l.recommended);
+
+      final speed = pick(HandFocus.speed);
+      final value = pick(HandFocus.value);
+      expect(speed.discard, TileType.shaa);
+      expect(pick(HandFocus.balanced).discard, TileType.pin4);
+      expect(value.discard, TileType.pin4);
+      expect(speed.winProbability, greaterThan(value.winProbability));
+      expect(speed.averagePoints, lessThan(value.averagePoints));
+    });
+
+    GuidedAction call(
+      String spec,
+      TileType offered, {
+      required HandFocus focus,
+      List<TileType> dora = const [TileType.pin4],
+      int wall = 50,
+    }) {
+      final hand = parseTiles(spec);
+      final visible = toCounts34(hand)..[offered.index - 1] += 1;
+      for (final t in dora) {
+        visible[t.index - 1]++;
+      }
+      return EfficiencyEngine()
+          .adviseCall(
+            hand: hand,
+            offered: Tile(999, offered),
+            available: {
+              if (hand.where((t) => t.type == offered).length >= 2)
+                GuidedAction.pon,
+              if (!offered.isHonor) GuidedAction.chi,
+            },
+            visibleCounts34: visible,
+            context: EfficiencyValueContext(
+              melds: const <Meld>[],
+              roundWind: Wind.east,
+              seatWind: Wind.south,
+              isDealer: false,
+              inRiichi: false,
+              wallTilesRemaining: wall,
+              doraIndicators: dora,
+              focus: focus,
+            ),
+          )
+          .recommended;
+    }
+
+    test('Value turns down the cheap pon that the others take', () {
+      // Ponning green gets you moving on a 1000-point hand; staying closed
+      // keeps riichi, and the bigger hand that comes with it, on the table.
+      const spec = '123m 56m 788s NN GG R';
+      expect(call(spec, TileType.hatsu, focus: HandFocus.speed, wall: 54),
+          GuidedAction.pon);
+      expect(call(spec, TileType.hatsu, focus: HandFocus.balanced, wall: 54),
+          GuidedAction.pon);
+      expect(call(spec, TileType.hatsu, focus: HandFocus.value, wall: 54),
+          GuidedAction.pass);
+    });
+
+    test('Speed takes a chi to tenpai that the others turn down', () {
+      // The green triplet is already a yaku, so the chi is tenpai at once —
+      // but it gives up riichi and menzen for it.
+      const spec = '123m 56m 788s NN GGG';
+      expect(call(spec, TileType.sou6, focus: HandFocus.speed),
+          GuidedAction.chi);
+      expect(call(spec, TileType.sou6, focus: HandFocus.balanced),
+          GuidedAction.pass);
+      expect(call(spec, TileType.sou6, focus: HandFocus.value),
+          GuidedAction.pass);
+    });
+
+    test('Value still takes a call that pays', () {
+      // Same pon to tenpai on red twice over: cheap, Value stays closed; with
+      // red as dora it is a big hand already, and Value takes it.
+      const spec = '1m 234m 567m 78p 99s RR';
+      expect(
+          call(spec, TileType.chun,
+              focus: HandFocus.value, dora: const [TileType.pei]),
+          GuidedAction.pass);
+      expect(
+          call(spec, TileType.chun,
+              focus: HandFocus.value, dora: const [TileType.hatsu]),
+          GuidedAction.pon);
+      expect(
+          call(spec, TileType.chun,
+              focus: HandFocus.speed, dora: const [TileType.pei]),
+          GuidedAction.pon);
+    });
+  });
+
+  test('no setting picks a line that is worse on both halves', () {
+    // A tilt reorders lines that trade chance against payout. It must never
+    // prefer a line that is simply worse — no better paid, and far less
+    // likely to get home. Value once did: the riichi deposit was capped with
+    // the plain chance while the line was valued with the tilted one, so a
+    // hand could gain by getting *less* likely to win.
+    final rng = Random(4242);
+    final offenders = <String>[];
+    var positions = 0;
+    for (var game = 0; game < 250; game++) {
+      final wall = <TileType>[
+        for (var i = 0; i < 34; i++)
+          for (var c = 0; c < 4; c++) typeFrom34(i),
+      ]..shuffle(rng);
+      var next = 0;
+      final tiles = <TileType>[for (var i = 0; i < 14; i++) wall[next++]];
+      final pond = <TileType>[];
+      final dora = [wall[next++], wall[next++]];
+
+      for (var turn = 0; turn < 12 && next < wall.length; turn++) {
+        var id = 0;
+        final hand = tiles.map((t) => Tile(id++, t)).toList();
+        final seen = List<int>.filled(34, 0);
+        for (final t in [...tiles, ...pond, ...dora]) {
+          seen[t.index - 1]++;
+        }
+        positions++;
+        DiscardLine? balanced;
+        for (final focus in HandFocus.values) {
+          final lines = EfficiencyEngine()
+              .analyze(
+                hand: hand,
+                visibleCounts34: seen,
+                canRiichi: true,
+                valueContext: EfficiencyValueContext(
+                  melds: const [],
+                  roundWind: Wind.east,
+                  seatWind: Wind.south,
+                  isDealer: false,
+                  inRiichi: false,
+                  wallTilesRemaining: 70 - turn * 4,
+                  doraIndicators: dora,
+                  focus: focus,
+                ),
+              )
+              .lines;
+          final pick = lines.firstWhere((l) => l.recommended);
+          if (focus == HandFocus.balanced) balanced = pick;
+          // Same distance from tenpai, at least as well paid, and clearly
+          // likelier — a small gap in chance is a real trade, not an error.
+          final better = lines.where((o) =>
+              o.shanten == pick.shanten &&
+              o.averagePoints >= pick.averagePoints - 1e-6 &&
+              o.winProbability > pick.winProbability * 1.25 + 0.02);
+          if (better.isNotEmpty) {
+            offenders.add('${focus.label} cut ${pick.discard.code} '
+                '(${(pick.winProbability * 100).round()}%) over '
+                '${better.first.discard.code} '
+                '(${(better.first.winProbability * 100).round()}%)');
+          }
+        }
+        if (balanced!.shanten == 0) break;
+        tiles.remove(balanced.discard);
+        pond.add(balanced.discard);
+        tiles.add(wall[next++]);
+      }
+    }
+    expect(positions, greaterThan(2000), reason: 'the sweep really ran');
+    expect(offenders, isEmpty,
+        reason: '${offenders.length} dominated picks, first few: '
+            '${offenders.take(3).join('; ')}');
+  });
+
   test('a call is scored on the dials that are actually set', () {
     // Both places that rebuilt the context to score a call did it by hand and
     // dropped the dials, the honba and the sticks, so every call was weighed

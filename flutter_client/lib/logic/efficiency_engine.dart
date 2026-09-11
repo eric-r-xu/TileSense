@@ -1525,12 +1525,14 @@ class EfficiencyEngine {
     final riichiUplift = context.closed
         ? math.max(representativeUplift, knownUplift)
         : 0.0;
-    // Bounded with the plain chance, not the tilted one: the stick is a flat
-    // 1000 points and your feelings about speed do not change what it costs.
-    // What the dial may bend is the *uplift* it is bounded against, which is
-    // hand value and so is quoted in the same money as everything else here.
-    final chargedDeposit =
-        math.min(deposit, completionProbability * riichiUplift);
+    // The stick itself is a flat 1000 points — the dial does not change what
+    // it costs. But the cap is what declaring *buys*, and that is hand value,
+    // so it is quoted in the same money as the line it is charged against: the
+    // tilted chance times the tilted uplift. Capping with the plain chance
+    // mixed the two, and on Value — which flattens chance — a line could gain
+    // by being *less* likely to get home, because its cap shrank faster than
+    // its value did. On Balanced the two chances are one number.
+    final chargedDeposit = math.min(deposit, worthOfChance * riichiUplift);
     final tilted = worthOfChance * (worthOfWin + context.winBonus);
     final plain =
         completionProbability * (projectedPoints + context.winBonus);
