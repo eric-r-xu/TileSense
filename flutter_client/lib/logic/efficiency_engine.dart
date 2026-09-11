@@ -54,6 +54,87 @@ enum PlayStyle {
   PlayStyle get next => PlayStyle.values[(index + 1) % PlayStyle.values.length];
 }
 
+/// Which hand to chase when two lines are worth the same: the one that gets
+/// home, or the one that pays.
+///
+/// A separate dial from [PlayStyle] because the two really are separate. Risk
+/// tolerance is push/fold — how readily you keep firing at a live riichi.
+/// This is shape selection — the wide cheap ryanmen against the slow
+/// dora-heavy hand — and the archetypes come apart: a tempo player pushes
+/// constantly and wants nothing to do with value, while chasing value means
+/// sitting in the hand longer and eating more risk to do it.
+///
+/// The guide's expected value already prices speed against value on one scale:
+/// `chance of finishing x what the win pays` takes whichever product is
+/// bigger, with no preference either way. So this dial is a deliberate,
+/// declared tilt away from that, expressed as a curve over the payout rather
+/// than a thumb on the result — see [worth].
+enum HandFocus {
+  /// A big hand is worth having, but not worth waiting for: payouts are
+  /// flattened toward [_pivot], so the faster line wins most ties.
+  speed(curve: 0.45, label: 'Speed'),
+
+  /// No tilt at all. Expected value is taken at face value, and the line with
+  /// the larger `chance x payout` wins whatever shape it is.
+  balanced(curve: 1.0, label: 'Balanced'),
+
+  /// Payouts are stretched away from [_pivot], so a hand that pays double is
+  /// worth more than twice as much and is worth slowing down for.
+  value(curve: 1.55, label: 'Value');
+
+  const HandFocus({required this.curve, required this.label});
+
+  /// Exponent on the payout. Below 1 compresses the spread between a cheap
+  /// hand and a big one (speed); above 1 stretches it (value).
+  final double curve;
+
+  final String label;
+
+  HandFocus get next => HandFocus.values[(index + 1) % HandFocus.values.length];
+
+  /// The payout this focus pivots around — a hand worth exactly this much is
+  /// worth the same to all three, and everything else is pulled toward it or
+  /// pushed away from it. Set at a middling closed hand, so that neither tilt
+  /// quietly inflates or deflates every hand on the table.
+  static const double _pointsPivot = 5000;
+
+  /// The same idea for the other half of the product: a line with roughly this
+  /// chance of getting home is read the same way by all three.
+  static const double _chancePivot = 0.25;
+
+  /// What [points] is *worth* to a player with this focus, in points.
+  ///
+  /// A curve rather than a flat multiplier, so the tilt is about the spread
+  /// between a cheap hand and a big one and not about the general level: at
+  /// [_pointsPivot] all three agree, and they disagree more the further a hand
+  /// sits from it. Speed values a 7700 at about 6,700 and a 2000 at about
+  /// 2,400 — so the gap between them shrinks from 3.9x to 2.8x. Value pulls
+  /// the same pair apart instead.
+  double worth(double points) => points <= 0
+      ? points
+      : _pointsPivot * math.pow(points / _pointsPivot, curve).toDouble();
+
+  /// What a [chance] of getting home is worth to this focus.
+  ///
+  /// The payout curve on its own turned out to move almost nothing. Expected
+  /// value is a product of two terms, and within one hand the discards barely
+  /// differ in the payout — they nearly all end on the same hand — while they
+  /// differ enormously in how likely they are to get there. A curve applied to
+  /// the term they share reorders nothing.
+  ///
+  /// So the dial bends the other term too, by the opposite amount: the
+  /// exponents are [curve] and `2 - curve`, which multiply back to a straight
+  /// product on Balanced and leave it *exactly* as it was. Speed sharpens the
+  /// spread between a likely line and an unlikely one, so getting there wins
+  /// close calls; Value flattens it, so a thin line is forgiven in exchange
+  /// for what it pays. That is the trade-off the dial is supposed to express,
+  /// and it is the one it now makes.
+  double chanceWorth(double chance) => chance <= 0
+      ? chance
+      : _chancePivot *
+          math.pow(chance / _chancePivot, 2 - curve).toDouble().clamp(0.0, 8.0);
+}
+
 class EfficiencyValueContext {
   const EfficiencyValueContext({
     required this.melds,
@@ -66,6 +147,7 @@ class EfficiencyValueContext {
     this.honba = 0,
     this.riichiSticks = 0,
     this.style = PlayStyle.balanced,
+    this.focus = HandFocus.balanced,
   });
 
   final List<Meld> melds;
@@ -83,6 +165,9 @@ class EfficiencyValueContext {
   /// How heavily to weigh danger against value. See [PlayStyle].
   final PlayStyle style;
 
+  /// Which hand to chase when two are worth the same. See [HandFocus].
+  final HandFocus focus;
+
   /// Riichi deposits already on the table, collected whole by the winner.
   /// A deposit you have not placed yet is not in here; the cost of placing one
   /// is priced separately, against the hands you *don't* win.
@@ -95,6 +180,28 @@ class EfficiencyValueContext {
   int get winBonus => honba * 300 + riichiSticks * 1000;
 
   bool get closed => melds.every((m) => m.kind == MeldKind.kan && m.concealed);
+
+  /// The same context with a different meld list, and *every* other setting
+  /// carried across.
+  ///
+  /// Exists so it cannot be got wrong. Rebuilding this by hand to score a call
+  /// is easy to do and easy to do incompletely — both places that did silently
+  /// dropped the honba, the sticks and the play-style dial, so a call was
+  /// always weighed as though the dial sat on Balanced and the table had
+  /// nothing riding on it.
+  EfficiencyValueContext withMelds(List<Meld> melds) => EfficiencyValueContext(
+        melds: melds,
+        roundWind: roundWind,
+        seatWind: seatWind,
+        isDealer: isDealer,
+        inRiichi: inRiichi,
+        wallTilesRemaining: wallTilesRemaining,
+        doraIndicators: doraIndicators,
+        honba: honba,
+        riichiSticks: riichiSticks,
+        style: style,
+        focus: focus,
+      );
 }
 
 class DiscardLine {
@@ -113,6 +220,7 @@ class DiscardLine {
     this.commitmentCost = 0,
     this.winProbability = 0,
     this.riichiLockCost = 0,
+    this.valueTilt = 0,
     this.winBonus = 0,
     this.bestUkeire = false,
     this.bestExpectedValue = false,
@@ -148,6 +256,7 @@ class DiscardLine {
   /// its working:
   ///
   ///   expectedValue = winProbability × (averagePoints + winBonus)
+  ///                   + valueTilt
   ///                   − riichiLockCost − dealInCost − commitmentCost
   ///
   /// [winProbability] is the chance this line gets home — a win once tenpai, a
@@ -155,6 +264,15 @@ class DiscardLine {
   /// against the hands it doesn't win; zero unless the plan is to declare.
   final double winProbability;
   final double riichiLockCost;
+
+  /// What the [HandFocus] dial moved this line by: the gap between the payout
+  /// as scored and what a player on that dial treats it as worth, times the
+  /// chance of collecting it. Positive on a big hand under Value, negative on
+  /// one under Speed, and exactly zero on Balanced — which is why it is kept
+  /// apart from [averagePoints] rather than folded into it. [averagePoints]
+  /// stays the payout the hand really makes.
+  final double valueTilt;
+
   final double winBonus;
 
   bool bestUkeire;
@@ -330,6 +448,7 @@ class EfficiencyEngine {
         byType.values.where((r) => r.shanten == 0).firstOrNull;
     double? projectedPointsOverride;
     double? projectedDamaOverride;
+    double? projectedDoraReference;
     if (tenpaiResult != null) {
       final probe = _assessValue(
         result: tenpaiResult,
@@ -344,6 +463,10 @@ class EfficiencyEngine {
       if (probe.averagePoints > 0) {
         projectedPointsOverride = probe.averagePoints;
         projectedDamaOverride = probe.damaPoints;
+        projectedDoraReference = _doraKept(
+          _handAfterDiscard(hand, tenpaiResult.discard),
+          valueContext,
+        ).toDouble();
       }
     }
 
@@ -352,6 +475,7 @@ class EfficiencyEngine {
       final value = _assessValue(
         projectedPointsOverride: projectedPointsOverride,
         projectedDamaOverride: projectedDamaOverride,
+        projectedDoraReference: projectedDoraReference,
         result: r,
         remaining: remaining,
         concealed: afterDiscard,
@@ -391,6 +515,7 @@ class EfficiencyEngine {
         commitmentCost: commitmentCost,
         winProbability: value.winProbability,
         riichiLockCost: value.riichiLockCost,
+        valueTilt: value.valueTilt,
         winBonus: valueContext.winBonus.toDouble(),
       );
     }).toList();
@@ -772,15 +897,7 @@ class EfficiencyEngine {
 
     return _kanAdvice(
       concealedAfter: _handWithout(hand, consumed),
-      contextAfter: EfficiencyValueContext(
-        melds: meldsAfter,
-        roundWind: context.roundWind,
-        seatWind: context.seatWind,
-        isDealer: context.isDealer,
-        inRiichi: context.inRiichi,
-        wallTilesRemaining: context.wallTilesRemaining,
-        doraIndicators: context.doraIndicators,
-      ),
+      contextAfter: context.withMelds(meldsAfter),
       remaining: remaining,
       shantenBefore: shantenBefore,
       evBefore: evBefore,
@@ -1049,15 +1166,7 @@ class EfficiencyEngine {
     EfficiencyValueContext context,
     Meld meld,
   ) =>
-      EfficiencyValueContext(
-        melds: [...context.melds, meld],
-        roundWind: context.roundWind,
-        seatWind: context.seatWind,
-        isDealer: context.isDealer,
-        inRiichi: context.inRiichi,
-        wallTilesRemaining: context.wallTilesRemaining,
-        doraIndicators: context.doraIndicators,
-      );
+      context.withMelds([...context.melds, meld]);
 
   /// [count] tiles of [type] from [hand], preferring plain copies so a red
   /// five stays where it can still be chosen freely.
@@ -1316,6 +1425,7 @@ class EfficiencyEngine {
     double riichiDangerFactor = 0.0,
     double? projectedPointsOverride,
     double? projectedDamaOverride,
+    double? projectedDoraReference,
   }) {
     // A normal discard analysis starts with 14 tiles including open melds.
     // Off-turn defensive reads can have only 13, so avoid pretending those
@@ -1359,10 +1469,24 @@ class EfficiencyEngine {
     // what it is worth, so use that instead of the table. Otherwise a cheap
     // hand's pre-tenpai lines get credited with an average hand's payout and
     // outrank its own tenpai line, which reads as "break tenpai to rebuild".
-    final projectedPoints = projectedPointsOverride ??
+    final baseProjectedPoints = projectedPointsOverride ??
         (context.closed
             ? (context.isDealer ? 5800.0 : 3900.0)
             : (context.isDealer ? 2900.0 : 2000.0));
+
+    // Adjusted for the dora this particular line keeps. Without it every
+    // pre-tenpai discard is quoted the same payout whatever it throws away, so
+    // cutting the red five reads exactly like cutting a junk terminal — and
+    // the hand-focus dial has nothing to bite on, because a tilt applied
+    // equally to every line reorders none of them.
+    //
+    // The reference is the tenpai line's own dora count when there is one, so
+    // that line keeps its exact score and the others are quoted relative to
+    // it; otherwise it is what a hand this shape usually holds.
+    final doraDelta = _doraKept(concealed, context) -
+        (projectedDoraReference ?? _baselineDora);
+    final projectedPoints = baseProjectedPoints *
+        math.pow(_doraValueMultiple, doraDelta).toDouble().clamp(0.6, 2.5);
 
     // A closed hand on this path means to riichi when it arrives, so it owes
     // the same 1000 the tenpai lines are charged — payable once it declares,
@@ -1388,22 +1512,35 @@ class EfficiencyEngine {
     final deposit = context.closed
         ? math.max(0.0, outlook.reachedTenpai - completionProbability) * 1000
         : 0.0;
+    // Everything from here is weighed in what the payout is *worth* on the
+    // hand-focus dial, not in raw points — including the uplift, so the stick
+    // is judged by the same money the line is.
+    final worthOfWin = context.focus.worth(projectedPoints);
+    final worthOfChance = context.focus.chanceWorth(completionProbability);
     final representativeUplift =
-        projectedPoints * (1 - 1 / _riichiValueMultiple);
+        worthOfWin * (1 - 1 / _riichiValueMultiple);
     final knownUplift = projectedDamaOverride == null
         ? 0.0
-        : projectedPoints - projectedDamaOverride;
+        : worthOfWin - context.focus.worth(projectedDamaOverride);
     final riichiUplift = context.closed
         ? math.max(representativeUplift, knownUplift)
         : 0.0;
-    final chargedDeposit =
-        math.min(deposit, completionProbability * riichiUplift);
+    // The stick itself is a flat 1000 points — the dial does not change what
+    // it costs. But the cap is what declaring *buys*, and that is hand value,
+    // so it is quoted in the same money as the line it is charged against: the
+    // tilted chance times the tilted uplift. Capping with the plain chance
+    // mixed the two, and on Value — which flattens chance — a line could gain
+    // by being *less* likely to get home, because its cap shrank faster than
+    // its value did. On Balanced the two chances are one number.
+    final chargedDeposit = math.min(deposit, worthOfChance * riichiUplift);
+    final tilted = worthOfChance * (worthOfWin + context.winBonus);
+    final plain =
+        completionProbability * (projectedPoints + context.winBonus);
 
     return _ValueAssessment(
-      expectedValue:
-          completionProbability * (projectedPoints + context.winBonus) -
-              chargedDeposit,
+      expectedValue: tilted - chargedDeposit,
       averagePoints: projectedPoints,
+      valueTilt: tilted - plain,
       plan: context.closed ? 'RIICHI PATH' : 'YAKU PATH',
       winProbability: completionProbability,
       riichiLockCost: chargedDeposit,
@@ -1416,6 +1553,35 @@ class EfficiencyEngine {
   /// before tenpai, where the hand's exact shape is not yet known and only the
   /// representative payout is on hand.
   static const double _riichiValueMultiple = 1.5;
+
+  /// Dora (indicated plus red fives) held by a hand this shape, on average.
+  /// One indicator puts four tiles in a 136-tile wall and you hold thirteen of
+  /// them; the three red fives add a little more.
+  static const double _baselineDora = 0.6;
+
+  /// What one dora either way does to the payout. A dora is a han, and a han
+  /// roughly halves or doubles a hand at the values these estimates sit at —
+  /// but these are *averages over unfinished hands*, most of which never get
+  /// scored at all, so the swing is damped well below that and bounded at
+  /// both ends.
+  static const double _doraValueMultiple = 1.8;
+
+  /// Dora and red fives this hand is holding, melds included.
+  static int _doraKept(
+    List<Tile> concealed,
+    EfficiencyValueContext context,
+  ) {
+    final tiles = [
+      ...concealed,
+      ...context.melds.expand((meld) => meld.tiles),
+    ];
+    var count = tiles.where((tile) => tile.aka).length;
+    for (final indicator in context.doraIndicators) {
+      final target = indicator.doraTarget;
+      count += tiles.where((tile) => tile.type == target).length;
+    }
+    return count;
+  }
 
   /// What a discard costs when it deals in, and how often each safety rating
   /// does. Both are representative averages in the same spirit as the
@@ -1600,7 +1766,11 @@ class EfficiencyEngine {
     final winProbability = outlook.win;
     // Honba and the riichi deposits already on the table go to the winner
     // whatever the hand is worth, so they scale with the chance of winning it.
-    var expectedValue = winProbability * (selectedPoints + context.winBonus);
+    final worthOfWin = context.focus.worth(selectedPoints);
+    final worthOfChance = context.focus.chanceWorth(winProbability);
+    var expectedValue = worthOfChance * (worthOfWin + context.winBonus);
+    final plainValue =
+        winProbability * (selectedPoints + context.winBonus);
     var lockCost = 0.0;
     if (recommendRiichi) {
       // Your own deposit, which is not yet in [context.riichiSticks]: you get
@@ -1628,6 +1798,7 @@ class EfficiencyEngine {
         unseen: unseen,
         draws: draws,
         winBonus: context.winBonus,
+        focus: context.focus,
       );
       lockCost += math.max(
         0.0,
@@ -1659,6 +1830,7 @@ class EfficiencyEngine {
       reason: reason,
       winProbability: winProbability,
       riichiLockCost: lockCost,
+      valueTilt: worthOfChance * (worthOfWin + context.winBonus) - plainValue,
       damaPoints: damaPoints,
       // Staying tenpai without declaring still commits you to discarding for
       // the rest of the hand — less than a riichi does, since you can still
@@ -1682,6 +1854,7 @@ class EfficiencyEngine {
     required int unseen,
     required int draws,
     required int winBonus,
+    required HandFocus focus,
   }) {
     final String plan;
     final String reason;
@@ -1716,9 +1889,13 @@ class EfficiencyEngine {
       chancesPerTurn:
           ronAvailable ? _winChancesPerTurn : _tsumoOnlyChancesPerTurn,
     );
+    final worth = focus.worth(damaPoints);
+    final chance = focus.chanceWorth(outlook.win);
     return _ValueAssessment(
-      expectedValue: outlook.win * (damaPoints + winBonus),
+      expectedValue: chance * (worth + winBonus),
       averagePoints: damaPoints,
+      valueTilt: chance * (worth + winBonus) -
+          outlook.win * (damaPoints + winBonus),
       plan: plan,
       reason: reason,
       winProbability: outlook.win,
@@ -1804,6 +1981,7 @@ class _ValueAssessment {
     this.riichiLockCost = 0,
     this.turnsExposed = 0,
     this.damaPoints = 0,
+    this.valueTilt = 0,
   });
 
   final double expectedValue;
@@ -1816,6 +1994,10 @@ class _ValueAssessment {
   /// riichi uplift they cap the deposit against is this hand's, not a
   /// representative one.
   final double damaPoints;
+
+  /// How far the [HandFocus] dial moved [expectedValue]. See
+  /// [DiscardLine.valueTilt].
+  final double valueTilt;
 
   /// The two terms the panel shows its arithmetic with: how often this line
   /// gets home, and what declaring riichi on it costs against the hands it

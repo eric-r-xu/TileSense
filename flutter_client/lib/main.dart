@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
-import 'logic/efficiency_engine.dart' show PlayStyle;
+import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle;
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/scenario_page.dart';
@@ -34,6 +35,81 @@ Color playStyleColor(PlayStyle style) => switch (style) {
       PlayStyle.defensive => const Color(0xff80cbc4),
       PlayStyle.balanced => const Color(0xffe9d58f),
       PlayStyle.aggressive => const Color(0xffff8a65),
+    };
+
+/// The two guide dials sit side by side in an app bar that was already full,
+/// so they are drawn tight: no minimum width, no tap-target padding of their
+/// own, and just enough horizontal room to keep the words off each other.
+ButtonStyle _dialButtonStyle(Color colour) => TextButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      foregroundColor: colour,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
+const TextStyle _dialLabelStyle =
+    TextStyle(fontSize: 11, fontWeight: FontWeight.w700);
+
+/// Why the hand counts either game length advertises are a floor rather than
+/// a promise. Standard riichi replays the hand whenever the dealership holds,
+/// so both numbers are what you get only if it passes every single time.
+const String _handCountCaveat =
+    'That is with the dealership passing every hand. Under standard riichi '
+    'rules a dealer who wins, or who is tenpai at an exhaustive draw, keeps '
+    'it and the hand is replayed — so either length can run longer.';
+
+/// One captioned dial in the app bar: a dim fixed caption and the current
+/// value in the dial's own colour, tapped to cycle. The caption sits outside
+/// the button so the button still contains nothing but its value.
+Widget _barDial({
+  required String caption,
+  required Key buttonKey,
+  required String label,
+  required Color colour,
+  required String tooltip,
+  required VoidCallback onTap,
+}) =>
+    Tooltip(
+      message: tooltip,
+      // Fixed row height. Two stacked rows have to clear a 50px toolbar with
+      // room to spare, and a TextButton left to itself is taller than this.
+      child: SizedBox(
+        height: 18,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(caption,
+                style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6)),
+            SizedBox(
+              width: 74,
+              child: TextButton(
+                key: buttonKey,
+                onPressed: onTap,
+                style: _dialButtonStyle(colour),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(label, style: _dialLabelStyle),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+/// Colour for a hand focus, on a deliberately different axis from
+/// [playStyleColor] so the two dials never read as one setting: this one runs
+/// from the quick, cool blue of a fast cheap hand to the violet of a big slow
+/// one.
+Color handFocusColor(HandFocus focus) => switch (focus) {
+      HandFocus.speed => const Color(0xff64b5f6),
+      HandFocus.balanced => const Color(0xffe9d58f),
+      HandFocus.value => const Color(0xffba9cf0),
     };
 
 /// The design resolution the UI is authored at. Everything is laid out in these
@@ -95,13 +171,13 @@ class _FixedCanvas extends StatefulWidget {
   const _FixedCanvas({required this.child});
   final Widget child;
 
-  /// Pinch-to-zoom is offered on touch platforms only. On a desktop browser
-  /// the window is already big enough and a stray trackpad pinch scaling the
-  /// table would be a nuisance, so it is left alone there.
+  /// Pinch-to-zoom is offered on touch platforms only. On a desktop browser a
+  /// stray trackpad pinch scaling the table would be a nuisance, so the raw
+  /// gesture is left unbound there — desktop gets [_deliberateZoom] instead,
+  /// which only ever fires on purpose.
   ///
   /// An iPad running Safari in its "desktop" mode reports macOS and so misses
-  /// out; that is the one gap, and the cost of it is only that pinch does
-  /// nothing.
+  /// out on pinch; it picks up the buttons in exchange.
   static bool get _pinchZoomable => switch (defaultTargetPlatform) {
         TargetPlatform.android ||
         TargetPlatform.iOS ||
@@ -109,6 +185,12 @@ class _FixedCanvas extends StatefulWidget {
           true,
         _ => false,
       };
+
+  /// The other half: on-screen buttons, a modifier-held wheel, and the zoom
+  /// shortcuts every other desktop app uses. Everything here needs a
+  /// deliberate act — a click, or a held Ctrl/Cmd — so nothing scales the
+  /// table by accident the way a bare pinch or a bare scroll would.
+  static bool get _deliberateZoom => !_pinchZoomable;
 
   @override
   State<_FixedCanvas> createState() => _FixedCanvasState();
@@ -123,6 +205,18 @@ class _FixedCanvasState extends State<_FixedCanvas> {
   /// tile palette for the same gesture.
   bool _zoomedIn = false;
 
+  /// Keyboard focus for the zoom shortcuts. Kept unfocusable by traversal so
+  /// it never steals a tab stop from the game itself; it only ever holds focus
+  /// because it is the outermost scope.
+  final FocusNode _keys = FocusNode(debugLabel: 'zoom', skipTraversal: true);
+
+  static const double _minScale = 1;
+  static const double _maxScale = 4;
+
+  /// One press of a button or a shortcut. A ratio rather than a step, so the
+  /// same press feels the same at every magnification.
+  static const double _zoomStep = 1.25;
+
   @override
   void initState() {
     super.initState();
@@ -133,12 +227,199 @@ class _FixedCanvasState extends State<_FixedCanvas> {
   void dispose() {
     _zoom.removeListener(_onZoom);
     _zoom.dispose();
+    _keys.dispose();
     super.dispose();
   }
 
   void _onZoom() {
     final zoomedIn = _zoom.value.getMaxScaleOnAxis() > 1.01;
     if (zoomedIn != _zoomedIn) setState(() => _zoomedIn = zoomedIn);
+  }
+
+  double get _scale => _zoom.value.getMaxScaleOnAxis();
+
+  /// Scale to [target], keeping the middle of the viewport where it is.
+  ///
+  /// [InteractiveViewer] owns the translation as well as the scale, so this
+  /// cannot just write a scale in: at 2x the canvas is twice the size of its
+  /// box and the offset decides which half you are looking at. Rebuilding the
+  /// matrix around the centre is what stops a button press from jumping you
+  /// to a corner.
+  void _zoomTo(double target, {Offset? focalPoint}) {
+    final clamped = target.clamp(_minScale, _maxScale);
+    final box = context.findRenderObject() as RenderBox?;
+    final size = box?.size ?? kDesignSize;
+    final focal = focalPoint ?? size.center(Offset.zero);
+
+    final current = _scale;
+    if ((clamped - current).abs() < 0.001) return;
+
+    // The scene point under [focal] has to stay under it afterwards.
+    final translation = _zoom.value.getTranslation();
+    final scenePoint = Offset(
+      (focal.dx - translation.x) / current,
+      (focal.dy - translation.y) / current,
+    );
+    final next = Matrix4.identity()
+      ..translateByDouble(focal.dx - scenePoint.dx * clamped,
+          focal.dy - scenePoint.dy * clamped, 0, 1)
+      ..scaleByDouble(clamped, clamped, clamped, 1);
+
+    // Never leave the box showing letterbox where canvas should be: at 1x the
+    // canvas fills it exactly, so the offset has to come back to zero.
+    _zoom.value = clamped <= _minScale ? Matrix4.identity() : next;
+  }
+
+  void _zoomBy(double factor, {Offset? focalPoint}) =>
+      _zoomTo(_scale * factor, focalPoint: focalPoint);
+
+  /// Ctrl/Cmd + wheel, the way every map and document viewer does it. A bare
+  /// scroll is deliberately left alone — it belongs to whatever is under the
+  /// pointer, and hijacking it would make the table lurch while you were
+  /// reading the guide panel.
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    if (!HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed) {
+      return;
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    final focal = box?.globalToLocal(event.position) ?? event.localPosition;
+    _zoomBy(event.scrollDelta.dy < 0 ? _zoomStep : 1 / _zoomStep,
+        focalPoint: focal);
+  }
+
+  /// The desktop zoom surface: the same [InteractiveViewer] the touch build
+  /// uses, but driven only on purpose — a held Ctrl/Cmd with the wheel, the
+  /// usual keyboard shortcuts, or the buttons. Dragging to pan still works
+  /// once zoomed, and is still off at 1x so it cannot fight the hand strip.
+  Widget _desktopZoomable(Widget canvas) {
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        // Both the main-row and numpad forms, and with shift held, because
+        // "+" on most layouts *is* shift-equals.
+        for (final key in [
+          LogicalKeyboardKey.equal,
+          LogicalKeyboardKey.add,
+          LogicalKeyboardKey.numpadAdd,
+        ]) ...{
+          SingleActivator(key, control: true): const _ZoomIntent(_zoomStep),
+          SingleActivator(key, meta: true): const _ZoomIntent(_zoomStep),
+          SingleActivator(key, control: true, shift: true):
+              const _ZoomIntent(_zoomStep),
+          SingleActivator(key, meta: true, shift: true):
+              const _ZoomIntent(_zoomStep),
+        },
+        for (final key in [
+          LogicalKeyboardKey.minus,
+          LogicalKeyboardKey.numpadSubtract,
+        ]) ...{
+          SingleActivator(key, control: true): const _ZoomIntent(1 / _zoomStep),
+          SingleActivator(key, meta: true): const _ZoomIntent(1 / _zoomStep),
+        },
+        for (final key in [
+          LogicalKeyboardKey.digit0,
+          LogicalKeyboardKey.numpad0,
+        ]) ...{
+          SingleActivator(key, control: true): const _ZoomIntent(null),
+          SingleActivator(key, meta: true): const _ZoomIntent(null),
+        },
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _ZoomIntent: CallbackAction<_ZoomIntent>(
+            onInvoke: (intent) {
+              final factor = intent.factor;
+              if (factor == null) {
+                _zoomTo(_minScale);
+              } else {
+                _zoomBy(factor);
+              }
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          focusNode: _keys,
+          autofocus: true,
+          child: Listener(
+            onPointerSignal: _onPointerSignal,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: InteractiveViewer(
+                    transformationController: _zoom,
+                    minScale: _minScale,
+                    maxScale: _maxScale,
+                    panEnabled: _zoomedIn,
+                    // The wheel is handled above, under a modifier. Leaving
+                    // the viewer's own scale gesture on would also bind a bare
+                    // trackpad pinch, which is the accident this build avoids.
+                    scaleEnabled: false,
+                    child: canvas,
+                  ),
+                ),
+                _zoomControls(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The zoom controls, bottom-right over the letterbox bar. Hidden on touch,
+  /// where pinch is the natural gesture and the buttons would only cover the
+  /// table. Reset is only offered once there is something to reset.
+  Widget _zoomControls() {
+    Widget button(IconData icon, String tip, VoidCallback? onTap, Key key) =>
+        Tooltip(
+          message: tip,
+          child: IconButton(
+            key: key,
+            icon: Icon(icon, size: 18),
+            onPressed: onTap,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+            padding: EdgeInsets.zero,
+            color: Colors.white70,
+            disabledColor: Colors.white24,
+            hoverColor: const Color(0x22ffffff),
+          ),
+        );
+
+    return Positioned(
+      right: 6,
+      bottom: 6,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0x99000000),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            button(
+                Icons.remove,
+                'Zoom out  (Ctrl/Cmd -)',
+                _scale > _minScale + 0.001
+                    ? () => _zoomBy(1 / _zoomStep)
+                    : null,
+                const Key('zoomOut')),
+            button(
+                Icons.add,
+                'Zoom in  (Ctrl/Cmd +)',
+                _scale < _maxScale - 0.001 ? () => _zoomBy(_zoomStep) : null,
+                const Key('zoomIn')),
+            button(
+                Icons.crop_free,
+                'Reset zoom  (Ctrl/Cmd 0)',
+                _zoomedIn ? () => _zoomTo(_minScale) : null,
+                const Key('zoomReset')),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -174,15 +455,17 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       // this the guide panel's outer edge sits under the notch. The letterbox
       // colour fills the inset, so nothing looks cut off.
       child: SafeArea(
-        child: _FixedCanvas._pinchZoomable
-            ? InteractiveViewer(
-                transformationController: _zoom,
-                minScale: 1,
-                maxScale: 4,
-                panEnabled: _zoomedIn,
-                child: canvas,
-              )
-            : canvas,
+        child: _FixedCanvas._deliberateZoom
+            ? _desktopZoomable(canvas)
+            : _FixedCanvas._pinchZoomable
+                ? InteractiveViewer(
+                    transformationController: _zoom,
+                    minScale: _minScale,
+                    maxScale: _maxScale,
+                    panEnabled: _zoomedIn,
+                    child: canvas,
+                  )
+                : canvas,
       ),
     );
   }
@@ -358,16 +641,26 @@ class _GamePageState extends State<GamePage> {
             // East-only vs. hanchan game length (hanchan is the default).
             AnimatedBuilder(
               animation: _game,
-              builder: (context, _) => TextButton(
-                onPressed: () => _game.setHanchan(!_game.hanchan),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor: const Color(0xffe9d58f),
-                ),
-                child: Text(
-                  _game.hanchan ? 'Hanchan' : 'East only',
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600),
+              builder: (context, _) => Tooltip(
+                message: _game.hanchan
+                    ? 'Hanchan — East and South rounds, 8 hands.\n'
+                        '$_handCountCaveat\n'
+                        'Tap for East only, 4 hands.'
+                    : 'East only (tonpuusen) — the East round, 4 hands.\n'
+                        '$_handCountCaveat\n'
+                        'Tap for hanchan: East and South, 8 hands.',
+                child: TextButton(
+                  key: const Key('hanchan'),
+                  onPressed: () => _game.setHanchan(!_game.hanchan),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: const Color(0xffe9d58f),
+                  ),
+                  child: Text(
+                    _game.hanchan ? 'Hanchan' : 'East only',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
@@ -396,26 +689,40 @@ class _GamePageState extends State<GamePage> {
           ],
         ),
         actions: [
-          // How hard the guide (and so Autoplay) pushes — kept beside the
-          // Auto-Play switch it steers. The guide panel carries a second,
-          // synced copy of this dial; both drive GameController.playStyle.
+          // Both guide dials — and so both Auto-Play dials, since Auto-Play
+          // plays from the guide's own scores — kept beside the switch they
+          // steer. The guide panel carries a synced copy of each.
+          //
+          // Stacked rather than side by side: two full-width buttons overflow
+          // this bar, and stacking them costs about eight pixels of width
+          // instead of eighty. It also reads better, because captioning them
+          // is what makes two coloured words legible as two settings.
           AnimatedBuilder(
             animation: _game,
-            builder: (context, _) => Tooltip(
-              message: 'How hard the guide (and Auto-Play) pushes',
-              child: TextButton(
-                key: const Key('playStyle'),
-                onPressed: () => _game.setPlayStyle(_game.playStyle.next),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor: playStyleColor(_game.playStyle),
+            builder: (context, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _barDial(
+                  caption: 'STYLE',
+                  buttonKey: const Key('playStyle'),
+                  label: _game.playStyle.label,
+                  colour: playStyleColor(_game.playStyle),
+                  tooltip: 'How hard the guide (and Auto-Play) pushes: '
+                      'when to fold, when to riichi, when to call',
+                  onTap: () => _game.setPlayStyle(_game.playStyle.next),
                 ),
-                child: Text(
-                  _game.playStyle.label,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600),
+                _barDial(
+                  caption: 'FOCUS',
+                  buttonKey: const Key('handFocus'),
+                  label: _game.handFocus.label,
+                  colour: handFocusColor(_game.handFocus),
+                  tooltip: 'What the guide (and Auto-Play) chases: '
+                      'a quicker cheaper hand, or a slower bigger one',
+                  onTap: () => _game.setHandFocus(_game.handFocus.next),
                 ),
-              ),
+              ],
             ),
           ),
           AnimatedBuilder(
@@ -636,4 +943,10 @@ class _WelcomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Zoom by [factor], or reset when it is null.
+class _ZoomIntent extends Intent {
+  const _ZoomIntent(this.factor);
+  final double? factor;
 }

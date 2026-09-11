@@ -4,7 +4,7 @@ import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
-import '../main.dart' show playStyleColor;
+import '../main.dart' show handFocusColor, playStyleColor;
 import 'tile_face.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
@@ -58,6 +58,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             _header(r),
             if (!_minimized) ...[
               _styleDial(),
+              _focusDial(),
               const SizedBox(height: 8),
               if (widget.game.awaitingHumanCall) _callAdvice(),
               Flexible(
@@ -122,13 +123,61 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  Widget _styleChip(PlayStyle style, bool active) {
-    final colour = playStyleColor(style);
+  /// The hand-focus dial, the second and independent axis: [_styleDial] says
+  /// how much danger is worth taking, this says which hand to take it for.
+  Widget _focusDial() {
+    final current = widget.game.handFocus;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          const Text(
+            'FOCUS',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(width: 8),
+          for (final focus in HandFocus.values)
+            Expanded(
+              child: _dialChip(
+                label: focus.label,
+                colour: handFocusColor(focus),
+                active: focus == current,
+                chipKey: Key('guideHandFocus_${focus.name}'),
+                onTap: () => widget.game.setHandFocus(focus),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _styleChip(PlayStyle style, bool active) => _dialChip(
+        label: style.label,
+        colour: playStyleColor(style),
+        active: active,
+        chipKey: Key('guidePlayStyle_${style.name}'),
+        onTap: () => widget.game.setPlayStyle(style),
+      );
+
+  /// One chip of either dial — same shape, same hit target, so the two rows
+  /// read as two settings of a kind rather than two different controls.
+  Widget _dialChip({
+    required String label,
+    required Color colour,
+    required bool active,
+    required Key chipKey,
+    required VoidCallback onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: InkWell(
-        key: Key('guidePlayStyle_${style.name}'),
-        onTap: () => widget.game.setPlayStyle(style),
+        key: chipKey,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(4),
         child: Container(
           alignment: Alignment.center,
@@ -142,7 +191,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            style.label,
+            label,
             style: TextStyle(
               color: active ? colour : Colors.white54,
               fontSize: 9,
@@ -368,7 +417,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         Text('• Ukeire — live tiles that reduce shanten', style: style),
         _evTooltip(
           Text(
-            '• Expected Value — probability-weighted points, less deal-in risk',
+            '• Expected Value — chance of finishing x what the win '
+            'pays, less what the cut risks',
             style: style.copyWith(
               decoration: TextDecoration.underline,
               decorationStyle: TextDecorationStyle.dotted,
@@ -380,6 +430,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             style: style),
         Text('• Risk — points taken off EV for the danger of this cut',
             style: style),
+        Text('• Style — how much danger the guide will take on', style: style),
+        Text('• Focus — what it will take that danger for: a quicker hand '
+            'or a bigger one', style: style),
         Text('• Green tile — the guide\'s recommended discard', style: style),
         Text('• Yellow tile — the tile you just drew', style: style),
       ],
@@ -406,37 +459,57 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   );
   static const _tipDim =
       TextStyle(color: Colors.white60, fontSize: 11.5, height: 1.5);
+  static const _tipHead = TextStyle(
+      color: Color(0xff9fe0d8),
+      fontSize: 10,
+      height: 1.9,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.5);
+
+  /// A heading inside the tooltip. The panel reads as a stack of short
+  /// labelled parts rather than one block of prose, and each heading is the
+  /// same phrase the worked example below uses for that row — so a reader can
+  /// go straight from a number to the sentence explaining it.
+  static TextSpan _tipPart(String heading, String body) => TextSpan(children: [
+        TextSpan(text: '\n$heading\n', style: _tipHead),
+        TextSpan(text: body, style: _tipBody),
+      ]);
 
   /// What the Expected Value column means, in general terms — the same answer
-  /// whether the hand is ready or five tiles away, and whether or not anyone is
-  /// in riichi. The exact coefficients live in the README; what matters here is
-  /// which way each part pushes the number.
-  static const List<InlineSpan> _evGeneral = [
-    TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
-    TextSpan(
-        text: 'The average points this discard is worth to you.\n\n',
+  /// whether the hand is ready or five tiles away, and whether or not anyone
+  /// is in riichi. The exact coefficients live in the README; what matters
+  /// here is which way each part pushes the number.
+  static final List<InlineSpan> _evGeneral = [
+    const TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
+    const TextSpan(
+        text: 'The average points this discard is worth to you.\n',
         style: _tipBody),
-    TextSpan(
-        text: '  EV  =  chance of finishing\n'
+    const TextSpan(
+        text: '\n  EV  =  chance of finishing\n'
             '         x  what the win pays\n'
-            '         -  what this cut risks\n\n',
+            '         -  what the cut risks\n',
         style: _tipMath),
-    TextSpan(
-        text: 'Finishing means winning once you are ready, and '
-            'getting there before that — better with more useful '
-            'tiles left and more draws to find them. The win also '
-            'collects any honba and riichi sticks on the table.\n\n'
-            'A cut only costs you while an opponent is in riichi: '
-            'how often a tile that safe deals in, times what that '
-            'hand would cost. Cutting a live tile also commits you '
-            'to staying in, so it is charged for the turns that '
-            'follow as well — a safe cut commits you to nothing. '
-            'Declaring riichi costs most of all, since it freezes '
-            'your hand and you can no longer back out.\n\n',
-        style: _tipBody),
-    TextSpan(
-        text: 'Higher is better, and can go negative — a dangerous '
-            'cut on a cheap hand loses points on average.',
+    _tipPart('CHANCE OF FINISHING',
+        'Winning once you are ready, and getting there first. Rises with more '
+        'useful tiles still live and more draws left to find them.\n'),
+    _tipPart('WHAT THE WIN PAYS',
+        'What this line collects if it lands, plus any honba and riichi '
+        'sticks already on the table. Once a discard leaves you tenpai this '
+        'is scored exactly; before that it is an estimate, adjusted for the '
+        'dora this particular cut keeps.\n'),
+    _tipPart('WHAT THE CUT RISKS',
+        'Declaring riichi stakes 1,000 you only get back by winning — so it '
+        'is charged even on a quiet table, and never for more than declaring '
+        'is worth. With a riichi out against you, the cut is charged again: '
+        'how often a tile this safe deals in, and the turns it commits you to '
+        'after this one. A genbutsu cut commits you to nothing.\n'),
+    _tipPart('FOCUS',
+        'Speed and Value tilt the trade between the first two terms — Speed '
+        'pays points for a better chance of getting there, Value does the '
+        'reverse. Balanced leaves it alone, and shows no tilt line below.\n'),
+    const TextSpan(
+        text: '\nHigher is better, and it can go negative: a dangerous cut on '
+            'a cheap hand loses points on average.',
         style: _tipDim),
   ];
 
@@ -457,8 +530,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       '  ${label.padRight(22)}${value.padLeft(9)}\n';
 
   /// This line's own arithmetic, so the number in the cell can be checked by
-  /// eye. Reconstructs exactly what the engine did — see [DiscardLine].
-  static List<InlineSpan> _evWorked(DiscardLine line) {
+  /// eye. Reconstructs exactly what the engine did — see [DiscardLine]. Every
+  /// row is labelled with the phrase the section above uses for it.
+  static List<InlineSpan> _evWorked(DiscardLine line, HandFocus focus) {
     final gross = line.winProbability * (line.averagePoints + line.winBonus);
     final pct = (line.winProbability * 100).toStringAsFixed(
         line.winProbability < 0.1 ? 1 : 0);
@@ -490,6 +564,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       buf.write(_row('honba and sticks', '+${_pts(line.winBonus)}'));
     }
     buf.write(_row('so on average', _pts(gross)));
+    if (line.valueTilt.abs() > 0.5) {
+      final sign = line.valueTilt > 0 ? '+' : '-';
+      buf.write(_row('${focus.label.toLowerCase()} tilt',
+          '$sign${_pts(line.valueTilt.abs())}'));
+    }
     if (line.riichiLockCost > 0.5) {
       buf.write(_row('less riichi lock-in', '-${_pts(line.riichiLockCost)}'));
     }
@@ -498,7 +577,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     }
     if (line.commitmentCost > 0.5) {
       buf.write(
-          _row('less staying in', '-${_pts(line.commitmentCost)}'));
+          _row('less turns committed', '-${_pts(line.commitmentCost)}'));
     }
     buf.write('  ${'-' * 31}\n');
     buf.write(_row('expected value', _pts(line.expectedValue)));
@@ -511,7 +590,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   Widget _evTooltip(Widget child, {DiscardLine? line}) => Tooltip(
         richMessage: TextSpan(children: [
           ..._evGeneral,
-          if (line != null) ..._evWorked(line),
+          if (line != null) ..._evWorked(line, widget.game.handFocus),
         ]),
         waitDuration: const Duration(milliseconds: 250),
         showDuration: const Duration(seconds: 30),

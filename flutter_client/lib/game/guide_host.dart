@@ -27,6 +27,12 @@ abstract class GuideHost implements Listenable {
   PlayStyle get playStyle;
   void setPlayStyle(PlayStyle value);
 
+  /// Which hand the guide chases when two are worth the same — the second,
+  /// independent dial. Carried on the interface for the same reason
+  /// [playStyle] is: the panel and whatever else sets it stay in sync.
+  HandFocus get handFocus;
+  void setHandFocus(HandFocus value);
+
   /// True while the human seat has a call (chi/pon/kan/ron) to answer.
   bool get awaitingHumanCall;
   CallOption? get humanCallOption;
