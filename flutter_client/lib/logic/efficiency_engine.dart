@@ -470,9 +470,68 @@ class EfficiencyEngine {
       }
     }
 
+    // A 1-shanten line is worth what the tenpai it would actually reach is
+    // worth. The pre-tenpai estimator assumes a typical-width wait at the end,
+    // so whenever the tenpai on offer right now was narrower than typical,
+    // stepping back out of it scored higher — and Autoplay broke tenpai on
+    // most turns it could have declared riichi. Only needed when there is a
+    // tenpai to be compared with, which keeps the lookahead off most turns.
+    //
+    // Walked turn by turn: each draw may reach tenpai, and a tenpai reached
+    // later has fewer draws left to win on. Valuing it as if it arrived on the
+    // very next draw still let a slow 1-shanten out-run a tenpai in hand.
+    final hasTenpaiLine = byType.values.any((r) => r.shanten == 0);
+    final unseenNow = _countRemaining(remaining);
+    final drawsNow = math.max(1, (valueContext.wallTilesRemaining + 3) ~/ 4);
+    ({double win, double reached})? tenpaiLookahead(TileEfficiencyResult r) {
+      if (!hasTenpaiLine || r.shanten != 1 || unseenNow <= 1) return null;
+      final after = toTrainerCounts(_handAfterDiscard(hand, r.discard));
+      // One entry per improving draw: its live copies and the widest wait it
+      // leaves the hand on.
+      final reachable = <({int live, int wait})>[];
+      var copies = 0;
+      for (final draw in r.improvingTiles) {
+        final live = remaining[draw];
+        if (live <= 0) continue;
+        after[draw]++;
+        remaining[draw]--;
+        reachable.add((live: live, wait: _calc.bestTenpaiWait(after, remaining)));
+        remaining[draw]++;
+        after[draw]--;
+        copies += live;
+      }
+      if (copies == 0) return null;
+
+      final step = math.min(1.0, copies / unseenNow);
+      var alive = 1.0; // still 1-shanten and the hand still running
+      var win = 0.0;
+      var reached = 0.0;
+      for (var turn = 0; turn < drawsNow; turn++) {
+        final hit = alive * step;
+        reached += hit;
+        final left = drawsNow - 1 - turn;
+        if (left > 0) {
+          var chance = 0.0;
+          for (final e in reachable) {
+            chance += e.live *
+                _winChanceOverTurns(
+                  waitWidth: e.wait.toDouble(),
+                  unseen: unseenNow - 1,
+                  draws: left,
+                  chancesPerTurn: _winChancesPerTurn,
+                ).win;
+          }
+          win += hit * chance / copies;
+        }
+        alive *= (1 - step) * _handSurvivesTurn;
+      }
+      return (win: win.clamp(0.0, 1.0), reached: reached.clamp(0.0, 1.0));
+    }
+
     final lines = byType.values.map((r) {
       final afterDiscard = _handAfterDiscard(hand, r.discard);
       final value = _assessValue(
+        tenpaiLookahead: tenpaiLookahead(r),
         projectedPointsOverride: projectedPointsOverride,
         projectedDamaOverride: projectedDamaOverride,
         projectedDoraReference: projectedDoraReference,
@@ -495,7 +554,14 @@ class EfficiencyEngine {
       // The tile you choose says whether you are folding or pushing, so it also
       // prices the turns that choice commits you to. A genbutsu cut commits you
       // to nothing; a live one commits you to more of the same.
-      final laterTurns = math.max(0.0, value.turnsExposed - 1);
+      //
+      // Only for as long as the riichi actually lasts, though, rather than for
+      // as long as your own hand might: self-play puts a defending seat at
+      // about 3.8 more discards before the hand ends, where the hand's own
+      // expected length runs to eight or more. The per-tile rate was right all
+      // along; the horizon it was charged over was not.
+      final exposed = math.min(value.turnsExposed, _riichiPushHorizon);
+      final laterTurns = math.max(0.0, exposed - 1);
       final commitmentCost = dealInCost * laterTurns * _pushCommitment;
       return DiscardLine(
         discard: r.discard,
@@ -1262,6 +1328,19 @@ class EfficiencyEngine {
   /// disagreeing with folding outright.
   static const double _pushCommitment = 0.3;
 
+  /// How many of your own discards a live opponent riichi actually lasts for.
+  ///
+  /// Measured in self-play rather than assumed: a seat discarding behind a live
+  /// riichi gets about 3.8 discards away before the hand ends, and a seat that
+  /// declares its own riichi into a live one only about 1.7 — those spots come
+  /// late. A hand's own expected length runs two to four times longer than
+  /// either, because it is the riichi that ends the hand, not the wall. Pricing
+  /// risk against the hand's length instead of the riichi's is what made the
+  /// guide walk out of three quarters of the tenpai it held behind a riichi,
+  /// most of the time while holding a genbutsu that would have kept it.
+  static const double _riichiPushHorizon = 3.8;
+  static const double _riichiLockHorizon = 1.7;
+
   /// The chance of hitting a wait this wide before the hand ends.
   ///
   /// Shared by both estimators, so a hand does not jump in value the moment it
@@ -1426,6 +1505,7 @@ class EfficiencyEngine {
     double? projectedPointsOverride,
     double? projectedDamaOverride,
     double? projectedDoraReference,
+    ({double win, double reached})? tenpaiLookahead,
   }) {
     // A normal discard analysis starts with 14 tiles including open melds.
     // Off-turn defensive reads can have only 13, so avoid pretending those
@@ -1460,7 +1540,17 @@ class EfficiencyEngine {
       unseen: unseen,
       draws: draws,
     );
-    final completionProbability = outlook.win;
+    // The lookahead, when there is one, knows the tenpais this line can really
+    // reach and when. It is only trusted to correct the generic estimate
+    // downward — the overestimate is what made stepping back out of tenpai
+    // look good — and when it does, it supplies both numbers, so the deposit
+    // below is billed off the same hand the win is.
+    final useLookahead =
+        tenpaiLookahead != null && tenpaiLookahead.win < outlook.win;
+    final completionProbability =
+        useLookahead ? tenpaiLookahead.win : outlook.win;
+    final reachedTenpai =
+        useLookahead ? tenpaiLookahead.reached : outlook.reachedTenpai;
 
     // Before tenpai the exact final hand is unknown. These representative
     // values keep pre-tenpai comparisons stable; exact yaku/fu/dora scoring
@@ -1510,7 +1600,7 @@ class EfficiencyEngine {
     // the ones these lines might reach, and the others may well want the
     // stick.
     final deposit = context.closed
-        ? math.max(0.0, outlook.reachedTenpai - completionProbability) * 1000
+        ? math.max(0.0, reachedTenpai - completionProbability) * 1000
         : 0.0;
     // Everything from here is weighed in what the payout is *worth* on the
     // hand-focus dial, not in raw points — including the uplift, so the stick
@@ -1525,14 +1615,17 @@ class EfficiencyEngine {
     final riichiUplift = context.closed
         ? math.max(representativeUplift, knownUplift)
         : 0.0;
-    // The stick itself is a flat 1000 points — the dial does not change what
-    // it costs. But the cap is what declaring *buys*, and that is hand value,
-    // so it is quoted in the same money as the line it is charged against: the
-    // tilted chance times the tilted uplift. Capping with the plain chance
-    // mixed the two, and on Value — which flattens chance — a line could gain
-    // by being *less* likely to get home, because its cap shrank faster than
-    // its value did. On Balanced the two chances are one number.
-    final chargedDeposit = math.min(deposit, worthOfChance * riichiUplift);
+    // Priced per win: the stick lost for every hand this line wins, capped at
+    // what declaring adds to each of those wins, then weighted by the same
+    // tilted chance as the win itself. Charging the stick in plain points while
+    // the win was tilted mixed the two: on Value — which flattens chance — a
+    // line that reached tenpai less often could win less *and* score higher,
+    // purely because it owed the stick less often. On Balanced the tilted
+    // chance is the plain one, and this is exactly min(deposit, p · uplift).
+    final chargedDeposit = completionProbability <= 0
+        ? 0.0
+        : worthOfChance *
+            math.min(deposit / completionProbability, riichiUplift);
     final tilted = worthOfChance * (worthOfWin + context.winBonus);
     final plain =
         completionProbability * (projectedPoints + context.winBonus);
@@ -1814,8 +1907,15 @@ class EfficiencyEngine {
       // charged — just repeated for every turn the hand is expected to last.
       if (opponentRiichi) {
         final perDiscard = riichiDangerFactor * _dealInRateByRating.first;
-        lockCost += outlook.turns *
-            perDiscard *
+        // You can only deal in once, and only while the riichi you are racing
+        // is still live — which is not how long your own hand lasts. Summing a
+        // per-turn rate over the hand's full expected length priced the lock at
+        // two to three thousand points, more than the hands it was charged
+        // against were worth: self-play puts the real figure at 13%, about 900
+        // points. The per-tile rate was never the problem; the horizon was.
+        final exposed = math.min(outlook.turns, _riichiLockHorizon);
+        final dealsIn = 1 - math.pow(1 - perDiscard, exposed).toDouble();
+        lockCost += dealsIn *
             (opponentIsDealer ? _dealerDealInCost : _dealInCost) *
             context.style.riskWeight;
       }

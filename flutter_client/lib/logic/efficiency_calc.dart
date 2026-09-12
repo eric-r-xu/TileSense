@@ -95,6 +95,30 @@ class TileEfficiencyCalculator {
     return results;
   }
 
+  /// The widest live wait among the discards that leave a 14-tile (or 11/8/5)
+  /// hand tenpai, or 0 when none does. A cheap subset of `calculate()` for
+  /// lookahead: only tenpai discards pay for an acceptance count.
+  int bestTenpaiWait(List<int> concealedHand, List<int> remainingTiles) {
+    final hand = List<int>.of(concealedHand);
+    final openHand = _countTiles(hand) < 14;
+    final shantenOffset = ((14 - _countTiles(hand)) ~/ 3) * 2;
+    for (var i = 0; i < shantenOffset; i += 2) {
+      hand[31] += 3;
+    }
+
+    var best = 0;
+    for (var discard = 1; discard < hand.length; discard++) {
+      if (discard % 10 == 0 || concealedHand[discard] == 0) continue;
+      hand[discard]--;
+      if (_shanten(hand, openHand, 0) == 0) {
+        final wait = _calculateUkeire(hand, remainingTiles, openHand, 0).value;
+        if (wait > best) best = wait;
+      }
+      hand[discard]++;
+    }
+    return best;
+  }
+
   /// The tiles that reduce the shanten of a 13-tile (or 10/7/4) hand, and how
   /// many are live given [remainingTiles]. Convenience wrapper around the same
   /// logic `calculate()` uses per discard.

@@ -71,14 +71,17 @@ void main() {
       // pivots, and Value pushes its payout up while pulling its chance down,
       // which can net out either way.
       //
-      // 9s is the dora here and the hand holds two. Cutting one is the quick
-      // cheap line, keeping them is the slow rich one.
+      // 7p is the dora. Cutting it leaves a two-sided wait on pinfu — the quick
+      // cheap line; cutting 4p keeps it on a closed wait — the slow rich one.
+      // The two have to genuinely trade chance for payout. A line that is
+      // worse on both halves moves whichever way its two gaps happen to
+      // balance, which says nothing about the dial.
       double quickOverRich(HandFocus focus) {
-        final r = read('234m 567m 234p 99s 45s 1m',
-            focus: focus, dora: const [TileType.sou8]);
-        final rich = r.lines.firstWhere((l) => l.discard == TileType.man1);
-        final quick = r.lines.firstWhere((l) => l.discard == TileType.sou9);
-        expect(quick.winProbability, lessThan(rich.winProbability));
+        final r = read('234m 567m 234s 88p 4p 5p 7p',
+            focus: focus, dora: const [TileType.pin6]);
+        final rich = r.lines.firstWhere((l) => l.discard == TileType.pin4);
+        final quick = r.lines.firstWhere((l) => l.discard == TileType.pin7);
+        expect(quick.winProbability, greaterThan(rich.winProbability));
         expect(quick.averagePoints, lessThan(rich.averagePoints));
         return quick.expectedValue / rich.expectedValue;
       }
