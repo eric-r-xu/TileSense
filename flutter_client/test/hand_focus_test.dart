@@ -64,12 +64,12 @@ void main() {
   });
 
   group('what the dial moves', () {
-    test('the quick cheap line gains on Speed and loses on Value', () {
+    test('the quick cheap line gains on Speed', () {
       // A trade-off dial is only meaningful *between* lines, so that is what
-      // is asserted. Comparing one line's own number across the three settings
-      // says very little: a line that is both likely and big sits above both
-      // pivots, and Value pushes its payout up while pulling its chance down,
-      // which can net out either way.
+      // is asserted. Comparing one line's own number across the settings says
+      // very little: a line that is both likely and big sits above both
+      // pivots, and the tilt pushes its payout one way while pulling its
+      // chance the other, which can net out either way.
       //
       // 7p is the dora. Cutting it leaves a two-sided wait on pinfu — the quick
       // cheap line; cutting 4p keeps it on a closed wait — the slow rich one.
@@ -88,8 +88,6 @@ void main() {
 
       expect(quickOverRich(HandFocus.speed),
           greaterThan(quickOverRich(HandFocus.balanced)));
-      expect(quickOverRich(HandFocus.balanced),
-          greaterThan(quickOverRich(HandFocus.value)));
     });
 
     test('it does not change what a hand actually pays', () {
@@ -101,7 +99,6 @@ void main() {
               l.averagePoints,
           ];
       expect(paid(HandFocus.speed), paid(HandFocus.balanced));
-      expect(paid(HandFocus.value), paid(HandFocus.balanced));
     });
 
     test('a line is quoted off the dora it keeps, not the hand it came from',
@@ -119,11 +116,11 @@ void main() {
   });
 
   group('across simulated play', () {
-    test('Speed buys the chance, Value buys the payout', () {
+    test('Speed buys the chance, Balanced buys the payout', () {
       final rng = Random(4242);
       var positions = 0, differ = 0;
-      var speedChance = 0.0, valueChance = 0.0;
-      var speedPoints = 0.0, valuePoints = 0.0;
+      var speedChance = 0.0, richChance = 0.0;
+      var speedPoints = 0.0, richPoints = 0.0;
 
       for (var game = 0; game < 250; game++) {
         final wall = <TileType>[
@@ -162,17 +159,17 @@ void main() {
               .firstWhere((l) => l.recommended);
 
           final fast = pick(HandFocus.speed);
-          final rich = pick(HandFocus.value);
+          final rich = pick(HandFocus.balanced);
           positions++;
           if (fast.discard != rich.discard) {
             differ++;
             speedChance += fast.winProbability;
-            valueChance += rich.winProbability;
+            richChance += rich.winProbability;
             speedPoints += fast.averagePoints;
-            valuePoints += rich.averagePoints;
+            richPoints += rich.averagePoints;
           }
 
-          final bal = pick(HandFocus.balanced);
+          final bal = rich;
           if (bal.shanten == 0) break;
           tiles.remove(bal.discard);
           pond.add(bal.discard);
@@ -183,36 +180,45 @@ void main() {
       // A dial nobody can see moving is not a dial. This is the guard against
       // it quietly going inert again — it did once, when the tilt was applied
       // only to the payout, which every line in a hand shares.
-      expect(differ / positions, greaterThan(0.02),
+      //
+      // The bar is set below the measured rate, not at it. Measured over these
+      // same 250 games: Speed against Value scored 61/2952 = 0.021 before the
+      // width premium was capped and 45/2952 = 0.015 after; Speed against
+      // Balanced, which is what the dial spans now that Value is gone, scores
+      // 31/2851 = 0.011. Two adjacent settings disagreeing on one discard in
+      // ninety is a real but narrow dial, and worth knowing if it narrows
+      // further.
+      expect(differ / positions, greaterThan(0.008),
           reason: 'the dial changed the recommendation in only $differ of '
               '$positions positions');
 
       // And when it does move, it has to move the right way: Speed pays points
-      // for a better chance of getting there, Value does the reverse.
-      expect(speedChance / differ, greaterThan(valueChance / differ));
-      expect(speedPoints / differ, lessThan(valuePoints / differ));
+      // for a better chance of getting there, Balanced does the reverse.
+      expect(speedChance / differ, greaterThan(richChance / differ));
+      expect(speedPoints / differ, lessThan(richPoints / differ));
     });
   });
 
   group('it changes what the guide tells you to do', () {
-    test('Speed throws a lone dora for width; the others keep it', () {
-      // The S indicator makes W the dora, and it sits alone. Cutting it is the
-      // wide, quick line; cutting 4p keeps the dora and what it pays. That is
-      // exactly the trade the dial is there to make.
-      DiscardLine pick(HandFocus focus) => read('345m 7m 345p 4p 3s 566s 9s W',
-              focus: focus,
-              dora: const [TileType.sou8, TileType.nan],
-              wall: 40)
+    test('Speed throws a lone dora for width; Balanced keeps it', () {
+      // The chun indicator makes haku the dora, and it sits alone. Both lines
+      // leave the hand the same distance from home, so this is a straight
+      // trade of width against payout rather than a step backwards: cutting
+      // the dora is the wider, quicker line at 24 tiles of acceptance and
+      // about 2700 a win; keeping it is 20 tiles and about 4900.
+      DiscardLine pick(HandFocus focus) => read('2389m 4668p 456s EEB',
+              focus: focus, dora: const [TileType.chun], wall: 30)
           .lines
           .firstWhere((l) => l.recommended);
 
       final speed = pick(HandFocus.speed);
-      final value = pick(HandFocus.value);
-      expect(speed.discard, TileType.shaa);
-      expect(pick(HandFocus.balanced).discard, TileType.pin4);
-      expect(value.discard, TileType.pin4);
-      expect(speed.winProbability, greaterThan(value.winProbability));
-      expect(speed.averagePoints, lessThan(value.averagePoints));
+      final balanced = pick(HandFocus.balanced);
+      expect(speed.discard, TileType.haku);
+      expect(balanced.discard, TileType.pin4);
+      expect(speed.shanten, balanced.shanten,
+          reason: 'same distance, so this is width against payout');
+      expect(speed.winProbability, greaterThan(balanced.winProbability));
+      expect(speed.averagePoints, lessThan(balanced.averagePoints));
     });
 
     GuidedAction call(
@@ -251,19 +257,7 @@ void main() {
           .recommended;
     }
 
-    test('Value turns down the cheap pon that the others take', () {
-      // Ponning green gets you moving on a 1000-point hand; staying closed
-      // keeps riichi, and the bigger hand that comes with it, on the table.
-      const spec = '123m 56m 788s NN GG R';
-      expect(call(spec, TileType.hatsu, focus: HandFocus.speed, wall: 54),
-          GuidedAction.pon);
-      expect(call(spec, TileType.hatsu, focus: HandFocus.balanced, wall: 54),
-          GuidedAction.pon);
-      expect(call(spec, TileType.hatsu, focus: HandFocus.value, wall: 54),
-          GuidedAction.pass);
-    });
-
-    test('Speed takes a chi to tenpai that the others turn down', () {
+    test('Speed takes a chi to tenpai that Balanced turns down', () {
       // The green triplet is already a yaku, so the chi is tenpai at once —
       // but it gives up riichi and menzen for it.
       const spec = '123m 56m 788s NN GGG';
@@ -271,27 +265,8 @@ void main() {
           GuidedAction.chi);
       expect(call(spec, TileType.sou6, focus: HandFocus.balanced),
           GuidedAction.pass);
-      expect(call(spec, TileType.sou6, focus: HandFocus.value),
-          GuidedAction.pass);
     });
 
-    test('Value still takes a call that pays', () {
-      // Same pon to tenpai on red twice over: cheap, Value stays closed; with
-      // red as dora it is a big hand already, and Value takes it.
-      const spec = '1m 234m 567m 78p 99s RR';
-      expect(
-          call(spec, TileType.chun,
-              focus: HandFocus.value, dora: const [TileType.pei]),
-          GuidedAction.pass);
-      expect(
-          call(spec, TileType.chun,
-              focus: HandFocus.value, dora: const [TileType.hatsu]),
-          GuidedAction.pon);
-      expect(
-          call(spec, TileType.chun,
-              focus: HandFocus.speed, dora: const [TileType.pei]),
-          GuidedAction.pon);
-    });
   });
 
   test('no setting picks a line that is worse on both halves', () {
@@ -397,7 +372,7 @@ void main() {
     double pon(CallAdvice a) =>
         a.forAction(GuidedAction.pon)!.expectedValue;
 
-    expect(pon(advise(focus: HandFocus.value, honba: 0)),
+    expect(pon(advise(focus: HandFocus.balanced, honba: 0)),
         isNot(closeTo(pon(advise(focus: HandFocus.speed, honba: 0)), 1)),
         reason: 'the focus dial never reached the call evaluator');
     expect(pon(advise(focus: HandFocus.balanced, honba: 5)),
@@ -440,11 +415,11 @@ void main() {
         FontWeight.w700;
 
     expect(picked(HandFocus.balanced), isTrue);
-    expect(picked(HandFocus.value), isFalse);
+    expect(picked(HandFocus.speed), isFalse);
 
-    await tester.tap(find.byKey(const Key('guideHandFocus_value')));
+    await tester.tap(find.byKey(const Key('guideHandFocus_speed')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(picked(HandFocus.value), isTrue);
+    expect(picked(HandFocus.speed), isTrue);
     expect(picked(HandFocus.balanced), isFalse);
 
     await tester.pumpWidget(const SizedBox());

@@ -267,10 +267,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(const Key('playStyle')), 'Defensive');
 
-    // And the focus dial cycles on its own.
+    // And the focus dial cycles on its own. Two positions now, so one tap off
+    // Balanced wraps to Speed.
     await tester.tap(find.byKey(const Key('handFocus')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('handFocus')), 'Value');
+    expect(labelOf(const Key('handFocus')), 'Speed');
     expect(labelOf(const Key('playStyle')), 'Defensive');
 
     await tester.pumpWidget(const SizedBox());

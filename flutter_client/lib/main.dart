@@ -109,7 +109,6 @@ Widget _barDial({
 Color handFocusColor(HandFocus focus) => switch (focus) {
       HandFocus.speed => const Color(0xff64b5f6),
       HandFocus.balanced => const Color(0xffe9d58f),
-      HandFocus.value => const Color(0xffba9cf0),
     };
 
 /// The design resolution the UI is authored at. Everything is laid out in these

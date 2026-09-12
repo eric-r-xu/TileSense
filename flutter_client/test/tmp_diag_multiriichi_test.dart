@@ -8,7 +8,6 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/bot.dart';
 
 import 'folding_bot.dart';
 

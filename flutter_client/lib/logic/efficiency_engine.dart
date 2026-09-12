@@ -76,11 +76,18 @@ enum HandFocus {
 
   /// No tilt at all. Expected value is taken at face value, and the line with
   /// the larger `chance x payout` wins whatever shape it is.
-  balanced(curve: 1.0, label: 'Balanced'),
+  balanced(curve: 1.0, label: 'Balanced');
 
-  /// Payouts are stretched away from [_pivot], so a hand that pays double is
-  /// worth more than twice as much and is worth slowing down for.
-  value(curve: 1.55, label: 'Value');
+  // There was a third setting, Value (curve 1.55), which stretched payouts
+  // away from the pivot so a hand paying double was worth more than twice as
+  // much and worth slowing down for. It was removed because it never beat the
+  // opponents it was measured against. Over 2000 East games and again over 800
+  // hanchan, against folding bots on common random numbers, all three Value
+  // pairings landed on or behind the control bot (hanchan: Aggressive/Value
+  // -0.001, Balanced/Value +0.034, Defensive/Value +0.064 placement), while
+  // every Speed and Balanced pairing beat it by 0.11 to 0.26. Slowing a hand
+  // down for a bigger payout is a real way to play; this curve was not a good
+  // implementation of it.
 
   const HandFocus({required this.curve, required this.label});
 
@@ -1410,11 +1417,20 @@ class EfficiencyEngine {
           _waitInheritance + (1 - _waitInheritance) * (to / shanten);
       // Being wide open gets you to tenpai sooner — that is what the earlier
       // steps price. It does not hand you a wider wait than an ordinary hand
-      // when you get there, so the last step never scales above typical.
-      // Without this a wide 1-shanten came out likelier to win than the very
-      // same hand already tenpai, which cannot be.
+      // when you get there, and it does not hand you a better draw at every
+      // step along the way either, so no step scales above typical.
+      //
+      // The cap used to apply only to the last step. Uncapped elsewhere, a
+      // wide hand one step further out out-scored a narrow hand that was
+      // already closer, and the guide took the trade: it stepped backwards on
+      // a third of its discards, 26% of them with no riichi on the board and
+      // nothing to fear, and 44% of the time it stood at 1-shanten. Self-play
+      // put the real conversion rate of those wide, distant hands at a third
+      // of what this was paying them. Capping every step cut backward steps to
+      // 14% on calm turns, lifted hands reaching tenpai from 27.6% to 37.7%,
+      // and is worth about 0.46 of a placement over 3000 paired hanchan.
       var multiplier = math.pow(scale, exponent).toDouble();
-      if (to == 0) multiplier = math.min(1.0, multiplier);
+      multiplier = math.min(1.0, multiplier);
       final width = _stepWidth[to.clamp(0, 6)] * multiplier;
       final rate = math.min(1.0, width / unseen);
       // Only the last step — the win itself — can come off a discard.
