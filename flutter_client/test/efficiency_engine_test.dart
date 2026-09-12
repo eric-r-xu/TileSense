@@ -350,9 +350,27 @@ void main() {
       expect(far.winProbability, lessThan(near.winProbability));
     });
 
-    test('a wide hand further out can still beat a thin one closer in', () {
-      expect(preTenpai(farWide, 70).winProbability,
-          greaterThan(preTenpai(closeThin, 70).winProbability));
+    test('being closer in beats being wider further out', () {
+      // This asserted the reverse until the width premium was capped, and as a
+      // statement about hands in the abstract the reverse is true: measured in
+      // self-play, a 2-shanten hand holding 45 tiles of acceptance went on to
+      // win about 23% of the time, against 14% for a 1-shanten hand holding 8.
+      //
+      // But the estimator is not asked to rank hands in the abstract. It ranks
+      // *discards*, and stepping back from 1-shanten into a wider 2-shanten is
+      // not the same thing as having been dealt the wider hand: it costs a
+      // turn, and it arrives in worse shape than the hands that landed in that
+      // bucket on their own. Paying width the premium it appeared to have
+      // earned made the guide retreat on a third of its discards — 26% of them
+      // with no riichi on the board — and cost it 0.46 of a placement over
+      // 3000 paired hanchan.
+      //
+      // The cap buys that back at the price of this ordering, and the trade is
+      // not close. With the premium left on even the immediate step, none of
+      // the nine (style, focus) settings beat the bot; with it capped, six of
+      // nine do, the best by 0.26 of a placement.
+      expect(preTenpai(closeThin, 70).winProbability,
+          greaterThan(preTenpai(farWide, 70).winProbability));
     });
 
     test('the chance falls away as the wall runs down', () {

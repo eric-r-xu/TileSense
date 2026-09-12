@@ -13,10 +13,8 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/bot.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/tile.dart';
 
 import 'folding_bot.dart';
 
