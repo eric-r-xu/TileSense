@@ -81,11 +81,15 @@ void main() {
       // damaten gate is what would otherwise muddy this — a style whose bar
       // the hand clears is handed a lock-free damaten, which is a different
       // lever from the one under test.
+      // The indicator is 2m, so this hand holds no dora at all. Pointed at 8s
+      // it would hold two, and a two-dora riichi tenpai on a two-sided wait is
+      // worth pushing on Balanced as well — a judgement about value, not the
+      // one about risk that this test exists to pin down.
       const readyAt = '345m 678m 234p 99s 45s 1m';
       EfficiencyReport at(PlayStyle s) => read(readyAt,
           style: s,
           pond: pond,
-          dora: const [TileType.sou8],
+          dora: const [TileType.man2],
           wall: 24,
           riichi: true);
       bool pushes(PlayStyle s) =>
@@ -213,10 +217,12 @@ void main() {
 
     test('Defensive is the first to turn it down', () {
       // Red is dora, so the hand is worth pushing — to anyone who does not
-      // charge double for the danger.
+      // charge double for the danger. The wait it reaches is a closed 2p,
+      // which is what keeps this a close call: on the two-sided 78p wait the
+      // same hand is worth the call to every style, danger and all.
       GuidedAction at(PlayStyle s, {bool riichi = true}) =>
-          advise('1m 234m 567m 78p 99s RR', s,
-              dora: const [TileType.hatsu], wall: 50, riichi: riichi);
+          advise('1m 234m 567m 13p 99s RR', s,
+              dora: const [TileType.hatsu], wall: 30, riichi: riichi);
       expect(at(PlayStyle.defensive), GuidedAction.pass);
       expect(at(PlayStyle.balanced), GuidedAction.pon);
       expect(at(PlayStyle.aggressive), GuidedAction.pon);
