@@ -62,7 +62,7 @@ void main() {
       expect(round.addedKanTypes(0), isEmpty);
     });
 
-    test('is empty while in riichi', () {
+    test('legacy riichi flag does not prevent added kong', () {
       final round = _freshRound();
       round.seats[0]
         ..melds = [
@@ -76,7 +76,7 @@ void main() {
         ..hand = parseTiles('123m 456m 789m 5p 9s')
         ..riichi = true;
 
-      expect(round.addedKanTypes(0), isEmpty);
+      expect(round.addedKanTypes(0), contains(TileType.pin5));
     });
   });
 
@@ -109,7 +109,7 @@ void main() {
     expect(seat.melds.single.kind, MeldKind.kan);
     expect(seat.melds.single.addedKan, isTrue);
     expect(seat.melds.single.tiles, hasLength(4));
-    expect(round.wall.doraIndicators().length, doraCountBefore + 1);
+    expect(round.wall.doraIndicators().length, doraCountBefore);
     expect(seat.drawn, isNotNull, reason: 'the rinshan replacement draw');
     expect(seat.hand.any((t) => t.type == TileType.pin5), isFalse,
         reason: 'the 4th 5p moved into the meld, not still in hand');
@@ -148,9 +148,10 @@ void main() {
     expect(round.phase, RoundPhase.finished);
     expect(round.result!.kind, RoundEndKind.ron);
     expect(round.result!.winners, [1]);
-    expect(round.result!.label, 'Chankan');
+    expect(round.seats[0].melds.single.kind, MeldKind.triplet);
+    expect(round.result!.label, 'Robbing a Kong');
     expect(
-      round.result!.score!.yaku.any((y) => y.name == 'Chankan'),
+      round.result!.score!.yaku.any((y) => y.name == 'Robbing the Kong'),
       isTrue,
     );
   });
@@ -183,7 +184,7 @@ void main() {
     expect(round.phase, RoundPhase.discarding);
     expect(round.turn, 0, reason: 'the kan-caller keeps their turn');
     expect(round.seats[0].melds.single.kind, MeldKind.kan);
-    expect(round.seats[1].tempFuriten, isTrue,
+    expect(round.seats[1].tempFuriten, isFalse,
         reason: 'passed up a tile that actually completed their wait');
   });
 

@@ -52,11 +52,11 @@ const TextStyle _dialLabelStyle =
     TextStyle(fontSize: 11, fontWeight: FontWeight.w700);
 
 /// Why the hand counts either game length advertises are a floor rather than
-/// a promise. Standard riichi replays the hand whenever the dealership holds,
+/// a promise. The hand repeats whenever the dealership holds,
 /// so both numbers are what you get only if it passes every single time.
 const String _handCountCaveat =
-    'That is with the dealership passing every hand. Under standard riichi '
-    'rules a dealer who wins, or who is tenpai at an exhaustive draw, keeps '
+    'That is with the dealership passing every hand. With these table rules '
+    'a dealer who wins, or any exhaustive draw, keeps '
     'it and the hand is replayed — so either length can run longer.';
 
 /// One captioned dial in the app bar: a dim fixed caption and the current
@@ -638,17 +638,17 @@ class _GamePageState extends State<GamePage> {
             const SizedBox(width: 6),
             const Text('TileSense'),
             const SizedBox(width: 16),
-            // East-only vs. hanchan game length (hanchan is the default).
+            // East-only vs. full four-wind game length (the default).
             AnimatedBuilder(
               animation: _game,
               builder: (context, _) => Tooltip(
                 message: _game.hanchan
-                    ? 'Hanchan — East and South rounds, 8 hands.\n'
+                    ? 'Full game — East, South, West and North, 16 hands.\n'
                         '$_handCountCaveat\n'
                         'Tap for East only, 4 hands.'
-                    : 'East only (tonpuusen) — the East round, 4 hands.\n'
+                    : 'East only — the East round, 4 hands.\n'
                         '$_handCountCaveat\n'
-                        'Tap for hanchan: East and South, 8 hands.',
+                        'Tap for a full game: four winds, 16 hands.',
                 child: TextButton(
                   key: const Key('hanchan'),
                   onPressed: () => _game.setHanchan(!_game.hanchan),
@@ -657,7 +657,7 @@ class _GamePageState extends State<GamePage> {
                     foregroundColor: const Color(0xffe9d58f),
                   ),
                   child: Text(
-                    _game.hanchan ? 'Hanchan' : 'East only',
+                    _game.hanchan ? 'Four winds' : 'East only',
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600),
                   ),
@@ -710,7 +710,7 @@ class _GamePageState extends State<GamePage> {
                   label: _game.playStyle.label,
                   colour: playStyleColor(_game.playStyle),
                   tooltip: 'How hard the guide (and Auto-Play) pushes: '
-                      'when to fold, when to riichi, when to call',
+                      'when to defend, build value, or call',
                   onTap: () => _game.setPlayStyle(_game.playStyle.next),
                 ),
                 _barDial(
@@ -885,7 +885,7 @@ class _WelcomeScreen extends StatelessWidget {
                 width: 720,
                 child: Text(
                   'TileSense is a Flutter Web App built to give you a feel for\n'
-                  'optimal Riichi Mahjong play, with recommended actions\n'
+                  'Hong Kong Mahjong play (0-faan minimum), with recommended actions\n'
                   'scored by efficiency, expected value, and safety.',
                   textAlign: TextAlign.center,
                   style: TextStyle(

@@ -1,282 +1,122 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/bot.dart';
-import 'package:tilesense/logic/hand_parse.dart';
 import 'package:tilesense/logic/round.dart';
+import 'package:tilesense/logic/meld.dart';
 import 'package:tilesense/logic/tile.dart';
-
+import 'package:tilesense/logic/wall.dart';
 import 'helpers.dart';
 
-/// A fresh round with a closed tanyao/pinfu tenpai on 5p/8p planted on seat 1,
-/// and seat 2 armed to discard [feed] (defaults to 5p, one of the waits) as its
-/// just-drawn tile. Returns the round and the exact tile seat 2 will cut.
-(Round, Tile) _furitenScenario({required bool waiterRiichi, TileType feed = TileType.pin5}) {
-  final round = Round(
-    seed: 1,
+Round fixture({List<Tile> wall = const []}) => Round.posed(
     dealer: 0,
     roundWind: Wind.east,
-    honba: 0,
-    riichiSticks: 0,
-    startingPoints: List.filled(4, 25000),
-  );
-  round.seats[1].hand = sortByType(parseTiles('234m 567m 234p 67p 88s'));
-  round.seats[1].melds = [];
-  round.seats[1].riichi = waiterRiichi;
-
-  final feedTile = Tile(900, feed);
-  round.seats[2].hand = [...parseTiles('123m 456m 789m 111s 2p'), feedTile];
-  round.seats[2].drawn = feedTile;
-  round.turn = 2;
-  round.phase = RoundPhase.discarding;
-  return (round, feedTile);
-}
-
-/// Run the call phase with everyone passing, if a discard opened one.
-void _passAnyCalls(Round round) {
-  if (round.phase == RoundPhase.callOffer) round.resolveCalls({});
-}
+    wall: Wall.fromTiles(wall),
+    startingPoints: List.filled(4, 1000));
 
 void main() {
-  test('a seeded round played entirely by bots reaches an end state', () {
-    for (var seed = 0; seed < 25; seed++) {
-      final round = Round(
-        seed: seed,
-        dealer: 0,
-        roundWind: Wind.east,
-        honba: 0,
-        riichiSticks: 0,
-        startingPoints: List.filled(4, 25000),
-      );
-      final bots = [for (var i = 0; i < 4; i++) SimpleBot(seed + i)];
-
-      var guard = 0;
-      while (!round.finished && guard++ < 400) {
-        switch (round.phase) {
-          case RoundPhase.discarding:
-            final d = bots[round.turn].decideTurn(round, round.turn);
-            if (d.tsumo) {
-              round.declareTsumo(round.turn);
-            } else if (d.closedKan != null) {
-              round.closedKan(round.turn, d.closedKan!);
-            } else {
-              round.discard(
-                round.turn,
-                d.discard ?? round.legalDiscards(round.turn).first,
-                declareRiichi: d.riichi,
-              );
-            }
-            break;
-          case RoundPhase.callOffer:
-            final choices = <int, CallType>{};
-            for (final opt in round.callOptions) {
-              final c = bots[opt.seat]
-                  .decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
-              if (c != CallType.none) choices[opt.seat] = c;
-            }
-            round.resolveCalls(choices);
-            break;
-          case RoundPhase.drawing:
-          case RoundPhase.finished:
-            break;
-        }
-      }
-
-      expect(round.finished, isTrue, reason: 'seed $seed did not finish');
-      final total =
-          round.seats.fold<int>(0, (a, s) => a + s.points) + round.riichiSticks * 1000;
-      expect(total, 100000, reason: 'points not conserved for seed $seed');
-    }
-  });
-
-  test('after riichi a discard is forced to tsumogiri (the drawn tile)', () {
-    // Find a seed where the dealer can declare riichi on the first draw.
-    for (var seed = 0; seed < 200; seed++) {
-      final round = Round(
-        seed: seed,
-        dealer: 0,
-        roundWind: Wind.east,
-        honba: 0,
-        riichiSticks: 0,
-        startingPoints: List.filled(4, 25000),
-      );
-      if (round.phase != RoundPhase.discarding || round.turn != 0) continue;
-      if (!round.canRiichi(0)) continue;
-
-      // Declare riichi with a wait-keeping discard.
-      final tenpai = [
-        for (final t in round.seats[0].hand)
-          if (isTenpai(([...round.seats[0].hand]..remove(t)), openMelds: 0)) t
-      ];
-      if (tenpai.isEmpty) continue;
-      round.discard(0, tenpai.first, declareRiichi: true);
-      expect(round.seats[0].riichi, isTrue);
-
-      // Advance to seat 0's next discard turn.
-      var guard = 0;
-      while (!(round.phase == RoundPhase.discarding && round.turn == 0) &&
-          !round.finished &&
-          guard++ < 200) {
-        switch (round.phase) {
-          case RoundPhase.discarding:
-            round.discard(round.turn, round.seats[round.turn].drawn!);
-            break;
-          case RoundPhase.callOffer:
-            round.resolveCalls({});
-            break;
-          case RoundPhase.drawing:
-          case RoundPhase.finished:
-            guard = 200;
-            break;
-        }
-      }
-      if (round.finished || round.turn != 0) continue;
-
-      final drawn = round.seats[0].drawn!;
-      // Try to cut a different tile from hand.
-      final other = round.seats[0].hand.firstWhere((t) => t.id != drawn.id,
-          orElse: () => drawn);
-      final poolBefore = round.seats[0].pond.length;
-      round.discard(0, other);
-      // The drawn tile went out, not the one we asked for.
-      expect(round.seats[0].pond[poolBefore].id, drawn.id,
-          reason: 'riichi hand must tsumogiri');
-      return; // one successful scenario is enough
-    }
-  });
-
-  test('a wait tile in your own discards is furiten and bars ron on any wait',
+  test('seeded games finish, conserve chips and keep bonus tiles out of hands',
       () {
-    final (round, _) = _furitenScenario(waiterRiichi: false);
-    // Sanity: the planted hand is tenpai on 5p / 8p and can normally ron.
-    expect(round.isFuriten(1), isFalse);
-    expect(round.canRon(1, Tile(1, TileType.pin5)), isTrue);
-
-    // Seat 1 has itself discarded an 8p earlier in the round.
-    round.seats[1].allDiscards.add(Tile(2, TileType.pin8));
-
-    expect(round.isFuriten(1), isTrue);
-    // Furiten bars ron on *every* wait, not just the discarded one.
-    expect(round.canRon(1, Tile(3, TileType.pin5)), isFalse);
-    expect(round.canRon(1, Tile(4, TileType.pin8)), isFalse);
-  });
-
-  test('passing up a winning discard causes temporary furiten until next draw',
-      () {
-    final (round, feed) = _furitenScenario(waiterRiichi: false);
-    expect(round.canRon(1, feed), isTrue);
-
-    round.discard(2, feed); // seat 2 cuts a 5p...
-    _passAnyCalls(round); // ...and nobody claims it.
-
-    expect(round.seats[1].tempFuriten, isTrue);
-    expect(round.seats[1].riichiFuriten, isFalse,
-        reason: 'not in riichi, so the furiten is only temporary');
-    expect(round.isFuriten(1), isTrue);
-    expect(round.canRon(1, Tile(5, TileType.pin5)), isFalse);
-    expect(round.canRon(1, Tile(6, TileType.pin8)), isFalse,
-        reason: 'temporary furiten also bars the other side of the wait');
-
-    // Temporary furiten clears once seat 1 draws again.
-    var guard = 0;
-    while (!round.finished &&
-        !(round.turn == 1 && round.phase == RoundPhase.discarding) &&
-        guard++ < 40) {
-      if (round.phase == RoundPhase.callOffer) {
-        round.resolveCalls({});
-      } else if (round.phase == RoundPhase.discarding) {
-        round.discard(round.turn, round.seats[round.turn].drawn!);
-      } else {
-        break;
-      }
-    }
-    if (round.turn == 1 && !round.finished) {
-      expect(round.seats[1].tempFuriten, isFalse,
-          reason: 'a fresh draw ends temporary furiten');
-    }
-  });
-
-  test('a riichi hand that passes a winning discard is permanently furiten', () {
-    final (round, feed) = _furitenScenario(waiterRiichi: true);
-    expect(round.canRon(1, feed), isTrue);
-
-    round.discard(2, feed);
-    _passAnyCalls(round);
-
-    expect(round.seats[1].riichiFuriten, isTrue);
-    expect(round.isFuriten(1), isTrue);
-    expect(round.canRon(1, Tile(7, TileType.pin8)), isFalse);
-
-    // Even after the temporary flag would clear on a later draw, riichi
-    // furiten holds for the rest of the round.
-    round.seats[1].tempFuriten = false;
-    expect(round.isFuriten(1), isTrue,
-        reason: 'riichi furiten never clears');
-    expect(round.canRon(1, Tile(8, TileType.pin5)), isFalse);
-  });
-
-  test('an exhaustive draw reports every tenpai seat with a real wait', () {
-    var sawDraw = false;
-    for (var seed = 0; seed < 120 && !sawDraw; seed++) {
-      final round = Round(
-        seed: seed,
-        dealer: 0,
-        roundWind: Wind.east,
-        honba: 0,
-        riichiSticks: 0,
-        startingPoints: List.filled(4, 25000),
-      );
-      final bots = [for (var i = 0; i < 4; i++) SimpleBot(seed + i)];
-
-      var guard = 0;
-      while (!round.finished && guard++ < 400) {
-        switch (round.phase) {
-          case RoundPhase.discarding:
-            final d = bots[round.turn].decideTurn(round, round.turn);
-            if (d.tsumo) {
-              round.declareTsumo(round.turn);
-            } else if (d.closedKan != null) {
-              round.closedKan(round.turn, d.closedKan!);
-            } else {
-              round.discard(round.turn,
-                  d.discard ?? round.legalDiscards(round.turn).first,
-                  declareRiichi: d.riichi);
-            }
-            break;
-          case RoundPhase.callOffer:
-            final choices = <int, CallType>{};
-            for (final opt in round.callOptions) {
-              final c = bots[opt.seat]
-                  .decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
-              if (c != CallType.none) choices[opt.seat] = c;
-            }
-            round.resolveCalls(choices);
-            break;
-          case RoundPhase.drawing:
-          case RoundPhase.finished:
-            break;
+    for (var seed = 0; seed < 60; seed++) {
+      final r = Round(
+          seed: seed,
+          dealer: seed % 4,
+          roundWind: Wind.east,
+          startingPoints: List.filled(4, 1000));
+      final bots = List.generate(4, (i) => SimpleBot(seed + i));
+      var steps = 0;
+      while (!r.finished && steps++ < 500) {
+        for (final s in r.seats) {
+          expect(s.hand.every((t) => t.type.isPlayingTile), isTrue);
+          expect(s.flowers.every((t) => t.type.isBonus), isTrue);
+          expect(s.riichi, isFalse);
+        }
+        if (r.phase == RoundPhase.callOffer) {
+          r.resolveCalls({
+            for (final opt in r.callOptions)
+              opt.seat: bots[opt.seat]
+                  .decideCall(r, opt.seat, r.pendingDiscard!, opt.types)
+          });
+        } else {
+          final move = bots[r.turn].decideTurn(r, r.turn);
+          if (move.tsumo) {
+            r.declareTsumo(r.turn);
+          } else if (move.closedKan != null) {
+            r.closedKan(r.turn, move.closedKan!);
+          } else if (move.addedKan != null) {
+            r.addKan(r.turn, move.addedKan!);
+          } else {
+            r.discard(r.turn, move.discard!);
+          }
         }
       }
-
-      final r = round.result!;
-      if (r.kind != RoundEndKind.exhaustiveDraw) continue;
-      sawDraw = true;
-
-      // The score screen reveals exactly these seats' hands and their waits, so
-      // each must genuinely be tenpai with a non-empty wait to display.
-      for (final seat in r.tenpaiAtDraw) {
-        final s = round.seats[seat];
-        final waits = waitTiles(s.hand, openMelds: s.melds.length);
-        expect(waits, isNotEmpty,
-            reason: 'seed $seed seat $seat listed tenpai but has no wait');
-      }
-      // And nobody tenpai was left off the list.
-      for (var seat = 0; seat < 4; seat++) {
-        final s = round.seats[seat];
-        final tenpai = isTenpai(s.hand, openMelds: s.melds.length);
-        expect(r.tenpaiAtDraw.contains(seat), tenpai,
-            reason: 'seed $seed seat $seat tenpai=$tenpai but list membership '
-                'disagrees');
-      }
+      expect(r.finished, isTrue, reason: 'seed $seed');
+      expect(r.seats.fold(0, (int sum, s) => sum + s.points), 4000);
+      expect(r.result!.pointDeltas.values.reduce((a, b) => a + b), 0);
     }
-    expect(sawDraw, isTrue, reason: 'no exhaustive draw in the first 120 seeds');
+  });
+  test('no own-discard or temporary furiten restriction', () {
+    final r = fixture(wall: [Tile(950, TileType.man9)]);
+    r.seats[2].hand = parseTiles('123m 456p 789s 22m 55p');
+    r.seats[2].allDiscards.add(Tile(901, TileType.pin5));
+    r.seats[2].tempFuriten = true;
+    expect(r.canRon(2, Tile(902, TileType.pin5)), isTrue);
+    expect(r.isFuriten(2), isFalse);
+    r.seats[0].hand = [Tile(903, TileType.pin5)];
+    r.discard(0, r.seats[0].hand.single);
+    r.resolveCalls({});
+    expect(r.canRon(2, Tile(904, TileType.pin5)), isTrue);
+  });
+  test('no riichi action or locked discard', () {
+    final r = fixture();
+    r.seats[0].hand = parseTiles('12m');
+    r.seats[0].drawn = r.seats[0].hand.last;
+    expect(r.canRiichi(0), isFalse);
+    expect(r.legalDiscards(0), hasLength(2));
+    expect(() => r.discard(0, r.seats[0].hand.first, declareRiichi: true),
+        throwsUnsupportedError);
+    expect(r.seats[0].points, 1000);
+  });
+  test('wall exhaustion makes no ready-hand transfers', () {
+    final r = fixture();
+    r.seats[0].hand = [Tile(900, TileType.man9)];
+    r.seats[1].hand = parseTiles('123m 456p 789s 22m 55p');
+    r.discard(0, r.seats[0].hand.single);
+    if (r.phase == RoundPhase.callOffer) r.resolveCalls({});
+    expect(r.result!.kind, RoundEndKind.exhaustiveDraw);
+    expect(r.result!.pointDeltas, {0: 0, 1: 0, 2: 0, 3: 0});
+  });
+  test('discarder alone pays twice the sheet value', () {
+    final r = fixture(wall: [Tile(990, TileType.sou1)]);
+    final win = Tile(900, TileType.pin5);
+    r.seats[1].hand = parseTiles('456p 789s 22m 55p');
+    r.seats[1].melds = [
+      Meld(kind: MeldKind.sequence, low: TileType.man1, concealed: false)
+    ];
+    r.seats[1].flowers = [
+      Tile(901, TileType.plum)
+    ]; // nonmatching: chicken hand
+    r.seats[0].hand = [win];
+    r.discard(0, win);
+    r.resolveCalls({1: CallType.ron});
+    expect(r.result!.score!.faan, 0);
+    expect(r.result!.pointDeltas, {0: -2, 1: 2, 2: 0, 3: 0});
+  });
+  test('self draw pays equally, with no dealer multiplier', () {
+    final r = fixture(wall: [Tile(990, TileType.sou1)]);
+    final win = Tile(900, TileType.pin5);
+    r.turn = 1;
+    r.seats[1].hand = [...parseTiles('123m 456p 789s 22m 55p'), win];
+    r.seats[1].drawn = win;
+    r.seats[1].flowers = [Tile(901, TileType.plum)];
+    r.declareTsumo(1);
+    expect(r.result!.pointDeltas, {0: -4, 1: 12, 2: -4, 3: -4});
+  });
+  test('invalid call choice cannot manufacture a winner', () {
+    final r = fixture(wall: [Tile(990, TileType.sou1)]);
+    final win = Tile(900, TileType.pin5);
+    r.seats[1].hand = parseTiles('55p');
+    r.seats[0].hand = [win];
+    r.discard(0, win);
+    r.resolveCalls({2: CallType.ron});
+    expect(r.finished, isFalse);
   });
 }

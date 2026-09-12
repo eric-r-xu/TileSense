@@ -3,6 +3,7 @@
 library;
 
 import 'meld.dart';
+import 'hong_kong_rules.dart';
 import 'tile.dart';
 
 const List<int> _kokushiIndices = [
@@ -31,8 +32,15 @@ class HandDecomposition {
 /// True when [counts34] (length 34, indexed man1==0) plus [meldCount] open
 /// melds forms a complete hand.
 bool isAgari(List<int> counts34, {int meldCount = 0}) {
+  if (counts34.length != 34 ||
+      meldCount < 0 ||
+      meldCount > 4 ||
+      counts34.any((n) => n < 0 || n > 4) ||
+      counts34.fold(0, (int a, b) => a + b) != 14 - meldCount * 3) {
+    return false;
+  }
   if (meldCount == 0) {
-    if (_isSevenPairs(counts34)) return true;
+    if (HongKongRules.sevenPairs && _isSevenPairs(counts34)) return true;
     if (_isKokushi(counts34)) return true;
   }
   return _standardComplete(counts34, meldCount);
@@ -48,16 +56,39 @@ List<HandDecomposition> decompose(List<int> counts34, {int openMelds = 0}) {
     if (counts34[pair] < 2) continue;
     final work = List<int>.of(counts34);
     work[pair] -= 2;
-    final melds = <Meld>[];
-    if (_collectMelds(work, 0, needMelds, melds)) {
-      results.add(HandDecomposition(
-        melds: List<Meld>.of(melds),
-        pair: typeFrom34(pair),
-      ));
+    void collect(List<Meld> melds) {
+      if (melds.length == needMelds) {
+        if (work.every((n) => n == 0)) {
+          results.add(
+              HandDecomposition(melds: List.of(melds), pair: typeFrom34(pair)));
+        }
+        return;
+      }
+      final i = work.indexWhere((n) => n > 0);
+      if (i < 0) return;
+      final t = typeFrom34(i);
+      if (work[i] >= 3) {
+        work[i] -= 3;
+        collect(
+            [...melds, Meld(kind: MeldKind.triplet, low: t, concealed: true)]);
+        work[i] += 3;
+      }
+      if (t.isSuit && t.number <= 7 && work[i + 1] > 0 && work[i + 2] > 0) {
+        work[i]--;
+        work[i + 1]--;
+        work[i + 2]--;
+        collect(
+            [...melds, Meld(kind: MeldKind.sequence, low: t, concealed: true)]);
+        work[i]++;
+        work[i + 1]++;
+        work[i + 2]++;
+      }
     }
+
+    collect([]);
   }
 
-  if (openMelds == 0 && _isSevenPairs(counts34)) {
+  if (HongKongRules.sevenPairs && openMelds == 0 && _isSevenPairs(counts34)) {
     final pairs = <Meld>[];
     for (var i = 0; i < 34; i++) {
       if (counts34[i] == 2) {
@@ -92,12 +123,7 @@ bool isTenpai(List<Tile> hand, {int openMelds = 0}) =>
     waitTiles(hand, openMelds: openMelds).isNotEmpty;
 
 /// Furiten: any wait tile sits in the player's own discard pond.
-bool inFuriten(List<Tile> hand, List<Tile> pond, {int openMelds = 0}) {
-  final waits = waitTiles(hand, openMelds: openMelds).toSet();
-  if (waits.isEmpty) return false;
-  return pond.any((t) => waits.contains(t.type));
-}
-
+bool inFuriten(List<Tile> hand, List<Tile> pond, {int openMelds = 0}) => false;
 // --- internals ---------------------------------------------------------------
 
 bool _isSevenPairs(List<int> c) {
@@ -162,46 +188,5 @@ bool _meldsOnly(List<int> c, int start, int need) {
     c[i + 2]++;
     if (ok) return true;
   }
-  return false;
-}
-
-bool _collectMelds(List<int> c, int start, int need, List<Meld> acc) {
-  if (need == 0) return c.every((v) => v == 0);
-  var i = start;
-  while (i < 34 && c[i] == 0) {
-    i++;
-  }
-  if (i >= 34) return false;
-
-  final t = typeFrom34(i);
-
-  if (c[i] >= 3) {
-    c[i] -= 3;
-    acc.add(Meld(kind: MeldKind.triplet, low: t, concealed: true));
-    if (_collectMelds(c, i, need - 1, acc)) {
-      c[i] += 3;
-      return true;
-    }
-    acc.removeLast();
-    c[i] += 3;
-  }
-
-  if (t.isSuit && t.number <= 7 && c[i + 1] > 0 && c[i + 2] > 0) {
-    c[i]--;
-    c[i + 1]--;
-    c[i + 2]--;
-    acc.add(Meld(kind: MeldKind.sequence, low: t, concealed: true));
-    if (_collectMelds(c, i, need - 1, acc)) {
-      c[i]++;
-      c[i + 1]++;
-      c[i + 2]++;
-      return true;
-    }
-    acc.removeLast();
-    c[i]++;
-    c[i + 1]++;
-    c[i + 2]++;
-  }
-
   return false;
 }

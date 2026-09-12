@@ -38,11 +38,10 @@ void main() {
     return (round, fedTile);
   }
 
-  Set<CallType> typesFor(Round round, int seat) =>
-      round.callOptions
-          .where((o) => o.seat == seat)
-          .expand((o) => o.types)
-          .toSet();
+  Set<CallType> typesFor(Round round, int seat) => round.callOptions
+      .where((o) => o.seat == seat)
+      .expand((o) => o.types)
+      .toSet();
 
   group('who may chi', () {
     test('only the seat immediately after the discarder', () {
@@ -67,7 +66,7 @@ void main() {
       expect(typesFor(round, 1), isNot(contains(CallType.chi)));
     });
 
-    test('not while in riichi', () {
+    test('legacy riichi flag does not prevent a chow', () {
       final round = freshRound();
       round.seats[0]
         ..hand = parseTiles('46p 123m 456m 789m 99s')
@@ -82,7 +81,7 @@ void main() {
       round.phase = RoundPhase.discarding;
       round.discard(3, fed);
 
-      expect(typesFor(round, 0), isNot(contains(CallType.chi)));
+      expect(typesFor(round, 0), contains(CallType.chi));
     });
 
     test('honours can never be chi\'d', () {
@@ -105,7 +104,8 @@ void main() {
 
   group('choosing the run', () {
     test('every possible run is listed', () {
-      final (round, fed) = discardFromLeftOf0(seat0Hand: '34567p 123m 456m 99s');
+      final (round, fed) =
+          discardFromLeftOf0(seat0Hand: '34567p 123m 456m 99s');
       // Offered 5p while holding 34567p: 345p, 456p and 567p are all makeable.
       expect(
         round.chiSequences(0, fed).toSet(),
@@ -128,7 +128,8 @@ void main() {
     });
 
     test('an impossible request falls back to a run the hand can make', () {
-      final (round, _) = discardFromLeftOf0(seat0Hand: '46p 123m 456m 789m 99s');
+      final (round, _) =
+          discardFromLeftOf0(seat0Hand: '46p 123m 456m 789m 99s');
       round.resolveCalls(
         {0: CallType.chi},
         chiLow: {0: TileType.sou1}, // nonsense
@@ -139,7 +140,8 @@ void main() {
 
   group('applying the call', () {
     test('takes the tile, spends the hand tiles, and passes the turn', () {
-      final (round, fed) = discardFromLeftOf0(seat0Hand: '46p 123m 456m 789m 99s');
+      final (round, fed) =
+          discardFromLeftOf0(seat0Hand: '46p 123m 456m 789m 99s');
       final pondBefore = round.seats[3].pond.length;
 
       round.resolveCalls({0: CallType.chi}, chiLow: {0: TileType.pin4});

@@ -20,7 +20,7 @@ import 'table_view.dart';
 import 'tile_face.dart';
 
 /// The slot the tile palette is currently filling.
-enum _Slot { hand, pond, melds, dora, offer }
+enum _Slot { hand, pond, melds, flowers, offer }
 
 /// What a palette tap builds when the melds slot is selected.
 enum _MeldKind { chi, pon, openKan, closedKan }
@@ -41,7 +41,6 @@ class _ScenarioPageState extends State<ScenarioPage> {
   _Slot _slot = _Slot.hand;
   int _slotSeat = kHumanSeat;
   _MeldKind _meldKind = _MeldKind.pon;
-  bool _aka = false;
 
   /// Height of the editor band below the table.
   static const double _editorHeight = 214;
@@ -78,15 +77,20 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// that would put a fifth copy of a tile on the table.
   void _place(TileType type) {
     if (s.remainingCopies(type) <= 0) return;
-    final aka = _aka && type.number == 5 && !s.akaUsed(type);
+    if (type.isBonus) {
+      _edit((sc) => sc.seats[_slotSeat].flowers.add(sc.mint(type)));
+      return;
+    }
+    if (_slot == _Slot.flowers) return;
+    const aka = false;
     _edit((sc) {
       switch (_slot) {
         case _Slot.hand:
           sc.hand.add(sc.mint(type, aka: aka));
         case _Slot.pond:
           sc.seats[_slotSeat].pond.add(sc.mint(type, aka: aka));
-        case _Slot.dora:
-          if (sc.dora.length < 5) sc.dora.add(type);
+        case _Slot.flowers:
+          break;
         case _Slot.offer:
           sc.offered = sc.mint(type, aka: aka);
         case _Slot.melds:
@@ -148,19 +152,13 @@ class _ScenarioPageState extends State<ScenarioPage> {
       ]..shuffle();
       TileType take() => bag.removeLast();
 
-      sc.dora
-        ..clear()
-        ..add(take());
-      // A riichi opponent with a pond, so the safety columns have something to
-      // work with; the other two seats get shorter ponds.
+      // A sample public discard history.
       for (var seat = 1; seat < 4; seat++) {
         final n = seat == 1 ? 7 : 5;
         for (var i = 0; i < n; i++) {
           sc.seats[seat].pond.add(sc.mint(take()));
         }
       }
-      sc.seats[1].riichi = true;
-      sc.seats[1].riichiPondIndex = 4;
       for (var i = 0; i < 6; i++) {
         sc.seats[0].pond.add(sc.mint(take()));
       }
@@ -192,7 +190,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                         area: switch (_slot) {
                           _Slot.pond => TableArea.pond,
                           _Slot.melds => TableArea.melds,
-                          _Slot.dora => TableArea.dora,
+                          _Slot.flowers => TableArea.dora,
                           _ => null,
                         },
                         seat: _slotSeat,
@@ -200,7 +198,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                           _slot = switch (area) {
                             TableArea.pond => _Slot.pond,
                             TableArea.melds => _Slot.melds,
-                            TableArea.dora => _Slot.dora,
+                            TableArea.dora => _Slot.flowers,
                           };
                           if (area != TableArea.dora) _slotSeat = seat;
                         }),
@@ -218,7 +216,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                           }
                         }),
                         onRemoveDora: (i) => _edit((sc) {
-                          if (sc.dora.length > 1) sc.dora.removeAt(i);
+                          sc.seats[_slotSeat].flowers.removeAt(i);
                         }),
                       ),
                     ),
@@ -286,13 +284,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
         _seatWindPicker(),
         const SizedBox(width: 8),
         _stepper('Wall', s.wallRemaining,
-            (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, 122))),
+            (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, 144))),
         const SizedBox(width: 8),
-        _stepper(
-            'Honba', s.honba, (v) => _edit((sc) => sc.honba = v.clamp(0, 9))),
-        const SizedBox(width: 8),
-        _stepper('Sticks', s.riichiSticks,
-            (v) => _edit((sc) => sc.riichiSticks = v.clamp(0, 9))),
         const SizedBox(width: 12),
         TextButton.icon(
           onPressed: _randomize,
@@ -321,8 +314,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: TextStyle(
-            fontSize: 12,
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
+            fontSize: 12, fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
       );
 
   Widget _windPicker() {
@@ -483,8 +475,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   })),
           chip('On offer${s.offered == null ? "" : " ${s.offered!.type.code}"}',
               _slot == _Slot.offer, () => setState(() => _slot = _Slot.offer)),
-          chip('Dora (${s.dora.length})', _slot == _Slot.dora,
-              () => setState(() => _slot = _Slot.dora)),
+          chip(
+              '${_slotSeat == 0 ? 'Your' : kSeatNames[_slotSeat]} flowers (${s.seats[_slotSeat].flowers.length})',
+              _slot == _Slot.flowers,
+              () => setState(() => _slot = _Slot.flowers)),
           const VerticalDivider(width: 14, color: Colors.white24),
           for (var seat = 0; seat < 4; seat++) ...[
             chip(
@@ -503,45 +497,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 _slotSeat = seat;
               });
             }),
-            _riichiToggle(seat),
             const VerticalDivider(width: 14, color: Colors.white24),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _riichiToggle(int seat) {
-    final st = s.seats[seat];
-    final canDeclare = st.pond.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: InkWell(
-        onTap: !canDeclare
-            ? null
-            : () => _edit((sc) {
-                  final t = sc.seats[seat];
-                  t.riichi = !t.riichi;
-                  t.riichiPondIndex = t.riichi ? t.pond.length - 1 : -1;
-                }),
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color:
-                st.riichi ? const Color(0xffb71c1c) : const Color(0xff294342),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            st.riichi ? 'RIICHI on #${st.riichiPondIndex + 1}' : 'riichi',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: !canDeclare
-                    ? Colors.white24
-                    : (st.riichi ? Colors.white : Colors.white60)),
-          ),
-        ),
       ),
     );
   }
@@ -589,11 +547,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
       case _Slot.pond:
         return tiles(s.seats[_slotSeat].pond,
             (i) => _edit((sc) => sc.seats[_slotSeat].pond.removeAt(i)));
-      case _Slot.dora:
+      case _Slot.flowers:
         return tiles(
-          [for (final d in s.dora) Tile(-1, d)],
+          s.seats[_slotSeat].flowers,
           (i) => _edit((sc) {
-            if (sc.dora.length > 1) sc.dora.removeAt(i);
+            sc.seats[_slotSeat].flowers.removeAt(i);
           }),
         );
       case _Slot.offer:
@@ -654,10 +612,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
                     ),
                     child: Text(
                       switch (k) {
-                        _MeldKind.chi => 'Chi',
-                        _MeldKind.pon => 'Pon',
-                        _MeldKind.openKan => 'Kan (open)',
-                        _MeldKind.closedKan => 'Kan (closed)',
+                        _MeldKind.chi => 'Chow',
+                        _MeldKind.pon => 'Pung',
+                        _MeldKind.openKan => 'Kong (open)',
+                        _MeldKind.closedKan => 'Kong (closed)',
                       },
                       style: const TextStyle(fontSize: 11),
                     ),
@@ -706,32 +664,16 @@ class _ScenarioPageState extends State<ScenarioPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8, bottom: 8),
-            child: InkWell(
-              onTap: () => setState(() => _aka = !_aka),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color:
-                      _aka ? const Color(0xffb71c1c) : const Color(0xff294342),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text('Red 5',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _aka ? Colors.white : Colors.white54)),
-              ),
-            ),
-          ),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (var i = 0; i < 34; i++) _paletteTile(typeFrom34(i)),
+                  if (_slot == _Slot.flowers)
+                    for (final t in TileType.values.where((t) => t.isBonus))
+                      _paletteTile(t)
+                  else
+                    for (var i = 0; i < 34; i++) _paletteTile(typeFrom34(i)),
                 ],
               ),
             ),

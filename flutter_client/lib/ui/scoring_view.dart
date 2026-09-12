@@ -9,9 +9,6 @@ import '../logic/scoring.dart';
 import '../logic/tile.dart';
 import 'tile_face.dart';
 
-/// The between-round result panel: outcome, winning hand(s) + yaku + han/fu, and
-/// the point transfers. On a multiple ron the winners' hands are paged through
-/// with a "Next" button before the final "Continue".
 class ScoringView extends StatefulWidget {
   const ScoringView({super.key, required this.game});
   final GameController game;
@@ -256,11 +253,7 @@ class _ScoringViewState extends State<ScoringView> {
 
   Widget _handBlock(Round round, int seat, HandScore score, Tile? winTile) {
     final w = round.seats[seat];
-    // The dora indicators always show; ura only counts (and only shows) for a
-    // hand that won in riichi.
-    final doraInd = round.wall.doraIndicators();
-    final uraInd =
-        w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
+
     return Column(
       children: [
         Text(
@@ -276,7 +269,7 @@ class _ScoringViewState extends State<ScoringView> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final t in sortByType(w.hand))
+              for (final t in sortByType(w.hand.where((t) => t != winTile)))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1),
                   child: TileFace(tile: t, size: TileSize.normal),
@@ -297,8 +290,8 @@ class _ScoringViewState extends State<ScoringView> {
           ),
         ),
         const SizedBox(height: 8),
-        _indicatorRow('Dora', doraInd),
-        if (uraInd.isNotEmpty) _indicatorRow('Ura Dora', uraInd),
+        _indicatorRow(
+            'Flowers / seasons', w.flowers.map((t) => t.type).toList()),
         const SizedBox(height: 2),
         Wrap(
           alignment: WrapAlignment.center,
@@ -306,17 +299,13 @@ class _ScoringViewState extends State<ScoringView> {
           runSpacing: 2,
           children: [
             for (final y in score.yaku)
-              Text('${y.name}  ${y.yakuman > 0 ? 'yakuman' : '${y.han}'}',
+              Text('${y.name}  ${y.faan} faan',
                   style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          score.yakuman > 0
-              ? '${score.limitName} — ${score.points}'
-              : '${score.han} han ${score.fu} fu'
-                  '${score.limitName.isNotEmpty ? '  (${score.limitName})' : ''}'
-                  ' — ${score.points}',
+          '${score.faan} faan — ${score.points} chips${score.limitName.isEmpty ? '' : ' (${score.limitName})'}',
           style: const TextStyle(
               color: Color(0xffffdf76), fontWeight: FontWeight.bold),
         ),
@@ -324,9 +313,6 @@ class _ScoringViewState extends State<ScoringView> {
     );
   }
 
-  /// One line of dora / ura-dora indicator tiles, labelled. Empty when there
-  /// are no indicators to show yet (never happens for dora; ura only when the
-  /// hand didn't win in riichi, in which case the caller skips it).
   Widget _indicatorRow(String label, List<TileType> indicators) {
     if (indicators.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -336,7 +322,7 @@ class _ScoringViewState extends State<ScoringView> {
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 3,
         children: [
-          Text('$label indicator${indicators.length > 1 ? 's' : ''}:',
+          Text('$label:',
               style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(width: 2),
           for (final ty in indicators)
@@ -346,14 +332,12 @@ class _ScoringViewState extends State<ScoringView> {
     );
   }
 
-  /// On an exhaustive draw every tenpai seat opens its hand (as at a real
-  /// ryuukyoku), with its waits spelled out beneath.
   Widget _tenpaiReveal(Round round, RoundResult r) {
     final seats = r.tenpaiAtDraw;
     return Column(
       children: [
         Text(
-          seats.isEmpty ? 'All players noten' : 'Tenpai hands revealed',
+          'Wall exhausted — no payments',
           style: const TextStyle(
               color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
         ),

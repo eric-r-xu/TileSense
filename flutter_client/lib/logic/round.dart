@@ -1,6 +1,5 @@
-/// A self-contained offline round of four-player riichi: draws, discards,
-/// riichi, chi / pon / closed kan / added kan (with chankan robbing),
-/// tsumo, ron, exhaustive draw with tenpai payments, honba and riichi sticks.
+/// Four-player Hong Kong round: chow, pung, kong, flowers,
+/// zero-faan wins and no draw payments. Legacy riichi fields are inert.
 library;
 
 import 'hand_parse.dart';
@@ -26,6 +25,10 @@ class SeatState {
   List<Tile> hand = [];
   List<Tile> pond = [];
   List<Meld> melds = [];
+  List<Tile> flowers = [];
+  bool replacementDraw = false;
+  int kongChain = 0;
+  int drawCount = 0;
 
   bool riichi = false;
   bool doubleRiichi = false;
@@ -35,22 +38,12 @@ class SeatState {
   /// The tile drawn this turn (null once discarded).
   Tile? drawn;
 
-  /// Tiles this seat has discarded, used for furiten. Unlike [pond] this keeps
-  /// tiles that were later called away, so own-discard furiten still applies.
   final List<Tile> allDiscards = [];
 
-  /// Other players' discards that cleared the ron window after this seat
-  /// declared riichi. Kept even if subsequently called into a meld.
   final Set<TileType> passedDiscardsAfterRiichi = {};
 
-  /// Temporary furiten: set when this seat passed up a winning tile (any
-  /// player's discard that completed its wait) and cleared on this seat's next
-  /// draw. While the seat is in riichi the same miss instead latches
-  /// [riichiFuriten] permanently.
   bool tempFuriten = false;
 
-  /// Permanent (riichi) furiten: once a hand in riichi passes up a winning
-  /// tile it can never declare ron for the rest of the round. Never cleared.
   bool riichiFuriten = false;
 
   bool get isOpen => melds.any((m) => !(m.kind == MeldKind.kan && m.concealed));
@@ -98,23 +91,46 @@ class CallOption {
 class Round {
   Round({
     required int seed,
+    Wall? wall,
     required this.dealer,
     required this.roundWind,
-    required this.honba,
-    required this.riichiSticks,
+    this.honba = 0,
+    this.riichiSticks = 0,
     required List<int> startingPoints,
-  })  : wall = Wall(seed),
+  })  : wall = wall ?? Wall(seed),
         startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];
       return SeatState(i, wind, i == dealer, startingPoints[i]);
     });
-    final dealt = wall.deal();
+    final dealt = this.wall.deal();
     for (var i = 0; i < 4; i++) {
       seats[i].hand = sortByType(dealt[i]);
     }
-    turn = dealer;
-    _beginDraw();
+    _replaceDealBonuses(0);
+  }
+
+  void _replaceDealBonuses(int offset) {
+    if (offset == 4) {
+      turn = dealer;
+      _beginDraw();
+      return;
+    }
+    final seat = seats[(dealer + offset) % 4];
+    final index = seat.hand.indexWhere((t) => t.type.isBonus);
+    if (index < 0) {
+      seat.hand = sortByType(seat.hand);
+      _replaceDealBonuses(offset + 1);
+      return;
+    }
+    final bonus = seat.hand.removeAt(index);
+    _exposeFlower(
+        seat,
+        bonus,
+        () => _drawFor(seat, replacement: true, onTile: (tile) {
+              seat.hand.add(tile);
+              _replaceDealBonuses(offset);
+            }));
   }
 
   /// A round posed for the scenario builder: seats start empty and the caller
@@ -125,8 +141,8 @@ class Round {
   Round.posed({
     required this.dealer,
     required this.roundWind,
-    required this.honba,
-    required this.riichiSticks,
+    this.honba = 0,
+    this.riichiSticks = 0,
     required this.wall,
     required List<int> startingPoints,
   }) : startPoints = List.of(startingPoints) {
@@ -135,6 +151,7 @@ class Round {
       return SeatState(i, wind, i == dealer, startingPoints[i]);
     });
     turn = 0;
+    _firstGoAround = false;
     phase = RoundPhase.discarding;
   }
 
@@ -144,9 +161,6 @@ class Round {
   int honba;
   int riichiSticks;
 
-  /// Each seat's points at the start of the round; the result's [pointDeltas]
-  /// are measured against this so they reflect the full hand (riichi stick
-  /// payments included) and always balance.
   final List<int> startPoints;
 
   /// The net change for each seat over the whole hand.
@@ -172,47 +186,82 @@ class Round {
   /// post-discard call offer. Distinguishes the two in [resolveCalls], since
   /// an unclaimed chankan resumes the kan instead of advancing the turn.
   bool _chankanPending = false;
+  Meld? _pendingPung;
+  int _pendingPungIndex = -1;
 
   SeatState get current => seats[turn];
+  int? _flowerSeat;
+  void Function()? _flowerContinuation;
+  bool canFlowerWin(int seat) => !finished && _flowerSeat == seat;
+
+  void passFlowerWin(int seat) {
+    if (!canFlowerWin(seat)) throw StateError('No flower win to pass');
+    final resume = _flowerContinuation!;
+    _flowerSeat = null;
+    _flowerContinuation = null;
+    resume();
+  }
+
+  void _exposeFlower(SeatState seat, Tile tile, void Function() resume) {
+    seat.flowers.add(tile);
+    if (seat.flowers.length >= 7) {
+      turn = seat.seat;
+      seat.drawn = null;
+      _flowerSeat = seat.seat;
+      _flowerContinuation = resume;
+      phase = RoundPhase.discarding;
+    } else {
+      resume();
+    }
+  }
 
   // --- turn flow -----------------------------------------------------------
 
-  void _beginDraw() {
-    phase = RoundPhase.drawing;
+  void _drawFor(SeatState seat,
+      {required bool replacement, required void Function(Tile) onTile}) {
     if (wall.isEmpty) {
       _exhaustiveDraw();
       return;
     }
-    final tile = wall.drawLive();
-    // A fresh draw ends temporary (non-riichi) furiten; permanent riichi
-    // furiten is untouched.
-    current.tempFuriten = false;
-    current.drawn = tile;
-    current.hand = [...sortByType(current.hand), tile];
+    final tile = replacement ? wall.drawDeadWall() : wall.drawLive();
+    if (tile.type.isBonus) {
+      _exposeFlower(
+          seat, tile, () => _drawFor(seat, replacement: true, onTile: onTile));
+    } else {
+      onTile(tile);
+    }
+  }
+
+  void _acceptDraw(SeatState seat, Tile tile) {
+    seat.drawn = tile;
+    seat.hand = [...sortByType(seat.hand), tile];
     phase = RoundPhase.discarding;
   }
 
-  /// After a kan, draw from the dead wall instead.
+  void _beginDraw() {
+    phase = RoundPhase.drawing;
+    current.replacementDraw = false;
+    current.kongChain = 0;
+    current.drawCount++;
+    final seat = current;
+    _drawFor(seat,
+        replacement: false, onTile: (tile) => _acceptDraw(seat, tile));
+  }
+
   void _drawReplacement() {
-    final tile = wall.drawDeadWall();
-    current.tempFuriten = false;
-    current.drawn = tile;
-    current.hand = [...sortByType(current.hand), tile];
-    phase = RoundPhase.discarding;
+    current.replacementDraw = true;
+    final seat = current;
+    _drawFor(seat,
+        replacement: true, onTile: (tile) => _acceptDraw(seat, tile));
   }
 
   // --- queries -----------------------------------------------------------
 
-  List<Tile> legalDiscards(int seat) {
-    final s = seats[seat];
-    if (s.riichi) {
-      // Must discard the drawn tile (tsumogiri) unless it forms a closed kan.
-      return s.drawn != null ? [s.drawn!] : s.hand;
-    }
-    return s.hand;
-  }
+  List<Tile> legalDiscards(int seat) =>
+      _flowerSeat != null ? [] : seats[seat].hand;
 
   bool canTsumo(int seat) {
+    if (canFlowerWin(seat)) return true;
     final s = seats[seat];
     if (s.hand.length % 3 != 2) return false;
     final winTile = s.drawn;
@@ -225,32 +274,18 @@ class Round {
     final s = seats[seat];
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
-    if (_isFuriten(s)) return false;
+
     return _winsWith(s, s.hand, discard, isTsumo: false, chankan: chankan);
   }
 
-  /// Whether [seat] is tenpai but barred from declaring ron by furiten. Drives
-  /// the UI's furiten marker; the same check gates every seat's [canRon] so no
-  /// player — human or bot — can ron off a furiten wait.
-  bool isFuriten(int seat) {
-    final s = seats[seat];
-    if (waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
-    return _isFuriten(s);
-  }
-
-  bool canRiichi(int seat) {
-    final s = seats[seat];
-    return !s.riichi &&
-        s.closed &&
-        s.points >= 1000 &&
-        wall.remaining >= 4 &&
-        _anyRiichiDiscardTenpai(s);
-  }
+  /// Compatibility queries: Hong Kong has neither rule.
+  bool isFuriten(int seat) => false;
+  bool canRiichi(int seat) => false;
 
   bool canPon(int seat, Tile discard) {
-    if (seat == pendingDiscardSeat) return false;
+    if (seat == pendingDiscardSeat || wall.isEmpty) return false;
     final s = seats[seat];
-    if (s.riichi) return false;
+
     return s.hand.where((t) => t.type == discard.type).length >= 2;
   }
 
@@ -258,8 +293,8 @@ class Round {
   /// kamicha — and only on a suit tile it can complete a run with.
   bool canChi(int seat, Tile discard) {
     if (seat == pendingDiscardSeat) return false;
-    if (seat != (pendingDiscardSeat + 1) % 4) return false;
-    if (seats[seat].riichi) return false;
+    if (seat != (pendingDiscardSeat + 1) % 4 || wall.isEmpty) return false;
+
     return chiSequences(seat, discard).isNotEmpty;
   }
 
@@ -297,36 +332,28 @@ class Round {
   }
 
   bool canOpenKan(int seat, Tile discard) {
-    if (seat == pendingDiscardSeat) return false;
+    if (seat == pendingDiscardSeat || wall.isEmpty) return false;
     final s = seats[seat];
-    if (s.riichi || !wall.canKan) return false;
+    if (!wall.canKan) return false;
     return s.hand.where((t) => t.type == discard.type).length >= 3;
   }
 
   List<TileType> closedKanTypes(int seat) {
     final s = seats[seat];
-    if (!wall.canKan) return const [];
+    if (!wall.canKan || _flowerSeat != null) return const [];
     final byType = <TileType, int>{};
     for (final t in s.hand) {
       byType[t.type] = (byType[t.type] ?? 0) + 1;
     }
     final out =
         byType.entries.where((e) => e.value == 4).map((e) => e.key).toList();
-    if (s.riichi) {
-      // In riichi a closed kan must not change the wait; approximate by
-      // allowing it only if the kan tile isn't part of any wait shape.
-      return out.where((t) => _kanKeepsWait(s, t)).toList();
-    }
+
     return out;
   }
 
-  /// Shouminkan candidates: an existing open pon this seat could extend into
-  /// a kan by adding the matching tile it's currently holding. Blocked while
-  /// in riichi (the hand is frozen) — real rules allow it in narrow cases,
-  /// but this trainer keeps riichi hands fixed for simplicity.
   List<TileType> addedKanTypes(int seat) {
     final s = seats[seat];
-    if (s.riichi || !wall.canKan) return const [];
+    if (!wall.canKan || _flowerSeat != null) return const [];
     final ponTypes = {
       for (final m in s.melds)
         if (m.kind == MeldKind.triplet) m.low,
@@ -344,109 +371,39 @@ class Round {
     return score.valid;
   }
 
-  /// The three riichi furiten cases, any of which bars ron:
-  ///  1. permanent riichi furiten — a winning tile was passed while in riichi;
-  ///  2. own-discard furiten — one of the current waits sits in this seat's
-  ///     discards (kept in [SeatState.allDiscards] even once called away);
-  ///  3. temporary furiten — a winning tile went past since this seat's last
-  ///     draw and was not claimed.
-  bool _isFuriten(SeatState s) {
-    if (s.riichiFuriten) return true;
-    final waits = waitTiles(s.hand, openMelds: s.melds.length).toSet();
-    if (waits.isEmpty) return true;
-    if (s.allDiscards.any((d) => waits.contains(d.type))) return true;
-    return s.tempFuriten;
-  }
-
-  /// Any seat (other than the discarder) whose wait includes [discard] but did
-  /// not claim it is now furiten: temporarily until its next draw, or —
-  /// if it is in riichi — permanently for the rest of the round.
-  void _registerMissedRon(Tile discard, int discarder) {
-    for (var i = 0; i < 4; i++) {
-      if (i == discarder) continue;
-      final s = seats[i];
-      final waits = waitTiles(s.hand, openMelds: s.melds.length);
-      if (!waits.contains(discard.type)) continue;
-      s.tempFuriten = true;
-      if (s.riichi) s.riichiFuriten = true;
-    }
-  }
-
-  void _registerPassedDiscard(Tile discard, int discarder) {
-    for (final s in seats) {
-      if (s.seat != discarder && s.riichi) {
-        s.passedDiscardsAfterRiichi.add(discard.type);
-      }
-    }
-  }
-
-  bool _anyRiichiDiscardTenpai(SeatState s) {
-    for (var i = 0; i < s.hand.length; i++) {
-      final rest = [...s.hand]..removeAt(i);
-      if (isTenpai(rest, openMelds: s.melds.length)) return true;
-    }
-    return false;
-  }
-
-  bool _kanKeepsWait(SeatState s, TileType t) {
-    final before = waitTiles([...s.hand]..removeWhere((x) => x.type == t),
-        openMelds: s.melds.length + 1);
-    // conservative: only if the hand without those 4 is still tenpai on the
-    // same tiles
-    final without = s.hand.where((x) => x.type != t).toList();
-    final after = waitTiles(without, openMelds: s.melds.length + 1);
-    return before.toSet().containsAll(after) &&
-        after.toSet().containsAll(before);
-  }
-
   // --- actions ---------------------------------------------------------
 
   void discard(int seat, Tile tile, {bool declareRiichi = false}) {
-    assert(phase == RoundPhase.discarding && seat == turn);
+    if (phase != RoundPhase.discarding || seat != turn) {
+      throw StateError('Not this seat’s discard turn');
+    }
     final s = current;
 
-    // Once riichi is declared the hand is frozen: every later discard must be
-    // the just-drawn tile (tsumogiri). A concealed kan goes through
-    // [closedKan], not here, so this does not block it. On the declaring turn
-    // itself `s.riichi` is still false, so the declaration discard is free.
-    if (s.riichi && s.drawn != null) {
-      tile = s.drawn!;
+    if (_flowerSeat != null) {
+      throw StateError('Choose flower win or continue first');
     }
-
     if (declareRiichi) {
-      s.riichi = true;
-      s.ippatsu = true;
-      if (_firstGoAround) s.doubleRiichi = true;
-      s.points -= 1000;
-      riichiSticks += 1;
-    } else {
-      s.ippatsu = false;
+      throw UnsupportedError('Hong Kong mahjong has no riichi');
     }
+    if (!s.hand.contains(tile)) throw ArgumentError('Tile is not in this hand');
+    s.replacementDraw = false;
+    s.kongChain = 0;
 
     s.hand.remove(tile);
     s.hand = sortByType(s.hand);
     s.drawn = null;
     s.pond.add(tile);
     s.allDiscards.add(tile);
-    if (declareRiichi) s.riichiPondIndex = s.pond.length - 1;
+
     _discardsThisRound++;
     if (turn == dealer && _discardsThisRound > 1) _firstGoAround = false;
-
-    // Clear other seats' ippatsu once a call-free go-around is broken by any
-    // discard that isn't their own riichi turn.
-    for (final o in seats) {
-      if (o.seat != seat && o.riichi && o.riichiPondIndex != o.pond.length) {
-        // ippatsu window: only the turn immediately after declaration
-      }
-    }
 
     pendingDiscard = tile;
     pendingDiscardSeat = seat;
     callOptions = _collectCallOptions(tile, seat);
     if (callOptions.isEmpty) {
       // No one can act on it, so no one is claiming it: register the miss now.
-      _registerMissedRon(tile, seat);
-      _registerPassedDiscard(tile, seat);
+
       phase = RoundPhase.drawing;
       _advanceTurn();
     } else {
@@ -477,7 +434,10 @@ class Round {
     Map<int, CallType> choice, {
     Map<int, TileType> chiLow = const {},
   }) {
-    assert(phase == RoundPhase.callOffer);
+    if (phase != RoundPhase.callOffer) throw StateError('No call window');
+    choice = Map.of(choice)
+      ..removeWhere((seat, type) => !callOptions
+          .any((option) => option.seat == seat && option.types.contains(type)));
 
     if (_chankanPending) {
       final ronners = choice.entries
@@ -486,12 +446,16 @@ class Round {
           .toList();
       _chankanPending = false;
       if (ronners.isNotEmpty) {
+        if (_pendingPung != null) {
+          seats[pendingDiscardSeat].melds[_pendingPungIndex] = _pendingPung!;
+          _pendingPung = null;
+        }
         _applyRon(ronners, pendingDiscard!, pendingDiscardSeat, chankan: true);
         return;
       }
       // No one robbed the kan: the missed tile satisfied a real wait, so it
       // counts as a missed ron exactly like an unclaimed discard.
-      _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
+
       _completeAddedKan();
       return;
     }
@@ -504,14 +468,6 @@ class Round {
       _applyRon(ronners, pendingDiscard!, pendingDiscardSeat);
       return;
     }
-
-    // The discard cleared the call window unclaimed. Any seat waiting on it
-    // that chose not to ron (or had no yaku to ron with) is now furiten —
-    // permanently if it is in riichi, otherwise until its next draw. This runs
-    // even when the tile is then ponned/kanned: the missed ron still counts.
-    _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
-
-    _registerPassedDiscard(pendingDiscard!, pendingDiscardSeat);
 
     int? kanSeat;
     int? ponSeat;
@@ -543,8 +499,17 @@ class Round {
   }
 
   void declareTsumo(int seat) {
-    assert(seat == turn);
+    if (seat != turn || phase != RoundPhase.discarding || !canTsumo(seat)) {
+      throw StateError('No legal self draw');
+    }
     final s = seats[seat];
+    if (canFlowerWin(seat)) {
+      final score = scoreFlowerWin(s.flowers.length);
+      _flowerSeat = null;
+      _flowerContinuation = null;
+      _finishWin([seat], score, flowerWin: true);
+      return;
+    }
     final winTile = s.drawn!;
     final concealed = [...s.hand]..remove(winTile);
     final score = _score(s, concealed, winTile, isTsumo: true);
@@ -552,8 +517,16 @@ class Round {
   }
 
   void closedKan(int seat, TileType type) {
-    assert(seat == turn && phase == RoundPhase.discarding);
+    if (seat != turn || phase != RoundPhase.discarding) {
+      throw StateError('Not this seat’s kong turn');
+    }
+    if (!closedKanTypes(seat).contains(type)) {
+      throw StateError('Illegal closed kong');
+    }
+    _firstGoAround = false;
     final s = current;
+    s.kongChain =
+        s.replacementDraw && s.drawn?.type == type ? s.kongChain + 1 : 1;
     final taken = <Tile>[];
     s.hand.removeWhere((t) {
       if (t.type == type && taken.length < 4) {
@@ -573,12 +546,22 @@ class Round {
   /// chankan window to ron the added tile before the kan completes — see
   /// [resolveCalls]'s `_chankanPending` branch.
   void addKan(int seat, TileType type) {
-    assert(seat == turn && phase == RoundPhase.discarding);
+    if (seat != turn || phase != RoundPhase.discarding) {
+      throw StateError('Not this seat’s kong turn');
+    }
+    if (!addedKanTypes(seat).contains(type)) {
+      throw StateError('Illegal added kong');
+    }
+    _firstGoAround = false;
     final s = current;
+    s.kongChain =
+        s.replacementDraw && s.drawn?.type == type ? s.kongChain + 1 : 1;
     final ponIndex =
         s.melds.indexWhere((m) => m.kind == MeldKind.triplet && m.low == type);
     assert(ponIndex != -1, 'addKan requires an existing open pon of $type');
     final pon = s.melds[ponIndex];
+    _pendingPung = pon;
+    _pendingPungIndex = ponIndex;
     final addedIndex = s.hand.indexWhere((t) => t.type == type);
     final added = s.hand.removeAt(addedIndex);
     s.melds[ponIndex] = Meld(
@@ -608,11 +591,7 @@ class Round {
   }
 
   void _completeAddedKan() {
-    // Clearing the chankan flag here covers both ways in: nobody could rob it
-    // in the first place, or the window opened and closed unclaimed. Leaving it
-    // set meant the next discard that offered a call took the chankan branch in
-    // [resolveCalls] instead of its own — drawing a second replacement tile and
-    // flipping a dora indicator that no kan had earned.
+    _pendingPung = null;
     _chankanPending = false;
     pendingDiscard = null;
     pendingDiscardSeat = -1;
@@ -698,6 +677,7 @@ class Round {
     turn = seat;
     current.drawn = null;
     if (kan) {
+      s.kongChain = 1;
       _drawReplacement();
     } else {
       phase = RoundPhase.discarding;
@@ -706,27 +686,21 @@ class Round {
 
   void _applyRon(List<int> ronners, Tile discard, int discarder,
       {bool chankan = false}) {
-    // Score each winner; sum deltas. Head-bump is not modelled — all valid
-    // ronners win (double/triple ron).
+    // The sheet's discarder-pays-all rule: only the discarder pays 2x.
+    ronners.sort(
+        (a, b) => ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     HandScore? firstScore;
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     for (final w in ronners) {
-      final s = seats[w];
-      final score =
-          _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
+      final score = _score(seats[w], seats[w].hand, discard,
+          isTsumo: false, chankan: chankan);
       firstScore ??= score;
-      deltas[w] = deltas[w]! + score.points + honba * 300;
-      deltas[discarder] = deltas[discarder]! - score.points - honba * 300;
+      deltas[discarder] = deltas[discarder]! - score.points;
+      deltas[w] = deltas[w]! + score.points;
     }
-    // riichi sticks go to the first ronner (closest in turn order after discarder)
-    ronners.sort(
-        (a, b) => ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
-    deltas[ronners.first] = deltas[ronners.first]! + riichiSticks * 1000;
-
     for (final e in deltas.entries) {
       seats[e.key].points += e.value;
     }
-    riichiSticks = 0;
 
     final dealerWins = ronners.contains(dealer);
     phase = RoundPhase.finished;
@@ -742,14 +716,15 @@ class Round {
       ],
       winTiles: {for (final w in ronners) w: discard},
       pointDeltas: _handDeltas(),
-      label:
-          ronners.length > 1 ? 'Multiple Ron' : (chankan ? 'Chankan' : 'Ron'),
+      label: ronners.length > 1
+          ? 'Multiple Wins'
+          : (chankan ? 'Robbing a Kong' : 'Win on Discard'),
     );
     _postFinish(dealerRepeat: dealerWins);
   }
 
   void _finishWin(List<int> winners, HandScore score,
-      {int? loser, Tile? winTile}) {
+      {int? loser, Tile? winTile, bool flowerWin = false}) {
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     final w = winners.first;
 
@@ -759,12 +734,11 @@ class Round {
       final base = seats[w].isDealer
           ? score.nonDealerPays
           : (i == dealer ? score.dealerPays : score.nonDealerPays);
-      final pay = base + honba * 100;
+      final pay = base;
       deltas[i] = -pay;
       deltas[w] = deltas[w]! + pay;
     }
 
-    deltas[w] = deltas[w]! + riichiSticks * 1000;
     for (final e in deltas.entries) {
       seats[e.key].points += e.value;
     }
@@ -779,7 +753,7 @@ class Round {
       scores: [score],
       winTiles: winTile != null ? {w: winTile} : const {},
       pointDeltas: _handDeltas(),
-      label: 'Tsumo',
+      label: flowerWin ? score.yaku.first.name : 'Self Draw',
     );
     _postFinish(dealerRepeat: winners.contains(dealer));
   }
@@ -791,24 +765,7 @@ class Round {
         tenpai.add(i);
       }
     }
-    final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
-    final noten = [for (var i = 0; i < 4; i++) i]
-        .where((i) => !tenpai.contains(i))
-        .toList();
-    if (tenpai.isNotEmpty && noten.isNotEmpty) {
-      const pot = 3000;
-      final gain = pot ~/ tenpai.length;
-      final loss = pot ~/ noten.length;
-      for (final i in tenpai) {
-        deltas[i] = gain;
-      }
-      for (final i in noten) {
-        deltas[i] = -loss;
-      }
-    }
-    for (final e in deltas.entries) {
-      seats[e.key].points += e.value;
-    }
+
     phase = RoundPhase.finished;
     result = RoundResult(
       kind: RoundEndKind.exhaustiveDraw,
@@ -817,32 +774,14 @@ class Round {
       tenpaiAtDraw: tenpai,
       label: 'Exhaustive Draw',
     );
-    _postFinish(dealerRepeat: tenpai.contains(dealer));
+    _postFinish(dealerRepeat: true);
   }
 
-  void _postFinish({required bool dealerRepeat}) {
-    // honba / riichi-stick carry is applied by the game controller when it
-    // starts the next round; expose the intent via the result label.
-  }
+  void _postFinish({required bool dealerRepeat}) {}
 
   void _advanceTurn() {
-    // Clear the ippatsu window for anyone whose declaration turn has passed.
-    for (final s in seats) {
-      if (s.riichi && s.riichiPondIndex >= 0 && s.seat != turn) {
-        final sinceDeclare = s.pond.length - 1 - s.riichiPondIndex;
-        if (sinceDeclare >= 0 && s.seat != turn) {
-          // ippatsu only survives to the declarer's own next draw
-        }
-      }
-    }
     seats[turn].drawn = null;
     turn = (turn + 1) % 4;
-    // ippatsu is lost once it comes back around to the declarer
-    if (seats[turn].riichi &&
-        seats[turn].ippatsu &&
-        seats[turn].pond.isNotEmpty) {
-      seats[turn].ippatsu = false;
-    }
     _beginDraw();
   }
 
@@ -855,16 +794,20 @@ class Round {
       seatWind: s.wind,
       isTsumo: isTsumo,
       closed: s.closed,
-      riichi: s.riichi && !s.doubleRiichi,
-      doubleRiichi: s.doubleRiichi,
-      ippatsu: s.ippatsu,
+      flowers: s.flowers.map((t) => t.type).toList(),
+      rinshan: isTsumo && s.replacementDraw,
+      doubleKong: isTsumo && s.replacementDraw && s.kongChain >= 2,
+      blessingOfMan: _firstGoAround &&
+          s.drawCount == 1 &&
+          !s.isDealer &&
+          s.allDiscards.isEmpty,
+      heavenly: _firstGoAround && _discardsThisRound == 0,
+      earthly: _firstGoAround &&
+          _discardsThisRound == 1 &&
+          pendingDiscardSeat == dealer,
       haitei: isTsumo && wall.isEmpty,
       houtei: !isTsumo && wall.isEmpty,
       chankan: chankan,
-      doraIndicators: wall.doraIndicators(),
-      uraIndicators: wall.uraDoraIndicators(),
-      akaCount: [...concealed, winTile].where((t) => t.aka).length +
-          s.melds.expand((m) => m.tiles).where((t) => t.aka).length,
     );
     return scoreHand(concealed, winTile, s.melds, ctx, isDealer: s.isDealer);
   }

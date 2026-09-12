@@ -1,12 +1,6 @@
-/// The editable table state behind the Custom Hand & Context Builder.
-///
-/// This is a *posed* table, not a played one: there is no wall to draw from and
-/// no turn order to advance. It holds exactly what the TileSense guide reads —
-/// your concealed tiles and melds, every seat's discards and calls, the dora
-/// indicators, the wall counter, and who is in riichi — and nothing else.
 library;
 
-import '../game/game_controller.dart' show kHumanSeat, kSeatNames;
+import '../game/game_controller.dart' show kHumanSeat;
 import '../logic/efficiency_engine.dart' show HandFocus, PlayStyle;
 import '../logic/meld.dart';
 import '../logic/tile.dart';
@@ -23,17 +17,16 @@ class ScenarioSeat {
   final int seat;
   final List<Tile> pond = [];
   final List<Meld> melds = [];
+  final List<Tile> flowers = [];
 
   bool riichi = false;
 
-  /// Index into [pond] of the sideways declaration tile. -1 while not in
-  /// riichi. Declaring with an empty pond is not possible, so a riichi seat
-  /// always has at least one discard.
   int riichiPondIndex = -1;
 
   void clear() {
     pond.clear();
     melds.clear();
+    flowers.clear();
     riichi = false;
     riichiPondIndex = -1;
   }
@@ -48,9 +41,7 @@ class Scenario {
   /// Your concealed tiles (seat 0). Melds are held on [seats]`[0].melds`.
   final List<Tile> hand = [];
 
-  /// Revealed dora indicators — the *indicator*, not the dora itself, exactly
-  /// as the dead wall shows them.
-  final List<TileType> dora = [TileType.man1];
+  final List<TileType> dora = [];
 
   /// How the guide weighs danger against value when scoring this table.
   PlayStyle style = PlayStyle.balanced;
@@ -58,7 +49,7 @@ class Scenario {
   /// Whether the guide chases the faster hand or the bigger one here.
   HandFocus focus = HandFocus.balanced;
 
-  int wallRemaining = 70;
+  int wallRemaining = 84;
   Wind roundWind = Wind.east;
 
   /// Which seat holds the dealership. Rather than set this directly, set
@@ -73,10 +64,6 @@ class Scenario {
   Tile? offered;
   int offeredFrom = 1;
 
-  /// Your own seat wind. It decides your seat's yakuhai, and — when it is East
-  /// — that you are the dealer, worth half again on a win and more to deal
-  /// into. [Round.posed] derives every seat's wind from [dealer], so this is
-  /// the same setting read from the other end.
   Wind get seatWind => Wind.values[(4 - dealer) % 4];
   set seatWind(Wind wind) => dealer = (4 - wind.index) % 4;
 
@@ -88,14 +75,10 @@ class Scenario {
 
   // --- counting and validity ------------------------------------------
 
-  /// Every tile the posed table shows: your concealed hand, all four ponds,
-  /// all called melds, the dora indicators, and the tile on offer. A meld's
-  /// tiles are counted from its [Meld.types] so a hand-built meld with no
-  /// physical tiles still counts.
   List<int> visibleCounts34() {
     final counts = List<int>.filled(34, 0);
     void bump(TileType t) {
-      if (t == TileType.blank) return;
+      if (!t.isPlayingTile) return;
       counts[t.index - 1]++;
     }
 
@@ -112,18 +95,20 @@ class Scenario {
         }
       }
     }
-    for (final t in dora) {
-      bump(t);
-    }
+
     if (offered != null) bump(offered!.type);
     return counts;
   }
 
-  int used(TileType type) =>
-      type == TileType.blank ? 0 : visibleCounts34()[type.index - 1];
+  int used(TileType type) => type.isBonus
+      ? seats.expand((s) => s.flowers).where((t) => t.type == type).length
+      : type == TileType.blank
+          ? 0
+          : visibleCounts34()[type.index - 1];
 
   /// How many more copies of [type] the table can still hold.
-  int remainingCopies(TileType type) => kCopiesPerTile - used(type);
+  int remainingCopies(TileType type) =>
+      (type.isBonus ? 1 : kCopiesPerTile) - used(type);
 
   /// Red fives already placed in [type]'s suit — at most one exists per suit.
   bool akaUsed(TileType type) {
@@ -148,9 +133,6 @@ class Scenario {
   int turnOf(int seat, int pondIndex) =>
       pondIndex * 4 + ((seat - dealer + 4) % 4);
 
-  /// Other seats' discards that cleared the ron window after [seat] declared
-  /// riichi — the second half of genbutsu, alongside the riichi seat's own
-  /// pond.
   Set<TileType> passedAfterRiichi(int seat) {
     final s = seats[seat];
     if (!s.riichi || s.riichiPondIndex < 0) return const {};
@@ -186,20 +168,18 @@ class Scenario {
           '${seats[0].melds.isEmpty ? '' : ', after ${seats[0].melds.length} call(s)'}.');
     }
 
-    for (final s in seats) {
-      if (s.riichi && s.pond.isEmpty) {
-        out.add('${_seatWord(s.seat)} is in riichi but has no discards — '
-            'riichi is declared by discarding.');
-      }
-      if (s.riichi && s.melds.any((m) => !m.concealed)) {
-        out.add('${_seatWord(s.seat)} is in riichi with an open call — '
-            'riichi needs a closed hand.');
-      }
+    for (final type in TileType.values.where((t) => t.isBonus)) {
+      if (used(type) > 1) out.add('Only one ${type.displayName} exists.');
+    }
+    if (hand.any((t) => !t.type.isPlayingTile)) {
+      out.add('Flowers belong in the bonus area.');
+    }
+    for (final seat in seats) {
+      if (seat.melds.length > 4) out.add('A hand can have at most four melds.');
     }
 
-    if (dora.isEmpty) out.add('Set at least one dora indicator.');
-    if (wallRemaining < 0 || wallRemaining > 122) {
-      out.add('Wall must be between 0 and 122 tiles.');
+    if (wallRemaining < 0 || wallRemaining > 144) {
+      out.add('Wall must be between 0 and 144 tiles.');
     }
     return out;
   }
@@ -210,18 +190,14 @@ class Scenario {
   /// should recommend a discard rather than a call.
   bool get isDiscardRead => hand.length == concealedTarget(withDraw: true);
 
-  String _seatWord(int seat) => seat == kHumanSeat ? 'You' : kSeatNames[seat];
-
   void clear() {
     hand.clear();
     for (final s in seats) {
       s.clear();
     }
-    dora
-      ..clear()
-      ..add(TileType.man1);
+    dora.clear();
     offered = null;
-    wallRemaining = 70;
+    wallRemaining = 84;
     honba = 0;
     riichiSticks = 0;
     // Round wind, seat wind and play style are settings, not table state —

@@ -1,5 +1,3 @@
-/// Drives an offline hanchan: owns the [Round], three [SimpleBot]s, the async
-/// turn loop, and the live [EfficiencyReport] in one cooperative loop.
 library;
 
 import 'dart:async';
@@ -32,8 +30,6 @@ const List<String> kSeatNames = ['Orderic', 'Grant', 'Hubert', 'Astaroth'];
 String seatDisplayName(int seat) =>
     seat == kHumanSeat ? '${kSeatNames[seat]} (you)' : kSeatNames[seat];
 
-/// How many East-round hands before the game ends (tonpuusen). Renchan can
-/// extend past this.
 const int kRoundsPerGame = 4;
 
 enum GamePhase { playing, roundEnd, gameEnd }
@@ -61,10 +57,11 @@ class GameController extends ChangeNotifier implements GuideHost {
   @override
   late Round round;
   late List<SimpleBot> _bots;
-  List<int> _points = List.filled(4, 25000);
+  List<int> _points = List.filled(4, 1000);
   int _dealer = 0;
   int _roundNumber = 0; // 0-based East 1..4
   int _honba = 0;
+  int _dealSerial = 0;
   int _riichiSticks = 0;
 
   GamePhase phase = GamePhase.playing;
@@ -115,10 +112,8 @@ class GameController extends ChangeNotifier implements GuideHost {
     notifyListeners();
   }
 
-  /// Hanchan (East + South, 8 hands) when true; East-only (tonpuusen, 4 hands)
-  /// when false. Hanchan is the default.
   bool hanchan = true;
-  int get _handsPerGame => hanchan ? 8 : 4;
+  int get _handsPerGame => hanchan ? 16 : 4;
 
   @override
   EfficiencyReport report = EfficiencyReport.waiting();
@@ -166,8 +161,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   int get honba => _honba;
   int get riichiSticks => _riichiSticks;
 
-  /// East for hands 1-4, South for 5-8 (hanchan).
-  Wind get roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
+  Wind get roundWind => Wind.values[(_roundNumber ~/ 4).clamp(0, 3)];
 
   /// 1-4 within the current round wind.
   @override
@@ -183,7 +177,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   // --- lifecycle -------------------------------------------------------
 
   void _startGame() {
-    _points = List.filled(4, 25000);
+    _points = List.filled(4, 1000);
     _dealer = 0;
     _roundNumber = 0;
     _honba = 0;
@@ -223,7 +217,7 @@ class GameController extends ChangeNotifier implements GuideHost {
 
   void _startRound() {
     round = Round(
-      seed: _seed + _roundNumber * 100 + _honba,
+      seed: _seed + _dealSerial++,
       dealer: _dealer,
       roundWind: roundWind,
       honba: _honba,
@@ -251,13 +245,6 @@ class GameController extends ChangeNotifier implements GuideHost {
     _scheduleLoop();
   }
 
-  /// Pure seat-wind / honba bookkeeping applied between rounds.
-  ///
-  /// [dealerKept] is renchan — the dealer won, or was tenpai at an exhaustive
-  /// draw. When the dealer does not keep, the button passes (dealer + 1) and the
-  /// round-wind counter advances; this holds for a noten-dealer exhaustive draw
-  /// too, which an earlier version wrongly froze in place. A ryuukyoku always
-  /// adds a honba; otherwise a honba is added only on renchan and reset to 0.
   @visibleForTesting
   static ({int dealer, int roundNumber, int honba}) rotateAfterRound({
     required bool exhaustiveDraw,
@@ -266,8 +253,8 @@ class GameController extends ChangeNotifier implements GuideHost {
     required int roundNumber,
     required int honba,
   }) {
-    final nextHonba = (exhaustiveDraw || dealerKept) ? honba + 1 : 0;
-    if (dealerKept) {
+    const nextHonba = 0;
+    if (dealerKept || exhaustiveDraw) {
       return (dealer: dealer, roundNumber: roundNumber, honba: nextHonba);
     }
     return (
@@ -281,12 +268,8 @@ class GameController extends ChangeNotifier implements GuideHost {
     if (phase != GamePhase.roundEnd) return;
     final r = round.result!;
 
-    // Apply honba / dealer rotation. The dealer keeps their seat (renchan) on a
-    // win of their own or, at an exhaustive draw, on being tenpai.
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
-    final dealerKept = isExhaustiveDraw
-        ? r.tenpaiAtDraw.contains(_dealer)
-        : r.winners.contains(_dealer);
+    final dealerKept = isExhaustiveDraw ? true : r.winners.contains(_dealer);
 
     _tel?.roundEnd(
       matchId: _matchId,
@@ -303,7 +286,7 @@ class GameController extends ChangeNotifier implements GuideHost {
       dealerKept: dealerKept,
     );
 
-    _riichiSticks = round.riichiSticks; // leftover sticks (draw) carry
+    _riichiSticks = 0;
     final rot = rotateAfterRound(
       exhaustiveDraw: isExhaustiveDraw,
       dealerKept: dealerKept,
@@ -316,8 +299,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     _honba = rot.honba;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
-    final tobi = _points.any((p) => p < 0);
-    if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
+    if (_roundNumber >= _handsPerGame && !dealerKept) {
       phase = GamePhase.gameEnd;
       _tel?.matchEnd(
         matchId: _matchId,
@@ -420,10 +402,6 @@ class GameController extends ChangeNotifier implements GuideHost {
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
       round.addKan(seat, decision.addedKan!);
     } else {
-      if (decision.riichi) {
-        Sfx.i.play(SfxKind.riichi);
-        Sfx.i.voice(VoiceKind.riichi, character: _characterForSeat(seat));
-      }
       final tile = decision.discard ?? round.legalDiscards(seat).first;
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
@@ -471,16 +449,13 @@ class GameController extends ChangeNotifier implements GuideHost {
     final res = round.result;
     if (res == null) return;
     final VoiceKind? winLine = switch (res.kind) {
-      RoundEndKind.ron => VoiceKind.ron,
-      RoundEndKind.tsumo => VoiceKind.tsumo,
+      RoundEndKind.ron => VoiceKind.win,
+      RoundEndKind.tsumo => VoiceKind.win,
       _ => null,
     };
     if (winLine == null) return;
     Sfx.i.play(res.kind == RoundEndKind.ron ? SfxKind.ron : SfxKind.tsumo);
 
-    // The winning seat's character calls it. Mangan or higher chains into the
-    // celebratory "yeah"; on a mangan+ ron the discarder then gives a resigned
-    // acknowledgement right after.
     for (var wi = 0; wi < res.winners.length; wi++) {
       final seat = res.winners[wi];
       final bigHand =
@@ -535,20 +510,17 @@ class GameController extends ChangeNotifier implements GuideHost {
     // A win is always taken.
     if (round.canTsumo(kHumanSeat)) return BotTurn(tsumo: true);
 
-    // Riichi freezes the hand: the drawn tile is the only legal discard.
-    if (seat.riichi) return BotTurn(discard: seat.drawn);
-
     _refreshReport();
 
-    final riichiOpp = _riichiOpponent();
+    final threat = _exposedOpponent();
     for (final type in round.closedKanTypes(kHumanSeat)) {
       final advice = _efficiency.adviseClosedKan(
         hand: seat.hand,
         kanType: type,
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
-        opponentRiichi: riichiOpp != null,
-        opponentIsDealer: riichiOpp?.isDealer ?? false,
+        opponentRiichi: threat != null,
+        opponentIsDealer: threat?.isDealer ?? false,
       );
       if (advice.eligible) return BotTurn(closedKan: type);
     }
@@ -559,13 +531,13 @@ class GameController extends ChangeNotifier implements GuideHost {
         melds: seat.melds,
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
-        opponentRiichi: riichiOpp != null,
-        opponentIsDealer: riichiOpp?.isDealer ?? false,
-        opponentDiscards: riichiOpp != null
-            ? riichiOpp.allDiscards.map((t) => t.type).toList()
+        opponentRiichi: threat != null,
+        opponentIsDealer: threat?.isDealer ?? false,
+        opponentDiscards: threat != null
+            ? threat.allDiscards.map((t) => t.type).toList()
             : const [],
         passedDiscardsAfterRiichi:
-            riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
+            threat?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
       if (advice.eligible) return BotTurn(addedKan: type);
     }
@@ -576,7 +548,6 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
     return BotTurn(
       discard: _tileToDiscard(line.discard),
-      riichi: report.recommendRiichi && round.canRiichi(kHumanSeat),
     );
   }
 
@@ -604,20 +575,20 @@ class GameController extends ChangeNotifier implements GuideHost {
     final offered = round.pendingDiscard;
     if (offered == null) return null;
     final seat = round.seats[opt.seat];
-    final riichiOpp = _riichiOpponent();
+    final threat = _exposedOpponent();
     return _efficiency.adviseCall(
       hand: seat.hand,
       offered: offered,
       available: _guidedActionsFor(opt.types),
       visibleCounts34: _visibleCounts(),
       context: _efficiencyValueContext(seat),
-      opponentDiscards: riichiOpp != null
-          ? riichiOpp.allDiscards.map((t) => t.type).toList()
+      opponentDiscards: threat != null
+          ? threat.allDiscards.map((t) => t.type).toList()
           : const [],
       passedDiscardsAfterRiichi:
-          riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
-      opponentRiichi: riichiOpp != null,
-      opponentIsDealer: riichiOpp?.isDealer ?? false,
+          threat?.passedDiscardsAfterRiichi.toList() ?? const [],
+      opponentRiichi: threat != null,
+      opponentIsDealer: threat?.isDealer ?? false,
     );
   }
 
@@ -662,8 +633,10 @@ class GameController extends ChangeNotifier implements GuideHost {
         round.phase != RoundPhase.discarding) {
       return;
     }
-    Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
-    if (declareRiichi) Sfx.i.voice(VoiceKind.riichi);
+    if (declareRiichi) {
+      throw UnsupportedError('Hong Kong mahjong has no riichi');
+    }
+    Sfx.i.play(SfxKind.discard);
     if (_tel != null) {
       final recos = [
         for (final l in report.lines)
@@ -683,6 +656,14 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
     _noteDiscard(kHumanSeat, tile);
     round.discard(kHumanSeat, tile, declareRiichi: declareRiichi);
+    _refreshReport();
+    notifyListeners();
+    _scheduleLoop();
+  }
+
+  void humanPassFlowerWin() {
+    if (!round.canFlowerWin(kHumanSeat)) return;
+    round.passFlowerWin(kHumanSeat);
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
@@ -772,22 +753,25 @@ class GameController extends ChangeNotifier implements GuideHost {
   // --- efficiency report -------------------------------------------
 
   void _refreshReport() {
+    if (round.canFlowerWin(kHumanSeat)) {
+      report = EfficiencyReport.waiting();
+      return;
+    }
     if (round.finished ||
         round.turn != kHumanSeat ||
         round.phase != RoundPhase.discarding) {
       // Still show a defensive read if the human is under threat.
       final human = round.seats[kHumanSeat];
-      final riichiOpp = _riichiOpponent();
-      if (riichiOpp != null && human.hand.isNotEmpty) {
+      final threat = _exposedOpponent();
+      if (threat != null && human.hand.isNotEmpty) {
         report = _efficiency.analyze(
           hand: human.hand,
           visibleCounts34: _visibleCounts(),
           canRiichi: false,
           valueContext: _efficiencyValueContext(human),
           defenseHand: human.hand,
-          opponentDiscards: riichiOpp.allDiscards.map((t) => t.type).toList(),
-          passedDiscardsAfterRiichi:
-              riichiOpp.passedDiscardsAfterRiichi.toList(),
+          opponentDiscards: threat.allDiscards.map((t) => t.type).toList(),
+          passedDiscardsAfterRiichi: threat.passedDiscardsAfterRiichi.toList(),
           opponentRiichi: true,
         );
       } else {
@@ -797,20 +781,20 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
 
     final human = round.seats[kHumanSeat];
-    final riichiOpp = _riichiOpponent();
+    final threat = _exposedOpponent();
     report = _efficiency.analyze(
       hand: human.hand,
       visibleCounts34: _visibleCounts(),
       canRiichi: round.canRiichi(kHumanSeat),
       valueContext: _efficiencyValueContext(human),
-      defenseHand: riichiOpp != null ? human.hand : null,
-      opponentDiscards: riichiOpp != null
-          ? riichiOpp.allDiscards.map((t) => t.type).toList()
+      defenseHand: threat != null ? human.hand : null,
+      opponentDiscards: threat != null
+          ? threat.allDiscards.map((t) => t.type).toList()
           : const [],
       passedDiscardsAfterRiichi:
-          riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
-      opponentRiichi: riichiOpp != null,
-      opponentIsDealer: riichiOpp?.isDealer ?? false,
+          threat?.passedDiscardsAfterRiichi.toList() ?? const [],
+      opponentRiichi: threat != null,
+      opponentIsDealer: threat?.isDealer ?? false,
     );
   }
 
@@ -820,7 +804,8 @@ class GameController extends ChangeNotifier implements GuideHost {
         roundWind: round.roundWind,
         seatWind: seat.wind,
         isDealer: seat.isDealer,
-        inRiichi: seat.riichi,
+        inRiichi: false,
+        flowers: seat.flowers.map((t) => t.type).toList(),
         wallTilesRemaining: round.wall.remaining,
         doraIndicators: round.wall.doraIndicators(),
         honba: round.honba,
@@ -829,16 +814,19 @@ class GameController extends ChangeNotifier implements GuideHost {
         focus: handFocus,
       );
 
-  SeatState? _riichiOpponent() {
+  SeatState? _exposedOpponent() {
     for (final s in round.seats) {
-      if (s.seat != kHumanSeat && s.riichi) return s;
+      if (s.seat != kHumanSeat &&
+          s.melds.where((m) => !m.concealed).length >= 2) {
+        return s;
+      }
     }
     return null;
   }
 
   /// The opponent the guide's safety scores refer to.
   @override
-  int? get safetyOpponentSeat => _riichiOpponent()?.seat;
+  int? get safetyOpponentSeat => _exposedOpponent()?.seat;
 
   List<int> _visibleCounts() {
     final counts = List<int>.filled(34, 0);
@@ -892,15 +880,15 @@ class GameController extends ChangeNotifier implements GuideHost {
       return null;
     }
     final seat = round.seats[kHumanSeat];
-    final riichiOpp = _riichiOpponent();
+    final threat = _exposedOpponent();
     for (final type in round.closedKanTypes(kHumanSeat)) {
       final advice = _efficiency.adviseClosedKan(
         hand: seat.hand,
         kanType: type,
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
-        opponentRiichi: riichiOpp != null,
-        opponentIsDealer: riichiOpp?.isDealer ?? false,
+        opponentRiichi: threat != null,
+        opponentIsDealer: threat?.isDealer ?? false,
       );
       return (type: type, isAdded: false, advice: advice);
     }
@@ -911,13 +899,13 @@ class GameController extends ChangeNotifier implements GuideHost {
         melds: seat.melds,
         visibleCounts34: _visibleCounts(),
         context: _efficiencyValueContext(seat),
-        opponentRiichi: riichiOpp != null,
-        opponentIsDealer: riichiOpp?.isDealer ?? false,
-        opponentDiscards: riichiOpp != null
-            ? riichiOpp.allDiscards.map((t) => t.type).toList()
+        opponentRiichi: threat != null,
+        opponentIsDealer: threat?.isDealer ?? false,
+        opponentDiscards: threat != null
+            ? threat.allDiscards.map((t) => t.type).toList()
             : const [],
         passedDiscardsAfterRiichi:
-            riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
+            threat?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
       return (type: type, isAdded: true, advice: advice);
     }
@@ -941,8 +929,6 @@ class GameController extends ChangeNotifier implements GuideHost {
       round.phase == RoundPhase.discarding &&
       !round.finished;
 
-  /// True when the human seat is tenpai but in furiten, so ron is unavailable
-  /// (tsumo still is). Drives the FURITEN marker on the hand bar and placard.
   @override
   bool get humanFuriten => !round.finished && round.isFuriten(kHumanSeat);
 

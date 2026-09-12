@@ -99,8 +99,6 @@ class _HandViewState extends State<HandView> {
     final seat = round.seats[kHumanSeat];
     final canPlay = game.isHumanTurn;
     final drawn = seat.drawn;
-    // After riichi the hand is frozen — only the drawn tile can be discarded.
-    final riichiLocked = seat.riichi && drawn != null;
 
     // Green = the guide's recommended discard — the very row it marks
     // recommended in the panel, so the hand and the panel never disagree.
@@ -115,7 +113,7 @@ class _HandViewState extends State<HandView> {
 
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
-      final tappable = canPlay && (!riichiLocked || isDrawn);
+      final tappable = canPlay && !game.round.canFlowerWin(kHumanSeat);
       final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = !showGuide
           ? null
@@ -134,7 +132,7 @@ class _HandViewState extends State<HandView> {
             scale: _handScale,
             highlightColor: hc,
             borderColorOverride: border,
-            dimmed: riichiLocked && !isDrawn,
+            dimmed: false,
           ),
         ),
       );
@@ -146,7 +144,8 @@ class _HandViewState extends State<HandView> {
     /// horizontal scroll view and the tiles themselves are tap-to-discard, so
     /// a bare horizontal drag is already spoken for twice over. A long press
     /// is unambiguous, and means no gesture here can be started by accident.
-    Widget draggableTile(Tile tile, List<Tile> shown, {bool separated = false}) {
+    Widget draggableTile(Tile tile, List<Tile> shown,
+        {bool separated = false}) {
       final child = tileButton(tile, separated: separated);
       return DragTarget<int>(
         onWillAcceptWithDetails: (details) => details.data != tile.id,
@@ -360,100 +359,46 @@ class _HandViewState extends State<HandView> {
     );
   }
 
-  void _discard(BuildContext context, Tile tile) {
-    final canRiichi = game.humanCanRiichi;
-    final line =
-        game.report.lines.where((l) => l.discard == tile.type).toList();
-    final keepsTenpai = line.isNotEmpty && line.first.shanten == 0;
-    if (canRiichi && keepsTenpai) {
-      showModalBottomSheet<void>(
-        context: context,
-        builder: (_) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.campaign),
-                title:
-                    Text('Declare Riichi and discard ${tile.type.displayName}'),
-                onTap: () {
-                  Navigator.pop(context);
-                  game.humanDiscard(tile, declareRiichi: true);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.arrow_forward),
-                title: Text('Just discard ${tile.type.displayName}'),
-                onTap: () {
-                  Navigator.pop(context);
-                  game.humanDiscard(tile);
-                },
-              ),
-            ],
-          ),
-        ),
-      );
-    } else {
-      game.humanDiscard(tile);
-    }
-  }
-
+  void _discard(BuildContext context, Tile tile) => game.humanDiscard(tile);
   Widget _actionBar(BuildContext context) {
     final buttons = <Widget>[];
 
-    // Furiten marker: shown whenever the human seat is tenpai but barred from
-    // ron. It sits first so it stays visible next to (or instead of) the call
-    // buttons — a furiten wait never gets a RON prompt.
-    if (game.humanFuriten) {
-      buttons.add(const Chip(
-        label: Text('FURITEN',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.5)),
-        backgroundColor: Color(0xffc62828),
-        visualDensity: VisualDensity.compact,
-      ));
-    }
-
-    if (game.awaitingHumanCall) {
+    if (game.round.canFlowerWin(kHumanSeat)) {
+      buttons.add(_btn('FLOWER WIN', const Color(0xff2e7d32), game.humanTsumo));
+      buttons.add(_btn('CONTINUE DRAWING', const Color(0xff37474f),
+          game.humanPassFlowerWin));
+    } else if (game.awaitingHumanCall) {
       final opt = game.humanCallOption!;
       if (opt.types.contains(CallType.ron)) {
-        buttons.add(_btn('RON', const Color(0xffd84315),
+        buttons.add(_btn('WIN', const Color(0xffd84315),
             () => game.answerCall(CallType.ron)));
       }
       if (opt.types.contains(CallType.pon)) {
-        buttons.add(_btn('PON', const Color(0xff00695c),
+        buttons.add(_btn('PUNG', const Color(0xff00695c),
             () => game.answerCall(CallType.pon)));
       }
       if (opt.types.contains(CallType.kan)) {
-        buttons.add(_btn('KAN', const Color(0xff4527a0),
+        buttons.add(_btn('KONG', const Color(0xff4527a0),
             () => game.answerCall(CallType.kan)));
       }
       if (opt.types.contains(CallType.chi)) {
-        buttons.add(_btn('CHI', const Color(0xff00838f),
+        buttons.add(_btn('CHOW', const Color(0xff00838f),
             () => game.answerCall(CallType.chi)));
       }
       buttons.add(_btn('PASS', const Color(0xff37474f),
           () => game.answerCall(CallType.none)));
     } else if (game.isHumanTurn) {
       if (game.humanCanTsumo) {
-        buttons.add(_btn('TSUMO', const Color(0xff2e7d32), game.humanTsumo));
+        buttons
+            .add(_btn('SELF DRAW', const Color(0xff2e7d32), game.humanTsumo));
       }
       for (final t in game.humanClosedKanTypes) {
-        buttons.add(_btn('KAN ${t.code}', const Color(0xff4527a0),
+        buttons.add(_btn('KONG ${t.code}', const Color(0xff4527a0),
             () => game.humanClosedKan(t)));
       }
       for (final t in game.humanAddedKanTypes) {
-        buttons.add(_btn('KAN ${t.code}', const Color(0xff4527a0),
+        buttons.add(_btn('KONG ${t.code}', const Color(0xff4527a0),
             () => game.humanAddKan(t)));
-      }
-      if (game.report.recommendRiichi) {
-        buttons.add(const Chip(
-          label: Text('Riichi available', style: TextStyle(fontSize: 11)),
-          visualDensity: VisualDensity.compact,
-        ));
       }
     }
 

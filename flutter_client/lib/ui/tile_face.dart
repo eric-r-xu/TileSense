@@ -156,25 +156,32 @@ class TileFace extends StatelessWidget {
             // The margin keeps the artwork off the tile's own border;
             // BoxFit.contain fills the rest, matching the ~85-90%-of-the-face
             // sizing the old oversized-glyph text had.
-            for (final (name, color, fallback) in _artworkLayers(t, dims))
+            if (t.isBonus)
               Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: dims.$1 * 0.08,
-                    vertical: dims.$2 * 0.05,
-                  ),
-                  child: Image.asset(
-                    'assets/tiles/$name.png',
-                    fit: BoxFit.contain,
-                    color: color,
-                    colorBlendMode: BlendMode.srcIn,
-                    filterQuality: FilterQuality.high,
-                    gaplessPlayback: true,
-                    errorBuilder: (_, __, ___) =>
-                        fallback ?? const SizedBox.shrink(),
+                  child: Text(t.code,
+                      style: TextStyle(
+                          fontSize: dims.$2 * .38,
+                          color: const Color(0xff176a40))))
+            else
+              for (final (name, color, fallback) in _artworkLayers(t, dims))
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: dims.$1 * 0.08,
+                      vertical: dims.$2 * 0.05,
+                    ),
+                    child: Image.asset(
+                      'assets/tiles/$name.png',
+                      fit: BoxFit.contain,
+                      color: color,
+                      colorBlendMode: BlendMode.srcIn,
+                      filterQuality: FilterQuality.high,
+                      gaplessPlayback: true,
+                      errorBuilder: (_, __, ___) =>
+                          fallback ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
-              ),
             if (showIndex)
               Positioned(
                 top: dims.$2 * 0.03,

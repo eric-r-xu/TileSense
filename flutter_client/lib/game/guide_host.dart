@@ -42,7 +42,6 @@ abstract class GuideHost implements Listenable {
   /// The kan the guide would take right now, if any.
   ({TileType type, bool isAdded, ActionAdvice advice})? get kanAdvice;
 
-  /// The opponent the safety scores refer to — null when nobody is in riichi.
   int? get safetyOpponentSeat;
 
   bool get humanFuriten;
@@ -54,7 +53,6 @@ abstract class GuideHost implements Listenable {
   int? get lastDiscardSeat;
   bool get lastDiscardTsumogiri;
 
-  /// Header stats: which hand of the round wind, and the honba count.
   int get handInWind;
   int get honba;
 }

@@ -5,18 +5,16 @@
 
 --- 
 
-[Play the live web app](https://app.ericrxu.com/tilesense/)
+A **Hong Kong mahjong tile-efficiency trainer** with a **0-faan minimum**.
+Play offline against three bots while the guide compares discards, accepted tiles,
+and expected chip value. Scoring follows the supplied **HKMJ Cheat Sheet 1.0**,
+including its New Style “discarder pays all” payment table and 13+ faan cap.
 
-A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
-against bots while a live guide grades every discard — shanten, ukeire (tile
-acceptance), probability-weighted point value, and the recommended tile — and,
-when an opponent declares riichi, ranks your hand by safety.
+The Flutter app for web, Android, and iOS lives under `flutter_client/`.
+The shape calculator retains its GPL-licensed Riichi-Trainer ancestry; gameplay,
+scoring, and advice now use Hong Kong rules.
 
-This repo contains the cross-platform **Flutter** app for web, Android, and iOS
-under `flutter_client/`.
-
-The shanten/ukeire math follows the Riichi-Trainer algorithm; the rules, bots,
-and 2D layout are maintained as part of TileSense.
+See [the complete rules and table interpretations](docs/HONG_KONG_RULES.md).
 
 ---
 
@@ -41,46 +39,25 @@ Details, emulator/simulator launch, and release/store builds are in
 
 ### What it does
 
-- A shuffled 136-tile wall and a full offline round vs three bots: draws,
-  discards, **chi**, **pon** and **closed kan**, riichi, tsumo, ron, and
-  exhaustive draw with tenpai payments.
-- A **live efficiency guide**: for every tile in your hand — resulting shanten,
-  ukeire count, accepted tiles, and expected value. In tenpai, EV scores every
-  live wait (including yaku, han/fu, visible dora, tsumo/ron, and dealer value)
-  and weights it by remaining copies and estimated win probability. Before
-  tenpai, it uses completion probability and a dealer/open-hand value estimate.
-  Best-efficiency, best-EV, and recommended discards are highlighted, with a
-  riichi/damaten plan at tenpai. Honba and the riichi deposits already on the
-  table are counted too: they pay out on any win, so they scale with the
-  chance of winning rather than with what the hand is worth. Against a live
-  riichi each discard is also charged what it can cost you: its chance of
-  dealing in, from its own safety rating, times what that hand pays, plus the
-  turns that choosing it commits you to. Folding therefore wins on the numbers
-  when the hand is not worth pushing, rather than by a separate rule. The panel
-  shows the charge as a Risk column beside the value it came off.
-- A **defensive panel** when an opponent is in riichi: each tile rated 0–15
-  (genbutsu / suji / one-chance / honor-by-copies) with a short reason; the
-  recommendation switches to the safest discard. Scores refer only to the
-  named riichi opponent: genbutsu includes their own discards (even before
-  riichi) and other players' discards they passed after declaring riichi.
-- End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
-  yakuman, and the point transfers.
-- An **Autoplay** toggle that plays your seat with the recommended discard.
-- A **play style** — defensive, balanced or aggressive — that changes how
-  dearly the guide prices danger and how readily it keeps a hand quiet rather
-  than declaring riichi. It never changes what a hand is worth, and it steers
-  Autoplay through the same scores.
-- A **Custom Hand & Context Builder**, on its own screen from the start
-  page: pose any table by hand — your tiles, every seat's discards and calls,
-  the dora indicators, the wall counter, your seat wind (East deals) and who is
-  in riichi — and the same guide scores it. A 14-tile hand gets a discard recommendation; 13 tiles plus
-  a tile on offer gets a call recommendation. Nothing on the table can exceed
-  four copies, and it runs no game behind it: no bots, no turn timer, no
-  autoplay.
+- A shuffled 144-tile wall with automatic flower/season replacements; chow,
+  pung, exposed/concealed/added kong, self-pick, and discard wins.
+- Zero-faan chicken hands are legal. No riichi, furiten, dora, fu, deposits,
+  dealer multiplier, or draw payments.
+- The supplied faan table, replacement-aware pattern stacking, optional
+  seven/eight-flower wins, double-kong replacements, and special hands.
+- Exact scoring of live ready-hand waits, estimated value before readiness,
+  and public-information risk estimates without discard immunity.
+- Autoplay follows the guide. Speed/value focus and defensive/aggressive
+  preferences remain available.
+- A Custom Hand & Context Builder with ordinary tiles, calls, discards,
+  flowers/seasons, wall count, and seat/round winds.
+- Four-wind games by default, or East-only practice. Scores and chip transfers
+  appear at the end of each hand.
 
-Scoring covers the common yaku, the standard fu table and the full yakuman set;
-rare fu edge cases and some double-yakuman rules are approximated. No
-networking, lobby, or replays.
+See [rules](docs/HONG_KONG_RULES.md), [guide value model](flutter_client/EXPECTED_VALUE.md),
+and [bot strategy](flutter_client/BOT_STRATEGY.md) for precise behavior and limits.
+There is no multiplayer lobby or replay system. Optional telemetry remains off
+unless enabled explicitly in the build.
 
 ### Run
 
@@ -188,7 +165,7 @@ flutter build apk --release --split-per-abi  # -> per-ABI APKs for sideloading
 
 Needs a release keystore referenced from `android/key.properties` and a
 `signingConfigs.release` block in `android/app/build.gradle` (set `applicationId`
-and `minSdk` there too). The app requests no permissions and collects no data.
+and `minSdk` there too). Gameplay is offline; optional telemetry is controlled by build flags.
 
 ### iOS / iPhone
 

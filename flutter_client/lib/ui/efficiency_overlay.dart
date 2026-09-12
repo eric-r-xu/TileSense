@@ -7,9 +7,6 @@ import '../logic/round.dart';
 import '../main.dart' show handFocusColor, playStyleColor;
 import 'tile_face.dart';
 
-/// The translucent top-left training panel: an "expected value / efficiency"
-/// table — with two extra safety columns folded in while an opponent is in
-/// riichi — and, when a call is on offer, the recommended response.
 class EfficiencyOverlay extends StatefulWidget {
   const EfficiencyOverlay(
       {super.key,
@@ -77,7 +74,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
-                              'Safety vs ${seatDisplayName(widget.game.safetyOpponentSeat!)} (riichi only)',
+                              'Safety vs ${seatDisplayName(widget.game.safetyOpponentSeat!)} (estimated risk)',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 9),
                             ),
@@ -186,8 +183,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             color: active
                 ? colour.withValues(alpha: 0.22)
                 : const Color(0x14ffffff),
-            border: Border.all(
-                color: active ? colour : const Color(0x33ffffff)),
+            border:
+                Border.all(color: active ? colour : const Color(0x33ffffff)),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -203,17 +200,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  /// The recommended line's plan ('RIICHI', 'DAMATEN', ...) once tenpai, for
-  /// the header badge — null before tenpai or with nothing to recommend.
   String? _topPlan(EfficiencyReport r) =>
       r.tenpai && r.lines.isNotEmpty ? r.lines.first.valuePlan : null;
 
-  /// Why the recommended tenpai line is riichi, damaten, or otherwise — the
-  /// same reasoning [GameController.recommendedCallReason] gives for calls,
-  /// just for the riichi/damaten decision instead.
   Widget _planReason(DiscardLine top) {
     if (top.reason.isEmpty) return const SizedBox.shrink();
-    final act = top.valuePlan == 'RIICHI' || top.valuePlan == 'DAMATEN';
+    final act = top.valuePlan == 'READY';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -240,9 +232,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  /// Whether to declare the closed/added kan available on the human's turn
-  /// right now, and why — the same treatment as [_planReason], just for the
-  /// kan decision, which (unlike riichi/damaten) can come up on any turn.
   Widget _kanReason() {
     final k = widget.game.kanAdvice;
     if (k == null || k.advice.reason.isEmpty) return const SizedBox.shrink();
@@ -294,27 +283,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               ),
             ),
           ),
-          if (r.recommendRiichi && !_minimized)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xff2e7d32),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text('RIICHI',
-                  style: TextStyle(color: Colors.white, fontSize: 10)),
-            ),
-          if (_topPlan(r) == 'DAMATEN' && !_minimized)
-            Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xff33691e),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text('DAMATEN',
-                  style: TextStyle(color: Colors.white, fontSize: 10)),
-            ),
+          if (_topPlan(r) == 'READY' && !_minimized)
+            const Text('READY',
+                style: TextStyle(color: Color(0xff9ccc65), fontSize: 10)),
           if ((widget.game.kanAdvice?.advice.eligible ?? false) && !_minimized)
             Container(
               margin: const EdgeInsets.only(left: 4),
@@ -323,7 +294,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 color: const Color(0xff4527a0),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text('KAN',
+              child: const Text('KONG',
                   style: TextStyle(color: Colors.white, fontSize: 10)),
             ),
           Icon(_minimized ? Icons.expand_more : Icons.expand_less,
@@ -341,10 +312,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     if (opt == null || tile == null) return const SizedBox.shrink();
     final rec = widget.game.recommendedCall ?? CallType.none;
     final recLabel = switch (rec) {
-      CallType.chi => 'CHI',
-      CallType.pon => 'PON',
-      CallType.kan => 'KAN',
-      CallType.ron => 'RON',
+      CallType.chi => 'CHOW',
+      CallType.pon => 'PUNG',
+      CallType.kan => 'KONG',
+      CallType.ron => 'WIN',
       CallType.none => 'PASS',
     };
     final offered = [
@@ -426,13 +397,16 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             ),
           ),
         ),
-        Text('• Safety — 0 (dangerous) to 15 (genbutsu); riichi opponent only',
+        Text(
+            '• Safety — higher means lower estimated risk; no discard immunity',
             style: style),
         Text('• Risk — points taken off EV for the danger of this cut',
             style: style),
         Text('• Style — how much danger the guide will take on', style: style),
-        Text('• Focus — what it will take that danger for: a quicker hand '
-            'or a bigger one', style: style),
+        Text(
+            '• Focus — what it will take that danger for: a quicker hand '
+            'or a bigger one',
+            style: style),
         Text('• Green tile — the guide\'s recommended discard', style: style),
         Text('• Yellow tile — the tile you just drew', style: style),
       ],
@@ -475,10 +449,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         TextSpan(text: body, style: _tipBody),
       ]);
 
-  /// What the Expected Value column means, in general terms — the same answer
-  /// whether the hand is ready or five tiles away, and whether or not anyone
-  /// is in riichi. The exact coefficients live in the README; what matters
-  /// here is which way each part pushes the number.
   static final List<InlineSpan> _evGeneral = [
     const TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
     const TextSpan(
@@ -489,24 +459,23 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             '         x  what the win pays\n'
             '         -  what the cut risks\n',
         style: _tipMath),
-    _tipPart('CHANCE OF FINISHING',
+    _tipPart(
+        'CHANCE OF FINISHING',
         'Winning once you are ready, and getting there first. Rises with more '
-        'useful tiles still live and more draws left to find them.\n'),
-    _tipPart('WHAT THE WIN PAYS',
-        'What this line collects if it lands, plus any honba and riichi '
-        'sticks already on the table. Once a discard leaves you tenpai this '
-        'is scored exactly; before that it is an estimate, adjusted for the '
-        'dora this particular cut keeps.\n'),
-    _tipPart('WHAT THE CUT RISKS',
-        'Declaring riichi stakes 1,000 you only get back by winning — so it '
-        'is charged even on a quiet table, and never for more than declaring '
-        'is worth. With a riichi out against you, the cut is charged again: '
-        'how often a tile this safe deals in, and the turns it commits you to '
-        'after this one. A genbutsu cut commits you to nothing.\n'),
-    _tipPart('FOCUS',
+            'useful tiles still live and more draws left to find them.\n'),
+    _tipPart(
+        'WHAT THE WIN PAYS',
+        'Hong Kong faan converted to chips. Ready hands use exact scoring; '
+            'unfinished hands use an estimate of their visible patterns.\n'),
+    _tipPart(
+        'WHAT THE CUT RISKS',
+        'Estimated loss against an opponent with two or more exposed sets. '
+            'A previously discarded tile can still win; no tile is guaranteed safe.\n'),
+    _tipPart(
+        'FOCUS',
         'Speed and Value tilt the trade between the first two terms — Speed '
-        'pays points for a better chance of getting there, Value does the '
-        'reverse. Balanced leaves it alone, and shows no tilt line below.\n'),
+            'pays points for a better chance of getting there, Value does the '
+            'reverse. Balanced leaves it alone, and shows no tilt line below.\n'),
     const TextSpan(
         text: '\nHigher is better, and it can go negative: a dangerous cut on '
             'a cheap hand loses points on average.',
@@ -534,12 +503,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// row is labelled with the phrase the section above uses for it.
   static List<InlineSpan> _evWorked(DiscardLine line, HandFocus focus) {
     final gross = line.winProbability * (line.averagePoints + line.winBonus);
-    final pct = (line.winProbability * 100).toStringAsFixed(
-        line.winProbability < 0.1 ? 1 : 0);
+    final pct = (line.winProbability * 100)
+        .toStringAsFixed(line.winProbability < 0.1 ? 1 : 0);
     final spans = <InlineSpan>[
       const TextSpan(text: '\n', style: _tipDim),
-      TextSpan(
-          text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
+      TextSpan(text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
     ];
 
     if (line.averagePoints <= 0) {
@@ -560,24 +528,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final buf = StringBuffer()
       ..write(_row('chance of finishing', '$pct%'))
       ..write(_row('what the win pays', _pts(line.averagePoints)));
-    if (line.winBonus > 0) {
-      buf.write(_row('honba and sticks', '+${_pts(line.winBonus)}'));
-    }
     buf.write(_row('so on average', _pts(gross)));
     if (line.valueTilt.abs() > 0.5) {
       final sign = line.valueTilt > 0 ? '+' : '-';
       buf.write(_row('${focus.label.toLowerCase()} tilt',
           '$sign${_pts(line.valueTilt.abs())}'));
     }
-    if (line.riichiLockCost > 0.5) {
-      buf.write(_row('less riichi lock-in', '-${_pts(line.riichiLockCost)}'));
-    }
+
     if (line.dealInCost > 0.5) {
       buf.write(_row('less deal-in risk', '-${_pts(line.dealInCost)}'));
     }
     if (line.commitmentCost > 0.5) {
-      buf.write(
-          _row('less turns committed', '-${_pts(line.commitmentCost)}'));
+      buf.write(_row('less turns committed', '-${_pts(line.commitmentCost)}'));
     }
     buf.write('  ${'-' * 31}\n');
     buf.write(_row('expected value', _pts(line.expectedValue)));
@@ -606,10 +568,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         child: child,
       );
 
-  /// The efficiency table — every distinct discard in hand, recommended line
-  /// always first (see [EfficiencyEngine.analyze]). While defending against a
-  /// riichi, two more (narrow) columns fold the safety ranking in rather than
-  /// showing it as a second table.
   Widget _efficiencyTable(EfficiencyReport r) {
     return Table(
       columnWidths: {

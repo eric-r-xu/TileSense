@@ -95,11 +95,14 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   ({TileType type, bool isAdded, ActionAdvice advice})? kanAdvice;
 
   @override
-  int? get safetyOpponentSeat => _riichiOpponent()?.seat;
+  int? get safetyOpponentSeat => _exposedOpponent()?.seat;
 
-  SeatState? _riichiOpponent() {
+  SeatState? _exposedOpponent() {
     for (final s in round.seats) {
-      if (s.seat != kHumanSeat && s.riichi) return s;
+      if (s.seat != kHumanSeat &&
+          s.melds.where((m) => !m.concealed).length >= 2) {
+        return s;
+      }
     }
     return null;
   }
@@ -120,13 +123,13 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       return;
     }
 
-    final riichiOpp = _riichiOpponent();
-    final oppDiscards = riichiOpp == null
+    final threat = _exposedOpponent();
+    final oppDiscards = threat == null
         ? const <TileType>[]
-        : [for (final t in riichiOpp.pond) t.type];
-    final passed = riichiOpp == null
+        : [for (final t in threat.pond) t.type];
+    final passed = threat == null
         ? const <TileType>[]
-        : scenario.passedAfterRiichi(riichiOpp.seat).toList();
+        : scenario.passedAfterRiichi(threat.seat).toList();
     final visible = scenario.visibleCounts34();
     final human = round.seats[kHumanSeat];
     final context = EfficiencyValueContext(
@@ -134,7 +137,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       roundWind: scenario.roundWind,
       seatWind: human.wind,
       isDealer: human.isDealer,
-      inRiichi: human.riichi,
+      inRiichi: false,
+      flowers: human.flowers.map((t) => t.type).toList(),
       wallTilesRemaining: scenario.wallRemaining,
       doraIndicators: scenario.dora,
       honba: scenario.honba,
@@ -149,11 +153,11 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
         visibleCounts34: visible,
         canRiichi: _canRiichi(human),
         valueContext: context,
-        defenseHand: riichiOpp != null ? human.hand : null,
+        defenseHand: threat != null ? human.hand : null,
         opponentDiscards: oppDiscards,
         passedDiscardsAfterRiichi: passed,
-        opponentRiichi: riichiOpp != null,
-        opponentIsDealer: riichiOpp?.isDealer ?? false,
+        opponentRiichi: threat != null,
+        opponentIsDealer: threat?.isDealer ?? false,
       );
       kanAdvice = _kanAdvice(human, context, visible, oppDiscards, passed);
       notifyListeners();
@@ -197,8 +201,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       context: context,
       opponentDiscards: oppDiscards,
       passedDiscardsAfterRiichi: passed,
-      opponentRiichi: riichiOpp != null,
-      opponentIsDealer: riichiOpp?.isDealer ?? false,
+      opponentRiichi: threat != null,
+      opponentIsDealer: threat?.isDealer ?? false,
     );
     // Keep a defensive read on screen next to the call advice.
     report = _efficiency.analyze(
@@ -206,11 +210,11 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       visibleCounts34: visible,
       canRiichi: false,
       valueContext: context,
-      defenseHand: riichiOpp != null ? human.hand : null,
+      defenseHand: threat != null ? human.hand : null,
       opponentDiscards: oppDiscards,
       passedDiscardsAfterRiichi: passed,
-      opponentRiichi: riichiOpp != null,
-      opponentIsDealer: riichiOpp?.isDealer ?? false,
+      opponentRiichi: threat != null,
+      opponentIsDealer: threat?.isDealer ?? false,
     );
     notifyListeners();
   }
@@ -223,9 +227,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
         CallType.none => null,
       };
 
-  /// Riichi needs a closed hand (concealed kans are fine) and a live wall.
-  bool _canRiichi(SeatState s) =>
-      !s.riichi && s.closed && scenario.wallRemaining >= 4;
+  bool _canRiichi(SeatState s) => false;
 
   ({TileType type, bool isAdded, ActionAdvice advice})? _kanAdvice(
     SeatState human,
@@ -234,7 +236,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     List<TileType> oppDiscards,
     List<TileType> passed,
   ) {
-    final riichiOpp = _riichiOpponent() != null;
+    final threat = _exposedOpponent() != null;
     for (final type in round.closedKanTypes(kHumanSeat)) {
       return (
         type: type,
@@ -244,7 +246,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
           kanType: type,
           visibleCounts34: visible,
           context: context,
-          opponentRiichi: riichiOpp,
+          opponentRiichi: threat,
         ),
       );
     }
@@ -258,7 +260,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
           melds: human.melds,
           visibleCounts34: visible,
           context: context,
-          opponentRiichi: riichiOpp,
+          opponentRiichi: threat,
           opponentDiscards: oppDiscards,
           passedDiscardsAfterRiichi: passed,
         ),
@@ -286,7 +288,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       dst.pond = List.of(src.pond);
       dst.allDiscards.addAll(src.pond);
       dst.melds = List.of(src.melds);
-      dst.riichi = src.riichi;
+      dst.flowers = List.of(src.flowers);
+      dst.riichi = false;
       dst.riichiPondIndex = src.riichiPondIndex;
       dst.passedDiscardsAfterRiichi.addAll(scenario.passedAfterRiichi(i));
     }

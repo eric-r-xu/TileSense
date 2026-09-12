@@ -1,12 +1,10 @@
-/// SimpleBot — pure heuristics over the seat's public view plus a small
-/// "should I stay damaten?" value check.
 library;
 
 import 'dart:math';
 
 import 'hand_parse.dart';
 import 'round.dart';
-import 'scoring.dart';
+import 'efficiency_calc.dart';
 import 'tile.dart';
 
 class BotTurn {
@@ -28,24 +26,8 @@ class SimpleBot {
   final Random _rng;
 
   BotTurn decideTurn(Round round, int seat) {
-    final s = round.seats[seat];
-
     if (round.canTsumo(seat)) return BotTurn(tsumo: true);
 
-    if (round.canRiichi(seat)) {
-      final tenpaiTiles = _tenpaiKeepingDiscards(round, seat);
-      if (tenpaiTiles.isNotEmpty) {
-        final damaten = _qualifyingDamatenDiscard(round, seat, tenpaiTiles);
-        if (damaten != null) return BotTurn(discard: damaten);
-        return BotTurn(
-          discard: tenpaiTiles[_rng.nextInt(tenpaiTiles.length)],
-          riichi: true,
-        );
-      }
-    }
-
-    // closedKanTypes already filters to wait-preserving kans while in riichi,
-    // so a riichi hand may still declare a concealed kan.
     final kanTypes = round.closedKanTypes(seat);
     if (kanTypes.isNotEmpty) return BotTurn(closedKan: kanTypes.first);
 
@@ -56,78 +38,45 @@ class SimpleBot {
       return BotTurn(addedKan: addedKanTypes.first);
     }
 
-    if (s.riichi) return BotTurn(discard: s.drawn);
-
     return BotTurn(discard: _discardTile(round, seat));
   }
 
   CallType decideCall(
       Round round, int seat, Tile discard, Set<CallType> allowed) {
     if (allowed.contains(CallType.ron)) return CallType.ron;
-    if (allowed.contains(CallType.pon)) {
-      final s = round.seats[seat];
-      final count = s.hand.where((t) => t.type == discard.type).length;
-      final valuable = discard.type.isDragon ||
-          discard.type == s.wind.tile ||
-          discard.type == round.roundWind.tile;
-      if (count == 2 && valuable) return CallType.pon;
+    final s = round.seats[seat];
+    final calc = TileEfficiencyCalculator();
+    final before = calc.calculateWaitingShanten(toTrainerCounts(s.hand));
+    bool improves(List<Tile> rest) {
+      final remaining = List<int>.filled(38, 4);
+      final lines = calc.calculate(toTrainerCounts(rest), remaining);
+      return lines.any((line) => line.shanten < before);
     }
-    // The round offers chi now, but the opponents still never take it: this
-    // is a faithful SimpleBot port and chi is not part of it. Your own seat
-    // gets chi advice from the guide instead.
+
+    if (allowed.contains(CallType.kan)) return CallType.kan;
+    if (allowed.contains(CallType.pon)) {
+      final rest = [...s.hand];
+      for (var i = 0; i < 2; i++) {
+        rest.removeAt(rest.indexWhere((t) => t.type == discard.type));
+      }
+      if (improves(rest)) return CallType.pon;
+    }
+    // resolveCalls defaults to the first legal chow; assess that same run.
+    if (allowed.contains(CallType.chi)) {
+      final low = round.chiSequences(seat, discard).first;
+      final rest = [...s.hand];
+      for (var i = 0; i < 3; i++) {
+        final need = TileType.values[low.index + i];
+        if (need == discard.type) continue;
+        rest.removeAt(rest.indexWhere((t) => t.type == need));
+      }
+      if (improves(rest)) return CallType.chi;
+    }
+
     return CallType.none;
   }
 
   // --- helpers ----------------------------------------------------------
-
-  List<Tile> _tenpaiKeepingDiscards(Round round, int seat) {
-    final s = round.seats[seat];
-    final out = <Tile>[];
-    final seenTypes = <TileType>{};
-    for (final tile in round.legalDiscards(seat)) {
-      if (!seenTypes.add(tile.type)) continue;
-      final rest = [...s.hand]..remove(tile);
-      if (isTenpai(rest, openMelds: s.melds.length)) out.add(tile);
-    }
-    return out;
-  }
-
-  /// Approximates `EfficiencyLogging.qualifying_damaten_discard`: stay silent
-  /// only if every live wait already has a real yaku and the hand clears
-  /// 5200 (7700 as dealer).
-  Tile? _qualifyingDamatenDiscard(
-      Round round, int seat, List<Tile> tenpaiTiles) {
-    final s = round.seats[seat];
-    final threshold = s.isDealer ? 7700 : 5200;
-
-    for (final discard in tenpaiTiles) {
-      final rest = [...s.hand]..remove(discard);
-      final waits = waitTiles(rest, openMelds: s.melds.length);
-      if (waits.isEmpty) continue;
-
-      var ok = true;
-      var minPoints = 1 << 30;
-      for (final wait in waits) {
-        final winTile = Tile(-1, wait);
-        final ctx = ScoreContext(
-          roundWind: round.roundWind,
-          seatWind: s.wind,
-          isTsumo: false,
-          closed: s.closed,
-          doraIndicators: round.wall.doraIndicators(),
-        );
-        final score =
-            scoreHand(rest, winTile, s.melds, ctx, isDealer: s.isDealer);
-        if (!score.valid) {
-          ok = false;
-          break;
-        }
-        minPoints = min(minPoints, score.points);
-      }
-      if (ok && minPoints >= threshold) return discard;
-    }
-    return null;
-  }
 
   Tile _discardTile(Round round, int seat) {
     final s = round.seats[seat];

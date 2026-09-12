@@ -23,11 +23,12 @@ import 'package:flutter/foundation.dart' show kReleaseMode;
 
 // Web bindings by default; the `dart:io` variant (VM tests, Android/iOS) gets an
 // inert stub so `package:web` is never compiled off the web.
-import 'src/platform_web.dart'
-    if (dart.library.io) 'src/platform_stub.dart' as platform;
+import 'src/platform_web.dart' if (dart.library.io) 'src/platform_stub.dart'
+    as platform;
 
 /// On for release builds unless `--dart-define=TELEMETRY=false`.
-const bool _kEnabled = bool.fromEnvironment('TELEMETRY', defaultValue: kReleaseMode);
+const bool _kEnabled =
+    bool.fromEnvironment('TELEMETRY', defaultValue: kReleaseMode);
 const String _kEndpoint = String.fromEnvironment(
   'TELEMETRY_ENDPOINT',
   defaultValue: 'https://app.ericrxu.com/ingest',
@@ -50,15 +51,17 @@ String newUuid() {
 
 class Telemetry {
   Telemetry._(this._endpoint) {
-    _flushTimer =
-        Timer.periodic(const Duration(seconds: 15), (_) => _send(beacon: false));
+    _flushTimer = Timer.periodic(
+        const Duration(seconds: 15), (_) => _send(beacon: false));
   }
 
   /// The live instance, or `null` when telemetry is disabled (debug build
   /// without an explicit `TELEMETRY=true`, or `TELEMETRY=false`) or not running
   /// on the web. Callers use `_tel?.method(...)`.
   static Telemetry? maybe() {
-    if (!_kEnabled || _kEndpoint.isEmpty || !platform.isWebPlatform) return null;
+    if (!_kEnabled || _kEndpoint.isEmpty || !platform.isWebPlatform) {
+      return null;
+    }
     return Telemetry._(_kEndpoint);
   }
 
@@ -102,6 +105,8 @@ class Telemetry {
     required bool guideVisible,
   }) =>
       _add('match_start', {
+        'ruleset': 'hk-cheat-sheet-1.0-zero-faan',
+        'scheduled_hands': hanchan ? 16 : 4,
         'match_id': matchId,
         'seed': seed,
         'hanchan': hanchan,
@@ -174,6 +179,8 @@ class Telemetry {
         'end_kind': endKind,
         'winners': winners,
         'loser': loser,
+        'faan': han,
+        'scoring_patterns': yaku,
         'han': han,
         'fu': fu,
         'points': points,

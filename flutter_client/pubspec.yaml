@@ -1,8 +1,7 @@
 name: tilesense
 description: >-
-  A touch-first Flutter port of TileSense's 2D tile-efficiency trainer:
-  offline singleplayer vs bots with a live shanten / ukeire guide and a
-  defensive safety panel.
+  Hong Kong mahjong with a zero-faan minimum, flowers and seasons,
+  offline opponents, and a live tile-efficiency and chip-value guide.
 publish_to: none
 version: 0.2.1+4
 

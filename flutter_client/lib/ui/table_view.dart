@@ -89,8 +89,6 @@ class TableView extends StatelessWidget {
   // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
   static double _pondTileW(double scale) => 32 * scale + 1;
   static double _pondTileH(double scale) => 44 * scale + 1;
-  // Fixed footprint: one riichi stick + four full rows. Anchored top-left so
-  // earlier tiles stay put as later rows come in.
   static double _pondBoxW(double scale) =>
       _pondCols * _pondTileW(scale) + 16; // room for a turned tile
   static double _pondBoxH(double scale) => 16 + 4 * _pondTileH(scale);
@@ -157,7 +155,6 @@ class TableView extends StatelessWidget {
               child: _pond(round, 0, quarterTurns: 0),
             ),
 
-            // Round / honba / riichi / wall — dead centre of the pond square.
             Align(alignment: Alignment.center, child: _statusBox(round)),
 
             // Dead wall — top-right corner.
@@ -181,8 +178,6 @@ class TableView extends StatelessWidget {
           ),
         );
     return Container(
-      // Fixed width so the panel reads as a panel, not a tight label — ~30%
-      // wider than the widest line ("Honba 0 · Riichi 0") needs.
       width: 250,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       decoration: BoxDecoration(
@@ -200,108 +195,24 @@ class TableView extends StatelessWidget {
           const SizedBox(height: 2),
           line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
           const SizedBox(height: 1),
-          line('Honba ${game.honba}  ·  Riichi ${round.riichiSticks}', 10,
-              FontWeight.w600),
+          line('Hong Kong · 0-faan minimum', 10, FontWeight.w600),
         ],
       ),
     );
   }
 
-  /// The 1000-point riichi declaration stick shown at the head of a pond.
-  Widget _riichiStick() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 3, left: 1),
-      width: 76,
-      height: 12,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xfff4f1e6),
-        border: Border.all(color: Colors.black54, width: 0.5),
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: Container(
-        width: 7,
-        height: 7,
-        decoration: const BoxDecoration(
-            color: Color(0xffcc1111), shape: BoxShape.circle),
-      ),
-    );
-  }
-
-  /// The 14-tile dead wall: seven columns, two rows. The upper row shows the
-  /// revealed dora indicators; the lower row is ura-dora and stays face down
-  /// until a riichi hand wins the round (real ryuukyoku doesn't reveal it, and
-  /// neither does a non-riichi win — the indicators don't count for it).
+  /// Exposed flowers and seasons, kept outside each concealed hand.
   Widget _deadWall(Round round) {
-    final result = round.result;
-    final revealUra = result != null &&
-        (result.kind == RoundEndKind.tsumo ||
-            result.kind == RoundEndKind.ron) &&
-        result.winners.any((w) => round.seats[w].riichi);
-    final tiles = round.wall.deadWallDisplay(revealUra: revealUra);
-    // Dead-wall slots 4,6,8,10,12 are the dora indicators; in the builder each
-    // revealed one can be tapped off again.
-    int? doraIndexAt(int slot) =>
-        (slot >= 4 && slot.isEven && tiles[slot] != null)
-            ? (slot - 4) ~/ 2
-            : null;
-    List<Widget> row(bool top) => [
-          for (var col = 0; col < 7; col++)
-            Padding(
-              padding: const EdgeInsets.all(0.5),
-              child: switch ((edits, doraIndexAt(col * 2 + (top ? 0 : 1)))) {
-                (final e?, final d?) => GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => e.onRemoveDora(d),
-                    child: TileFace(
-                      tile: tiles[col * 2 + (top ? 0 : 1)],
-                      size: TileSize.normal,
-                    ),
-                  ),
-                _ => TileFace(
-                    tile: tiles[col * 2 + (top ? 0 : 1)],
-                    faceDown: tiles[col * 2 + (top ? 0 : 1)] == null,
-                    size: TileSize.normal,
-                  ),
-              },
-            ),
-        ];
-    // 44-high normal tile + 0.5 padding on both sides, so each label lines up
-    // with its row regardless of whether the URA label is present.
-    Widget rowLabel(String t) => SizedBox(
-          height: 45,
-          child: Center(
-            child: Text(t,
-                style: const TextStyle(color: Colors.white54, fontSize: 11)),
-          ),
-        );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              rowLabel('DORA'),
-              rowLabel(revealUra ? 'URA' : ''),
-            ],
-          ),
-        ),
-        _selectable(
-          TableArea.dora,
-          -1,
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(mainAxisSize: MainAxisSize.min, children: row(true)),
-              Row(mainAxisSize: MainAxisSize.min, children: row(false)),
-            ],
-          ),
-        ),
-      ],
-    );
+    return SizedBox(
+        width: 300,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('FLOWERS & SEASONS',
+              style: TextStyle(color: Colors.white54, fontSize: 11)),
+          for (final seat in round.seats)
+            Text(
+                '${seat.wind.initial}: ${seat.flowers.isEmpty ? "—" : seat.flowers.map((t) => t.type.code).join(" ")}',
+                style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ]));
   }
 
   /// One player's discard pond in a fixed-size box (six columns, four rows),
@@ -310,7 +221,7 @@ class TableView extends StatelessWidget {
   Widget _pond(Round round, int seat, {required int quarterTurns}) {
     final s = round.seats[seat];
     final scale = _pondScaleFor(seat);
-    if (s.pond.isEmpty && !s.riichi) return const SizedBox.shrink();
+    if (s.pond.isEmpty) return const SizedBox.shrink();
     final last = s.pond.length - 1;
     // Pulse the just-cut tile while the human is being offered a call on it.
     final flashLast =
@@ -331,8 +242,7 @@ class TableView extends StatelessWidget {
                             tile: s.pond[i],
                             size: TileSize.normal,
                             scale: scale,
-                            rotationQuarterTurns:
-                                i == s.riichiPondIndex ? 1 : 0,
+                            rotationQuarterTurns: 0,
                           ),
                         )
                       : _popIn(
@@ -341,15 +251,14 @@ class TableView extends StatelessWidget {
                             tile: s.pond[i],
                             size: TileSize.normal,
                             scale: scale,
-                            rotationQuarterTurns:
-                                i == s.riichiPondIndex ? 1 : 0,
+                            rotationQuarterTurns: 0,
                           ),
                         ))
                   : TileFace(
                       tile: s.pond[i],
                       size: TileSize.normal,
                       scale: scale,
-                      rotationQuarterTurns: i == s.riichiPondIndex ? 1 : 0,
+                      rotationQuarterTurns: 0,
                     ),
             ),
         ],
@@ -375,7 +284,6 @@ class TableView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (s.riichi) _riichiStick(),
             ...rows,
           ],
         ),
@@ -579,7 +487,7 @@ class TableView extends StatelessWidget {
         !round.finished &&
         round.phase != RoundPhase.callOffer;
     final label =
-        '${s.wind.kanji}${seat == 0 ? ' Orderic (you)' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
+        '${s.wind.kanji}${seat == 0 ? ' Orderic (you)' : ''}  ${s.points}';
     final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -597,33 +505,9 @@ class TableView extends StatelessWidget {
         ),
       ),
     );
-    // The human seat gets a FURITEN badge beside its placard while tenpai but
-    // barred from ron. Only seat 0's placard renders unrotated, so keep it here.
-    if (seat == kHumanSeat && game.humanFuriten) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [placard, const SizedBox(width: 6), _furitenBadge()],
-      );
-    }
+
     return placard;
   }
-
-  Widget _furitenBadge() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(
-          color: const Color(0xffc62828),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: const Text(
-          'FURITEN',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
-        ),
-      );
 }
 
 /// A tile that pulses (glow + gentle scale) to point at the tile a pending
