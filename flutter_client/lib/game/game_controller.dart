@@ -39,12 +39,19 @@ const int kRoundsPerGame = 4;
 enum GamePhase { playing, roundEnd, gameEnd }
 
 class GameController extends ChangeNotifier implements GuideHost {
-  GameController({int? seed})
-      : _seed = seed ?? DateTime.now().millisecondsSinceEpoch {
+  /// [botFactory] builds the four opponents, one per seat, and defaults to the
+  /// shipped [SimpleBot]. It exists for measurement harnesses: the stock bots
+  /// never fold, which makes this table far kinder to a riichi than real play
+  /// is, so anything calibrated against them would be tuned to exploit blind
+  /// feeding. Leave it unset and the game plays exactly as it always has.
+  GameController({int? seed, SimpleBot Function(int seed)? botFactory})
+      : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
+        _botFactory = botFactory ?? SimpleBot.new {
     _startGame();
   }
 
   int _seed;
+  final SimpleBot Function(int seed) _botFactory;
   final _efficiency = EfficiencyEngine();
 
   /// Optional gameplay logging — `null` unless the app was built with
@@ -231,7 +238,7 @@ class GameController extends ChangeNotifier implements GuideHost {
       startingPoints: List.of(_points),
     );
     _bots = [
-      for (var i = 0; i < 4; i++) SimpleBot(_seed + i * 7 + _roundNumber)
+      for (var i = 0; i < 4; i++) _botFactory(_seed + i * 7 + _roundNumber)
     ];
     _humanCallOption = null;
     _humanCallAdvice = null;

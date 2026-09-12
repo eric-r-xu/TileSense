@@ -9,6 +9,8 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/bot.dart';
 
+import 'folding_bot.dart';
+
 /// Monte-Carlo check of whether the guide (Autoplay at seat 0) beats the three
 /// SimpleBot opponents. Drives the real [GameController] under fake time, so
 /// the exact app code path is measured.
@@ -28,11 +30,18 @@ void main() {
   test('guide vs SimpleBot simulation', () async {
     final shards = int.tryParse(env['SIM_SHARDS'] ?? '') ?? 5;
     final base = int.tryParse(env['SIM_SEED'] ?? '') ?? 1000;
+    // SIM_FOLD=1 swaps the opponents for ones that get out of the way of a
+    // riichi. The stock bots never fold, which makes this table far kinder to
+    // aggression than real play — a riichi wins 66% of the time on a quiet
+    // board against them, and 45% once they defend. Off by default so earlier
+    // numbers stay reproducible.
+    final fold = env['SIM_FOLD'] == '1';
     final sw = Stopwatch()..start();
+    print(fold ? 'Opponents: FoldingBot' : 'Opponents: SimpleBot (never fold)');
 
     final arms = await Future.wait([
-      _runArm(base, games, shards, guide: true),
-      _runArm(base, games, shards, guide: false),
+      _runArm(base, games, shards, guide: true, fold: fold),
+      _runArm(base, games, shards, guide: false, fold: fold),
     ]);
     print('Simulated ${games * 2} hanchan in ${sw.elapsed.inSeconds}s');
 
@@ -59,27 +68,31 @@ const _cols = [
 const _pts = 3, _win = 7, _dealIn = 11, _winGain = 15, _riichi = 19;
 
 Future<List<List<num>>> _runArm(int base, int games, int shards,
-    {required bool guide}) async {
+    {required bool guide, required bool fold}) async {
   final parts = await Future.wait([
     for (var s = 0; s < shards; s++)
-      Isolate.run(() => _shard(base, games, s, shards, guide)),
+      Isolate.run(() => _shard(base, games, s, shards, guide, fold)),
   ]);
   return [for (final p in parts) ...p]..sort((a, b) => a[0].compareTo(b[0]));
 }
 
-List<List<num>> _shard(int base, int games, int shard, int shards, bool guide) {
+List<List<num>> _shard(
+    int base, int games, int shard, int shards, bool guide, bool fold) {
   Sfx.i.enabled = false;
   return [
-    for (var g = shard; g < games; g += shards) _playGame(base + g, guide),
+    for (var g = shard; g < games; g += shards)
+      _playGame(base + g, guide, fold),
   ];
 }
 
-List<num> _playGame(int seed, bool guide) {
+List<num> _playGame(int seed, bool guide, bool fold) {
   late List<num> row;
   fakeAsync((fa) {
-    final game = GameController(seed: seed);
+    final game = GameController(
+        seed: seed, botFactory: fold ? FoldingBot.new : SimpleBot.new);
     if (guide) game.setAutoplay(true);
-    final seat0Bot = SimpleBot(seed * 31 + 3);
+    final seat0Bot =
+        fold ? FoldingBot(seed * 31 + 3) : SimpleBot(seed * 31 + 3);
     final wins = List<num>.filled(4, 0);
     final dealIns = List<num>.filled(4, 0);
     final winGain = List<num>.filled(4, 0);
