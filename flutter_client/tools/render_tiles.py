@@ -51,12 +51,26 @@ GLYPHS = (
 
 assert len(NAMES) == 34 == len(GLYPHS)
 
+# Hong Kong flowers and seasons, in TileType order (plum..winter). Unicode puts
+# bamboo (U+1F024) before chrysanthemum (U+1F025); the app numbers them the
+# other way round, as the tiles themselves do: plum 1, orchid 2, chrysanthemum
+# 3, bamboo 4. Each also gets a `-k` cut-out holding just its Chinese
+# character, so TileFace can ink the character apart from the picture.
+BONUS_NAMES = "plum orchid chrysanthemum bamboo spring summer autumn winter".split()
+BONUS_GLYPHS = (
+    "\U0001F022 \U0001F023 \U0001F025 \U0001F024 "
+    "\U0001F026 \U0001F027 \U0001F028 \U0001F029"
+).split()
+
+assert len(BONUS_NAMES) == 8 == len(BONUS_GLYPHS)
+
 CANVAS = (480, 640)  # portrait, roughly the tile face's aspect ratio
 FONT_SIZE = 560
 PAD = 14  # ink-bbox margin kept around each cropped tile
 
 
-def render_one(name: str, glyph: str, font: ImageFont.FreeTypeFont) -> None:
+def render_one(name: str, glyph: str, font: ImageFont.FreeTypeFont,
+               character_layer: bool = False) -> None:
     img = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     draw.text((CANVAS[0] / 2, CANVAS[1] / 2), glyph, font=font,
@@ -84,6 +98,23 @@ def render_one(name: str, glyph: str, font: ImageFont.FreeTypeFont) -> None:
             best_label, best_area = lbl, area
 
     keep = mask & (labelled != best_label)
+
+    # The character sits in the face's top-left corner, clear of the picture:
+    # every kept component whose centre lies there belongs to it.
+    character = np.zeros_like(keep)
+    if character_layer:
+        ys0, xs0 = np.where(labelled == best_label)
+        top0, left0 = ys0.min(), xs0.min()
+        height0, width0 = ys0.max() - top0, xs0.max() - left0
+        for lbl in range(1, n + 1):
+            if lbl == best_label:
+                continue
+            ys, xs = np.where(labelled == lbl)
+            cy = (ys.mean() - top0) / height0
+            cx = (xs.mean() - left0) / width0
+            if cy < 0.32 and cx < 0.48:
+                character |= labelled == lbl
+        character &= mask
     out = np.zeros((*CANVAS[::-1], 4), dtype=np.uint8)
     # Keep the original (anti-aliased) alpha on the pixels we keep, rather
     # than flattening to solid black, so stroke edges stay smooth.
@@ -104,6 +135,13 @@ def render_one(name: str, glyph: str, font: ImageFont.FreeTypeFont) -> None:
     result.crop((left, top, right, bottom)).save(
         os.path.join(OUT_DIR, f"{name}.png")
     )
+    if character_layer:
+        layer = np.zeros_like(out)
+        layer[character, 3] = alpha[character]
+        # Same canvas, same crop box, so it registers with the base face.
+        Image.fromarray(layer, "RGBA").crop((left, top, right, bottom)).save(
+            os.path.join(OUT_DIR, f"{name}-k.png")
+        )
 
 
 def main() -> None:
@@ -111,7 +149,9 @@ def main() -> None:
     font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
     for name, glyph in zip(NAMES, GLYPHS):
         render_one(name, glyph, font)
-    print(f"Wrote {len(NAMES)} tile images to {OUT_DIR}")
+    for name, glyph in zip(BONUS_NAMES, BONUS_GLYPHS):
+        render_one(name, glyph, font, character_layer=True)
+    print(f"Wrote {len(NAMES) + len(BONUS_NAMES)} tile images to {OUT_DIR}")
 
 
 if __name__ == "__main__":

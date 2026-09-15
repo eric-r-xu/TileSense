@@ -47,8 +47,17 @@
   that fall later in turn order than the declaration.
 - An **Autoplay** toggle that plays your seat from that same guide — the
   recommended discard, its riichi/damaten verdict, its call advice and its
-  concealed-kan verdict. It never falls back to the opponents' heuristic; see
-  [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
+  concealed-kan verdict. It never falls back to the opponents' heuristic. Its
+  Style and Focus dials start on **Aggressive / Speed**; in riichi the guide
+  beats the bots at a statistically significant level, in Hong Kong it does
+  not yet — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up).
+- **🇯🇵 Riichi or 🇭🇰 Hong Kong rules**, switched from the welcome screen, the
+  app bar or the builder, with rules PDFs
+  ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
+  [Hong Kong](https://app.ericrxu.com/static/HK.pdf)). Hong Kong has a
+  **0-faan minimum**, real flower and season tiles, and the New Style
+  discarder-pays-all table — see
+  [`docs/HONG_KONG_RULES.md`](../docs/HONG_KONG_RULES.md).
 
 ### Rules coverage
 
@@ -59,8 +68,8 @@ model (walked through in [`EXPECTED_VALUE.md`](EXPECTED_VALUE.md)).
 by the guide. The bots never call chi, though the round offers it and the guide
 advises on it. Scoring covers the common yaku, the standard fu table, and the
 yakuman set; rare fu corner cases and some double-yakuman rules are
-approximated. There is no networking, lobby, replay, or optional-rule
-configuration.
+approximated. Hong Kong scoring lives in `lib/logic/hong_kong/`. There is no
+networking, lobby or replay.
 
 ## Project layout
 

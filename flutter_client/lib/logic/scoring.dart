@@ -25,6 +25,12 @@ class ScoreContext {
     this.doraIndicators = const [],
     this.uraIndicators = const [],
     this.akaCount = 0,
+    this.flowers = const [],
+    this.flowersEnabled = true,
+    this.heavenly = false,
+    this.earthly = false,
+    this.blessingOfMan = false,
+    this.doubleKong = false,
   });
 
   final Wind roundWind;
@@ -41,6 +47,23 @@ class ScoreContext {
   final List<TileType> doraIndicators;
   final List<TileType> uraIndicators;
   final int akaCount;
+
+  // Hong Kong only; the riichi scorer never reads these.
+
+  /// Flowers and seasons the winner has exposed.
+  final List<TileType> flowers;
+
+  /// Whether flower and season bonuses score at all.
+  final bool flowersEnabled;
+
+  /// Blessing of Heaven / Earth / Man: first-turn wins.
+  final bool heavenly;
+  final bool earthly;
+  final bool blessingOfMan;
+
+  /// The win is on the replacement tile of a second kong declared off the
+  /// first kong's replacement.
+  final bool doubleKong;
 }
 
 class YakuResult {
@@ -48,6 +71,9 @@ class YakuResult {
   final String name;
   final int han;
   final int yakuman;
+
+  /// Hong Kong scoring stores its faan in [han].
+  int get faan => han;
 }
 
 class HandScore {
@@ -65,6 +91,9 @@ class HandScore {
 
   final List<YakuResult> yaku;
   final int han;
+
+  /// Hong Kong scoring stores its faan in [han].
+  int get faan => han;
   final int fu;
   final int yakuman;
 

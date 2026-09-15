@@ -4,7 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **The guide starts on Aggressive / Speed in both rulesets.** New games and
+  the builder open with Style on Aggressive and Focus on Speed; switching
+  rulesets keeps whatever the dials are set to. `EfficiencyValueContext` keeps
+  Balanced / Balanced as its reference default. Evidence, in
+  `flutter_client/BOT_STRATEGY.md`: in riichi every Speed and Balanced pairing
+  beats the control bot (0.11–0.26 placement, Holm-corrected); in Hong Kong
+  Aggressive / Speed is the best of six (2000 East games per arm) but still
+  trails the bot by 0.129 placement (Holm p = 8.8e-5).
+- `policy_sweep_test.dart` gained `SWEEP_RULESET` and Holm-corrected,
+  best-arm comparisons.
+- **Flowers and seasons are real tiles** — 梅 蘭 菊 竹 / 春 夏 秋 冬 with their
+  pictures, in colour, and the seat number 1–4 in red top-right like the suit
+  tiles. `tools/render_tiles.py` now renders them (plus a character layer);
+  the 34 existing tile images are unchanged.
+- **🇯🇵 Riichi / 🇭🇰 Hong Kong** flags on every ruleset toggle, with links to
+  each ruleset's rules PDF on the welcome screen and a rules button in the
+  game's app bar.
+
 ### Added
+- **Hong Kong rules, alongside riichi.** A Riichi / Hong Kong toggle on the
+  welcome screen, in the game's app bar (switching deals a new game) and in the
+  builder. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a 0-faan minimum:
+  144 tiles with flowers and seasons, the sheet's faan patterns and New Style
+  discarder-pays-all table, four-wind games, and no riichi, dora, furiten,
+  honba or draw payments (`docs/HONG_KONG_RULES.md`). One shared engine
+  branches on `Ruleset`; Hong Kong-only scoring, wall and safety live in
+  `lib/logic/hong_kong/`. Riichi defaults and behaviour are unchanged: the
+  178 existing riichi tests give identical results, with 101 Hong Kong tests
+  and 4 toggle tests added.
 - **Gameplay telemetry.** A new `server/` Dart service ingests
   match / round / decision batches into Postgres; the client
   (`lib/telemetry/`) buffers them and sends with `navigator.sendBeacon`

@@ -256,6 +256,7 @@ class _ScoringViewState extends State<ScoringView> {
 
   Widget _handBlock(Round round, int seat, HandScore score, Tile? winTile) {
     final w = round.seats[seat];
+    final hk = round.ruleset.isHongKong;
     // The dora indicators always show; ura only counts (and only shows) for a
     // hand that won in riichi.
     final doraInd = round.wall.doraIndicators();
@@ -276,7 +277,10 @@ class _ScoringViewState extends State<ScoringView> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final t in sortByType(w.hand))
+              // A Hong Kong self-pick keeps its winning tile in hand; it is
+              // shown on its own below, so not twice.
+              for (final t in sortByType(
+                  hk ? w.hand.where((t) => t != winTile) : w.hand))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1),
                   child: TileFace(tile: t, size: TileSize.normal),
@@ -297,8 +301,14 @@ class _ScoringViewState extends State<ScoringView> {
           ),
         ),
         const SizedBox(height: 8),
-        _indicatorRow('Dora', doraInd),
-        if (uraInd.isNotEmpty) _indicatorRow('Ura Dora', uraInd),
+        if (hk)
+          _indicatorRow('Flowers / seasons',
+              w.flowers.map((t) => t.type).toList(),
+              indicators: false)
+        else ...[
+          _indicatorRow('Dora', doraInd),
+          if (uraInd.isNotEmpty) _indicatorRow('Ura Dora', uraInd),
+        ],
         const SizedBox(height: 2),
         Wrap(
           alignment: WrapAlignment.center,
@@ -306,13 +316,19 @@ class _ScoringViewState extends State<ScoringView> {
           runSpacing: 2,
           children: [
             for (final y in score.yaku)
-              Text('${y.name}  ${y.yakuman > 0 ? 'yakuman' : '${y.han}'}',
+              Text(
+                  hk
+                      ? '${y.name}  ${y.faan} faan'
+                      : '${y.name}  ${y.yakuman > 0 ? 'yakuman' : '${y.han}'}',
                   style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          score.yakuman > 0
+          hk
+              ? '${score.faan} faan — ${score.points} chips'
+                  '${score.limitName.isEmpty ? '' : '  (${score.limitName})'}'
+              : score.yakuman > 0
               ? '${score.limitName} — ${score.points}'
               : '${score.han} han ${score.fu} fu'
                   '${score.limitName.isNotEmpty ? '  (${score.limitName})' : ''}'
@@ -327,8 +343,11 @@ class _ScoringViewState extends State<ScoringView> {
   /// One line of dora / ura-dora indicator tiles, labelled. Empty when there
   /// are no indicators to show yet (never happens for dora; ura only when the
   /// hand didn't win in riichi, in which case the caller skips it).
-  Widget _indicatorRow(String label, List<TileType> indicators) {
-    if (indicators.isEmpty) return const SizedBox.shrink();
+  /// [indicators] false labels the row plainly, for tiles that are not dora
+  /// indicators (Hong Kong's flowers).
+  Widget _indicatorRow(String label, List<TileType> tiles,
+      {bool indicators = true}) {
+    if (tiles.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Wrap(
@@ -336,10 +355,13 @@ class _ScoringViewState extends State<ScoringView> {
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 3,
         children: [
-          Text('$label indicator${indicators.length > 1 ? 's' : ''}:',
+          Text(
+              indicators
+                  ? '$label indicator${tiles.length > 1 ? 's' : ''}:'
+                  : '$label:',
               style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(width: 2),
-          for (final ty in indicators)
+          for (final ty in tiles)
             TileFace(type: ty, size: TileSize.normal),
         ],
       ),
@@ -353,7 +375,11 @@ class _ScoringViewState extends State<ScoringView> {
     return Column(
       children: [
         Text(
-          seats.isEmpty ? 'All players noten' : 'Tenpai hands revealed',
+          round.ruleset.isHongKong
+              ? 'Wall exhausted — no payments'
+              : seats.isEmpty
+                  ? 'All players noten'
+                  : 'Tenpai hands revealed',
           style: const TextStyle(
               color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
         ),

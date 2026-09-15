@@ -11,7 +11,9 @@ import 'package:flutter/foundation.dart';
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/hong_kong/hong_kong_wall.dart';
 import '../logic/round.dart';
+import '../logic/ruleset.dart';
 import '../logic/tile.dart';
 import '../logic/wall.dart';
 import 'scenario.dart';
@@ -55,6 +57,17 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     rebuild();
   }
 
+  Ruleset get ruleset => scenario.ruleset;
+
+  /// Switches the posed table's rules. The tiles are cleared: dora, riichi
+  /// and flowers mean nothing under the other game.
+  void setRuleset(Ruleset value) {
+    if (scenario.ruleset == value) return;
+    scenario.ruleset = value;
+    scenario.clear();
+    rebuild();
+  }
+
   // A posed table never animates a discard.
   @override
   int get discardSerial => 0;
@@ -95,11 +108,18 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   ({TileType type, bool isAdded, ActionAdvice advice})? kanAdvice;
 
   @override
-  int? get safetyOpponentSeat => _riichiOpponent()?.seat;
+  int? get safetyOpponentSeat => _threatOpponent()?.seat;
 
-  SeatState? _riichiOpponent() {
+  /// Whoever is in riichi, or in Hong Kong whoever has exposed two or more
+  /// sets — the same threat the live game defends against.
+  SeatState? _threatOpponent() {
     for (final s in round.seats) {
-      if (s.seat != kHumanSeat && s.riichi) return s;
+      if (s.seat == kHumanSeat) continue;
+      if (ruleset.isHongKong
+          ? s.melds.where((m) => !m.concealed).length >= 2
+          : s.riichi) {
+        return s;
+      }
     }
     return null;
   }
@@ -120,7 +140,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       return;
     }
 
-    final riichiOpp = _riichiOpponent();
+    final riichiOpp = _threatOpponent();
     final oppDiscards = riichiOpp == null
         ? const <TileType>[]
         : [for (final t in riichiOpp.pond) t.type];
@@ -141,6 +161,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       riichiSticks: scenario.riichiSticks,
       style: scenario.style,
       focus: scenario.focus,
+      ruleset: ruleset,
+      flowers: human.flowers.map((t) => t.type).toList(),
     );
 
     if (scenario.isDiscardRead) {
@@ -225,7 +247,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
 
   /// Riichi needs a closed hand (concealed kans are fine) and a live wall.
   bool _canRiichi(SeatState s) =>
-      !s.riichi && s.closed && scenario.wallRemaining >= 4;
+      ruleset.isRiichi && !s.riichi && s.closed && scenario.wallRemaining >= 4;
 
   ({TileType type, bool isAdded, ActionAdvice advice})? _kanAdvice(
     SeatState human,
@@ -234,7 +256,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     List<TileType> oppDiscards,
     List<TileType> passed,
   ) {
-    final riichiOpp = _riichiOpponent() != null;
+    final riichiOpp = _threatOpponent() != null;
     for (final type in round.closedKanTypes(kHumanSeat)) {
       return (
         type: type,
@@ -274,11 +296,15 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       roundWind: scenario.roundWind,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
-      wall: Wall.posed(
-        remaining: scenario.wallRemaining.clamp(0, 122),
-        dora: scenario.dora,
-      ),
-      startingPoints: List.filled(4, 25000),
+      wall: ruleset.isHongKong
+          ? HongKongWall.posed(
+              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
+          : Wall.posed(
+              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
+              dora: scenario.dora,
+            ),
+      startingPoints: List.filled(4, ruleset.startingPoints),
+      ruleset: ruleset,
     );
     for (var i = 0; i < 4; i++) {
       final src = scenario.seats[i];
@@ -286,6 +312,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       dst.pond = List.of(src.pond);
       dst.allDiscards.addAll(src.pond);
       dst.melds = List.of(src.melds);
+      dst.flowers = List.of(src.flowers);
       dst.riichi = src.riichi;
       dst.riichiPondIndex = src.riichiPondIndex;
       dst.passedDiscardsAfterRiichi.addAll(scenario.passedAfterRiichi(i));

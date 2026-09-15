@@ -39,7 +39,19 @@ enum TileType {
   pei, // east, south, west, north
   haku,
   hatsu,
-  chun; // white, green, red
+  chun, // white, green, red
+  plum,
+  orchid,
+  chrysanthemum,
+  bamboo,
+  spring,
+  summer,
+  autumn,
+  winter;
+
+  bool get isPlayingTile => index >= 1 && index <= 34;
+  bool get isBonus => index >= TileType.plum.index;
+  int get bonusNumber => isBonus ? (index - TileType.plum.index) % 4 + 1 : 0;
 
   bool get isMan =>
       index >= TileType.man1.index && index <= TileType.man9.index;
@@ -105,6 +117,9 @@ enum TileType {
 
   /// A short ascii label ("1m", "E", "R"), handy for logs and tests.
   String get code {
+    if (isBonus) {
+      return '${index < TileType.spring.index ? 'F' : 'S'}$bonusNumber';
+    }
     if (isMan) return '${number}m';
     if (isPin) return '${number}p';
     if (isSou) return '${number}s';
@@ -129,9 +144,14 @@ enum TileType {
   }
 
   /// The short red corner mark drawn on a tile face: the bare number for a suit
-  /// tile (its suit is already obvious from the face) and a letter for the
-  /// honours — E/S/W/N for the winds, B/G/R for white / green / red dragon.
-  String get redIndex => isSuit ? '$number' : code;
+  /// tile (its suit is already obvious from the face), the seat number 1-4 for
+  /// a flower or season, and a letter for the honours — E/S/W/N for the winds,
+  /// B/G/R for white / green / red dragon.
+  String get redIndex => isSuit
+      ? '$number'
+      : isBonus
+          ? '$bonusNumber'
+          : code;
 
   /// The Unicode mahjong glyph for this tile face.
   String get glyph => _glyphs[index];
@@ -176,6 +196,14 @@ const List<String> _glyphs = [
   '🀆',
   '🀅',
   '🀄',
+  '🀢',
+  '🀣',
+  '🀥',
+  '🀤',
+  '🀦',
+  '🀧',
+  '🀨',
+  '🀩',
 ];
 
 const List<String> _names = [
@@ -214,6 +242,14 @@ const List<String> _names = [
   'White Dragon',
   'Green Dragon',
   'Red Dragon',
+  'Plum',
+  'Orchid',
+  'Chrysanthemum',
+  'Bamboo Flower',
+  'Spring',
+  'Summer',
+  'Autumn',
+  'Winter',
 ];
 
 /// A physical tile in the wall. [id] is unique (0..135) and is the identity
@@ -258,7 +294,7 @@ List<Tile> sortByType(Iterable<Tile> tiles) {
 List<int> toCounts34(Iterable<Tile> tiles) {
   final counts = List<int>.filled(34, 0);
   for (final tile in tiles) {
-    counts[tile.type.index - 1]++;
+    if (tile.type.isPlayingTile) counts[tile.type.index - 1]++;
   }
   return counts;
 }

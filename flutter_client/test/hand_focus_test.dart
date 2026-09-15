@@ -414,13 +414,14 @@ void main() {
             ?.fontWeight ==
         FontWeight.w700;
 
-    expect(picked(HandFocus.balanced), isTrue);
-    expect(picked(HandFocus.speed), isFalse);
-
-    await tester.tap(find.byKey(const Key('guideHandFocus_speed')));
-    await tester.pump(const Duration(milliseconds: 100));
+    // A riichi game starts on Speed.
     expect(picked(HandFocus.speed), isTrue);
     expect(picked(HandFocus.balanced), isFalse);
+
+    await tester.tap(find.byKey(const Key('guideHandFocus_balanced')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(picked(HandFocus.balanced), isTrue);
+    expect(picked(HandFocus.speed), isFalse);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

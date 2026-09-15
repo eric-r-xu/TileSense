@@ -1,6 +1,10 @@
 /// Turns the raw shanten/ukeire calculator plus the safety model into the typed
 /// report the UI renders: best ukeire, recommended discard, riichi hint, and
 /// defensive ranking.
+///
+/// Shape, acceptance and win-probability modelling are shared by both
+/// rulesets. What a hand is worth, what dealing in costs, how safe a tile is
+/// and the wording of the advice follow [EfficiencyValueContext.ruleset].
 library;
 
 import 'dart:math' as math;
@@ -8,7 +12,11 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'efficiency_calc.dart';
+import 'hong_kong/hong_kong_rules.dart';
+import 'hong_kong/hong_kong_safety.dart';
+import 'hong_kong/hong_kong_scoring.dart';
 import 'meld.dart';
+import 'ruleset.dart';
 import 'safety.dart';
 import 'scoring.dart';
 import 'tile.dart';
@@ -105,6 +113,10 @@ enum HandFocus {
   /// quietly inflates or deflates every hand on the table.
   static const double _pointsPivot = 5000;
 
+  /// [_pointsPivot] for a Hong Kong table, in chips: a 3-faan hand won off a
+  /// discard pays 16, a self-picked one 24.
+  static const double _hongKongPointsPivot = 32;
+
   /// The same idea for the other half of the product: a line with roughly this
   /// chance of getting home is read the same way by all three.
   static const double _chancePivot = 0.25;
@@ -117,9 +129,12 @@ enum HandFocus {
   /// sits from it. Speed values a 7700 at about 6,700 and a 2000 at about
   /// 2,400 — so the gap between them shrinks from 3.9x to 2.8x. Value pulls
   /// the same pair apart instead.
-  double worth(double points) => points <= 0
-      ? points
-      : _pointsPivot * math.pow(points / _pointsPivot, curve).toDouble();
+  double worth(double points, {Ruleset ruleset = Ruleset.riichi}) {
+    final pivot = ruleset.isHongKong ? _hongKongPointsPivot : _pointsPivot;
+    return points <= 0
+        ? points
+        : pivot * math.pow(points / pivot, curve).toDouble();
+  }
 
   /// What a [chance] of getting home is worth to this focus.
   ///
@@ -142,6 +157,15 @@ enum HandFocus {
           math.pow(chance / _chancePivot, 2 - curve).toDouble().clamp(0.0, 8.0);
 }
 
+/// The dials a new game or builder table starts on, under either ruleset.
+///
+/// Measured with `policy_sweep_test.dart` (see BOT_STRATEGY.md): in riichi it
+/// is one of the six Speed and Balanced pairings that beat the control bot;
+/// in Hong Kong it placed best of the six. [EfficiencyValueContext] itself
+/// still defaults to Balanced / Balanced, the unweighted reference model.
+const PlayStyle kDefaultPlayStyle = PlayStyle.aggressive;
+const HandFocus kDefaultHandFocus = HandFocus.speed;
+
 class EfficiencyValueContext {
   const EfficiencyValueContext({
     required this.melds,
@@ -155,9 +179,22 @@ class EfficiencyValueContext {
     this.riichiSticks = 0,
     this.style = PlayStyle.balanced,
     this.focus = HandFocus.balanced,
+    this.ruleset = Ruleset.riichi,
+    this.flowers = const [],
+    this.flowersEnabled = true,
   });
 
   final List<Meld> melds;
+
+  /// Which game's scoring, safety and vocabulary apply.
+  final Ruleset ruleset;
+
+  /// Hong Kong: flowers and seasons already exposed, which score on any win.
+  final List<TileType> flowers;
+  final bool flowersEnabled;
+
+  /// What [points] is worth on this context's [focus] dial.
+  double worth(double points) => focus.worth(points, ruleset: ruleset);
   final Wind roundWind;
   final Wind seatWind;
   final bool isDealer;
@@ -208,6 +245,9 @@ class EfficiencyValueContext {
         riichiSticks: riichiSticks,
         style: style,
         focus: focus,
+        ruleset: ruleset,
+        flowers: flowers,
+        flowersEnabled: flowersEnabled,
       );
 }
 
@@ -406,7 +446,9 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
   }) {
-    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining34 = [
+      for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
+    ];
     final concealed = toTrainerCounts(hand);
     final remaining = trainerCountsFromTypeCounts(remaining34);
 
@@ -415,7 +457,8 @@ class EfficiencyEngine {
     // defensive discards) of every tile you might still draw and be forced
     // to tsumogiri, weighted by how many copies remain. 0 = your live draws
     // are all safe right now, 1 = they're all live danger tiles.
-    final riichiDangerFactor = opponentRiichi
+    final ruleset = valueContext.ruleset;
+    final riichiDangerFactor = opponentRiichi && ruleset.isRiichi
         ? _riichiDangerFactor(
             remaining34: remaining34,
             opponentDiscards: opponentDiscards,
@@ -428,7 +471,8 @@ class EfficiencyEngine {
     // can cost you when it deals in is part of what that discard is worth.
     final defending = opponentRiichi && defenseHand != null;
     final defense = defending
-        ? rankSafety(
+        ? _rankSafety(
+            ruleset,
             defenseHand,
             opponentDiscards: opponentDiscards,
             passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
@@ -553,6 +597,7 @@ class EfficiencyEngine {
       );
       final safety = safeByType[r.discard];
       final dealInCost = _dealInPenalty(
+            ruleset: ruleset,
             safety: safety,
             opponentIsDealer: opponentIsDealer,
             honba: valueContext.honba,
@@ -567,7 +612,11 @@ class EfficiencyEngine {
       // about 3.8 more discards before the hand ends, where the hand's own
       // expected length runs to eight or more. The per-tile rate was right all
       // along; the horizon it was charged over was not.
-      final exposed = math.min(value.turnsExposed, _riichiPushHorizon);
+      // Hong Kong has no riichi to end the hand early, so the push is charged
+      // over the hand's own expected length.
+      final exposed = ruleset.isHongKong
+          ? value.turnsExposed
+          : math.min(value.turnsExposed, _riichiPushHorizon);
       final laterTurns = math.max(0.0, exposed - 1);
       final commitmentCost = dealInCost * laterTurns * _pushCommitment;
       return DiscardLine(
@@ -655,10 +704,16 @@ class EfficiencyEngine {
       defending: defending,
       defense: defense,
       headline: defending
-          ? 'An opponent is in RIICHI — defensive ranking shown'
+          ? (ruleset.isHongKong
+              ? 'An opponent has exposed two or more sets — estimated risk shown'
+              : 'An opponent is in RIICHI — defensive ranking shown')
           : tenpai
-              ? 'Tenpai — best EV ${bestValue?.expectedValue.round() ?? 0} pts'
-              : '$currentShanten-shanten',
+              ? (ruleset.isHongKong
+                  ? 'Ready — best EV ${bestValue?.expectedValue.round() ?? 0} chips'
+                  : 'Tenpai — best EV ${bestValue?.expectedValue.round() ?? 0} pts')
+              : (ruleset.isHongKong
+                  ? '$currentShanten away from ready'
+                  : '$currentShanten-shanten'),
     );
   }
 
@@ -688,7 +743,9 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
   }) {
-    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining34 = [
+      for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
+    ];
     final remaining = trainerCountsFromTypeCounts(remaining34);
 
     // A win on offer ends the discussion: points now beat any hand you might
@@ -704,8 +761,11 @@ class EfficiencyEngine {
             action: GuidedAction.ron,
             expectedValue: points.toDouble(),
             shantenAfter: -1,
-            reason: 'Ron — $points points banked now, and passing up a winning '
-                'tile would leave you furiten.',
+            reason: context.ruleset.isHongKong
+                ? 'Win — $points chips banked now. With a 0-faan minimum any '
+                    'complete hand is a legal win.'
+                : 'Ron — $points points banked now, and passing up a winning '
+                    'tile would leave you furiten.',
           ),
         ],
       );
@@ -723,11 +783,17 @@ class EfficiencyEngine {
       action: GuidedAction.pass,
       expectedValue: passState.ev,
       shantenAfter: passState.shanten,
-      reason: passState.shanten <= 0
-          ? 'Stay as you are — already tenpai, worth about '
-              '${passState.ev.round()} points.'
-          : 'Stay closed at ${passState.shanten}-shanten, worth about '
-              '${passState.ev.round()} points as things stand.',
+      reason: context.ruleset.isHongKong
+          ? (passState.shanten <= 0
+              ? 'Stay as you are — already ready, worth about '
+                  '${passState.ev.round()} chips.'
+              : 'Pass and stay ${passState.shanten} away from ready, worth '
+                  'about ${passState.ev.round()} chips as things stand.')
+          : passState.shanten <= 0
+              ? 'Stay as you are — already tenpai, worth about '
+                  '${passState.ev.round()} points.'
+              : 'Stay closed at ${passState.shanten}-shanten, worth about '
+                  '${passState.ev.round()} points as things stand.',
     );
 
     final options = <ActionAdvice>[pass];
@@ -852,7 +918,9 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
   }) {
-    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining34 = [
+      for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
+    ];
     final remaining = trainerCountsFromTypeCounts(remaining34);
 
     // Where the hand sits if the kan is skipped: its best ordinary discard.
@@ -909,7 +977,9 @@ class EfficiencyEngine {
     List<TileType> opponentDiscards = const [],
     List<TileType> passedDiscardsAfterRiichi = const [],
   }) {
-    final remaining34 = [for (var i = 0; i < 34; i++) 4 - visibleCounts34[i]];
+    final remaining34 = [
+      for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
+    ];
     final remaining = trainerCountsFromTypeCounts(remaining34);
 
     final current = analyze(
@@ -926,12 +996,14 @@ class EfficiencyEngine {
         melds.indexWhere((m) => m.kind == MeldKind.triplet && m.low == kanType);
     final consumed = _takeFromHand(hand, kanType, 1);
     if (ponIndex == -1 || consumed.isEmpty) {
-      return const ActionAdvice(
+      return ActionAdvice(
         action: GuidedAction.kan,
         expectedValue: 0,
         shantenAfter: 99,
         eligible: false,
-        reason: 'No matching open pon and tile to add it to.',
+        reason: context.ruleset.isHongKong
+            ? 'No matching exposed pung and tile to add to it.'
+            : 'No matching open pon and tile to add it to.',
       );
     }
     final addedTile = consumed.single;
@@ -939,7 +1011,8 @@ class EfficiencyEngine {
     // Chankan risk: this exact tile could be ronned by a live riichi before
     // it ever locks into the meld — rated the same way a discard would be.
     if (opponentRiichi) {
-      final rating = rankSafety(
+      final rating = _rankSafety(
+        context.ruleset,
         [addedTile],
         opponentDiscards: opponentDiscards,
         passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
@@ -951,8 +1024,11 @@ class EfficiencyEngine {
           expectedValue: evBefore,
           shantenAfter: shantenBefore,
           eligible: false,
-          reason: 'Chankan risk — ${rating.label} against the live riichi, '
-              'not worth risking the tile being ronned.',
+          reason: context.ruleset.isHongKong
+              ? 'Robbing a kong risk — ${rating.label} against the exposed '
+                  'hand, the added tile can complete an opponent’s hand.'
+              : 'Chankan risk — ${rating.label} against the live riichi, '
+                  'not worth risking the tile being ronned.',
         );
       }
     }
@@ -993,7 +1069,9 @@ class EfficiencyEngine {
       action: GuidedAction.tsumo,
       expectedValue: points.toDouble(),
       shantenAfter: -1,
-      reason: 'Tsumo — $points points. Always take the win.',
+      reason: context.ruleset.isHongKong
+          ? 'Self draw — $points chips. Always take the win.'
+          : 'Tsumo — $points points. Always take the win.',
     );
   }
 
@@ -1013,7 +1091,9 @@ class EfficiencyEngine {
   }) {
     final concealedAfter = _handWithout(hand, consumed);
     final contextAfter = _contextWithMeld(context, meld);
-    final label = _actionLabel(action);
+    final ruleset = context.ruleset;
+    final hk = ruleset.isHongKong;
+    final label = _actionLabel(action, ruleset);
 
     final report = analyze(
       hand: concealedAfter,
@@ -1044,7 +1124,7 @@ class EfficiencyEngine {
         break;
       }
     }
-    final shape = best.shanten == 0 ? 'tenpai' : '${best.shanten}-shanten';
+    final shape = ruleset.shapeLabel(best.shanten);
 
     // "Does it advance the hand" is a question about the shape the call makes
     // available, not about which line the value model then prefers — a call
@@ -1061,7 +1141,7 @@ class EfficiencyEngine {
         discardAfter: best.discard,
         discardSafety: best.safety,
         reason: '$label gets you no closer — still $shape afterwards, and it '
-            'costs you a concealed hand.',
+            '${hk ? 'offers no improvement in shape' : 'costs you a concealed hand'}.',
       );
     }
     if (best.expectedValue <= 0) {
@@ -1073,8 +1153,10 @@ class EfficiencyEngine {
         meldLow: meld.low,
         discardAfter: best.discard,
         discardSafety: best.safety,
-        reason: '$label opens your hand with no yaku left to finish on, so it '
-            'could not score.',
+        reason: hk
+            ? '$label has no positive estimated value after risk.'
+            : '$label opens your hand with no yaku left to finish on, so it '
+                'could not score.',
       );
     }
     if (opponentRiichi && best.shanten > 0) {
@@ -1086,8 +1168,11 @@ class EfficiencyEngine {
         meldLow: meld.low,
         discardAfter: best.discard,
         discardSafety: best.safety,
-        reason: '$label commits you while a riichi is out and you are still '
-            '$shape — fold instead.',
+        reason: hk
+            ? '$label commits you against an exposed hand while still '
+                '$shape — fold instead.'
+            : '$label commits you while a riichi is out and you are still '
+                '$shape — fold instead.',
       );
     }
 
@@ -1102,8 +1187,11 @@ class EfficiencyEngine {
       meldLow: meld.low,
       discardAfter: best.discard,
       discardSafety: safety,
-      reason: '$label puts you at $shape worth about '
-          '${best.expectedValue.round()} points$safetyNote.',
+      reason: hk
+          ? '$label leaves you $shape, worth about '
+              '${best.expectedValue.round()} chips$safetyNote.'
+          : '$label puts you at $shape worth about '
+              '${best.expectedValue.round()} points$safetyNote.',
     );
   }
 
@@ -1125,7 +1213,8 @@ class EfficiencyEngine {
       context: contextAfter,
       canRiichi: contextAfter.closed && !contextAfter.inRiichi,
     );
-    final shape = after.shanten <= 0 ? 'tenpai' : '${after.shanten}-shanten';
+    final hk = contextAfter.ruleset.isHongKong;
+    final shape = contextAfter.ruleset.shapeLabel(after.shanten);
 
     if (after.shanten > shantenBefore) {
       return ActionAdvice(
@@ -1133,7 +1222,9 @@ class EfficiencyEngine {
         expectedValue: after.ev,
         shantenAfter: after.shanten,
         eligible: false,
-        reason: 'Kan breaks up your shape — it would drop you to $shape.',
+        reason: hk
+            ? 'Kong breaks up your shape — it would leave you $shape.'
+            : 'Kan breaks up your shape — it would drop you to $shape.',
       );
     }
     // A concealed kan keeps the hand closed, so riichi remains its yaku path.
@@ -1145,8 +1236,10 @@ class EfficiencyEngine {
         expectedValue: 0,
         shantenAfter: after.shanten,
         eligible: false,
-        reason: 'Kan leaves no live yaku-bearing finish, so the hand could '
-            'not score.',
+        reason: hk
+            ? 'Kong has no live improving tiles in this position.'
+            : 'Kan leaves no live yaku-bearing finish, so the hand could '
+                'not score.',
       );
     }
     if (opponentRiichi && after.shanten > 0) {
@@ -1155,16 +1248,20 @@ class EfficiencyEngine {
         expectedValue: after.ev,
         shantenAfter: after.shanten,
         eligible: false,
-        reason: 'Kan flips a new dora indicator that helps the riichi as much '
-            'as you, and you are still $shape — skip it.',
+        reason: hk
+            ? 'Kong commits you against an exposed hand while still $shape.'
+            : 'Kan flips a new dora indicator that helps the riichi as much '
+                'as you, and you are still $shape — skip it.',
       );
     }
     return ActionAdvice(
       action: GuidedAction.kan,
       expectedValue: math.max(after.ev, evBefore),
       shantenAfter: after.shanten,
-      reason: 'Kan keeps you at $shape and adds a dora indicator plus a '
-          'replacement draw, with no riichi to punish it.',
+      reason: hk
+          ? 'Kong keeps you $shape and gives a replacement draw.'
+          : 'Kan keeps you at $shape and adds a dora indicator plus a '
+              'replacement draw, with no riichi to punish it.',
     );
   }
 
@@ -1257,14 +1354,32 @@ class EfficiencyEngine {
     return out;
   }
 
-  static String _actionLabel(GuidedAction action) => switch (action) {
+  static String _actionLabel(GuidedAction action, Ruleset ruleset) =>
+      switch (action) {
         GuidedAction.pass => 'Passing',
-        GuidedAction.chi => 'Chi',
-        GuidedAction.pon => 'Pon',
-        GuidedAction.kan => 'Kan',
-        GuidedAction.ron => 'Ron',
-        GuidedAction.tsumo => 'Tsumo',
+        GuidedAction.chi => ruleset.chiLabel,
+        GuidedAction.pon => ruleset.ponLabel,
+        GuidedAction.kan => ruleset.kanLabel,
+        GuidedAction.ron => ruleset.ronLabel,
+        GuidedAction.tsumo => ruleset.tsumoLabel,
       };
+
+  /// Tile safety against the opponent being defended against, by ruleset.
+  static List<SafetyRating> _rankSafety(
+    Ruleset ruleset,
+    List<Tile> hand, {
+    required List<TileType> opponentDiscards,
+    required List<TileType> passedDiscardsAfterRiichi,
+    required List<int> visibleCounts34,
+  }) =>
+      ruleset.isHongKong
+          ? rankHongKongSafety(hand, visibleCounts34: visibleCounts34)
+          : rankSafety(
+              hand,
+              opponentDiscards: opponentDiscards,
+              passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
+              visibleCounts34: visibleCounts34,
+            );
 
   /// What an ordinary hand's measured ukeire actually is at each shanten, used
   /// only to say how far above or below ordinary *this* hand is. Index is
@@ -1545,11 +1660,16 @@ class EfficiencyEngine {
       );
     }
 
-    final yakuPath = context.closed || _hasOpenYakuPath(concealed, context);
-    if (!yakuPath) return const _ValueAssessment(plan: 'YAKU NEEDED');
+    // Hong Kong needs no yaku: any complete hand wins.
+    if (context.ruleset.isRiichi) {
+      final yakuPath = context.closed || _hasOpenYakuPath(concealed, context);
+      if (!yakuPath) return const _ValueAssessment(plan: 'YAKU NEEDED');
+    }
 
     final unseen = _countRemaining(remaining);
-    final draws = math.max(1, (context.wallTilesRemaining + 3) ~/ 4);
+    // Riichi always allows one more draw; a Hong Kong wall at zero has none.
+    final draws = math.max(context.ruleset.isHongKong ? 0 : 1,
+        (context.wallTilesRemaining + 3) ~/ 4);
     final outlook = _winProbabilityFromShanten(
       shanten: result.shanten,
       ukeire: result.ukeire,
@@ -1567,6 +1687,24 @@ class EfficiencyEngine {
         useLookahead ? tenpaiLookahead.win : outlook.win;
     final reachedTenpai =
         useLookahead ? tenpaiLookahead.reached : outlook.reachedTenpai;
+
+    // Hong Kong has no deposit to bill and no dora to adjust for: the line is
+    // worth its chance times an estimate of what the hand's visible patterns
+    // pay, or the exact figure when another discard already reaches ready.
+    if (context.ruleset.isHongKong) {
+      final projectedPoints = projectedPointsOverride ??
+          _hongKongProjectedPoints(concealed, context);
+      final tilted = context.focus.chanceWorth(completionProbability) *
+          context.worth(projectedPoints);
+      return _ValueAssessment(
+        expectedValue: tilted,
+        averagePoints: projectedPoints,
+        valueTilt: tilted - completionProbability * projectedPoints,
+        plan: 'BUILD HAND',
+        winProbability: completionProbability,
+        turnsExposed: outlook.turns,
+      );
+    }
 
     // Before tenpai the exact final hand is unknown. These representative
     // values keep pre-tenpai comparisons stable; exact yaku/fu/dora scoring
@@ -1621,13 +1759,13 @@ class EfficiencyEngine {
     // Everything from here is weighed in what the payout is *worth* on the
     // hand-focus dial, not in raw points — including the uplift, so the stick
     // is judged by the same money the line is.
-    final worthOfWin = context.focus.worth(projectedPoints);
+    final worthOfWin = context.worth(projectedPoints);
     final worthOfChance = context.focus.chanceWorth(completionProbability);
     final representativeUplift =
         worthOfWin * (1 - 1 / _riichiValueMultiple);
     final knownUplift = projectedDamaOverride == null
         ? 0.0
-        : worthOfWin - context.focus.worth(projectedDamaOverride);
+        : worthOfWin - context.worth(projectedDamaOverride);
     final riichiUplift = context.closed
         ? math.max(representativeUplift, knownUplift)
         : 0.0;
@@ -1675,6 +1813,46 @@ class EfficiencyEngine {
   /// both ends.
   static const double _doraValueMultiple = 1.8;
 
+  /// A Hong Kong hand's payout before it is ready, from the patterns it
+  /// already shows: dragon and wind pungs, a flush, staying concealed and its
+  /// flowers. Priced as the mix of discard wins and self-picks the ready-hand
+  /// scoring uses, with a self-pick adding its own faan.
+  static double _hongKongProjectedPoints(
+      List<Tile> concealed, EfficiencyValueContext context) {
+    final types = [
+      ...concealed.map((t) => t.type),
+      ...context.melds.expand((m) => m.types)
+    ];
+    var faan = 0;
+    for (var i = 27; i < 34; i++) {
+      final t = typeFrom34(i);
+      if (types.where((x) => x == t).length < 3) continue;
+      if (t.isDragon) faan++;
+      if (t == context.seatWind.tile) faan++;
+      if (t == context.roundWind.tile) faan++;
+    }
+    final suits = types.where((t) => t.isSuit).map((t) => t.suit).toSet();
+    if (suits.length == 1) faan += types.any((t) => t.isHonor) ? 3 : 7;
+    if (context.closed) faan++;
+    if (context.flowersEnabled) {
+      final flowers = context.flowers;
+      if (flowers.isEmpty) faan++;
+      faan += flowers
+          .where((t) => t.bonusNumber == context.seatWind.index + 1)
+          .length;
+      if (flowers.where((t) => t.isBonus && t.index < TileType.spring.index)
+              .length ==
+          4) {
+        faan += 2;
+      }
+      if (flowers.where((t) => t.index >= TileType.spring.index).length == 4) {
+        faan += 2;
+      }
+    }
+    return 0.65 * HongKongRules.basePoints(faan) * 2 +
+        0.35 * HongKongRules.basePoints(faan + 1) * 3;
+  }
+
   /// Dora and red fives this hand is holding, melds included.
   static int _doraKept(
     List<Tile> concealed,
@@ -1712,19 +1890,25 @@ class EfficiencyEngine {
   static const double _dealInCost = 5800;
   static const double _dealerDealInCost = 8700;
 
+  /// The same for Hong Kong, in chips: a 3-faan hand won off your discard.
+  /// There is no dealer premium.
+  static const double _hongKongDealInCost = 16;
+
   /// The points a discard is expected to cost, given how safe it is. Zero
   /// without a live riichi to deal into, and zero on genbutsu.
   static double _dealInPenalty({
     required SafetyRating? safety,
     required bool opponentIsDealer,
     required int honba,
+    Ruleset ruleset = Ruleset.riichi,
   }) {
     if (safety == null) return 0;
     final rate = _dealInRateByRating[
         safety.rating.clamp(0, _dealInRateByRating.length - 1)];
     // Honba rides on their win too — you pay it.
-    final cost =
-        (opponentIsDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
+    final cost = ruleset.isHongKong
+        ? _hongKongDealInCost
+        : (opponentIsDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
     return rate * cost;
   }
 
@@ -1740,6 +1924,14 @@ class EfficiencyEngine {
     bool opponentIsDealer = false,
     double riichiDangerFactor = 0.0,
   }) {
+    if (context.ruleset.isHongKong) {
+      return _assessHongKongTenpaiValue(
+        waits: waits,
+        remaining: remaining,
+        concealed: concealed,
+        context: context,
+      );
+    }
     var liveWaits = 0;
     var damaPoints = 0.0;
     var riichiPoints = 0.0;
@@ -1875,7 +2067,7 @@ class EfficiencyEngine {
     final winProbability = outlook.win;
     // Honba and the riichi deposits already on the table go to the winner
     // whatever the hand is worth, so they scale with the chance of winning it.
-    final worthOfWin = context.focus.worth(selectedPoints);
+    final worthOfWin = context.worth(selectedPoints);
     final worthOfChance = context.focus.chanceWorth(winProbability);
     var expectedValue = worthOfChance * (worthOfWin + context.winBonus);
     final plainValue =
@@ -1956,6 +2148,52 @@ class EfficiencyEngine {
     );
   }
 
+  /// A ready Hong Kong hand, scored exactly on every live wait. There is no
+  /// riichi or damaten to choose between: any complete hand can win, on a
+  /// discard or a self-pick, so the value is the average payout times the
+  /// chance of hitting the wait.
+  _ValueAssessment _assessHongKongTenpaiValue({
+    required List<TileType> waits,
+    required List<int> remaining,
+    required List<Tile> concealed,
+    required EfficiencyValueContext context,
+  }) {
+    var liveWaits = 0;
+    var points = 0.0;
+    for (final wait in waits) {
+      final copies = remaining[trainerIndexOf(wait)];
+      if (copies <= 0) continue;
+      final tile = Tile(-1000 - wait.index, wait);
+      final discard = _scoreWait(concealed, tile,
+          isTsumo: false, assumeRiichi: false, context: context);
+      final self = _scoreWait(concealed, tile,
+          isTsumo: true, assumeRiichi: false, context: context);
+      if (!discard.valid || !self.valid) continue;
+      if (discard.faan < HongKongRules.minimumFaan) continue;
+      liveWaits += copies;
+      points += copies * (0.65 * discard.points + 0.35 * self.points);
+    }
+    if (liveWaits == 0) return const _ValueAssessment(plan: 'NO LIVE WAIT');
+    points /= liveWaits;
+    final outlook = _winChanceOverTurns(
+        waitWidth: liveWaits.toDouble(),
+        unseen: _countRemaining(remaining),
+        draws: math.max(0, (context.wallTilesRemaining + 3) ~/ 4),
+        chancesPerTurn: _winChancesPerTurn);
+    final expected =
+        context.focus.chanceWorth(outlook.win) * context.worth(points);
+    return _ValueAssessment(
+        expectedValue: expected,
+        averagePoints: points,
+        damaPoints: points,
+        valueTilt: expected - outlook.win * points,
+        winProbability: outlook.win,
+        turnsExposed: outlook.turns,
+        plan: 'READY',
+        reason:
+            'Any complete hand can win, including a zero-faan chicken hand.');
+  }
+
   /// What this tenpai is worth if it never declares — the alternative every
   /// riichi is measured against. Mirrors the non-riichi arms of
   /// [_assessTenpaiValue]: a wait with no yaku at all cannot be won on, so it
@@ -2027,6 +2265,22 @@ class EfficiencyEngine {
     required bool assumeRiichi,
     required EfficiencyValueContext context,
   }) {
+    if (context.ruleset.isHongKong) {
+      return scoreHongKongHand(
+        concealed,
+        winTile,
+        context.melds,
+        ScoreContext(
+          roundWind: context.roundWind,
+          seatWind: context.seatWind,
+          isTsumo: isTsumo,
+          closed: context.closed,
+          flowers: context.flowers,
+          flowersEnabled: context.flowersEnabled,
+        ),
+        isDealer: context.isDealer,
+      );
+    }
     final akaCount = [...concealed, winTile].where((tile) => tile.aka).length +
         context.melds
             .expand((meld) => meld.tiles)

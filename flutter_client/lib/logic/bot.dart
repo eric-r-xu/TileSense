@@ -1,9 +1,11 @@
 /// SimpleBot — pure heuristics over the seat's public view plus a small
-/// "should I stay damaten?" value check.
+/// "should I stay damaten?" value check. Under Hong Kong rules there is no
+/// riichi to consider and any complete hand wins, so it calls far more freely.
 library;
 
 import 'dart:math';
 
+import 'efficiency_calc.dart';
 import 'hand_parse.dart';
 import 'round.dart';
 import 'scoring.dart';
@@ -64,6 +66,9 @@ class SimpleBot {
   CallType decideCall(
       Round round, int seat, Tile discard, Set<CallType> allowed) {
     if (allowed.contains(CallType.ron)) return CallType.ron;
+    if (round.ruleset.isHongKong) {
+      return _decideHongKongCall(round, seat, discard, allowed);
+    }
     if (allowed.contains(CallType.pon)) {
       final s = round.seats[seat];
       final count = s.hand.where((t) => t.type == discard.type).length;
@@ -79,6 +84,42 @@ class SimpleBot {
   }
 
   // --- helpers ----------------------------------------------------------
+
+  /// Hong Kong needs no yaku to finish, so a call is worth taking whenever it
+  /// brings the hand closer: always a kong, and a pung or chow that lowers
+  /// shanten.
+  CallType _decideHongKongCall(
+      Round round, int seat, Tile discard, Set<CallType> allowed) {
+    final s = round.seats[seat];
+    final calc = TileEfficiencyCalculator();
+    final before = calc.calculateWaitingShanten(toTrainerCounts(s.hand));
+    bool improves(List<Tile> rest) {
+      final remaining = List<int>.filled(38, 4);
+      final lines = calc.calculate(toTrainerCounts(rest), remaining);
+      return lines.any((line) => line.shanten < before);
+    }
+
+    if (allowed.contains(CallType.kan)) return CallType.kan;
+    if (allowed.contains(CallType.pon)) {
+      final rest = [...s.hand];
+      for (var i = 0; i < 2; i++) {
+        rest.removeAt(rest.indexWhere((t) => t.type == discard.type));
+      }
+      if (improves(rest)) return CallType.pon;
+    }
+    // resolveCalls defaults to the first legal chow; assess that same run.
+    if (allowed.contains(CallType.chi)) {
+      final low = round.chiSequences(seat, discard).first;
+      final rest = [...s.hand];
+      for (var i = 0; i < 3; i++) {
+        final need = TileType.values[low.index + i];
+        if (need == discard.type) continue;
+        rest.removeAt(rest.indexWhere((t) => t.type == need));
+      }
+      if (improves(rest)) return CallType.chi;
+    }
+    return CallType.none;
+  }
 
   List<Tile> _tenpaiKeepingDiscards(Round round, int seat) {
     final s = round.seats[seat];

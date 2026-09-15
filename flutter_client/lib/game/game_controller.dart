@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import '../logic/bot.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
+import '../logic/ruleset.dart';
 import '../logic/tile.dart';
 import '../telemetry/telemetry.dart';
 import 'guide_host.dart';
@@ -44,10 +45,27 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// never fold, which makes this table far kinder to a riichi than real play
   /// is, so anything calibrated against them would be tuned to exploit blind
   /// feeding. Leave it unset and the game plays exactly as it always has.
-  GameController({int? seed, SimpleBot Function(int seed)? botFactory})
-      : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
+  ///
+  /// [ruleset] picks the game; it can be changed later with [setRuleset].
+  GameController({
+    int? seed,
+    SimpleBot Function(int seed)? botFactory,
+    this.ruleset = Ruleset.riichi,
+  })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         _botFactory = botFactory ?? SimpleBot.new {
     _startGame();
+  }
+
+  /// Japanese riichi or Hong Kong rules for every hand of this game.
+  Ruleset ruleset;
+
+  /// Switching rules abandons the game in progress and deals a fresh one. The
+  /// guide's dials carry across.
+  void setRuleset(Ruleset value) {
+    if (ruleset == value) return;
+    ruleset = value;
+    _tel?.settingChange(matchId: _matchId, setting: 'ruleset', value: value.name);
+    newGame();
   }
 
   int _seed;
@@ -74,6 +92,11 @@ class GameController extends ChangeNotifier implements GuideHost {
   int _honba = 0;
   int _riichiSticks = 0;
 
+  /// Hands dealt this game. Seeds each Hong Kong deal: its dealer repeats on a
+  /// draw with no honba to tell the repeat apart, so the riichi seed would
+  /// deal the same hand again.
+  int _dealSerial = 0;
+
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
 
@@ -96,7 +119,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// so it steers Autoplay — which plays from those scores — as well as the
   /// panel.
   @override
-  PlayStyle playStyle = PlayStyle.balanced;
+  PlayStyle playStyle = kDefaultPlayStyle;
   @override
   void setPlayStyle(PlayStyle value) {
     if (playStyle == value) return;
@@ -111,7 +134,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// [playStyle] — that one weighs danger, this one weighs speed against
   /// value — and it steers Autoplay the same way.
   @override
-  HandFocus handFocus = HandFocus.balanced;
+  HandFocus handFocus = kDefaultHandFocus;
   @override
   void setHandFocus(HandFocus value) {
     if (handFocus == value) return;
@@ -122,10 +145,11 @@ class GameController extends ChangeNotifier implements GuideHost {
     notifyListeners();
   }
 
-  /// Hanchan (East + South, 8 hands) when true; East-only (tonpuusen, 4 hands)
-  /// when false. Hanchan is the default.
+  /// The full game when true — hanchan (East + South, 8 hands) in riichi, all
+  /// four winds (16 hands) in Hong Kong — and East-only (4 hands) when false.
+  /// The full game is the default.
   bool hanchan = true;
-  int get _handsPerGame => hanchan ? 8 : 4;
+  int get _handsPerGame => ruleset.handsPerGame(fullGame: hanchan);
 
   @override
   EfficiencyReport report = EfficiencyReport.waiting();
@@ -173,8 +197,10 @@ class GameController extends ChangeNotifier implements GuideHost {
   int get honba => _honba;
   int get riichiSticks => _riichiSticks;
 
-  /// East for hands 1-4, South for 5-8 (hanchan).
-  Wind get roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
+  /// East for hands 1-4, South for 5-8, and in Hong Kong West and North after.
+  Wind get roundWind => ruleset.isHongKong
+      ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)]
+      : (_roundNumber < 4 ? Wind.east : Wind.south);
 
   /// 1-4 within the current round wind.
   @override
@@ -190,7 +216,8 @@ class GameController extends ChangeNotifier implements GuideHost {
   // --- lifecycle -------------------------------------------------------
 
   void _startGame() {
-    _points = List.filled(4, 25000);
+    _points = List.filled(4, ruleset.startingPoints);
+    _dealSerial = 0;
     _dealer = 0;
     _roundNumber = 0;
     _honba = 0;
@@ -201,6 +228,7 @@ class GameController extends ChangeNotifier implements GuideHost {
       matchId: _matchId,
       seed: _seed,
       hanchan: hanchan,
+      ruleset: ruleset.name,
       fastMode: fastMode,
       autoplay: autoplay,
       guideVisible: guideVisible,
@@ -229,13 +257,17 @@ class GameController extends ChangeNotifier implements GuideHost {
   int _humanPlace() => 1 + _points.where((p) => p > _points[kHumanSeat]).length;
 
   void _startRound() {
+    final serial = _dealSerial++;
     round = Round(
-      seed: _seed + _roundNumber * 100 + _honba,
+      seed: ruleset.isHongKong
+          ? _seed + serial
+          : _seed + _roundNumber * 100 + _honba,
       dealer: _dealer,
       roundWind: roundWind,
       honba: _honba,
       riichiSticks: _riichiSticks,
       startingPoints: List.of(_points),
+      ruleset: ruleset,
     );
     _bots = [
       for (var i = 0; i < 4; i++) _botFactory(_seed + i * 7 + _roundNumber)
@@ -265,6 +297,8 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// round-wind counter advances; this holds for a noten-dealer exhaustive draw
   /// too, which an earlier version wrongly froze in place. A ryuukyoku always
   /// adds a honba; otherwise a honba is added only on renchan and reset to 0.
+  ///
+  /// Hong Kong keeps the dealer on any draw and has no honba at all.
   @visibleForTesting
   static ({int dealer, int roundNumber, int honba}) rotateAfterRound({
     required bool exhaustiveDraw,
@@ -272,7 +306,13 @@ class GameController extends ChangeNotifier implements GuideHost {
     required int dealer,
     required int roundNumber,
     required int honba,
+    Ruleset ruleset = Ruleset.riichi,
   }) {
+    if (ruleset.isHongKong) {
+      return dealerKept || exhaustiveDraw
+          ? (dealer: dealer, roundNumber: roundNumber, honba: 0)
+          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+    }
     final nextHonba = (exhaustiveDraw || dealerKept) ? honba + 1 : 0;
     if (dealerKept) {
       return (dealer: dealer, roundNumber: roundNumber, honba: nextHonba);
@@ -291,8 +331,9 @@ class GameController extends ChangeNotifier implements GuideHost {
     // Apply honba / dealer rotation. The dealer keeps their seat (renchan) on a
     // win of their own or, at an exhaustive draw, on being tenpai.
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
+    // Hong Kong: the dealer also repeats on any draw, tenpai or not.
     final dealerKept = isExhaustiveDraw
-        ? r.tenpaiAtDraw.contains(_dealer)
+        ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
         : r.winners.contains(_dealer);
 
     _tel?.roundEnd(
@@ -317,13 +358,15 @@ class GameController extends ChangeNotifier implements GuideHost {
       dealer: _dealer,
       roundNumber: _roundNumber,
       honba: _honba,
+      ruleset: ruleset,
     );
     _dealer = rot.dealer;
     _roundNumber = rot.roundNumber;
     _honba = rot.honba;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
-    final tobi = _points.any((p) => p < 0);
+    // Riichi ends the game when anyone goes below zero; Hong Kong plays on.
+    final tobi = ruleset.isRiichi && _points.any((p) => p < 0);
     if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
       phase = GamePhase.gameEnd;
       _tel?.matchEnd(
@@ -477,9 +520,12 @@ class GameController extends ChangeNotifier implements GuideHost {
   void _playRoundEndSfx() {
     final res = round.result;
     if (res == null) return;
+    // The ron / tsumo clips are spoken in Japanese, so a Hong Kong win gets
+    // the character's generic win line instead.
+    final hk = ruleset.isHongKong;
     final VoiceKind? winLine = switch (res.kind) {
-      RoundEndKind.ron => VoiceKind.ron,
-      RoundEndKind.tsumo => VoiceKind.tsumo,
+      RoundEndKind.ron => hk ? VoiceKind.win : VoiceKind.ron,
+      RoundEndKind.tsumo => hk ? VoiceKind.win : VoiceKind.tsumo,
       _ => null,
     };
     if (winLine == null) return;
@@ -547,7 +593,7 @@ class GameController extends ChangeNotifier implements GuideHost {
 
     _refreshReport();
 
-    final riichiOpp = _riichiOpponent();
+    final riichiOpp = _threatOpponent();
     for (final type in round.closedKanTypes(kHumanSeat)) {
       final advice = _efficiency.adviseClosedKan(
         hand: seat.hand,
@@ -611,7 +657,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     final offered = round.pendingDiscard;
     if (offered == null) return null;
     final seat = round.seats[opt.seat];
-    final riichiOpp = _riichiOpponent();
+    final riichiOpp = _threatOpponent();
     return _efficiency.adviseCall(
       hand: seat.hand,
       offered: offered,
@@ -704,6 +750,15 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
   }
 
+  /// Declines a Hong Kong seven- or eight-flower win and keeps drawing.
+  void humanPassFlowerWin() {
+    if (!round.canFlowerWin(kHumanSeat)) return;
+    round.passFlowerWin(kHumanSeat);
+    _refreshReport();
+    notifyListeners();
+    _scheduleLoop();
+  }
+
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
@@ -779,12 +834,17 @@ class GameController extends ChangeNotifier implements GuideHost {
   // --- efficiency report -------------------------------------------
 
   void _refreshReport() {
+    // Paused on a flower win, there is no discard to advise on.
+    if (round.canFlowerWin(kHumanSeat)) {
+      report = EfficiencyReport.waiting();
+      return;
+    }
     if (round.finished ||
         round.turn != kHumanSeat ||
         round.phase != RoundPhase.discarding) {
       // Still show a defensive read if the human is under threat.
       final human = round.seats[kHumanSeat];
-      final riichiOpp = _riichiOpponent();
+      final riichiOpp = _threatOpponent();
       if (riichiOpp != null && human.hand.isNotEmpty) {
         report = _efficiency.analyze(
           hand: human.hand,
@@ -804,7 +864,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
 
     final human = round.seats[kHumanSeat];
-    final riichiOpp = _riichiOpponent();
+    final riichiOpp = _threatOpponent();
     report = _efficiency.analyze(
       hand: human.hand,
       visibleCounts34: _visibleCounts(),
@@ -834,18 +894,27 @@ class GameController extends ChangeNotifier implements GuideHost {
         riichiSticks: round.riichiSticks,
         style: playStyle,
         focus: handFocus,
+        ruleset: ruleset,
+        flowers: seat.flowers.map((t) => t.type).toList(),
       );
 
-  SeatState? _riichiOpponent() {
+  /// The opponent the guide defends against: whoever is in riichi, or in Hong
+  /// Kong — which has no declaration — whoever has exposed two or more sets.
+  SeatState? _threatOpponent() {
     for (final s in round.seats) {
-      if (s.seat != kHumanSeat && s.riichi) return s;
+      if (s.seat == kHumanSeat) continue;
+      if (ruleset.isHongKong
+          ? s.melds.where((m) => !m.concealed).length >= 2
+          : s.riichi) {
+        return s;
+      }
     }
     return null;
   }
 
   /// The opponent the guide's safety scores refer to.
   @override
-  int? get safetyOpponentSeat => _riichiOpponent()?.seat;
+  int? get safetyOpponentSeat => _threatOpponent()?.seat;
 
   List<int> _visibleCounts() {
     final counts = List<int>.filled(34, 0);
@@ -899,7 +968,7 @@ class GameController extends ChangeNotifier implements GuideHost {
       return null;
     }
     final seat = round.seats[kHumanSeat];
-    final riichiOpp = _riichiOpponent();
+    final riichiOpp = _threatOpponent();
     for (final type in round.closedKanTypes(kHumanSeat)) {
       final advice = _efficiency.adviseClosedKan(
         hand: seat.hand,

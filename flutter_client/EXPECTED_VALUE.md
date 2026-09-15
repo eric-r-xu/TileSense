@@ -20,7 +20,10 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
 - A **play style** — defensive, balanced or aggressive — scales every risk
   charge and how readily a hand is kept quiet. It never changes what a hand is
   worth, only what danger costs, and it steers Autoplay through the same
-  scores.
+  scores. A second dial, **focus** (Speed or Balanced), tilts the trade between
+  the chance of finishing and the payout. Both start on **Aggressive / Speed**.
+- Under **Hong Kong** rules the same machinery runs on faan converted to chips,
+  with a 0-faan minimum — see [Under Hong Kong rules](#under-hong-kong-rules).
 - Two different estimators depending on where the hand sits:
   - **Not yet tenpai:** a turn-by-turn walk of the hand towards a win — each
     turn it may take a step, each step is narrower than the last, and each turn
@@ -334,6 +337,56 @@ commitment cost for the turns it stays in, so only one of the two ever applies
 and the ordering holds. `test/play_style_test.dart` pins that ordering down,
 here and over 400 random defending tables.
 
+## Hand focus  (`HandFocus`)
+
+The second dial. Expected value is `chance × payout`; the focus bends both
+halves by opposite exponents — the payout by `curve`, the chance by
+`2 − curve` — around a pivot (5,000 points in riichi, 32 chips in Hong Kong),
+so on Balanced (`curve` 1.0) the product is untouched.
+
+| focus | curve | effect |
+|---|---|---|
+| Speed | 0.45 | a likelier line wins close calls; big payouts are flattened |
+| Balanced | 1.0 | plain expected value |
+
+A third setting, Value (1.55), was removed after it failed to beat the bots.
+
+## Defaults, and the evidence for them
+
+New games and builder tables start on **Aggressive / Speed** under either
+ruleset (`kDefaultPlayStyle`, `kDefaultHandFocus`). `EfficiencyValueContext`
+still defaults to Balanced / Balanced, so tests and callers that build a context
+by hand get the unweighted model.
+
+The choice is measured, not assumed — every pairing is played on identical
+seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
+(full tables in [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up)):
+
+- **Riichi:** every Speed and Balanced pairing beat the control bot by 0.11–0.26
+  of a placement over 2000 East games and 800 hanchan, Holm-corrected; the
+  guide as a whole went from 0.247 worse than the bot to 0.211 better
+  (p = 4e-16).
+- **Hong Kong:** Aggressive / Speed placed best of the six (e.g. 0.108 ahead of
+  Balanced / Balanced, p = 1.7e-5), but all six still trail the control bot —
+  Aggressive / Speed by 0.129 of a placement (Holm p = 8.8e-5).
+
+## Under Hong Kong rules
+
+`EfficiencyValueContext.ruleset` switches only what differs; shanten, ukeire,
+the win-probability walk, the lookahead and the push/fold arithmetic are shared.
+
+| | Riichi | Hong Kong |
+|---|---|---|
+| Ready hand | yaku/fu/han/dora, riichi vs damaten, deposit | every live wait scored with `scoreHongKongHand`; no riichi or damaten |
+| Minimum to win | one yaku | **0 faan** — any complete hand, chicken hands included |
+| Before ready | 3900/5800 (closed) or 2000/2900 (open) × dora | faan from visible dragon/wind pungs, flush, concealment and flowers, priced on the New Style table |
+| Payout mix | 0.65 ron / 0.35 tsumo | 0.65 discard win (discarder pays 2×) / 0.35 self-pick (all three pay, +1 faan) |
+| Deal-in cost | 5800 / 8700 + honba | 16 chips (a 3-faan discard win) |
+| Threat | an opponent in riichi | an opponent with two or more exposed sets |
+| Safety | genbutsu / suji / one-chance | honour copies and tile class only; nothing is certified safe |
+| Push horizon | capped at 3.8 turns (the riichi ends the hand) | the hand's own expected length |
+| Focus pivot | 5,000 points | 32 chips |
+
 ## Calls, kan, ron, tsumo  (`adviseCall`)
 
 Every option is turned into "the 13-tile hand it leaves you with" and run back
@@ -394,6 +447,9 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 | `lib/logic/efficiency_calc.dart` | shanten + ukeire (ported from Riichi-Trainer) |
 | `lib/logic/efficiency_engine.dart` | everything above — `analyze`, `_assessValue`, `_assessTenpaiValue`, `adviseCall`, `_kanAdvice`, `_riichiDangerFactor` |
 | `lib/logic/scoring.dart` | `scoreHand` — yaku / fu / han / dora → points |
+| `lib/logic/hong_kong/hong_kong_scoring.dart` | `scoreHongKongHand` — faan patterns → chips |
+| `lib/logic/hong_kong/hong_kong_safety.dart` | Hong Kong risk ratings |
+| `test/policy_sweep_test.dart` | Style × Focus sweep against the bots (`SWEEP_RULESET` picks the game) |
 | `lib/logic/safety.dart` | 0–15 tile-danger rating used by the riichi discount and defensive mode |
 | `lib/game/game_controller.dart` | `_refreshReport()` builds the context each turn; Autoplay reads the result |
 | `lib/ui/efficiency_overlay.dart` | renders the panel |

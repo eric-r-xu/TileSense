@@ -252,27 +252,27 @@ void main() {
     await tester.tap(find.text('Start'));
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Read off the button itself: the bar carries two dials now, and they both
-    // start on a setting called "Balanced".
-    expect(labelOf(const Key('playStyle')), 'Balanced');
-    expect(labelOf(const Key('handFocus')), 'Balanced');
+    // Read off the button itself: the bar carries two dials, and a riichi game
+    // starts them on Aggressive and Speed.
+    expect(labelOf(const Key('playStyle')), 'Aggressive');
+    expect(labelOf(const Key('handFocus')), 'Speed');
 
     await tester.tap(find.byKey(const Key('playStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('playStyle')), 'Aggressive');
-    expect(labelOf(const Key('handFocus')), 'Balanced',
+    expect(labelOf(const Key('playStyle')), 'Defensive');
+    expect(labelOf(const Key('handFocus')), 'Speed',
         reason: 'cycling one dial moved the other');
 
     await tester.tap(find.byKey(const Key('playStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('playStyle')), 'Defensive');
+    expect(labelOf(const Key('playStyle')), 'Balanced');
 
-    // And the focus dial cycles on its own. Two positions now, so one tap off
-    // Balanced wraps to Speed.
+    // And the focus dial cycles on its own. Two positions, so one tap off
+    // Speed moves to Balanced.
     await tester.tap(find.byKey(const Key('handFocus')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('handFocus')), 'Speed');
-    expect(labelOf(const Key('playStyle')), 'Defensive');
+    expect(labelOf(const Key('handFocus')), 'Balanced');
+    expect(labelOf(const Key('playStyle')), 'Balanced');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -322,10 +322,10 @@ void main() {
     await tester.tap(find.byKey(const Key('openBuilder')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(labelOf(const Key('builderPlayStyle')), 'Balanced');
+    expect(labelOf(const Key('builderPlayStyle')), 'Aggressive');
     await tester.tap(find.byKey(const Key('builderPlayStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('builderPlayStyle')), 'Aggressive');
+    expect(labelOf(const Key('builderPlayStyle')), 'Defensive');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -342,20 +342,20 @@ void main() {
     await tester.tap(find.byKey(const Key('guideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(labelOf(const Key('playStyle')), 'Balanced');
-
-    // Guide -> app bar.
-    await tester.tap(find.byKey(const Key('guidePlayStyle_aggressive')));
-    await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(const Key('playStyle')), 'Aggressive');
 
-    // App bar -> guide: cycling past aggressive lands on defensive, and the
+    // Guide -> app bar.
+    await tester.tap(find.byKey(const Key('guidePlayStyle_defensive')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(const Key('playStyle')), 'Defensive');
+
+    // App bar -> guide: cycling past defensive lands on balanced, and the
     // guide's own chip has to be the one showing as picked.
     await tester.tap(find.byKey(const Key('playStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('playStyle')), 'Defensive');
-    expect(guideChipPicked(tester, PlayStyle.defensive), isTrue);
-    expect(guideChipPicked(tester, PlayStyle.aggressive), isFalse);
+    expect(labelOf(const Key('playStyle')), 'Balanced');
+    expect(guideChipPicked(tester, PlayStyle.balanced), isTrue);
+    expect(guideChipPicked(tester, PlayStyle.defensive), isFalse);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -377,7 +377,7 @@ void main() {
     // freshly built one.
     await tester.tap(find.byKey(const Key('playStyle')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('playStyle')), 'Aggressive');
+    expect(labelOf(const Key('playStyle')), 'Defensive');
 
     // Portrait: the rotate prompt covers the table, and the welcome screen
     // must not come back.
@@ -390,7 +390,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Rotate your device'), findsNothing);
     expect(find.text('Start'), findsNothing);
-    expect(labelOf(const Key('playStyle')), 'Aggressive');
+    expect(labelOf(const Key('playStyle')), 'Defensive');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

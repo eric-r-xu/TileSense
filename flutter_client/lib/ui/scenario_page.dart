@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../game/game_controller.dart';
 import '../../main.dart' show playStyleColor;
 import '../logic/meld.dart';
+import '../logic/ruleset.dart';
 import '../logic/tile.dart';
 import '../scenario/scenario.dart';
 import '../scenario/scenario_controller.dart';
@@ -19,17 +20,26 @@ import 'efficiency_overlay.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
 
-/// The slot the tile palette is currently filling.
+/// The slot the tile palette is currently filling. [dora] is the dora
+/// indicators in riichi and the selected seat's flowers in Hong Kong — the
+/// same corner of the table.
 enum _Slot { hand, pond, melds, dora, offer }
 
 /// What a palette tap builds when the melds slot is selected.
 enum _MeldKind { chi, pon, openKan, closedKan }
 
 class ScenarioPage extends StatefulWidget {
-  const ScenarioPage({super.key, required this.onExit});
+  const ScenarioPage({
+    super.key,
+    required this.onExit,
+    this.initialRuleset = Ruleset.riichi,
+  });
 
   /// Back to the welcome screen.
   final VoidCallback onExit;
+
+  /// The rules the builder opens in; it can be switched from its tool bar.
+  final Ruleset initialRuleset;
 
   @override
   State<ScenarioPage> createState() => _ScenarioPageState();
@@ -53,6 +63,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   @override
   void initState() {
     super.initState();
+    _c.setRuleset(widget.initialRuleset);
     _c.addListener(_onControllerChanged);
   }
 
@@ -68,6 +79,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   }
 
   Scenario get s => _c.scenario;
+  bool get _hk => s.ruleset.isHongKong;
 
   void _edit(void Function(Scenario s) change) =>
       setState(() => _c.edit(change));
@@ -78,7 +90,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// that would put a fifth copy of a tile on the table.
   void _place(TileType type) {
     if (s.remainingCopies(type) <= 0) return;
-    final aka = _aka && type.number == 5 && !s.akaUsed(type);
+    if (type.isBonus) {
+      _edit((sc) => sc.seats[_slotSeat].flowers.add(sc.mint(type)));
+      return;
+    }
+    if (_hk && _slot == _Slot.dora) return;
+    final aka = !_hk && _aka && type.number == 5 && !s.akaUsed(type);
     _edit((sc) {
       switch (_slot) {
         case _Slot.hand:
@@ -148,9 +165,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
       ]..shuffle();
       TileType take() => bag.removeLast();
 
-      sc.dora
-        ..clear()
-        ..add(take());
+      if (sc.ruleset.isRiichi) {
+        sc.dora
+          ..clear()
+          ..add(take());
+      }
       // A riichi opponent with a pond, so the safety columns have something to
       // work with; the other two seats get shorter ponds.
       for (var seat = 1; seat < 4; seat++) {
@@ -159,8 +178,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
           sc.seats[seat].pond.add(sc.mint(take()));
         }
       }
-      sc.seats[1].riichi = true;
-      sc.seats[1].riichiPondIndex = 4;
+      if (sc.ruleset.isRiichi) {
+        sc.seats[1].riichi = true;
+        sc.seats[1].riichiPondIndex = 4;
+      }
       for (var i = 0; i < 6; i++) {
         sc.seats[0].pond.add(sc.mint(take()));
       }
@@ -286,13 +307,15 @@ class _ScenarioPageState extends State<ScenarioPage> {
         _seatWindPicker(),
         const SizedBox(width: 8),
         _stepper('Wall', s.wallRemaining,
-            (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, 122))),
-        const SizedBox(width: 8),
-        _stepper(
-            'Honba', s.honba, (v) => _edit((sc) => sc.honba = v.clamp(0, 9))),
-        const SizedBox(width: 8),
-        _stepper('Sticks', s.riichiSticks,
-            (v) => _edit((sc) => sc.riichiSticks = v.clamp(0, 9))),
+            (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, sc.maxWall))),
+        if (!_hk) ...[
+          const SizedBox(width: 8),
+          _stepper('Honba', s.honba,
+              (v) => _edit((sc) => sc.honba = v.clamp(0, 9))),
+          const SizedBox(width: 8),
+          _stepper('Sticks', s.riichiSticks,
+              (v) => _edit((sc) => sc.riichiSticks = v.clamp(0, 9))),
+        ],
         const SizedBox(width: 12),
         TextButton.icon(
           onPressed: _randomize,
@@ -344,8 +367,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
     final dealer = s.isDealer;
     return Tooltip(
       message: dealer
-          ? 'You are the dealer: wins pay half again, and the button passes if '
-              'you lose it'
+          ? (_hk
+              ? 'You are the dealer: the button stays with you on a win or a '
+                  'draw'
+              : 'You are the dealer: wins pay half again, and the button '
+                  'passes if you lose it')
           : 'Your seat wind — set it to East to play as the dealer',
       child: TextButton(
         key: const Key('seatWind'),
@@ -442,10 +468,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   Widget _slotChips() {
     Widget chip(String label, bool selected, VoidCallback onTap,
-        {Color? tint}) {
+        {Color? tint, Key? key}) {
       return Padding(
         padding: const EdgeInsets.only(right: 6),
         child: InkWell(
+          key: key,
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
           child: Container(
@@ -474,6 +501,19 @@ class _ScenarioPageState extends State<ScenarioPage> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
+          // Which rules the table is scored under. Switching clears it.
+          chip(
+              '${s.ruleset.flagLabel} rules ⇄',
+              true,
+              key: const Key('builderRuleset'),
+              tint: const Color(0xff6d4c41),
+              () => setState(() {
+                    _slot = _Slot.hand;
+                    _slotSeat = kHumanSeat;
+                    _aka = false;
+                    _c.setRuleset(s.ruleset.next);
+                  })),
+          const VerticalDivider(width: 14, color: Colors.white24),
           chip(
               'Your hand (${s.hand.length})',
               _slot == _Slot.hand,
@@ -483,7 +523,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   })),
           chip('On offer${s.offered == null ? "" : " ${s.offered!.type.code}"}',
               _slot == _Slot.offer, () => setState(() => _slot = _Slot.offer)),
-          chip('Dora (${s.dora.length})', _slot == _Slot.dora,
+          chip(
+              _hk
+                  ? '${_slotSeat == kHumanSeat ? 'Your' : kSeatNames[_slotSeat]} '
+                      'flowers (${s.seats[_slotSeat].flowers.length})'
+                  : 'Dora (${s.dora.length})',
+              _slot == _Slot.dora,
               () => setState(() => _slot = _Slot.dora)),
           const VerticalDivider(width: 14, color: Colors.white24),
           for (var seat = 0; seat < 4; seat++) ...[
@@ -503,7 +548,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 _slotSeat = seat;
               });
             }),
-            _riichiToggle(seat),
+            if (!_hk) _riichiToggle(seat),
             const VerticalDivider(width: 14, color: Colors.white24),
           ],
         ],
@@ -589,6 +634,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
       case _Slot.pond:
         return tiles(s.seats[_slotSeat].pond,
             (i) => _edit((sc) => sc.seats[_slotSeat].pond.removeAt(i)));
+      case _Slot.dora when _hk:
+        return tiles(s.seats[_slotSeat].flowers,
+            (i) => _edit((sc) => sc.seats[_slotSeat].flowers.removeAt(i)));
       case _Slot.dora:
         return tiles(
           [for (final d in s.dora) Tile(-1, d)],
@@ -654,10 +702,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
                     ),
                     child: Text(
                       switch (k) {
-                        _MeldKind.chi => 'Chi',
-                        _MeldKind.pon => 'Pon',
-                        _MeldKind.openKan => 'Kan (open)',
-                        _MeldKind.closedKan => 'Kan (closed)',
+                        _MeldKind.chi => s.ruleset.chiLabel,
+                        _MeldKind.pon => s.ruleset.ponLabel,
+                        _MeldKind.openKan => '${s.ruleset.kanLabel} (open)',
+                        _MeldKind.closedKan =>
+                          '${s.ruleset.kanLabel} (closed)',
                       },
                       style: const TextStyle(fontSize: 11),
                     ),
@@ -706,6 +755,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          if (!_hk)
           Padding(
             padding: const EdgeInsets.only(right: 8, bottom: 8),
             child: InkWell(
@@ -731,7 +781,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (var i = 0; i < 34; i++) _paletteTile(typeFrom34(i)),
+                  // Hong Kong's flower slot takes flowers and seasons only.
+                  if (_hk && _slot == _Slot.dora)
+                    for (final t in TileType.values.where((t) => t.isBonus))
+                      _paletteTile(t)
+                  else
+                    for (var i = 0; i < 34; i++) _paletteTile(typeFrom34(i)),
                 ],
               ),
             ),

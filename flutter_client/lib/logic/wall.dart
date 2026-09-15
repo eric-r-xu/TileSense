@@ -6,7 +6,28 @@ import 'dart:math';
 
 import 'tile.dart';
 
-class Wall {
+/// What a [Round] needs from a wall. Riichi uses [Wall]; Hong Kong uses
+/// `HongKongWall`, which has flowers, no dead wall and no dora.
+abstract interface class TileWall {
+  int get remaining;
+  bool get isEmpty;
+  bool get canKan;
+
+  /// 13 tiles to each of the four seats.
+  List<List<Tile>> deal();
+
+  /// The next ordinary draw.
+  Tile drawLive();
+
+  /// A replacement draw, after a kan (and, in Hong Kong, a flower).
+  Tile drawDeadWall();
+
+  List<TileType> doraIndicators();
+  List<TileType> uraDoraIndicators();
+  List<Tile?> deadWallDisplay({bool revealUra = false});
+}
+
+class Wall implements TileWall {
   Wall(int seed) : _rng = Random(seed) {
     _build();
   }
@@ -42,8 +63,11 @@ class Wall {
   int _doraRevealed = 1;
   int _kanDraws = 0;
 
+  @override
   int get remaining => _live.length;
+  @override
   bool get isEmpty => _live.isEmpty;
+  @override
   bool get canKan => _kanDraws < 4 && _live.isNotEmpty;
 
   void _build() {
@@ -63,6 +87,7 @@ class Wall {
   }
 
   /// Deal 13 tiles to each of the four seats (dealer first).
+  @override
   List<List<Tile>> deal() {
     final hands = List.generate(4, (_) => <Tile>[]);
     for (var round = 0; round < 13; round++) {
@@ -73,9 +98,11 @@ class Wall {
     return hands;
   }
 
+  @override
   Tile drawLive() => _live.removeLast();
 
   /// Draw a replacement tile after a kan and reveal the next dora indicator.
+  @override
   Tile drawDeadWall() {
     final tile = _dead[_kanDraws];
     _kanDraws++;
@@ -85,14 +112,17 @@ class Wall {
     return tile;
   }
 
+  @override
   List<TileType> doraIndicators() =>
       [for (var i = 0; i < _doraRevealed; i++) _dead[4 + i * 2].type];
 
+  @override
   List<TileType> uraDoraIndicators() =>
       [for (var i = 0; i < _doraRevealed; i++) _dead[5 + i * 2].type];
 
   /// The dead wall tiles, for the on-screen dead-wall strip. [revealUra] shows
   /// the ura indicators (only after a win with riichi).
+  @override
   List<Tile?> deadWallDisplay({bool revealUra = false}) {
     return List<Tile?>.generate(14, (i) {
       if (i < 4) return null; // face-down kan draws
