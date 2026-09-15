@@ -525,7 +525,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           'this is scored exactly; before that it is an estimate from the '
           'patterns the hand already shows.\n'),
       _tipPart('WHAT THE CUT RISKS',
-          'Estimated loss against an opponent with two or more exposed sets. '
+          'Estimated loss against an opponent with three or more exposed sets. '
           'A previously discarded tile can still win; no tile is guaranteed '
           'safe.\n'),
     ] else ...[

@@ -21,8 +21,8 @@ do — and how that compares to how your own seat plays. Based on
 
 - **Autoplay starts on Aggressive / Speed** in both rulesets — chosen from
   measured sweeps (see [How the guide measures up](#how-the-guide-measures-up)).
-  In riichi the guide beats the bots at a statistically significant level; in
-  Hong Kong it does not yet.
+  The guide beats the bots at a statistically significant level in both
+  rulesets.
 
 ## Same brain, three costumes
 
@@ -151,8 +151,10 @@ win. It still never defends.
 
 Your seat's guide swaps in Hong Kong scoring (faan converted to chips on the
 New Style table), Hong Kong defence (no genbutsu or suji — nothing is ever
-certified safe, and the threat is an opponent with two or more exposed sets),
-and a 16-chip deal-in cost. There is no riichi, damaten or deposit to weigh.
+certified safe, and the threat is an opponent with three or more exposed
+sets), a 16-chip deal-in cost, and a gentler penalty on narrow hands before
+ready (see [Hong Kong — the guide beats the bots](#hong-kong--the-guide-beats-the-bots)).
+There is no riichi, damaten or deposit to weigh.
 
 ## How the guide measures up
 
@@ -183,40 +185,89 @@ and drop the Value focus"), measured against opponents that fold (`FoldingBot`):
 Aggressive / Speed is one of the six pairings that beat the bot; the recorded
 runs do not rank those six against each other.
 
-### Hong Kong — the best setting, but the bots still win
+### Hong Kong — the guide beats the bots
 
-Run for this change: 2000 East-only games per arm, Hong Kong rules,
-`SimpleBot` opponents, common random numbers
-(`SWEEP_GAMES=2000 SWEEP_EAST=1 SWEEP_RULESET=hongKong`). A four-wind
-confirmation run was started and stopped before it finished.
+**Result.** Over 2000 East-only games on seeds no tuning round had seen
+(`HK_TUNE_ROUND=3 HK_TUNE_SEED=13000`), Aggressive / Speed, `SimpleBot`
+opponents, common random numbers:
 
-| Arm | Avg place | 1st % | Win / hand | Deal-in / hand | Δ place vs control | Holm p |
-|---|---|---|---|---|---|---|
-| control (SimpleBot) | 2.443 | 25.8 | 0.262 | 0.196 | — | — |
-| **Aggressive / Speed** | **2.571** | 20.9 | 0.214 | 0.174 | +0.129 ± 0.064 | 8.8e-5 |
-| Balanced / Speed | 2.593 | 20.5 | 0.212 | 0.176 | +0.150 ± 0.064 | 9.6e-6 |
-| Defensive / Speed | 2.607 | 19.9 | 0.205 | 0.174 | +0.165 ± 0.065 | 1.7e-6 |
-| Aggressive / Balanced | 2.673 | 18.4 | 0.158 | 0.182 | +0.231 ± 0.065 | < 1e-6 |
-| Balanced / Balanced | 2.680 | 18.1 | 0.152 | 0.177 | +0.237 ± 0.064 | < 1e-6 |
-| Defensive / Balanced | 2.695 | 17.8 | 0.148 | 0.173 | +0.253 ± 0.064 | < 1e-6 |
+| Arm | Avg place | Win / hand | Δ place vs control | Δ vs original |
+|---|---|---|---|---|
+| control (SimpleBot) | 2.486 | 0.264 | — | — |
+| original guide (riichi's model) | 2.549 | 0.219 | +0.063 ± 0.063, p = 0.052 | — |
+| **tuned guide (shipped)** | **2.369** | **0.259** | **−0.116 ± 0.065, p = 4.2e-4** | **−0.179 ± 0.054, p < 1e-6** |
 
-- **Aggressive / Speed is the best Hong Kong setting**, and significantly so:
-  0.021 of a placement ahead of Balanced / Speed (p = 6.5e-3), 0.036 ahead of
-  Defensive / Speed (p = 3.6e-3) and 0.108 ahead of Balanced / Balanced
-  (p = 1.7e-5). Speed beats Balanced at every style.
-- **But every guide setting places significantly *worse* than the plain bot.**
-  The guide deals in less (0.174 vs 0.196 per hand) yet wins far less often
-  (0.214 vs 0.262). With a 0-faan minimum the race to *any* complete hand
-  dominates, and the bot's habit of calling every improving pung and chow gets
-  there first; the guide's pre-ready estimator credits drawn tiles only, not
-  calls, so it undersells open hands. That is the next thing to fix for Hong
-  Kong.
+The tuned guide places **0.116 of a placement better than the bot**, where
+the original placed 0.063 worse.
+
+**What was wrong.** A decision-level diagnostic
+(`HK_DIAG=600 flutter test test/hong_kong/hk_guide_diag_test.dart`) plays your
+seat both ways on the same seeds and counts what each does. Two faults stood
+out:
+
+1. **It broke up close hands for wider ones.** The pre-ready win model, built
+   for riichi, marks a hand narrower than typical down hard. It credits only
+   drawn tiles, so in Hong Kong — where any pung or chow advances a hand and
+   no yaku is needed — narrow hands were badly undersold. The guide stepped
+   *further* from ready on 1.3 calm-table discards per hand, five times as
+   often as the bot.
+2. **It defended, and refused calls, almost every hand.** It counted any
+   opponent with two exposed sets as a threat. The bots expose two sets in
+   most hands, so the guide spent three turns a hand defending — and a
+   riichi-era rule refuses calls while threatened, which accounted for 67% of
+   the calls it turned down that the bot took.
+
+**How the fix was chosen.** `test/hong_kong/hk_tuning_sweep_test.dart` plays
+tuning variants on identical seeds against the bot and against the original
+guide, Holm-corrected. Round 1 (1500 games per arm) tried each candidate alone;
+softening the narrow-hand penalty was the only large win (−0.168 placement vs
+the original, p < 1e-6), while extra per-turn call chances made things worse
+(+0.094) and removing the call gate or the concealed-hand faan from the
+estimate did nothing measurable. Round 2 (2000 games per arm, fresh seeds)
+refined it:
+
+| Variant (round 2) | Δ place vs original | Δ place vs control |
+|---|---|---|
+| narrow penalty 0.25 | −0.174 | −0.114, p = 5.2e-4 |
+| narrow penalty 0.5 | −0.152 | −0.092, p = 4.7e-3 |
+| narrow penalty 0.75 | −0.081 | −0.021, p = 0.54 |
+| penalty 0.5 + no call gate | −0.156 | −0.096, p = 3.2e-3 |
+| **penalty 0.5 + threat at 3 sets** | **−0.183** | **−0.123, p = 1.8e-4** |
+| penalty 0.5 + no gate + threat at 3 | −0.172 | −0.112, p = 6.4e-4 |
+
+Picking the best of six flatters it, which is why the headline figures above
+come from the separate held-out run. Shipped in `HongKongGuideTuning`:
+**narrow penalty 0.5, threat at three or more exposed sets**, call gate kept.
+
+**How it plays now** (per hand, 600 East-only games each):
+
+| | Original guide | Tuned guide | SimpleBot |
+|---|---|---|---|
+| Steps away from ready | 1.84 | **0.76** | 0.37 |
+| Hands that reach ready | 41% | **51%** | 55% |
+| Chows / pungs / kongs taken | 0.39 / 0.40 / 0.04 | **0.50 / 0.43 / 0.05** | 0.68 / 0.53 / 0.06 |
+| Turns spent defending | 2.96 | **0.58** | 0.54 |
+| Wins | 0.216 | **0.247** | 0.249 |
+| Deal-ins | 0.173 | **0.169** | 0.199 |
+| Chips won | 2.13 | **2.68** | 2.59 |
+
+It now wins as often as the bot while dealing in 15% less, and wins slightly
+bigger hands.
+
+**Style and Focus.** The Style × Focus sweep was run on the original guide
+(2000 East-only games per arm): Aggressive / Speed placed best of the six —
+0.021 ahead of Balanced / Speed (p = 6.5e-3), 0.108 ahead of Balanced /
+Balanced (p = 1.7e-5), with Speed ahead of Balanced at every style — though
+all six then trailed the bot. The tuning above was measured on Aggressive /
+Speed; the other pairings have not been re-swept on the tuned guide.
 
 Re-run either sweep with, for example:
 
 ```sh
 SWEEP_GAMES=2000 SWEEP_EAST=1 flutter test test/policy_sweep_test.dart                          # riichi
 SWEEP_GAMES=2000 SWEEP_EAST=1 SWEEP_RULESET=hongKong flutter test test/policy_sweep_test.dart   # Hong Kong
+HK_TUNE_ROUND=3 HK_TUNE_SEED=13000 HK_TUNE_GAMES=2000 flutter test test/hong_kong/hk_tuning_sweep_test.dart
+HK_DIAG=600 flutter test test/hong_kong/hk_guide_diag_test.dart
 ```
 
 ## Bottom line
@@ -224,6 +275,5 @@ SWEEP_GAMES=2000 SWEEP_EAST=1 SWEEP_RULESET=hongKong flutter test test/policy_sw
 The opponents don't out-think you. They're a short, fixed checklist with no
 sense of point value and zero defense, ported from the original desktop game's
 simplest bot. Your seat plays a genuinely different game — one that counts
-points, weighs calls, and folds when it should. In riichi that wins, measurably;
-in Hong Kong, where speed is nearly everything, the checklist's eager calling
-still has the edge.
+points, weighs calls, and folds when it should — and in both rulesets that
+wins, measurably.

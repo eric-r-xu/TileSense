@@ -110,13 +110,14 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   @override
   int? get safetyOpponentSeat => _threatOpponent()?.seat;
 
-  /// Whoever is in riichi, or in Hong Kong whoever has exposed two or more
+  /// Whoever is in riichi, or in Hong Kong whoever has exposed three or more
   /// sets — the same threat the live game defends against.
   SeatState? _threatOpponent() {
     for (final s in round.seats) {
       if (s.seat == kHumanSeat) continue;
       if (ruleset.isHongKong
-          ? s.melds.where((m) => !m.concealed).length >= 2
+          ? s.melds.where((m) => !m.concealed).length >=
+              HongKongGuideTuning.threatExposedSets
           : s.riichi) {
         return s;
       }

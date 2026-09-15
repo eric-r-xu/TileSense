@@ -48,9 +48,9 @@
 - An **Autoplay** toggle that plays your seat from that same guide — the
   recommended discard, its riichi/damaten verdict, its call advice and its
   concealed-kan verdict. It never falls back to the opponents' heuristic. Its
-  Style and Focus dials start on **Aggressive / Speed**; in riichi the guide
-  beats the bots at a statistically significant level, in Hong Kong it does
-  not yet — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up).
+  Style and Focus dials start on **Aggressive / Speed**, and the guide beats
+  the bots at a statistically significant level in both riichi and Hong Kong
+  — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up).
 - **🇯🇵 Riichi or 🇭🇰 Hong Kong rules**, switched from the welcome screen, the
   app bar or the builder, with rules PDFs
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
