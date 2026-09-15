@@ -118,11 +118,15 @@ Measured with `test/policy_sweep_test.dart` on identical seeds against a
   the control bot by 0.11–0.26 of a placement, over 2000 East games and again
   800 hanchan, Holm-corrected; overall the guide went from 0.247 of a placement
   worse than the bot to 0.211 better (3000 paired hanchan, p = 4e-16).
-- **Hong Kong — not yet.** Aggressive / Speed is the best of the six pairings
-  (0.108 of a placement ahead of Balanced / Balanced, p = 1.7e-5, 2000 East
-  games per arm), but every pairing still places worse than the bot —
-  Aggressive / Speed by 0.129 (Holm p = 8.8e-5). The bot's eager calling wins
-  the race to a 0-faan hand more often than the guide's value-aware play.
+- **Hong Kong — it wins too.** Over 2000 East-only games on held-out seeds,
+  the guide places **0.116 of a placement better** than the bot
+  (p = 4.2e-4). It first trailed the bot: riichi's pre-ready model kept
+  breaking up close hands for wider ones, and it treated almost every
+  opponent as a threat, so it defended and refused calls. A softer
+  narrow-hand penalty and a three-set threat, chosen over two tuning rounds,
+  lifted wins per hand from 0.219 to 0.259 (the bot: 0.264) while dealing in
+  15% less than the bot. Aggressive / Speed is also the best of the six
+  Style × Focus pairings for Hong Kong.
 - A **Custom Hand & Context Builder**, on its own screen from the start
   page: pose any table by hand — your tiles, every seat's discards and calls,
   the dora indicators, the wall counter, your seat wind (East deals) and who is

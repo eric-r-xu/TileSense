@@ -899,12 +899,14 @@ class GameController extends ChangeNotifier implements GuideHost {
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong
-  /// Kong — which has no declaration — whoever has exposed two or more sets.
+  /// Kong — which has no declaration — whoever has exposed
+  /// [HongKongGuideTuning.threatExposedSets] sets or more.
   SeatState? _threatOpponent() {
     for (final s in round.seats) {
       if (s.seat == kHumanSeat) continue;
       if (ruleset.isHongKong
-          ? s.melds.where((m) => !m.concealed).length >= 2
+          ? s.melds.where((m) => !m.concealed).length >=
+              HongKongGuideTuning.threatExposedSets
           : s.riichi) {
         return s;
       }

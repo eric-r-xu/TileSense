@@ -157,6 +157,43 @@ enum HandFocus {
           math.pow(chance / _chancePivot, 2 - curve).toDouble().clamp(0.0, 8.0);
 }
 
+/// Tuning for the Hong Kong guide, kept in one place so
+/// `test/hong_kong/hk_tuning_sweep_test.dart` can measure alternatives against
+/// the bots on identical seeds. Riichi never reads any of it.
+///
+/// The defaults are measured. Against SimpleBot over 2000 East-only games on
+/// seeds no tuning round had seen, riichi's own settings (narrow penalty 1,
+/// threat at two sets) placed 0.063 behind the bot; these place 0.116 ahead of
+/// it (p = 4.2e-4) and 0.179 ahead of those settings (p < 1e-6).
+class HongKongGuideTuning {
+  /// Refuse a call or kong that is not yet ready while a threat is out.
+  /// Turning it off measured no better once the threat itself was narrowed.
+  static bool gateCallsUnderThreat = true;
+
+  /// Exposed sets that make an opponent a threat worth defending against. The
+  /// bots expose two sets in most hands, so two kept the guide defending — and
+  /// refusing calls — far more often than any real danger warranted.
+  static int threatExposedSets = 3;
+
+  /// How hard a hand narrower than typical is marked down before ready: the
+  /// exponent on its width ratio is scaled by this. 1 is riichi's model.
+  ///
+  /// At 1 the guide broke its hand up for a wider one a step further out
+  /// about 1.3 times a hand on a calm table, five times as often as the bot,
+  /// and reached ready in 41% of hands to the bot's 55%. A narrow Hong Kong
+  /// hand is not as slow as its acceptance suggests: with no yaku to protect
+  /// it can pung or chow its way forward. 0.5 was the best of 0, 0.25, 0.5,
+  /// 0.75 and 1 across two tuning rounds.
+  static double narrowPenalty = 0.5;
+
+  /// Chances per turn to take a pre-ready step. Riichi steps come off draws
+  /// only (1.0); in Hong Kong a pung or chow off a discard also advances.
+  static double stepTries = 1.0;
+
+  /// Count the Concealed Hand faan in the pre-ready payout estimate.
+  static bool concealedFaanInEstimate = true;
+}
+
 /// The dials a new game or builder table starts on, under either ruleset.
 ///
 /// Measured with `policy_sweep_test.dart` (see BOT_STRATEGY.md): in riichi it
@@ -705,7 +742,7 @@ class EfficiencyEngine {
       defense: defense,
       headline: defending
           ? (ruleset.isHongKong
-              ? 'An opponent has exposed two or more sets — estimated risk shown'
+              ? 'An opponent has exposed three or more sets — estimated risk shown'
               : 'An opponent is in RIICHI — defensive ranking shown')
           : tenpai
               ? (ruleset.isHongKong
@@ -1159,7 +1196,9 @@ class EfficiencyEngine {
                 'could not score.',
       );
     }
-    if (opponentRiichi && best.shanten > 0) {
+    if (opponentRiichi &&
+        best.shanten > 0 &&
+        (!hk || HongKongGuideTuning.gateCallsUnderThreat)) {
       return ActionAdvice(
         action: action,
         expectedValue: best.expectedValue,
@@ -1242,7 +1281,9 @@ class EfficiencyEngine {
                 'not score.',
       );
     }
-    if (opponentRiichi && after.shanten > 0) {
+    if (opponentRiichi &&
+        after.shanten > 0 &&
+        (!hk || HongKongGuideTuning.gateCallsUnderThreat)) {
       return ActionAdvice(
         action: GuidedAction.kan,
         expectedValue: after.ev,
@@ -1510,6 +1551,8 @@ class EfficiencyEngine {
     required int ukeire,
     required int unseen,
     required int draws,
+    double narrowPenalty = 1.0,
+    double stepTries = 1.0,
   }) {
     if (shanten < 1 || draws <= 0 || unseen <= 0 || ukeire <= 0) {
       return (win: 0, reachedTenpai: 0, turns: 0);
@@ -1544,12 +1587,14 @@ class EfficiencyEngine {
       // of what this was paying them. Capping every step cut backward steps to
       // 14% on calm turns, lifted hands reaching tenpai from 27.6% to 37.7%,
       // and is worth about 0.46 of a placement over 3000 paired hanchan.
-      var multiplier = math.pow(scale, exponent).toDouble();
+      var multiplier = math
+          .pow(scale, scale < 1 ? exponent * narrowPenalty : exponent)
+          .toDouble();
       multiplier = math.min(1.0, multiplier);
       final width = _stepWidth[to.clamp(0, 6)] * multiplier;
       final rate = math.min(1.0, width / unseen);
       // Only the last step — the win itself — can come off a discard.
-      final tries = to == 0 ? _winChancesPerTurn : 1.0;
+      final tries = to == 0 ? _winChancesPerTurn : stepTries;
       return 1 - math.pow(1 - rate, tries).toDouble();
     }
 
@@ -1670,11 +1715,14 @@ class EfficiencyEngine {
     // Riichi always allows one more draw; a Hong Kong wall at zero has none.
     final draws = math.max(context.ruleset.isHongKong ? 0 : 1,
         (context.wallTilesRemaining + 3) ~/ 4);
+    final hk = context.ruleset.isHongKong;
     final outlook = _winProbabilityFromShanten(
       shanten: result.shanten,
       ukeire: result.ukeire,
       unseen: unseen,
       draws: draws,
+      narrowPenalty: hk ? HongKongGuideTuning.narrowPenalty : 1.0,
+      stepTries: hk ? HongKongGuideTuning.stepTries : 1.0,
     );
     // The lookahead, when there is one, knows the tenpais this line can really
     // reach and when. It is only trusted to correct the generic estimate
@@ -1833,7 +1881,7 @@ class EfficiencyEngine {
     }
     final suits = types.where((t) => t.isSuit).map((t) => t.suit).toSet();
     if (suits.length == 1) faan += types.any((t) => t.isHonor) ? 3 : 7;
-    if (context.closed) faan++;
+    if (context.closed && HongKongGuideTuning.concealedFaanInEstimate) faan++;
     if (context.flowersEnabled) {
       final flowers = context.flowers;
       if (flowers.isEmpty) faan++;

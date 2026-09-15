@@ -5,14 +5,25 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **The Hong Kong guide now beats the bots.** It placed 0.063 behind
+  `SimpleBot`; it now places **0.116 ahead** over 2000 held-out East-only
+  games (p = 4.2e-4), 0.179 ahead of its old self (p < 1e-6). Two
+  Hong Kong-only settings in `HongKongGuideTuning`: the pre-ready penalty on
+  narrow hands is halved (a narrow hand can pung or chow forward), and a
+  threat needs three exposed sets, not two. Per hand, steps away from ready
+  fell from 1.84 to 0.76, hands reaching ready rose from 41% to 51%, turns
+  defending fell from 2.96 to 0.58, and wins rose from 0.216 to 0.247 (the
+  bot: 0.249) with 15% fewer deal-ins than the bot. New opt-in harnesses:
+  `test/hong_kong/hk_guide_diag_test.dart` and
+  `test/hong_kong/hk_tuning_sweep_test.dart`. Riichi is unaffected.
 - **The guide starts on Aggressive / Speed in both rulesets.** New games and
   the builder open with Style on Aggressive and Focus on Speed; switching
   rulesets keeps whatever the dials are set to. `EfficiencyValueContext` keeps
   Balanced / Balanced as its reference default. Evidence, in
   `flutter_client/BOT_STRATEGY.md`: in riichi every Speed and Balanced pairing
   beats the control bot (0.11–0.26 placement, Holm-corrected); in Hong Kong
-  Aggressive / Speed is the best of six (2000 East games per arm) but still
-  trails the bot by 0.129 placement (Holm p = 8.8e-5).
+  Aggressive / Speed is the best of the six pairings (2000 East games per
+  arm).
 - `policy_sweep_test.dart` gained `SWEEP_RULESET` and Holm-corrected,
   best-arm comparisons.
 - **Flowers and seasons are real tiles** — 梅 蘭 菊 竹 / 春 夏 秋 冬 with their

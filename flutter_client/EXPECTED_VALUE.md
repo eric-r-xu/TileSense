@@ -366,9 +366,11 @@ seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
   of a placement over 2000 East games and 800 hanchan, Holm-corrected; the
   guide as a whole went from 0.247 worse than the bot to 0.211 better
   (p = 4e-16).
-- **Hong Kong:** Aggressive / Speed placed best of the six (e.g. 0.108 ahead of
-  Balanced / Balanced, p = 1.7e-5), but all six still trail the control bot —
-  Aggressive / Speed by 0.129 of a placement (Holm p = 8.8e-5).
+- **Hong Kong:** Aggressive / Speed placed best of the six Style × Focus
+  pairings (e.g. 0.108 ahead of Balanced / Balanced, p = 1.7e-5). With the
+  Hong Kong tuning below, it beats the control bot by 0.116 of a placement
+  over 2000 held-out East-only games (p = 4.2e-4); before that tuning it
+  trailed the bot.
 
 ## Under Hong Kong rules
 
@@ -382,10 +384,17 @@ the win-probability walk, the lookahead and the push/fold arithmetic are shared.
 | Before ready | 3900/5800 (closed) or 2000/2900 (open) × dora | faan from visible dragon/wind pungs, flush, concealment and flowers, priced on the New Style table |
 | Payout mix | 0.65 ron / 0.35 tsumo | 0.65 discard win (discarder pays 2×) / 0.35 self-pick (all three pay, +1 faan) |
 | Deal-in cost | 5800 / 8700 + honba | 16 chips (a 3-faan discard win) |
-| Threat | an opponent in riichi | an opponent with two or more exposed sets |
+| Threat | an opponent in riichi | an opponent with **three** or more exposed sets |
 | Safety | genbutsu / suji / one-chance | honour copies and tile class only; nothing is certified safe |
 | Push horizon | capped at 3.8 turns (the riichi ends the hand) | the hand's own expected length |
+| Narrow hand before ready | width ratio `scale^exponent` | `scale^(exponent × 0.5)` — a narrow hand can pung or chow its way forward |
 | Focus pivot | 5,000 points | 32 chips |
+
+The two Hong Kong-only settings live in `HongKongGuideTuning` and were measured,
+not assumed: riichi's own values (narrow exponent × 1, threat at two sets)
+placed 0.063 behind `SimpleBot`; the shipped ones place 0.116 ahead of it over
+2000 held-out games (p = 4.2e-4). Method and tables:
+[`BOT_STRATEGY.md`](BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots).
 
 ## Calls, kan, ron, tsumo  (`adviseCall`)
 
@@ -450,6 +459,8 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 | `lib/logic/hong_kong/hong_kong_scoring.dart` | `scoreHongKongHand` — faan patterns → chips |
 | `lib/logic/hong_kong/hong_kong_safety.dart` | Hong Kong risk ratings |
 | `test/policy_sweep_test.dart` | Style × Focus sweep against the bots (`SWEEP_RULESET` picks the game) |
+| `test/hong_kong/hk_tuning_sweep_test.dart` | `HongKongGuideTuning` variants against the bots and the original guide |
+| `test/hong_kong/hk_guide_diag_test.dart` | per-decision counters, guide vs bot, under Hong Kong rules |
 | `lib/logic/safety.dart` | 0–15 tile-danger rating used by the riichi discount and defensive mode |
 | `lib/game/game_controller.dart` | `_refreshReport()` builds the context each turn; Autoplay reads the result |
 | `lib/ui/efficiency_overlay.dart` | renders the panel |

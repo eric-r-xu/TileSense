@@ -90,16 +90,17 @@ The sheet does not specify every gameplay detail above. These choices are explic
 
 The guide's dials start on **Aggressive / Speed**, as in riichi. Focus offers
 Speed and Balanced; Speed pivots around 32 chips here instead of riichi's
-5,000 points. Over 2000 East-only games per setting against `SimpleBot`,
-Aggressive / Speed placed best of the six pairings but still 0.129 of a
-placement behind the bot (Holm p = 8.8e-5); see
-[`BOT_STRATEGY.md`](../flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up).
+5,000 points. Two Hong Kong-only settings (`HongKongGuideTuning`) soften the
+pre-ready penalty on narrow hands and count an opponent as a threat only at
+three or more exposed sets. With them the guide places 0.116 of a placement
+better than `SimpleBot` over 2000 held-out East-only games (p = 4.2e-4); see
+[`BOT_STRATEGY.md`](../flutter_client/BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots).
 
 Flowers and seasons are drawn as real tiles — 梅 蘭 菊 竹 and 春 夏 秋 冬 with
 their pictures — each carrying its seat number 1–4 in red in the top-right
 corner, like the numbers on the suit tiles.
 
-The guide uses exact HK scoring for ready-hand waits and an estimate for unfinished hands. It retains the existing shanten/acceptance and completion lookahead, with values converted to HK chips. Its risk estimates activate against opponents with at least two exposed sets. Discard history never grants immunity: there is no genbutsu or suji rule. Even a heavily visible honour retains special-hand risk.
+The guide uses exact HK scoring for ready-hand waits and an estimate for unfinished hands. It retains the existing shanten/acceptance and completion lookahead, with values converted to HK chips. Its risk estimates activate against opponents with at least three exposed sets. Discard history never grants immunity: there is no genbutsu or suji rule. Even a heavily visible honour retains special-hand risk.
 
 Probability and risk parameters are heuristics, not a calibrated Hong Kong solver. The optional large simulation tools remain available separately.
 
