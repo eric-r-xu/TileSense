@@ -56,7 +56,10 @@ void main() {
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Four winds');
-    expect(labelOf(tester, const Key('playStyle')), 'Aggressive');
+    // Style has nothing left to weigh under Hong Kong — no riichi, no
+    // damaten, and no measured placement effect either — so the chip is
+    // hidden rather than shown pinned on Balanced.
+    expect(find.byKey(const Key('playStyle')), findsNothing);
     expect(labelOf(tester, const Key('handFocus')), 'Speed');
     expect(find.text('FLOWERS & SEASONS'), findsOneWidget);
     expect(find.text('DORA'), findsNothing);
@@ -71,6 +74,7 @@ void main() {
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
     expect(find.text('Away'), findsOneWidget);
     expect(find.text('Shanten'), findsNothing);
+    expect(find.byKey(const Key('guidePlayStyle_balanced')), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -86,16 +90,26 @@ void main() {
     await tester.tap(find.text('Start'));
     await tester.pump(const Duration(milliseconds: 100));
 
+    // Style is a riichi-only dial; pick a non-default value so the
+    // Hong-Kong-and-back round trip below can prove it survives.
+    await tester.tap(find.byKey(const Key('playStyle')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(tester, const Key('playStyle')), 'Defensive');
+
     await tester.tap(find.byKey(const Key('ruleset')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
     expect(find.text('FLOWERS & SEASONS'), findsOneWidget);
+    expect(find.byKey(const Key('playStyle')), findsNothing,
+        reason: 'Hong Kong pins style to Balanced and hides the dial');
 
     await tester.tap(find.byKey(const Key('ruleset')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(find.text('DORA'), findsOneWidget);
+    expect(labelOf(tester, const Key('playStyle')), 'Defensive',
+        reason: 'the riichi style from before the Hong Kong trip comes back');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

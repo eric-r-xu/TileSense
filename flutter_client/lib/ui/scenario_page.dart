@@ -294,15 +294,19 @@ class _ScenarioPageState extends State<ScenarioPage> {
         ],
       ),
       actions: [
-        Tooltip(
-          message: 'How hard the guide pushes',
-          child: TextButton(
-            key: const Key('builderPlayStyle'),
-            onPressed: () => _edit((sc) => sc.style = sc.style.next),
-            style: _barButton(playStyleColor(s.style)),
-            child: Text(s.style.label),
+        // Hidden under Hong Kong, which pins style to Balanced (see
+        // ScenarioController.setRuleset) rather than show a dial that
+        // changes nothing.
+        if (!_hk)
+          Tooltip(
+            message: 'How hard the guide pushes',
+            child: TextButton(
+              key: const Key('builderPlayStyle'),
+              onPressed: () => _edit((sc) => sc.style = sc.style.next),
+              style: _barButton(playStyleColor(s.style)),
+              child: Text(s.style.label),
+            ),
           ),
-        ),
         _windPicker(),
         _seatWindPicker(),
         const SizedBox(width: 8),

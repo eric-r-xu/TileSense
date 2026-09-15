@@ -19,10 +19,13 @@ do — and how that compares to how your own seat plays. Based on
   idea what a hand is worth, they can't see dora, and they discard exactly the
   same way whether the table is calm or a riichi is bearing down on them.
 
-- **Autoplay starts on Aggressive / Speed** in both rulesets — chosen from
-  measured sweeps (see [How the guide measures up](#how-the-guide-measures-up)).
-  The guide beats the bots at a statistically significant level in both
-  rulesets.
+- **Autoplay starts on Speed** in both rulesets, and on Aggressive under
+  riichi — chosen from measured sweeps (see
+  [How the guide measures up](#how-the-guide-measures-up)). The guide beats
+  the bots at a statistically significant level in both rulesets.
+- **Style is a riichi-only dial.** Hong Kong has no riichi or damaten for it
+  to weigh, and a full sweep found no placement effect from it either, so the
+  toggle is hidden and pinned to Balanced under Hong Kong rules.
 
 ## Same brain, three costumes
 
@@ -154,7 +157,9 @@ New Style table), Hong Kong defence (no genbutsu or suji — nothing is ever
 certified safe, and the threat is an opponent with three or more exposed
 sets), a 16-chip deal-in cost, and a gentler penalty on narrow hands before
 ready (see [Hong Kong — the guide beats the bots](#hong-kong--the-guide-beats-the-bots)).
-There is no riichi, damaten or deposit to weigh.
+There is no riichi, damaten or deposit to weigh — which is also why the
+**Style** dial is hidden under Hong Kong and pinned to Balanced rather than
+left for you to set (see [Style does nothing under Hong Kong](#style-does-nothing-under-hong-kong)).
 
 ## How the guide measures up
 
@@ -162,13 +167,18 @@ Autoplay plays your seat from the guide's own recommendation — the
 highest-expected-value discard, its call advice and its kong verdict — tuned by
 two dials: **Style** (how dearly danger is priced) and **Focus** (Speed
 sharpens the gap between a likely hand and an unlikely one; Balanced leaves
-expected value alone). Both start on **Aggressive / Speed**.
+expected value alone). Both start on **Aggressive / Speed** under riichi;
+Hong Kong hides Style and pins it to Balanced (see below), so only Focus is
+exposed there, starting on **Speed**.
 
 That default comes from `test/policy_sweep_test.dart`, which plays every
 Style × Focus pairing on the *same* seeds (common random numbers) against a
 **control arm**: `SimpleBot` sitting in your seat. Every guide arm is compared
 game-by-game with the control, and p-values are Holm-corrected across the
-pairings. Placement is 1–4 (lower is better; ties split).
+pairings. Placement is 1–4 (lower is better; ties split). The same file's
+`_dialEffects` isolates each dial on its own — Speed vs. Balanced focus at
+every style, and every style pairing averaged over focus — which is what
+established that Style does nothing under Hong Kong (see below).
 
 ### Riichi — the guide beats the bots
 
@@ -294,6 +304,32 @@ shipped guide over 6000 paired games on fresh seeds (`HK_TUNE_ROUND=5`):
 shipped model stays; the call counter, the calibration harness and the fitter
 remain for the next attempt, which should fit the model to *decisions* (which
 discard leads to more wins) rather than to outcomes.
+
+### Style does nothing under Hong Kong
+
+Two of Style's three effects are already dead code under Hong Kong: it has no
+riichi to lock into and no damaten to weigh, so `PlayStyle.damatenBar` is
+never read and the riichi lock-in cost term never fires — Hong Kong scores
+tenpai through its own `_assessHongKongTenpaiValue`, which doesn't touch
+`context.style` at all. The one live wire left is `PlayStyle.riskWeight`
+scaling the flat Hong Kong deal-in cost on every discard.
+
+`_dialEffects` in `test/policy_sweep_test.dart` measured whether that
+remaining wire moves anything, 2000 East-only games per Style × Focus arm
+(14000 games total), Holm-corrected within each family:
+
+| Comparison | Δ placement (95% CI) | Holm p |
+|---|---|---|
+| Defensive − Balanced (avg. focus) | 0.002 ± 0.008 | 1.0 |
+| Defensive − Aggressive (avg. focus) | 0.005 ± 0.010 | 1.0 |
+| Balanced − Aggressive (avg. focus) | 0.003 ± 0.006 | 1.0 |
+| Speed − Balanced focus, every style | −0.10 to −0.11 ± 0.05 | ≤ 4.0e-5 |
+
+Style is a well-powered null: every pairwise comparison is near zero with
+Holm p = 1.0. Focus, on the same seeds, is not — Speed beats Balanced focus
+at every style. So Autoplay's Hong Kong default is **Speed**, and the Style
+toggle is hidden and pinned to Balanced rather than shown doing nothing (see
+`GameController.setRuleset` and `ScenarioController.setRuleset`).
 
 **Style and Focus.** The Style × Focus sweep was run on the original guide
 (2000 East-only games per arm): Aggressive / Speed placed best of the six —

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **The Style dial is hidden under Hong Kong rules and pinned to Balanced.**
+  Style has no riichi or damaten left to weigh there — two of its three terms
+  were already dead code — and a 14,000-game sweep (`_dialEffects` in
+  `test/policy_sweep_test.dart`) found no placement effect from the third
+  either (every pairwise style comparison Holm p = 1.0), while Speed still
+  beat Balanced focus at every style (p ≤ 4e-5). `GameController` and
+  `ScenarioController` now pin `playStyle` to Balanced on switching to Hong
+  Kong and restore the prior riichi style on switching back; the app bar,
+  builder toolbar and guide panel all hide the chip while Hong Kong is
+  active. Riichi is unaffected. Details:
+  `flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong`.
 - **Measured, and not adopted: a call-aware, self-play-calibrated Hong Kong
   win model.** `TileEfficiencyCalculator.callAcceptance` counts tiles a hand
   could pung or chow forward; the win model's constants now live in
@@ -28,14 +39,14 @@ All notable changes to this project will be documented in this file.
   bot: 0.249) with 15% fewer deal-ins than the bot. New opt-in harnesses:
   `test/hong_kong/hk_guide_diag_test.dart` and
   `test/hong_kong/hk_tuning_sweep_test.dart`. Riichi is unaffected.
-- **The guide starts on Aggressive / Speed in both rulesets.** New games and
-  the builder open with Style on Aggressive and Focus on Speed; switching
-  rulesets keeps whatever the dials are set to. `EfficiencyValueContext` keeps
-  Balanced / Balanced as its reference default. Evidence, in
-  `flutter_client/BOT_STRATEGY.md`: in riichi every Speed and Balanced pairing
-  beats the control bot (0.11–0.26 placement, Holm-corrected); in Hong Kong
-  Aggressive / Speed is the best of the six pairings (2000 East games per
-  arm).
+- **The guide starts on Aggressive / Speed under riichi, and Speed under Hong
+  Kong** (Style is hidden there — see above). New games and the builder open
+  on those defaults; switching rulesets restores whatever riichi's Style was
+  set to. `EfficiencyValueContext` keeps Balanced / Balanced as its reference
+  default. Evidence, in `flutter_client/BOT_STRATEGY.md`: in riichi every
+  Speed and Balanced pairing beats the control bot (0.11–0.26 placement,
+  Holm-corrected); in Hong Kong Speed beats Balanced focus at every style
+  (p ≤ 4e-5, `_dialEffects`).
 - `policy_sweep_test.dart` gained `SWEEP_RULESET` and Holm-corrected,
   best-arm comparisons.
 - **Flowers and seasons are real tiles** — 梅 蘭 菊 竹 / 春 夏 秋 冬 with their

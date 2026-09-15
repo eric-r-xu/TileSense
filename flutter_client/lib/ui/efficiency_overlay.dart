@@ -58,7 +58,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           children: [
             _header(r),
             if (!_minimized) ...[
-              _styleDial(),
+              if (!_hk) _styleDial(),
               _focusDial(),
               const SizedBox(height: 8),
               if (widget.game.awaitingHumanCall) _callAdvice(),
@@ -102,6 +102,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// The play-style dial, mirrored here from the app bar (live game) or the
   /// tool bar (scenario builder). It is not a second setting: both read and
   /// write the one [GuideHost.playStyle], so moving either moves the other.
+  ///
+  /// Riichi only — [GameController.setRuleset] pins [GuideHost.playStyle] to
+  /// Balanced under Hong Kong rules, where it has nothing left to weigh, so
+  /// callers skip this when [_hk] is true rather than show a chip that does
+  /// nothing.
   Widget _styleDial() {
     final current = widget.game.playStyle;
     return Padding(
@@ -453,7 +458,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             '• Risk — ${_hk ? 'chips' : 'points'} taken off EV for the danger '
             'of this cut',
             style: style),
-        Text('• Style — how much danger the guide will take on', style: style),
+        if (!_hk)
+          Text('• Style — how much danger the guide will take on',
+              style: style),
         Text('• Focus — what it will take that danger for: a quicker hand '
             'or a bigger one', style: style),
         Text('• Green tile — the guide\'s recommended discard', style: style),
