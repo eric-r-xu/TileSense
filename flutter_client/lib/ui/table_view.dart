@@ -160,8 +160,14 @@ class TableView extends StatelessWidget {
             // Round / honba / riichi / wall — dead centre of the pond square.
             Align(alignment: Alignment.center, child: _statusBox(round)),
 
-            // Dead wall — top-right corner.
-            Positioned(top: 0, right: 0, child: _deadWall(round)),
+            // Dead wall (riichi) or exposed flowers (Hong Kong) — top-right.
+            Positioned(
+              top: 0,
+              right: 0,
+              child: round.ruleset.isHongKong
+                  ? _flowers(round)
+                  : _deadWall(round),
+            ),
           ],
         );
       }),
@@ -200,7 +206,11 @@ class TableView extends StatelessWidget {
           const SizedBox(height: 2),
           line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
           const SizedBox(height: 1),
-          line('Honba ${game.honba}  ·  Riichi ${round.riichiSticks}', 10,
+          line(
+              round.ruleset.isHongKong
+                  ? 'Hong Kong  ·  0-faan minimum'
+                  : 'Honba ${game.honba}  ·  Riichi ${round.riichiSticks}',
+              10,
               FontWeight.w600),
         ],
       ),
@@ -224,6 +234,48 @@ class TableView extends StatelessWidget {
         height: 7,
         decoration: const BoxDecoration(
             color: Color(0xffcc1111), shape: BoxShape.circle),
+      ),
+    );
+  }
+
+  /// Hong Kong's exposed flowers and seasons, one row per seat, in the corner
+  /// the riichi dead wall would take. In the builder, tapping selects it.
+  Widget _flowers(Round round) {
+    const label = TextStyle(color: Colors.white54, fontSize: 11);
+    return _selectable(
+      TableArea.dora,
+      -1,
+      Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('FLOWERS & SEASONS', style: label),
+            for (final seat in round.seats)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                        width: 18,
+                        child: Text(seat.wind.kanji,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12))),
+                    if (seat.flowers.isEmpty)
+                      const Text('—', style: label)
+                    else
+                      for (final tile in seat.flowers)
+                        Padding(
+                          padding: const EdgeInsets.all(0.5),
+                          child: TileFace(tile: tile, size: TileSize.small),
+                        ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

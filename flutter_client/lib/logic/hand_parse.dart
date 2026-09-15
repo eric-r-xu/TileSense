@@ -40,7 +40,16 @@ bool isAgari(List<int> counts34, {int meldCount = 0}) {
 
 /// Every standard decomposition of the concealed [counts34] (which already
 /// contains the winning tile). [openMelds] is the count of the player's calls.
-List<HandDecomposition> decompose(List<int> counts34, {int openMelds = 0}) {
+///
+/// By default each pair yields only the first way its remaining tiles split
+/// into melds, which is all riichi scoring has ever used. Hong Kong scoring
+/// needs [allArrangements]: 111222333 read as three triplets or as three runs
+/// scores differently there, so every split is returned.
+List<HandDecomposition> decompose(
+  List<int> counts34, {
+  int openMelds = 0,
+  bool allArrangements = false,
+}) {
   final results = <HandDecomposition>[];
   final needMelds = 4 - openMelds;
 
@@ -48,6 +57,12 @@ List<HandDecomposition> decompose(List<int> counts34, {int openMelds = 0}) {
     if (counts34[pair] < 2) continue;
     final work = List<int>.of(counts34);
     work[pair] -= 2;
+    if (allArrangements) {
+      _collectAllMelds(work, needMelds, const [], (melds) {
+        results.add(HandDecomposition(melds: melds, pair: typeFrom34(pair)));
+      });
+      continue;
+    }
     final melds = <Meld>[];
     if (_collectMelds(work, 0, needMelds, melds)) {
       results.add(HandDecomposition(
@@ -204,4 +219,33 @@ bool _collectMelds(List<int> c, int start, int need, List<Meld> acc) {
   }
 
   return false;
+}
+
+/// Every way [c] splits into exactly [need] melds, each reported to [found].
+/// [c] is restored before returning.
+void _collectAllMelds(List<int> c, int need, List<Meld> acc,
+    void Function(List<Meld>) found) {
+  final i = c.indexWhere((n) => n > 0);
+  if (acc.length == need) {
+    if (i < 0) found(List.of(acc));
+    return;
+  }
+  if (i < 0) return;
+  final t = typeFrom34(i);
+  if (c[i] >= 3) {
+    c[i] -= 3;
+    _collectAllMelds(c, need,
+        [...acc, Meld(kind: MeldKind.triplet, low: t, concealed: true)], found);
+    c[i] += 3;
+  }
+  if (t.isSuit && t.number <= 7 && c[i + 1] > 0 && c[i + 2] > 0) {
+    c[i]--;
+    c[i + 1]--;
+    c[i + 2]--;
+    _collectAllMelds(c, need,
+        [...acc, Meld(kind: MeldKind.sequence, low: t, concealed: true)], found);
+    c[i]++;
+    c[i + 1]++;
+    c[i + 2]++;
+  }
 }

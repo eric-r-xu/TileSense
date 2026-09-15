@@ -4,11 +4,14 @@
 /// no turn order to advance. It holds exactly what the TileSense guide reads —
 /// your concealed tiles and melds, every seat's discards and calls, the dora
 /// indicators, the wall counter, and who is in riichi — and nothing else.
+/// Under Hong Kong rules the dora and riichi give way to each seat's flowers.
 library;
 
 import '../game/game_controller.dart' show kHumanSeat, kSeatNames;
-import '../logic/efficiency_engine.dart' show HandFocus, PlayStyle;
+import '../logic/efficiency_engine.dart'
+    show HandFocus, PlayStyle, kDefaultHandFocus, kDefaultPlayStyle;
 import '../logic/meld.dart';
+import '../logic/ruleset.dart';
 import '../logic/tile.dart';
 
 /// The most tiles of one type that can exist, and the most red fives per suit.
@@ -24,6 +27,9 @@ class ScenarioSeat {
   final List<Tile> pond = [];
   final List<Meld> melds = [];
 
+  /// Hong Kong: flowers and seasons this seat has exposed.
+  final List<Tile> flowers = [];
+
   bool riichi = false;
 
   /// Index into [pond] of the sideways declaration tile. -1 while not in
@@ -34,6 +40,7 @@ class ScenarioSeat {
   void clear() {
     pond.clear();
     melds.clear();
+    flowers.clear();
     riichi = false;
     riichiPondIndex = -1;
   }
@@ -43,6 +50,10 @@ class ScenarioSeat {
 enum EditTarget { hand, pond, melds, dora }
 
 class Scenario {
+  /// Which game the posed table follows. Change it through
+  /// [ScenarioController.setRuleset], which also clears the table.
+  Ruleset ruleset = Ruleset.riichi;
+
   final List<ScenarioSeat> seats = List.generate(4, (i) => ScenarioSeat(i));
 
   /// Your concealed tiles (seat 0). Melds are held on [seats]`[0].melds`.
@@ -53,10 +64,10 @@ class Scenario {
   final List<TileType> dora = [TileType.man1];
 
   /// How the guide weighs danger against value when scoring this table.
-  PlayStyle style = PlayStyle.balanced;
+  PlayStyle style = kDefaultPlayStyle;
 
   /// Whether the guide chases the faster hand or the bigger one here.
-  HandFocus focus = HandFocus.balanced;
+  HandFocus focus = kDefaultHandFocus;
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;
@@ -95,7 +106,7 @@ class Scenario {
   List<int> visibleCounts34() {
     final counts = List<int>.filled(34, 0);
     void bump(TileType t) {
-      if (t == TileType.blank) return;
+      if (!t.isPlayingTile) return;
       counts[t.index - 1]++;
     }
 
@@ -119,11 +130,16 @@ class Scenario {
     return counts;
   }
 
-  int used(TileType type) =>
-      type == TileType.blank ? 0 : visibleCounts34()[type.index - 1];
+  int used(TileType type) => type.isBonus
+      ? seats.expand((s) => s.flowers).where((t) => t.type == type).length
+      : type == TileType.blank
+          ? 0
+          : visibleCounts34()[type.index - 1];
 
-  /// How many more copies of [type] the table can still hold.
-  int remainingCopies(TileType type) => kCopiesPerTile - used(type);
+  /// How many more copies of [type] the table can still hold. Each flower and
+  /// season exists once.
+  int remainingCopies(TileType type) =>
+      (type.isBonus ? 1 : kCopiesPerTile) - used(type);
 
   /// Red fives already placed in [type]'s suit — at most one exists per suit.
   bool akaUsed(TileType type) {
@@ -197,14 +213,26 @@ class Scenario {
       }
     }
 
-    if (dora.isEmpty) out.add('Set at least one dora indicator.');
-    if (wallRemaining < 0 || wallRemaining > 122) {
-      out.add('Wall must be between 0 and 122 tiles.');
+    if (ruleset.isHongKong) {
+      for (final type in TileType.values.where((t) => t.isBonus)) {
+        if (used(type) > 1) out.add('Only one ${type.displayName} exists.');
+      }
+      if (hand.any((t) => !t.type.isPlayingTile)) {
+        out.add('Flowers belong in the bonus area.');
+      }
+    } else if (dora.isEmpty) {
+      out.add('Set at least one dora indicator.');
+    }
+    if (wallRemaining < 0 || wallRemaining > maxWall) {
+      out.add('Wall must be between 0 and $maxWall tiles.');
     }
     return out;
   }
 
   bool get isValid => problems().isEmpty;
+
+  /// The most tiles a live wall can hold once the hands are dealt.
+  int get maxWall => ruleset.isHongKong ? 144 : 122;
 
   /// True when the hand is a full 14 (a drawn tile in hand) and the guide
   /// should recommend a discard rather than a call.
@@ -217,11 +245,10 @@ class Scenario {
     for (final s in seats) {
       s.clear();
     }
-    dora
-      ..clear()
-      ..add(TileType.man1);
+    dora.clear();
+    if (ruleset.isRiichi) dora.add(TileType.man1);
     offered = null;
-    wallRemaining = 70;
+    wallRemaining = ruleset.isHongKong ? 84 : 70;
     honba = 0;
     riichiSticks = 0;
     // Round wind, seat wind and play style are settings, not table state —

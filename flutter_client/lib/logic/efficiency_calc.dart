@@ -344,7 +344,7 @@ TileType typeFromTrainerIndex(int i) {
 List<int> toTrainerCounts(Iterable<Tile> tiles) {
   final counts = List<int>.filled(38, 0);
   for (final tile in tiles) {
-    counts[trainerIndexOf(tile.type)]++;
+    if (tile.type.isPlayingTile) counts[trainerIndexOf(tile.type)]++;
   }
   return counts;
 }

@@ -67,10 +67,24 @@ class TileFace extends StatelessWidget {
   static const Color _red = Color(0xffc62828);
   static const Color _green = Color(0xff1b7a3a);
 
+  /// Hong Kong flowers and seasons: the picture takes the plant's or season's
+  /// own colour, and a `-k` layer inks the character over it.
+  static const Map<TileType, Color> _bonusTints = {
+    TileType.plum: Color(0xffc8285a),
+    TileType.orchid: Color(0xff7b3fa0),
+    TileType.chrysanthemum: Color(0xffcd8200),
+    TileType.bamboo: _green,
+    TileType.spring: _green,
+    TileType.summer: Color(0xffd74600),
+    TileType.autumn: Color(0xffbe5014),
+    TileType.winter: Color(0xff1e64b4),
+  };
+
   Color get _tint {
     if (_aka) return _red;
     final t = _type;
     if (t == null) return _ink;
+    if (t.isBonus) return _bonusTints[t]!;
     if (t == TileType.chun) return _red;
     if (t == TileType.hatsu || t.isSou || t == TileType.pin1) return _green;
     return _ink;
@@ -102,6 +116,14 @@ class TileFace extends StatelessWidget {
     TileType.sou5: [('sou5-r', _red)],
     TileType.sou7: [('sou7-r', _red)],
     TileType.sou9: [('sou9-r', _red)],
+    TileType.plum: [('plum-k', _ink)],
+    TileType.orchid: [('orchid-k', _ink)],
+    TileType.chrysanthemum: [('chrysanthemum-k', _ink)],
+    TileType.bamboo: [('bamboo-k', _ink)],
+    TileType.spring: [('spring-k', _ink)],
+    TileType.summer: [('summer-k', _ink)],
+    TileType.autumn: [('autumn-k', _ink)],
+    TileType.winter: [('winter-k', _ink)],
   };
 
   List<(String, Color)> get _tileAccents =>

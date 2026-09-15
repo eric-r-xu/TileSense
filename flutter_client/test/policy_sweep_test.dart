@@ -9,6 +9,8 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/bot.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
+import 'package:tilesense/logic/round.dart';
+import 'package:tilesense/logic/ruleset.dart';
 
 import 'folding_bot.dart';
 
@@ -25,6 +27,10 @@ import 'folding_bot.dart';
 ///
 ///   SWEEP_GAMES=200 flutter test test/policy_sweep_test.dart
 ///   SWEEP_GAMES=200 SWEEP_EAST=1 SIM_FOLD=1 flutter test test/policy_sweep_test.dart
+///   SWEEP_GAMES=200 SWEEP_RULESET=hongKong flutter test test/policy_sweep_test.dart
+///
+/// Under Hong Kong rules the full game is four winds, FoldingBot has no riichi
+/// to fold against, and the riichi column counts self-picks instead.
 void main() {
   final env = Platform.environment;
   final games = int.tryParse(env['SWEEP_GAMES'] ?? '') ?? 0;
@@ -33,12 +39,15 @@ void main() {
     final shards = int.tryParse(env['SWEEP_SHARDS'] ?? '') ?? 10;
     final base = int.tryParse(env['SWEEP_SEED'] ?? '') ?? 1000;
     final fold = env['SIM_FOLD'] == '1';
+    final ruleset = Ruleset.values.byName(env['SWEEP_RULESET'] ?? 'riichi');
     // East-only games run in half the time and rank settings the same way;
     // confirm the winner over hanchan before believing a small gap.
     final east = env['SWEEP_EAST'] == '1';
     final sw = Stopwatch()..start();
-    print('Opponents: ${fold ? 'FoldingBot' : 'SimpleBot (never fold)'}, '
-        '${east ? 'East-only' : 'hanchan'}, $games games/arm');
+    print('${ruleset.label} rules. '
+        'Opponents: ${fold ? 'FoldingBot' : 'SimpleBot (never fold)'}, '
+        '${east ? 'East-only' : (ruleset.isHongKong ? 'four winds' : 'hanchan')}, '
+        '$games games/arm');
 
     final arms = <(String, List<_Row>)>[];
     // The control arm is SimpleBot playing seat 0 through the human API: it
@@ -46,11 +55,12 @@ void main() {
     for (final cfg in _configs) {
       arms.add((
         cfg.$1,
-        await _runArm(base, games, shards, cfg.$2, cfg.$3, fold, east),
+        await _runArm(
+            base, games, shards, cfg.$2, cfg.$3, fold, east, ruleset),
       ));
     }
     print('Ran ${arms.length * games} games in ${sw.elapsed.inSeconds}s\n');
-    _report(arms);
+    _report(arms, ruleset);
   }, skip: games == 0 ? 'set SWEEP_GAMES to run' : false, timeout: Timeout.none);
 }
 
@@ -73,30 +83,32 @@ class _Row {
 }
 
 Future<List<_Row>> _runArm(int base, int games, int shards, PlayStyle? style,
-    HandFocus focus, bool fold, bool east) async {
+    HandFocus focus, bool fold, bool east, Ruleset ruleset) async {
   final parts = await Future.wait([
     for (var s = 0; s < shards; s++)
       Isolate.run(() =>
-          _shard(base, games, s, shards, style, focus, fold, east)),
+          _shard(base, games, s, shards, style, focus, fold, east, ruleset)),
   ]);
   return [for (final p in parts) ...p];
 }
 
 List<_Row> _shard(int base, int games, int shard, int shards, PlayStyle? style,
-    HandFocus focus, bool fold, bool east) {
+    HandFocus focus, bool fold, bool east, Ruleset ruleset) {
   Sfx.i.enabled = false;
   return [
     for (var g = shard; g < games; g += shards)
-      _playGame(base + g, style, focus, fold, east),
+      _playGame(base + g, style, focus, fold, east, ruleset),
   ];
 }
 
-_Row _playGame(
-    int seed, PlayStyle? style, HandFocus focus, bool fold, bool east) {
+_Row _playGame(int seed, PlayStyle? style, HandFocus focus, bool fold,
+    bool east, Ruleset ruleset) {
   late _Row row;
   fakeAsync((fa) {
     final game = GameController(
-        seed: seed, botFactory: fold ? FoldingBot.new : SimpleBot.new);
+        seed: seed,
+        botFactory: fold ? FoldingBot.new : SimpleBot.new,
+        ruleset: ruleset);
     game.hanchan = !east;
     if (style != null) {
       game.setAutoplay(true);
@@ -114,7 +126,11 @@ _Row _playGame(
         hands++;
         if (r.winners.contains(kHumanSeat)) wins++;
         if (r.loser == kHumanSeat) dealIns++;
-        if (game.round.seats[kHumanSeat].riichi) riichi++;
+        if (ruleset.isHongKong
+            ? r.kind == RoundEndKind.tsumo && r.winners.contains(kHumanSeat)
+            : game.round.seats[kHumanSeat].riichi) {
+          riichi++;
+        }
         game.continueFromRoundEnd();
         continue;
       }
@@ -196,10 +212,29 @@ double _p(double z) => _erfc(z.abs() / sqrt2);
 String _pf(double p) => p < 1e-6 ? '<1e-6' : p.toStringAsExponential(1);
 String _f(double x, [int d = 3]) => x.toStringAsFixed(d);
 
-void _report(List<(String, List<_Row>)> arms) {
+/// Holm step-down adjustment of [ps], returned in the input order.
+List<double> _holm(List<double> ps) {
+  final order = List.generate(ps.length, (i) => i)
+    ..sort((a, b) => ps[a].compareTo(ps[b]));
+  final out = List<double>.filled(ps.length, 1);
+  var running = 0.0;
+  for (var k = 0; k < order.length; k++) {
+    running = max(running, min(1.0, (ps.length - k) * ps[order[k]]));
+    out[order[k]] = running;
+  }
+  return out;
+}
+
+({double mean, double se, double p}) _paired(List<_Row> a, List<_Row> b) {
+  final d = _ms([for (var i = 0; i < a.length; i++) a[i].place - b[i].place]);
+  return (mean: d.mean, se: d.se, p: _p(d.mean / d.se));
+}
+
+void _report(List<(String, List<_Row>)> arms, Ruleset ruleset) {
   final control = arms.first.$2;
   print('arm                    place ±95%      1st%   pts/game  win/hd  '
-      'deal/hd  riichi/hd   Δplace vs control');
+      'deal/hd  ${ruleset.isHongKong ? '  self/hd' : 'riichi/hd'}   '
+      'Δplace vs control');
   final ranked = [...arms]
     ..sort((a, b) =>
         _mean([for (final r in a.$2) r.place]).compareTo(
@@ -226,5 +261,22 @@ void _report(List<(String, List<_Row>)> arms) {
         '${_f(rows.fold<int>(0, (a, r) => a + r.dealIns) / hands).padLeft(9)}'
         '${_f(rows.fold<int>(0, (a, r) => a + r.riichi) / hands).padLeft(11)}'
         '   $delta');
+  }
+
+  // Six (or nine) looks at the same control inflate the chance of a lucky
+  // winner, so the p-values are Holm-corrected across them.
+  final guide = ranked.where((a) => !identical(a.$2, control)).toList();
+  final vsControl = [for (final a in guide) _paired(a.$2, control)];
+  final holm = _holm([for (final c in vsControl) c.p]);
+  final best = guide.first;
+  print('\nguide arms, best first (Δ < 0 is a better placement):');
+  print('arm                    Δ vs control     Holm p     Δ vs ${best.$1}   p');
+  for (var i = 0; i < guide.length; i++) {
+    final c = vsControl[i];
+    final vsBest = identical(guide[i], best) ? null : _paired(guide[i].$2, best.$2);
+    print('${guide[i].$1.padRight(22)}'
+        '${_f(c.mean).padLeft(7)} ±${_f(1.96 * c.se)}'
+        '${_pf(holm[i]).padLeft(10)}'
+        '${vsBest == null ? '' : '     ${_f(vsBest.mean).padLeft(7)} ±${_f(1.96 * vsBest.se)}  ${_pf(vsBest.p)}'}');
   }
 }

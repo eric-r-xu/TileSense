@@ -115,7 +115,9 @@ class _HandViewState extends State<HandView> {
 
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
-      final tappable = canPlay && (!riichiLocked || isDrawn);
+      final tappable = canPlay &&
+          (!riichiLocked || isDrawn) &&
+          !round.canFlowerWin(kHumanSeat);
       final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = !showGuide
           ? null
@@ -146,7 +148,8 @@ class _HandViewState extends State<HandView> {
     /// horizontal scroll view and the tiles themselves are tap-to-discard, so
     /// a bare horizontal drag is already spoken for twice over. A long press
     /// is unambiguous, and means no gesture here can be started by accident.
-    Widget draggableTile(Tile tile, List<Tile> shown, {bool separated = false}) {
+    Widget draggableTile(Tile tile, List<Tile> shown,
+        {bool separated = false}) {
       final child = tileButton(tile, separated: separated);
       return DragTarget<int>(
         onWillAcceptWithDetails: (details) => details.data != tile.id,
@@ -400,6 +403,7 @@ class _HandViewState extends State<HandView> {
 
   Widget _actionBar(BuildContext context) {
     final buttons = <Widget>[];
+    final ruleset = game.round.ruleset;
 
     // Furiten marker: shown whenever the human seat is tenpai but barred from
     // ron. It sits first so it stays visible next to (or instead of) the call
@@ -417,37 +421,43 @@ class _HandViewState extends State<HandView> {
       ));
     }
 
-    if (game.awaitingHumanCall) {
+    if (game.round.canFlowerWin(kHumanSeat)) {
+      // Hong Kong: a seventh or eighth flower may be claimed as a win.
+      buttons.add(_btn('FLOWER WIN', const Color(0xff2e7d32), game.humanTsumo));
+      buttons.add(_btn('CONTINUE DRAWING', const Color(0xff37474f),
+          game.humanPassFlowerWin));
+    } else if (game.awaitingHumanCall) {
       final opt = game.humanCallOption!;
       if (opt.types.contains(CallType.ron)) {
-        buttons.add(_btn('RON', const Color(0xffd84315),
-            () => game.answerCall(CallType.ron)));
+        buttons.add(_btn(ruleset.ronLabel.toUpperCase(),
+            const Color(0xffd84315), () => game.answerCall(CallType.ron)));
       }
       if (opt.types.contains(CallType.pon)) {
-        buttons.add(_btn('PON', const Color(0xff00695c),
-            () => game.answerCall(CallType.pon)));
+        buttons.add(_btn(ruleset.ponLabel.toUpperCase(),
+            const Color(0xff00695c), () => game.answerCall(CallType.pon)));
       }
       if (opt.types.contains(CallType.kan)) {
-        buttons.add(_btn('KAN', const Color(0xff4527a0),
-            () => game.answerCall(CallType.kan)));
+        buttons.add(_btn(ruleset.kanLabel.toUpperCase(),
+            const Color(0xff4527a0), () => game.answerCall(CallType.kan)));
       }
       if (opt.types.contains(CallType.chi)) {
-        buttons.add(_btn('CHI', const Color(0xff00838f),
-            () => game.answerCall(CallType.chi)));
+        buttons.add(_btn(ruleset.chiLabel.toUpperCase(),
+            const Color(0xff00838f), () => game.answerCall(CallType.chi)));
       }
       buttons.add(_btn('PASS', const Color(0xff37474f),
           () => game.answerCall(CallType.none)));
     } else if (game.isHumanTurn) {
       if (game.humanCanTsumo) {
-        buttons.add(_btn('TSUMO', const Color(0xff2e7d32), game.humanTsumo));
+        buttons.add(_btn(ruleset.tsumoLabel.toUpperCase(),
+            const Color(0xff2e7d32), game.humanTsumo));
       }
       for (final t in game.humanClosedKanTypes) {
-        buttons.add(_btn('KAN ${t.code}', const Color(0xff4527a0),
-            () => game.humanClosedKan(t)));
+        buttons.add(_btn('${ruleset.kanLabel.toUpperCase()} ${t.code}',
+            const Color(0xff4527a0), () => game.humanClosedKan(t)));
       }
       for (final t in game.humanAddedKanTypes) {
-        buttons.add(_btn('KAN ${t.code}', const Color(0xff4527a0),
-            () => game.humanAddKan(t)));
+        buttons.add(_btn('${ruleset.kanLabel.toUpperCase()} ${t.code}',
+            const Color(0xff4527a0), () => game.humanAddKan(t)));
       }
       if (game.report.recommendRiichi) {
         buttons.add(const Chip(

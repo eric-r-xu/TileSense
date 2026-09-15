@@ -4,6 +4,7 @@ import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/round.dart';
+import '../logic/ruleset.dart';
 import '../main.dart' show handFocusColor, playStyleColor;
 import 'tile_face.dart';
 
@@ -77,7 +78,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
-                              'Safety vs ${seatDisplayName(widget.game.safetyOpponentSeat!)} (riichi only)',
+                              'Safety vs ${seatDisplayName(widget.game.safetyOpponentSeat!)} '
+                              '(${_hk ? 'estimated risk' : 'riichi only'})',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 9),
                             ),
@@ -203,6 +205,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
+  bool get _hk => widget.game.round.ruleset.isHongKong;
+
   /// The recommended line's plan ('RIICHI', 'DAMATEN', ...) once tenpai, for
   /// the header badge — null before tenpai or with nothing to recommend.
   String? _topPlan(EfficiencyReport r) =>
@@ -213,7 +217,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// just for the riichi/damaten decision instead.
   Widget _planReason(DiscardLine top) {
     if (top.reason.isEmpty) return const SizedBox.shrink();
-    final act = top.valuePlan == 'RIICHI' || top.valuePlan == 'DAMATEN';
+    final act = top.valuePlan == 'RIICHI' ||
+        top.valuePlan == 'DAMATEN' ||
+        top.valuePlan == 'READY';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -259,7 +265,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('KAN ${k.type.code} — ${act ? 'take it' : 'skip it'}',
+          Text(
+              '${widget.game.round.ruleset.kanLabel.toUpperCase()} '
+              '${k.type.code} — ${act ? 'take it' : 'skip it'}',
               style: TextStyle(
                   color: act ? const Color(0xffb39ddb) : Colors.white,
                   fontSize: 11,
@@ -323,8 +331,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 color: const Color(0xff4527a0),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text('KAN',
-                  style: TextStyle(color: Colors.white, fontSize: 10)),
+              child: Text(widget.game.round.ruleset.kanLabel.toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontSize: 10)),
             ),
           Icon(_minimized ? Icons.expand_more : Icons.expand_less,
               size: 16, color: Colors.white54),
@@ -340,16 +348,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final tile = widget.game.round.pendingDiscard;
     if (opt == null || tile == null) return const SizedBox.shrink();
     final rec = widget.game.recommendedCall ?? CallType.none;
-    final recLabel = switch (rec) {
-      CallType.chi => 'CHI',
-      CallType.pon => 'PON',
-      CallType.kan => 'KAN',
-      CallType.ron => 'RON',
-      CallType.none => 'PASS',
-    };
+    final ruleset = widget.game.round.ruleset;
+    String callLabel(CallType t) => switch (t) {
+          CallType.chi => ruleset.chiLabel.toUpperCase(),
+          CallType.pon => ruleset.ponLabel.toUpperCase(),
+          CallType.kan => ruleset.kanLabel.toUpperCase(),
+          CallType.ron => ruleset.ronLabel.toUpperCase(),
+          CallType.none => 'PASS',
+        };
+    final recLabel = callLabel(rec);
     final offered = [
       for (final t in [CallType.ron, CallType.kan, CallType.pon, CallType.chi])
-        if (opt.types.contains(t)) t.name.toUpperCase(),
+        if (opt.types.contains(t)) callLabel(t),
       'PASS',
     ].join(' · ');
     final act = rec != CallType.none;
@@ -412,9 +422,16 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       children: [
         if (widget.showGameControls)
           const Text('• Esc — pause the game', style: style),
-        Text('• Shanten — tiles away from a ready hand (0 = tenpai)',
-            style: style),
-        Text('• Ukeire — live tiles that reduce shanten', style: style),
+        if (_hk) ...[
+          Text('• Away — tiles away from a ready hand (0 = ready)',
+              style: style),
+          Text('• Accepts — live tiles that bring you closer to ready',
+              style: style),
+        ] else ...[
+          Text('• Shanten — tiles away from a ready hand (0 = tenpai)',
+              style: style),
+          Text('• Ukeire — live tiles that reduce shanten', style: style),
+        ],
         _evTooltip(
           Text(
             '• Expected Value — chance of finishing x what the win '
@@ -426,9 +443,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             ),
           ),
         ),
-        Text('• Safety — 0 (dangerous) to 15 (genbutsu); riichi opponent only',
+        Text(
+            _hk
+                ? '• Safety — higher means lower estimated risk; no discard '
+                    'immunity'
+                : '• Safety — 0 (dangerous) to 15 (genbutsu); riichi opponent only',
             style: style),
-        Text('• Risk — points taken off EV for the danger of this cut',
+        Text(
+            '• Risk — ${_hk ? 'chips' : 'points'} taken off EV for the danger '
+            'of this cut',
             style: style),
         Text('• Style — how much danger the guide will take on', style: style),
         Text('• Focus — what it will take that danger for: a quicker hand '
@@ -479,10 +502,14 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// whether the hand is ready or five tiles away, and whether or not anyone
   /// is in riichi. The exact coefficients live in the README; what matters
   /// here is which way each part pushes the number.
-  static final List<InlineSpan> _evGeneral = [
+  static final List<InlineSpan> _evGeneral = _evGeneralFor(Ruleset.riichi);
+  static final List<InlineSpan> _evGeneralHongKong =
+      _evGeneralFor(Ruleset.hongKong);
+
+  static List<InlineSpan> _evGeneralFor(Ruleset ruleset) => [
     const TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
-    const TextSpan(
-        text: 'The average points this discard is worth to you.\n',
+    TextSpan(
+        text: 'The average ${ruleset.unit} this discard is worth to you.\n',
         style: _tipBody),
     const TextSpan(
         text: '\n  EV  =  chance of finishing\n'
@@ -492,24 +519,35 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     _tipPart('CHANCE OF FINISHING',
         'Winning once you are ready, and getting there first. Rises with more '
         'useful tiles still live and more draws left to find them.\n'),
-    _tipPart('WHAT THE WIN PAYS',
-        'What this line collects if it lands, plus any honba and riichi '
-        'sticks already on the table. Once a discard leaves you tenpai this '
-        'is scored exactly; before that it is an estimate, adjusted for the '
-        'dora this particular cut keeps.\n'),
-    _tipPart('WHAT THE CUT RISKS',
-        'Declaring riichi stakes 1,000 you only get back by winning — so it '
-        'is charged even on a quiet table, and never for more than declaring '
-        'is worth. With a riichi out against you, the cut is charged again: '
-        'how often a tile this safe deals in, and the turns it commits you to '
-        'after this one. A genbutsu cut commits you to nothing.\n'),
+    if (ruleset.isHongKong) ...[
+      _tipPart('WHAT THE WIN PAYS',
+          'Hong Kong faan converted to chips. Once a discard leaves you ready '
+          'this is scored exactly; before that it is an estimate from the '
+          'patterns the hand already shows.\n'),
+      _tipPart('WHAT THE CUT RISKS',
+          'Estimated loss against an opponent with two or more exposed sets. '
+          'A previously discarded tile can still win; no tile is guaranteed '
+          'safe.\n'),
+    ] else ...[
+      _tipPart('WHAT THE WIN PAYS',
+          'What this line collects if it lands, plus any honba and riichi '
+          'sticks already on the table. Once a discard leaves you tenpai this '
+          'is scored exactly; before that it is an estimate, adjusted for the '
+          'dora this particular cut keeps.\n'),
+      _tipPart('WHAT THE CUT RISKS',
+          'Declaring riichi stakes 1,000 you only get back by winning — so it '
+          'is charged even on a quiet table, and never for more than declaring '
+          'is worth. With a riichi out against you, the cut is charged again: '
+          'how often a tile this safe deals in, and the turns it commits you to '
+          'after this one. A genbutsu cut commits you to nothing.\n'),
+    ],
     _tipPart('FOCUS',
         'Speed and Value tilt the trade between the first two terms — Speed '
         'pays points for a better chance of getting there, Value does the '
         'reverse. Balanced leaves it alone, and shows no tilt line below.\n'),
-    const TextSpan(
+    TextSpan(
         text: '\nHigher is better, and it can go negative: a dangerous cut on '
-            'a cheap hand loses points on average.',
+            'a cheap hand loses ${ruleset.unit} on average.',
         style: _tipDim),
   ];
 
@@ -589,7 +627,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// Pass [line] on a table cell to append that row's own arithmetic.
   Widget _evTooltip(Widget child, {DiscardLine? line}) => Tooltip(
         richMessage: TextSpan(children: [
-          ..._evGeneral,
+          ...(_hk ? _evGeneralHongKong : _evGeneral),
           if (line != null) ..._evWorked(line, widget.game.handFocus),
         ]),
         waitDuration: const Duration(milliseconds: 250),
@@ -628,8 +666,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       children: [
         _headerRow([
           '',
-          'Shanten',
-          'Ukeire',
+          _hk ? 'Away' : 'Shanten',
+          _hk ? 'Accepts' : 'Ukeire',
           'Expected Value',
           if (r.defending) ...['Safety', 'Risk', 'Detail'],
         ]),

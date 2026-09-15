@@ -7,10 +7,17 @@
 
 [Play the live web app](https://app.ericrxu.com/tilesense/)
 
-A Japanese mahjong (riichi) **tile-efficiency trainer**: play offline hands
-against bots while a live guide grades every discard — shanten, ukeire (tile
-acceptance), probability-weighted point value, and the recommended tile — and,
-when an opponent declares riichi, ranks your hand by safety.
+A mahjong **tile-efficiency trainer** for **Japanese riichi** and **Hong Kong**
+rules: play offline hands against bots while a live guide grades every discard
+— shanten, ukeire (tile acceptance), probability-weighted point value, and the
+recommended tile — and, when an opponent threatens, ranks your hand by safety.
+
+Pick 🇯🇵 Riichi or 🇭🇰 Hong Kong on the welcome screen, or switch at any time
+from the game's app bar (which deals a new game) or the builder's chip row.
+Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
+**0-faan minimum**; see [Hong Kong rules](docs/HONG_KONG_RULES.md). One-page
+references: [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf),
+[HK.pdf](https://app.ericrxu.com/static/HK.pdf).
 
 This repo contains the cross-platform **Flutter** app for web, Android, and iOS
 under `flutter_client/`.
@@ -34,6 +41,27 @@ Install the
 
 Details, emulator/simulator launch, and release/store builds are in
 [The Flutter app](#the-flutter-app-flutter_client) below.
+
+---
+
+## Two rulesets, one engine
+
+`lib/logic/ruleset.dart` defines `Ruleset.riichi` and `Ruleset.hongKong`. The
+round, guide, bots, scenario builder and UI are shared and branch on the
+ruleset only where the games differ. Hong Kong-only logic lives in
+`lib/logic/hong_kong/`:
+
+| File | What it holds |
+|---|---|
+| `hong_kong_rules.dart` | Minimum faan, the payment table, starting chips, Seven Pairs switch |
+| `hong_kong_scoring.dart` | Faan patterns and payments (`scoreHongKongHand`, `scoreFlowerWin`) |
+| `hong_kong_wall.dart` | The 144-tile wall with flowers and tail replacements |
+| `hong_kong_safety.dart` | Risk estimates with no discard immunity |
+
+Everything else — shanten and acceptance, win-probability modelling, call
+mechanics, the table and hand widgets — is the same code for both. Riichi tests
+live in `test/`, Hong Kong tests in `test/hong_kong/`, and
+`test/ruleset_toggle_test.dart` covers the switch itself.
 
 ---
 
@@ -68,8 +96,33 @@ Details, emulator/simulator launch, and release/store builds are in
 - An **Autoplay** toggle that plays your seat with the recommended discard.
 - A **play style** — defensive, balanced or aggressive — that changes how
   dearly the guide prices danger and how readily it keeps a hand quiet rather
-  than declaring riichi. It never changes what a hand is worth, and it steers
-  Autoplay through the same scores.
+  than declaring riichi, and a **focus** — Speed or Balanced — that tilts
+  chance of finishing against payout. Neither changes what a hand is worth, and
+  both steer Autoplay through the same scores. Both start on
+  **Aggressive / Speed**, chosen from the sweeps below.
+- **🇯🇵 Riichi and 🇭🇰 Hong Kong rules**, chosen on the welcome screen or from
+  the app bar, each with a one-page rules PDF
+  ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
+  [Hong Kong](https://app.ericrxu.com/static/HK.pdf)). Hong Kong plays with a
+  **0-faan minimum** — any complete hand, even a chicken hand, may be declared
+  — plus flower and season tiles, the New Style discarder-pays-all table, and
+  four-wind games.
+
+### How the guide does against the bots
+
+Measured with `test/policy_sweep_test.dart` on identical seeds against a
+`SimpleBot` control in your seat (details and tables in
+[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up)):
+
+- **Riichi — it wins.** Every Speed and Balanced Style × Focus pairing beat
+  the control bot by 0.11–0.26 of a placement, over 2000 East games and again
+  800 hanchan, Holm-corrected; overall the guide went from 0.247 of a placement
+  worse than the bot to 0.211 better (3000 paired hanchan, p = 4e-16).
+- **Hong Kong — not yet.** Aggressive / Speed is the best of the six pairings
+  (0.108 of a placement ahead of Balanced / Balanced, p = 1.7e-5, 2000 East
+  games per arm), but every pairing still places worse than the bot —
+  Aggressive / Speed by 0.129 (Holm p = 8.8e-5). The bot's eager calling wins
+  the race to a 0-faan hand more often than the guide's value-aware play.
 - A **Custom Hand & Context Builder**, on its own screen from the start
   page: pose any table by hand — your tiles, every seat's discards and calls,
   the dora indicators, the wall counter, your seat wind (East deals) and who is

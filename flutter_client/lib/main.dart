@@ -2,11 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle;
+import 'logic/ruleset.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/scenario_page.dart';
@@ -58,6 +60,12 @@ const String _handCountCaveat =
     'That is with the dealership passing every hand. Under standard riichi '
     'rules a dealer who wins, or who is tenpai at an exhaustive draw, keeps '
     'it and the hand is replayed — so either length can run longer.';
+
+/// [_handCountCaveat] under Hong Kong rules, where any draw keeps the deal.
+const String _handCountCaveatHongKong =
+    'That is with the dealership passing every hand. A dealer who wins, or '
+    'any exhaustive draw, keeps it and the hand is replayed — so either '
+    'length can run longer.';
 
 /// One captioned dial in the app bar: a dim fixed caption and the current
 /// value in the dial's own colour, tapped to cycle. The caption sits outside
@@ -597,10 +605,15 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     if (_showBuilder) {
-      return ScenarioPage(onExit: () => setState(() => _showBuilder = false));
+      return ScenarioPage(
+        initialRuleset: _game.ruleset,
+        onExit: () => setState(() => _showBuilder = false),
+      );
     }
     if (_showWelcome) {
       return _WelcomeScreen(
+        ruleset: _game.ruleset,
+        onRuleset: (r) => setState(() => _game.setRuleset(r)),
         onStart: () => setState(() => _showWelcome = false),
         onBuild: () => setState(() => _showBuilder = true),
       );
@@ -637,17 +650,60 @@ class _GamePageState extends State<GamePage> {
             const SizedBox(width: 6),
             const Text('TileSense'),
             const SizedBox(width: 16),
-            // East-only vs. hanchan game length (hanchan is the default).
+            // Which rules the table plays. Switching deals a new game.
             AnimatedBuilder(
               animation: _game,
               builder: (context, _) => Tooltip(
-                message: _game.hanchan
-                    ? 'Hanchan — East and South rounds, 8 hands.\n'
-                        '$_handCountCaveat\n'
-                        'Tap for East only, 4 hands.'
-                    : 'East only (tonpuusen) — the East round, 4 hands.\n'
-                        '$_handCountCaveat\n'
-                        'Tap for hanchan: East and South, 8 hands.',
+                message: 'Playing ${_game.ruleset.label} rules.\n'
+                    'Tap for ${_game.ruleset.next.label} — this starts a new '
+                    'game.',
+                child: TextButton(
+                  key: const Key('ruleset'),
+                  onPressed: () => _game.setRuleset(_game.ruleset.next),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: const Color(0xffffdf76),
+                  ),
+                  child: Text(
+                    _game.ruleset.flagLabel,
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ),
+            // The current ruleset's one-page rules reference.
+            AnimatedBuilder(
+              animation: _game,
+              builder: (context, _) => IconButton(
+                key: const Key('rulesPdf'),
+                tooltip: '${_game.ruleset.label} rules (PDF)',
+                iconSize: 18,
+                visualDensity: VisualDensity.compact,
+                color: Colors.white54,
+                icon: const Icon(Icons.menu_book),
+                onPressed: () => openRules(_game.ruleset),
+              ),
+            ),
+            // East-only vs. full game length (the full game is the default).
+            AnimatedBuilder(
+              animation: _game,
+              builder: (context, _) => Tooltip(
+                message: _game.ruleset.isHongKong
+                    ? (_game.hanchan
+                        ? 'Full game — East, South, West and North, 16 hands.\n'
+                            '$_handCountCaveatHongKong\n'
+                            'Tap for East only, 4 hands.'
+                        : 'East only — the East round, 4 hands.\n'
+                            '$_handCountCaveatHongKong\n'
+                            'Tap for a full game: four winds, 16 hands.')
+                    : _game.hanchan
+                        ? 'Hanchan — East and South rounds, 8 hands.\n'
+                            '$_handCountCaveat\n'
+                            'Tap for East only, 4 hands.'
+                        : 'East only (tonpuusen) — the East round, 4 hands.\n'
+                            '$_handCountCaveat\n'
+                            'Tap for hanchan: East and South, 8 hands.',
                 child: TextButton(
                   key: const Key('hanchan'),
                   onPressed: () => _game.setHanchan(!_game.hanchan),
@@ -656,7 +712,9 @@ class _GamePageState extends State<GamePage> {
                     foregroundColor: const Color(0xffe9d58f),
                   ),
                   child: Text(
-                    _game.hanchan ? 'Hanchan' : 'East only',
+                    _game.hanchan
+                        ? (_game.ruleset.isHongKong ? 'Four winds' : 'Hanchan')
+                        : 'East only',
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600),
                   ),
@@ -709,7 +767,7 @@ class _GamePageState extends State<GamePage> {
                   label: _game.playStyle.label,
                   colour: playStyleColor(_game.playStyle),
                   tooltip: 'How hard the guide (and Auto-Play) pushes: '
-                      'when to fold, when to riichi, when to call',
+                      '${_game.ruleset.isHongKong ? 'when to defend, build value, or call' : 'when to fold, when to riichi, when to call'}',
                   onTap: () => _game.setPlayStyle(_game.playStyle.next),
                 ),
                 _barDial(
@@ -827,12 +885,82 @@ class _GamePageState extends State<GamePage> {
 /// First thing shown on app load: the clefairy mark, the app name, a short
 /// explanation of what TileSense does, and a Start button into the table.
 class _WelcomeScreen extends StatelessWidget {
-  const _WelcomeScreen({required this.onStart, required this.onBuild});
+  const _WelcomeScreen({
+    required this.ruleset,
+    required this.onRuleset,
+    required this.onStart,
+    required this.onBuild,
+  });
+
+  /// The rules Start and the builder will use, and how to change them.
+  final Ruleset ruleset;
+  final ValueChanged<Ruleset> onRuleset;
+
   final VoidCallback onStart;
 
   /// Opens the Custom Hand & Context Builder — a posed table, scored by the
   /// same guide, with no game running behind it.
   final VoidCallback onBuild;
+
+  /// Japanese Riichi or Hong Kong, chosen before Start, each with a link to
+  /// its rules PDF beneath it.
+  Widget _rulesetChoice() {
+    Widget option(Ruleset value, String subtitle) {
+      final selected = ruleset == value;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              key: Key('ruleset_${value.name}'),
+              onPressed: () => onRuleset(value),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: selected ? const Color(0x33caa24e) : null,
+                foregroundColor:
+                    selected ? const Color(0xffffdf76) : Colors.white54,
+                side: BorderSide(
+                    color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                    width: selected ? 2 : 1),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(value.flagLabel,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(subtitle, style: const TextStyle(fontSize: 11)),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              key: Key('rulesPdf_${value.name}'),
+              onPressed: () => openRules(value),
+              icon: const Icon(Icons.open_in_new, size: 13),
+              label: Text('${value.label} rules (PDF)'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xff80cbc4),
+                visualDensity: VisualDensity.compact,
+                textStyle: const TextStyle(
+                    fontSize: 12, decoration: TextDecoration.underline),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        option(Ruleset.riichi, 'yaku, dora, riichi'),
+        option(Ruleset.hongKong, 'faan, flowers, 0-faan minimum'),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -880,11 +1008,11 @@ class _WelcomeScreen extends StatelessWidget {
               // ~30% wider than the longest line needs, which keeps these
               // three lines three lines. Re-balance the breaks if the text
               // changes — the longest line here measures ~560px.
-              const SizedBox(
+              SizedBox(
                 width: 720,
                 child: Text(
                   'TileSense is a Flutter Web App built to give you a feel for\n'
-                  'optimal Riichi Mahjong play, with recommended actions\n'
+                  'optimal ${ruleset.label} Mahjong play, with recommended actions\n'
                   'scored by efficiency, expected value, and safety.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -894,7 +1022,9 @@ class _WelcomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 22),
+              _rulesetChoice(),
+              const SizedBox(height: 22),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -943,6 +1073,12 @@ class _WelcomeScreen extends StatelessWidget {
     );
   }
 }
+
+/// Opens [ruleset]'s rules PDF in a new tab or the system browser.
+void openRules(Ruleset ruleset) => launchUrl(
+      Uri.parse(ruleset.rulesUrl),
+      mode: LaunchMode.externalApplication,
+    );
 
 /// Zoom by [factor], or reset when it is null.
 class _ZoomIntent extends Intent {

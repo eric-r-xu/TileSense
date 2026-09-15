@@ -100,11 +100,14 @@ class Telemetry {
     required bool fastMode,
     required bool autoplay,
     required bool guideVisible,
+    String ruleset = 'riichi',
   }) =>
       _add('match_start', {
         'match_id': matchId,
         'seed': seed,
         'hanchan': hanchan,
+        // Not yet stored by the ingest server, which reads known keys only.
+        'ruleset': ruleset,
         'fast_mode': fastMode,
         'autoplay': autoplay,
         'guide_visible': guideVisible,
