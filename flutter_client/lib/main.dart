@@ -602,6 +602,14 @@ class _GamePageState extends State<GamePage> {
 
   void _toggleGuide() => setState(() => _showGuide = !_showGuide);
 
+  // Leaving a game in progress for the welcome screen — the only way there to
+  // reach the Custom Hand & Context Builder — pauses it so bots and autoplay
+  // don't keep running unattended; Start un-pauses it again on the way back.
+  void _backToMenu() {
+    if (!_game.paused) _game.togglePause();
+    setState(() => _showWelcome = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_showBuilder) {
@@ -614,7 +622,10 @@ class _GamePageState extends State<GamePage> {
       return _WelcomeScreen(
         ruleset: _game.ruleset,
         onRuleset: (r) => setState(() => _game.setRuleset(r)),
-        onStart: () => setState(() => _showWelcome = false),
+        onStart: () => setState(() {
+          if (_game.paused) _game.togglePause();
+          _showWelcome = false;
+        }),
         onBuild: () => setState(() => _showBuilder = true),
       );
     }
@@ -623,6 +634,13 @@ class _GamePageState extends State<GamePage> {
       appBar: AppBar(
         toolbarHeight: 50,
         titleSpacing: 12,
+        leading: IconButton(
+          key: const Key('backToMenu'),
+          tooltip: 'Main menu — pauses this game; Start resumes it, or open '
+              'the Custom Hand & Context Builder',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _backToMenu,
+        ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -724,21 +742,30 @@ class _GamePageState extends State<GamePage> {
             // 2x fast-mode toggle.
             AnimatedBuilder(
               animation: _game,
-              builder: (context, _) => TextButton(
-                onPressed: () => _game.setFastMode(!_game.fastMode),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor:
-                      _game.fastMode ? const Color(0xffffdf76) : Colors.white38,
-                ),
-                child: Text(
-                  '2x',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    decoration: _game.fastMode
-                        ? TextDecoration.none
-                        : TextDecoration.lineThrough,
+              builder: (context, _) => Tooltip(
+                message: _game.fastMode
+                    ? 'Bots and draws move at double speed.\n'
+                        'Tap for normal speed.'
+                    : 'Bots and draws move at normal speed.\n'
+                        'Tap for double speed.',
+                child: TextButton(
+                  key: const Key('fastMode'),
+                  onPressed: () => _game.setFastMode(!_game.fastMode),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: _game.fastMode
+                        ? const Color(0xffffdf76)
+                        : Colors.white38,
+                  ),
+                  child: Text(
+                    '2x',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      decoration: _game.fastMode
+                          ? TextDecoration.none
+                          : TextDecoration.lineThrough,
+                    ),
                   ),
                 ),
               ),

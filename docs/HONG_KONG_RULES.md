@@ -92,8 +92,9 @@ The guide's dials start on **Aggressive / Speed**, as in riichi. Focus offers
 Speed and Balanced; Speed pivots around 32 chips here instead of riichi's
 5,000 points. Two Hong Kong-only settings (`HongKongGuideTuning`) soften the
 pre-ready penalty on narrow hands and count an opponent as a threat only at
-three or more exposed sets. With them the guide places 0.116 of a placement
-better than `SimpleBot` over 2000 held-out East-only games (p = 4.2e-4); see
+three or more exposed sets. With them the guide places 0.062 of a placement
+better than `SimpleBot`, pooled over three held-out runs of 10,000 East-only
+games (±0.029, p = 2.6e-5); see
 [`BOT_STRATEGY.md`](../flutter_client/BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots).
 
 Flowers and seasons are drawn as real tiles — 梅 蘭 菊 竹 and 春 夏 秋 冬 with

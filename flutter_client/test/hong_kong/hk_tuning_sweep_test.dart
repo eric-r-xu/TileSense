@@ -14,8 +14,8 @@ import 'package:tilesense/logic/ruleset.dart';
 /// Measures [HongKongGuideTuning] variants against the bots on identical
 /// seeds (common random numbers). Every guide arm plays Aggressive / Speed;
 /// the control arm is SimpleBot in seat 0. Each variant is compared
-/// game-by-game with the original settings — riichi's model, which `_Arm`
-/// defaults to — and with the control, Holm-corrected.
+/// game-by-game with the round's baseline — its second arm — and with the
+/// control, Holm-corrected. `_Arm`'s defaults are riichi's model ('original').
 ///
 ///   HK_TUNE_GAMES=1000 flutter test test/hong_kong/hk_tuning_sweep_test.dart
 ///   HK_TUNE_GAMES=400 HK_TUNE_FULL=1 flutter test test/hong_kong/hk_tuning_sweep_test.dart
@@ -30,7 +30,7 @@ void main() {
     final results = <(String, List<(double, int, int, int)>)>[];
     for (final arm in _arms) {
       if (only != null && !only.contains(arm.name) && arm.name != 'control' &&
-          arm.name != 'original') {
+          arm.name != _arms[1].name) {
         continue;
       }
       final parts = await Future.wait([
@@ -52,7 +52,8 @@ class _Arm {
       this.threat = 2,
       this.narrow = 1.0,
       this.tries = 1.0,
-      this.concealed = true});
+      this.concealed = true,
+      this.model});
   final String name;
   final bool guide;
   final bool gate;
@@ -61,11 +62,21 @@ class _Arm {
   final double tries;
   final bool concealed;
 
+  /// A whole win model, overriding [narrow] and [tries] when set.
+  final WinModel? model;
+
   void apply() {
     HongKongGuideTuning.gateCallsUnderThreat = gate;
     HongKongGuideTuning.threatExposedSets = threat;
-    HongKongGuideTuning.narrowPenalty = narrow;
-    HongKongGuideTuning.stepTries = tries;
+    HongKongGuideTuning.winModel = model ?? WinModel(
+      typicalWidth: WinModel.riichi.typicalWidth,
+      stepWidth: WinModel.riichi.stepWidth,
+      survivesTurn: WinModel.riichi.survivesTurn,
+      waitInheritance: WinModel.riichi.waitInheritance,
+      winChancesPerTurn: WinModel.riichi.winChancesPerTurn,
+      narrowPenalty: narrow,
+      stepTries: tries,
+    );
     HongKongGuideTuning.concealedFaanInEstimate = concealed;
   }
 }
@@ -74,8 +85,62 @@ class _Arm {
 List<_Arm> get _arms => switch (Platform.environment['HK_TUNE_ROUND']) {
       '2' => _round2,
       '3' => _holdout,
+      '4' => _winModels,
+      '5' => _headToHead,
       _ => _round1,
     };
+
+/// The calibrated call-aware model against the shipped guide, game by game.
+const _headToHead = [
+  _Arm('control', guide: false),
+  _Arm('shipped', threat: 3, model: WinModel.hongKongDrawsOnly),
+  _Arm('calibrated-calls', threat: 3, model: _calibratedCalls),
+];
+
+/// Ideas 1 and 2 from the Hong Kong guide plan, separately and together, each
+/// on the shipped threat (three sets) and call gate. Constants are the fits
+/// `tools/fit_hk_win_model.py` made to 159k guide decisions.
+const _winModels = [
+  _Arm('control', guide: false),
+  _Arm('original'),
+  _Arm('shipped', threat: 3, model: WinModel.hongKongDrawsOnly),
+  _Arm('calibrated-draws', threat: 3, model: _calibratedDraws),
+  _Arm('calls-uncalibrated', threat: 3, model: _callsUncalibrated),
+  _Arm('calibrated-calls', threat: 3, model: _calibratedCalls),
+];
+
+const _calibratedDraws = WinModel(
+  typicalWidth: [5, 15.21, 29.15, 54.3, 72.99, 84.34, 99.17],
+  stepWidth: [3.24, 25.14, 41.23, 40.51, 41.15, 44.03, 47.98],
+  survivesTurn: 0.999,
+  waitInheritance: 1.0,
+  winChancesPerTurn: 0.791,
+  narrowPenalty: 0.465,
+);
+
+const _calibratedCalls = WinModel(
+  typicalWidth: [5, 31.39, 53.3, 83.47, 100.96, 107.08, 119.2],
+  stepWidth: [3.33, 22.39, 40.62, 41.01, 41.45, 44.05, 47.98],
+  survivesTurn: 0.999,
+  waitInheritance: 1.0,
+  winChancesPerTurn: 0.790,
+  narrowPenalty: 0.484,
+  pungRate: 1.030,
+  chowRate: 1.609,
+);
+
+/// Idea 1 alone: calls counted at the fitted rates, typical widths in the
+/// same units, everything else as shipped.
+const _callsUncalibrated = WinModel(
+  typicalWidth: [5, 31.39, 53.3, 83.47, 100.96, 107.08, 119.2],
+  stepWidth: [8, 20, 28, 35, 40, 44, 48],
+  survivesTurn: 0.955,
+  waitInheritance: 0.5,
+  winChancesPerTurn: 1.0,
+  narrowPenalty: 0.5,
+  pungRate: 1.030,
+  chowRate: 1.609,
+);
 
 /// Confirms the chosen settings on seeds no tuning round has seen.
 const _holdout = [
@@ -232,15 +297,17 @@ String _pf(double p) => p < 1e-6 ? '<1e-6' : p.toStringAsExponential(1);
 void _report(List<(String, List<(double, int, int, int)>)> results, int games,
     bool full) {
   final control = results.firstWhere((r) => r.$1 == 'control').$2;
-  final original = results.firstWhere((r) => r.$1 == 'original').$2;
-  final variants =
-      results.where((r) => r.$1 != 'control' && r.$1 != 'original').toList();
-  final vsOriginal = [for (final v in variants) _paired(v.$2, original)];
-  final holm = _holm([for (final c in vsOriginal) c.p]);
+  final baselineName = results[1].$1;
+  final baseline = results[1].$2;
+  final variants = results
+      .where((r) => r.$1 != 'control' && r.$1 != baselineName)
+      .toList();
+  final vsBaseline = [for (final v in variants) _paired(v.$2, baseline)];
+  final holm = _holm([for (final c in vsBaseline) c.p]);
   print('\nHong Kong, ${full ? 'four winds' : 'East only'}, $games games/arm, '
       'Aggressive / Speed\n');
   print('arm                      place   win/hd   Δ vs control          '
-      'Δ vs original   Holm p');
+      'Δ vs $baselineName   raw p   Holm p');
   for (final (name, rows) in results) {
     final hands = rows.fold<int>(0, (a, r) => a + r.$4);
     final wins = rows.fold<int>(0, (a, r) => a + r.$3);
@@ -253,9 +320,9 @@ void _report(List<(String, List<(double, int, int, int)>)> results, int games,
     }
     final i = variants.indexWhere((v) => v.$1 == name);
     if (i >= 0) {
-      final c = vsOriginal[i];
+      final c = vsBaseline[i];
       line += '   ${_f(c.mean).padLeft(7)} ±${_f(1.96 * c.se)}'
-          '${_pf(holm[i]).padLeft(9)}';
+          '${_pf(c.p).padLeft(9)}${_pf(holm[i]).padLeft(9)}';
     }
     print(line);
   }

@@ -161,10 +161,10 @@ enum HandFocus {
 /// `test/hong_kong/hk_tuning_sweep_test.dart` can measure alternatives against
 /// the bots on identical seeds. Riichi never reads any of it.
 ///
-/// The defaults are measured. Against SimpleBot over 2000 East-only games on
-/// seeds no tuning round had seen, riichi's own settings (narrow penalty 1,
-/// threat at two sets) placed 0.063 behind the bot; these place 0.116 ahead of
-/// it (p = 4.2e-4) and 0.179 ahead of those settings (p < 1e-6).
+/// The defaults are measured. Against SimpleBot, riichi's own settings (narrow
+/// penalty 1, threat at two sets) placed behind the bot; these place 0.062 of
+/// a placement ahead of it, pooled over three held-out runs totalling 10,000
+/// East-only games (95% CI ±0.029, p = 2.6e-5) — see BOT_STRATEGY.md.
 class HongKongGuideTuning {
   /// Refuse a call or kong that is not yet ready while a threat is out.
   /// Turning it off measured no better once the threat itself was narrowed.
@@ -175,23 +175,88 @@ class HongKongGuideTuning {
   /// refusing calls — far more often than any real danger warranted.
   static int threatExposedSets = 3;
 
-  /// How hard a hand narrower than typical is marked down before ready: the
-  /// exponent on its width ratio is scaled by this. 1 is riichi's model.
-  ///
-  /// At 1 the guide broke its hand up for a wider one a step further out
-  /// about 1.3 times a hand on a calm table, five times as often as the bot,
-  /// and reached ready in 41% of hands to the bot's 55%. A narrow Hong Kong
-  /// hand is not as slow as its acceptance suggests: with no yaku to protect
-  /// it can pung or chow its way forward. 0.5 was the best of 0, 0.25, 0.5,
-  /// 0.75 and 1 across two tuning rounds.
-  static double narrowPenalty = 0.5;
-
-  /// Chances per turn to take a pre-ready step. Riichi steps come off draws
-  /// only (1.0); in Hong Kong a pung or chow off a discard also advances.
-  static double stepTries = 1.0;
-
   /// Count the Concealed Hand faan in the pre-ready payout estimate.
   static bool concealedFaanInEstimate = true;
+
+  /// The win-probability model the Hong Kong guide runs on.
+  static WinModel winModel = WinModel.hongKong;
+}
+
+/// The constants the win-probability model runs on: how wide a typical hand
+/// is at each shanten, how wide each step behaves, how long a hand lasts, and
+/// how many chances a ready hand gets per turn.
+///
+/// [riichi] is the model riichi has always used. [hongKong] shares its shape
+/// and differs where Hong Kong play does — see its own notes.
+class WinModel {
+  const WinModel({
+    required this.typicalWidth,
+    required this.stepWidth,
+    required this.survivesTurn,
+    required this.waitInheritance,
+    required this.winChancesPerTurn,
+    this.narrowPenalty = 1.0,
+    this.stepTries = 1.0,
+    this.pungRate = 0,
+    this.chowRate = 0,
+  });
+
+  /// A typical hand's width at each shanten (index 0 is a ready hand's wait),
+  /// in the same units as the width this model is given.
+  final List<double> typicalWidth;
+
+  /// The width an ordinary hand behaves as if it had at each remaining step.
+  final List<double> stepWidth;
+
+  /// Chance the hand is still running after one more turn.
+  final double survivesTurn;
+
+  /// How much of a hand's width carries through to the wait it finishes on.
+  final double waitInheritance;
+
+  /// Effective chances to win per turn once ready.
+  final double winChancesPerTurn;
+
+  /// Scales the exponent on a narrower-than-typical hand's width ratio.
+  final double narrowPenalty;
+
+  /// Chances per turn to take a pre-ready step.
+  final double stepTries;
+
+  /// Weights on call acceptance ([TileEfficiencyCalculator.callAcceptance])
+  /// added to drawn acceptance to make a hand's width: live tiles that could
+  /// be punged, and chowed, per live tile that could be drawn. Zero counts
+  /// draws only, as riichi does.
+  final double pungRate;
+  final double chowRate;
+
+  bool get countsCalls => pungRate > 0 || chowRate > 0;
+
+  static const riichi = WinModel(
+    typicalWidth: EfficiencyEngine._typicalUkeire,
+    stepWidth: EfficiencyEngine._stepWidth,
+    survivesTurn: EfficiencyEngine._handSurvivesTurn,
+    waitInheritance: EfficiencyEngine._waitInheritance,
+    winChancesPerTurn: EfficiencyEngine._winChancesPerTurn,
+  );
+
+  /// Riichi's constants with the narrow-hand penalty halved — the model the
+  /// Hong Kong guide shipped with before calls were counted.
+  static const hongKongDrawsOnly = WinModel(
+    typicalWidth: EfficiencyEngine._typicalUkeire,
+    stepWidth: EfficiencyEngine._stepWidth,
+    survivesTurn: EfficiencyEngine._handSurvivesTurn,
+    waitInheritance: EfficiencyEngine._waitInheritance,
+    winChancesPerTurn: EfficiencyEngine._winChancesPerTurn,
+    narrowPenalty: 0.5,
+  );
+
+  /// What the Hong Kong guide plays. Still [hongKongDrawsOnly]: a model that
+  /// also counted pung and chow acceptance, with every constant fitted to
+  /// 159k guide decisions (`tools/fit_hk_win_model.py`), predicted outcomes
+  /// far better but played no measurably better — 0.014 of a placement ahead
+  /// over 6000 paired games, p = 0.40 — so it was not adopted.
+  static const hongKong = hongKongDrawsOnly;
 }
 
 /// The dials a new game or builder table starts on, under either ruleset.
@@ -569,6 +634,7 @@ class EfficiencyEngine {
     // later has fewer draws left to win on. Valuing it as if it arrived on the
     // very next draw still let a slow 1-shanten out-run a tenpai in hand.
     final hasTenpaiLine = byType.values.any((r) => r.shanten == 0);
+    final winModel = _winModelFor(ruleset);
     final unseenNow = _countRemaining(remaining);
     final drawsNow = math.max(1, (valueContext.wallTilesRemaining + 3) ~/ 4);
     ({double win, double reached})? tenpaiLookahead(TileEfficiencyResult r) {
@@ -606,12 +672,13 @@ class EfficiencyEngine {
                   waitWidth: e.wait.toDouble(),
                   unseen: unseenNow - 1,
                   draws: left,
-                  chancesPerTurn: _winChancesPerTurn,
+                  chancesPerTurn: winModel.winChancesPerTurn,
+                  survivesTurn: winModel.survivesTurn,
                 ).win;
           }
           win += hit * chance / copies;
         }
-        alive *= (1 - step) * _handSurvivesTurn;
+        alive *= (1 - step) * winModel.survivesTurn;
       }
       return (win: win.clamp(0.0, 1.0), reached: reached.clamp(0.0, 1.0));
     }
@@ -1435,6 +1502,35 @@ class EfficiencyEngine {
   /// 5-shanten hand scores like a 1-shanten one.
   static const List<double> _typicalUkeire = [5, 14, 25, 43, 63, 73, 80];
 
+  /// The raw model for `tools/fit_hk_win_model.py`'s cross-check: the chance
+  /// a hand [shanten] away (0 = ready, where [width] is its live wait) wins.
+  @visibleForTesting
+  static double winProbabilityForTesting({
+    required WinModel model,
+    required int shanten,
+    required double width,
+    required int unseen,
+    required int draws,
+  }) =>
+      shanten == 0
+          ? _winChanceOverTurns(
+              waitWidth: width,
+              unseen: unseen,
+              draws: draws,
+              chancesPerTurn: model.winChancesPerTurn,
+              survivesTurn: model.survivesTurn,
+            ).win
+          : _winProbabilityFromShanten(
+              shanten: shanten,
+              width: width,
+              unseen: unseen,
+              draws: draws,
+              model: model,
+            ).win;
+
+  static WinModel _winModelFor(Ruleset ruleset) =>
+      ruleset.isHongKong ? HongKongGuideTuning.winModel : WinModel.riichi;
+
   /// [_typicalUkeire], for `ev_calibration_test.dart` to hold against what
   /// simulated play actually produces.
   @visibleForTesting
@@ -1516,6 +1612,7 @@ class EfficiencyEngine {
     required int unseen,
     required int draws,
     required double chancesPerTurn,
+    double survivesTurn = _handSurvivesTurn,
   }) {
     if (unseen <= 0 || draws <= 0 || waitWidth <= 0) {
       return (win: 0, turns: 0);
@@ -1528,7 +1625,7 @@ class EfficiencyEngine {
     for (var turn = 0; turn < draws; turn++) {
       turns += alive; // this turn is only played if the hand got this far
       won += alive * perTurn;
-      alive *= (1 - perTurn) * _handSurvivesTurn;
+      alive *= (1 - perTurn) * survivesTurn;
     }
     return (win: won.clamp(0.0, 1.0), turns: turns);
   }
@@ -1545,16 +1642,18 @@ class EfficiencyEngine {
   /// out to well over 90% for a 2-shanten hand with most of the wall left.
   ///
   /// [shanten] must be ≥ 1; tenpai is scored exactly by [_assessTenpaiValue].
+  ///
+  /// [width] is drawn acceptance, plus weighted call acceptance when [model]
+  /// counts calls.
   static ({double win, double reachedTenpai, double turns})
       _winProbabilityFromShanten({
     required int shanten,
-    required int ukeire,
+    required double width,
     required int unseen,
     required int draws,
-    double narrowPenalty = 1.0,
-    double stepTries = 1.0,
+    WinModel model = WinModel.riichi,
   }) {
-    if (shanten < 1 || draws <= 0 || unseen <= 0 || ukeire <= 0) {
+    if (shanten < 1 || draws <= 0 || unseen <= 0 || width <= 0) {
       return (win: 0, reachedTenpai: 0, turns: 0);
     }
 
@@ -1565,14 +1664,14 @@ class EfficiencyEngine {
     // eventually sit on. It does not fade away entirely — a hand short of
     // acceptance is short of it because it is full of kanchan and tanki
     // shapes, and those are what it ends up waiting on.
-    final scale = ukeire / _typicalUkeire[shanten.clamp(0, 6)];
+    final scale = width / model.typicalWidth[shanten.clamp(0, 6)];
 
     /// Chance one turn takes the step that leaves the hand at [to] shanten.
     /// The final step — tenpai to a win — gets two chances a turn, since a
     /// finished hand can be ronned off someone else's discard as well as drawn.
     double stepChance(int to) {
-      final exponent =
-          _waitInheritance + (1 - _waitInheritance) * (to / shanten);
+      final exponent = model.waitInheritance +
+          (1 - model.waitInheritance) * (to / shanten);
       // Being wide open gets you to tenpai sooner — that is what the earlier
       // steps price. It does not hand you a wider wait than an ordinary hand
       // when you get there, and it does not hand you a better draw at every
@@ -1588,13 +1687,13 @@ class EfficiencyEngine {
       // 14% on calm turns, lifted hands reaching tenpai from 27.6% to 37.7%,
       // and is worth about 0.46 of a placement over 3000 paired hanchan.
       var multiplier = math
-          .pow(scale, scale < 1 ? exponent * narrowPenalty : exponent)
+          .pow(scale, scale < 1 ? exponent * model.narrowPenalty : exponent)
           .toDouble();
       multiplier = math.min(1.0, multiplier);
-      final width = _stepWidth[to.clamp(0, 6)] * multiplier;
-      final rate = math.min(1.0, width / unseen);
+      final stepWidth = model.stepWidth[to.clamp(0, 6)] * multiplier;
+      final rate = math.min(1.0, stepWidth / unseen);
       // Only the last step — the win itself — can come off a discard.
-      final tries = to == 0 ? _winChancesPerTurn : stepTries;
+      final tries = to == 0 ? model.winChancesPerTurn : model.stepTries;
       return 1 - math.pow(1 - rate, tries).toDouble();
     }
 
@@ -1624,7 +1723,7 @@ class EfficiencyEngine {
       }
       // Whatever has not won yet only continues if the hand is still going.
       for (var s = 0; s < next.length; s++) {
-        next[s] *= _handSurvivesTurn;
+        next[s] *= model.survivesTurn;
       }
       states.setAll(0, next);
     }
@@ -1715,14 +1814,19 @@ class EfficiencyEngine {
     // Riichi always allows one more draw; a Hong Kong wall at zero has none.
     final draws = math.max(context.ruleset.isHongKong ? 0 : 1,
         (context.wallTilesRemaining + 3) ~/ 4);
-    final hk = context.ruleset.isHongKong;
+    final winModel = _winModelFor(context.ruleset);
+    var width = result.ukeire.toDouble();
+    if (winModel.countsCalls && result.shanten >= 1) {
+      final calls =
+          _calc.callAcceptance(toTrainerCounts(concealed), remaining);
+      width += winModel.pungRate * calls.pung + winModel.chowRate * calls.chow;
+    }
     final outlook = _winProbabilityFromShanten(
       shanten: result.shanten,
-      ukeire: result.ukeire,
+      width: width,
       unseen: unseen,
       draws: draws,
-      narrowPenalty: hk ? HongKongGuideTuning.narrowPenalty : 1.0,
-      stepTries: hk ? HongKongGuideTuning.stepTries : 1.0,
+      model: winModel,
     );
     // The lookahead, when there is one, knows the tenpais this line can really
     // reach and when. It is only trusted to correct the generic estimate
@@ -2227,7 +2331,8 @@ class EfficiencyEngine {
         waitWidth: liveWaits.toDouble(),
         unseen: _countRemaining(remaining),
         draws: math.max(0, (context.wallTilesRemaining + 3) ~/ 4),
-        chancesPerTurn: _winChancesPerTurn);
+        chancesPerTurn: HongKongGuideTuning.winModel.winChancesPerTurn,
+        survivesTurn: HongKongGuideTuning.winModel.survivesTurn);
     final expected =
         context.focus.chanceWorth(outlook.win) * context.worth(points);
     return _ValueAssessment(

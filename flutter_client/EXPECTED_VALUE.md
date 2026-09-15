@@ -368,9 +368,9 @@ seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
   (p = 4e-16).
 - **Hong Kong:** Aggressive / Speed placed best of the six Style × Focus
   pairings (e.g. 0.108 ahead of Balanced / Balanced, p = 1.7e-5). With the
-  Hong Kong tuning below, it beats the control bot by 0.116 of a placement
-  over 2000 held-out East-only games (p = 4.2e-4); before that tuning it
-  trailed the bot.
+  Hong Kong tuning below, it beats the control bot by 0.062 of a placement,
+  pooled over 10,000 held-out East-only games (±0.029, p = 2.6e-5); before
+  that tuning it trailed the bot.
 
 ## Under Hong Kong rules
 
@@ -392,8 +392,11 @@ the win-probability walk, the lookahead and the push/fold arithmetic are shared.
 
 The two Hong Kong-only settings live in `HongKongGuideTuning` and were measured,
 not assumed: riichi's own values (narrow exponent × 1, threat at two sets)
-placed 0.063 behind `SimpleBot`; the shipped ones place 0.116 ahead of it over
-2000 held-out games (p = 4.2e-4). Method and tables:
+placed behind `SimpleBot`; the shipped ones place 0.062 ahead of it, pooled
+over three held-out runs of 10,000 games (p = 2.6e-5). A model that also
+counts calls, with constants fitted to Hong Kong self-play, was built and
+measured but played no better (0.014 ahead of the shipped model over 6000
+paired games, p = 0.40), so it is not used. Method and tables:
 [`BOT_STRATEGY.md`](BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots).
 
 ## Calls, kan, ron, tsumo  (`adviseCall`)
@@ -445,7 +448,9 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
   `4000` penalty scales, the `5200 / 7700` damaten thresholds, and the deal-in
   rate table with its `5800 / 8700` base costs are tuned constants, not derived.
 - Neither estimator credits **calling**. Advancing steps are drawn-only, so an
-  open hand that pons its way home is undersold. This is the main reason the
+  open hand that pons its way home is undersold. A call-aware width
+  (`WinModel.pungRate` / `chowRate`) exists and was measured for Hong Kong; it
+  did not improve play, so both rulesets still count draws only. This is the main reason the
   absolute pre-tenpai numbers sit below the ~21% a hand wins on average, even
   though the ordering between hands is right.
 

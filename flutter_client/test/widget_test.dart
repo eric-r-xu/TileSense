@@ -62,6 +62,38 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets(
+      'the back-to-menu button pauses the game and returns to it on Start',
+      (tester) async {
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byType(TableView), findsOneWidget);
+    expect(find.textContaining('PAUSED'), findsNothing);
+
+    // Leaving the game for the welcome screen pauses it and offers the
+    // builder again.
+    await tester.tap(find.byKey(const Key('backToMenu')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byType(TableView), findsNothing);
+    expect(find.byKey(const Key('openBuilder')), findsOneWidget);
+
+    // Start un-pauses and returns to the same game rather than dealing a new
+    // one.
+    await tester.tap(find.text('Start'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byType(TableView), findsOneWidget);
+    expect(find.textContaining('PAUSED'), findsNothing);
+    expect(find.byTooltip('Pause'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   testWidgets('tapping a hand tile discards without crashing', (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
