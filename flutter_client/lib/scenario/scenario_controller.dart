@@ -59,10 +59,24 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
 
   Ruleset get ruleset => scenario.ruleset;
 
+  /// The style in effect when Hong Kong last pinned it, mirroring
+  /// [GameController]'s equivalent stash — the builder has its own
+  /// [Scenario] rather than sharing state with the live game.
+  PlayStyle? _preHongKongStyle;
+
   /// Switches the posed table's rules. The tiles are cleared: dora, riichi
-  /// and flowers mean nothing under the other game.
+  /// and flowers mean nothing under the other game. Style is pinned to
+  /// Balanced under Hong Kong, which has nothing left for it to weigh, and
+  /// restored on the way back to riichi.
   void setRuleset(Ruleset value) {
     if (scenario.ruleset == value) return;
+    if (value.isHongKong) {
+      _preHongKongStyle = scenario.style;
+      scenario.style = PlayStyle.balanced;
+    } else if (_preHongKongStyle != null) {
+      scenario.style = _preHongKongStyle!;
+      _preHongKongStyle = null;
+    }
     scenario.ruleset = value;
     scenario.clear();
     rebuild();

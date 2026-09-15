@@ -21,7 +21,9 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
   charge and how readily a hand is kept quiet. It never changes what a hand is
   worth, only what danger costs, and it steers Autoplay through the same
   scores. A second dial, **focus** (Speed or Balanced), tilts the trade between
-  the chance of finishing and the payout. Both start on **Aggressive / Speed**.
+  the chance of finishing and the payout. Both start on **Aggressive / Speed**
+  under riichi; under Hong Kong, style has nothing left to weigh, so it's
+  hidden and pinned to Balanced, leaving only focus (**Speed**).
 - Under **Hong Kong** rules the same machinery runs on faan converted to chips,
   with a 0-faan minimum — see [Under Hong Kong rules](#under-hong-kong-rules).
 - Two different estimators depending on where the hand sits:
@@ -330,6 +332,16 @@ because a quiet hand can still fold; above 1 almost everything is declared. This
 is what makes the styles differ on a calm table, where there is no danger to
 reprice.
 
+**Under Hong Kong rules, only the deal-in charge is live.** There is no riichi
+to lock into and no damaten to weigh, so the damaten bar is never read and the
+riichi lock-in term never fires — `_assessHongKongTenpaiValue` doesn't consult
+`context.style` at all. `test/hong_kong/hk_play_style_test.dart` pins that
+down: style scales `dealInCost` but never changes `averagePoints`. A 14,000-game
+sweep found the remaining lever doesn't move placement either (every pairwise
+style comparison Holm p = 1.0), so `GameController` and `ScenarioController`
+pin `PlayStyle` to Balanced and hide the dial under Hong Kong — see
+[`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
+
 The two interact, and that interaction had to be paid for: making damaten easier
 dodges the riichi lock-in, which briefly made *defensive* the style most willing
 to push a tenpai. A tenpai hand that stays quiet is now charged the ordinary
@@ -353,10 +365,11 @@ A third setting, Value (1.55), was removed after it failed to beat the bots.
 
 ## Defaults, and the evidence for them
 
-New games and builder tables start on **Aggressive / Speed** under either
-ruleset (`kDefaultPlayStyle`, `kDefaultHandFocus`). `EfficiencyValueContext`
-still defaults to Balanced / Balanced, so tests and callers that build a context
-by hand get the unweighted model.
+New games and builder tables start on **Aggressive / Speed** (`kDefaultPlayStyle`,
+`kDefaultHandFocus`) under riichi. Under Hong Kong, `setRuleset` pins style to
+**Balanced** and the dial is hidden, so only Focus is exposed, starting on
+**Speed**. `EfficiencyValueContext` still defaults to Balanced / Balanced, so
+tests and callers that build a context by hand get the unweighted model.
 
 The choice is measured, not assumed — every pairing is played on identical
 seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
@@ -370,7 +383,11 @@ seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
   pairings (e.g. 0.108 ahead of Balanced / Balanced, p = 1.7e-5). With the
   Hong Kong tuning below, it beats the control bot by 0.062 of a placement,
   pooled over 10,000 held-out East-only games (±0.029, p = 2.6e-5); before
-  that tuning it trailed the bot.
+  that tuning it trailed the bot. A later sweep isolating each dial
+  (`_dialEffects`, 14,000 games) found Style itself does nothing there —
+  every pairwise style comparison came back Holm p = 1.0 — while Speed still
+  beat Balanced focus at every style (p ≤ 4e-5); see
+  [`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
 
 ## Under Hong Kong rules
 

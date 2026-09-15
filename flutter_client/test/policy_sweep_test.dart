@@ -279,4 +279,82 @@ void _report(List<(String, List<_Row>)> arms, Ruleset ruleset) {
         '${_pf(holm[i]).padLeft(10)}'
         '${vsBest == null ? '' : '     ${_f(vsBest.mean).padLeft(7)} ±${_f(1.96 * vsBest.se)}  ${_pf(vsBest.p)}'}');
   }
+
+  _dialEffects(arms);
+}
+
+/// Whether each dial changes results at all: Speed against Balanced focus at
+/// every style (and averaged over styles), and every pair of styles averaged
+/// over focuses. Each family is Holm-corrected on its own. Δ < 0 favours the
+/// first-named setting.
+void _dialEffects(List<(String, List<_Row>)> arms) {
+  List<_Row>? arm(PlayStyle s, HandFocus f) {
+    for (final (label, rows) in arms) {
+      if (label == '${s.label}/${f.label}') return rows;
+    }
+    return null;
+  }
+
+  ({double mean, double se, double p}) test(List<double> d) {
+    final m = _ms(d);
+    return (mean: m.mean, se: m.se, p: m.se == 0 ? 1.0 : _p(m.mean / m.se));
+  }
+
+  void family(String title, List<(String, List<double>)> comparisons) {
+    if (comparisons.isEmpty) return;
+    final tests = [for (final c in comparisons) test(c.$2)];
+    final holm = _holm([for (final t in tests) t.p]);
+    print('\n$title');
+    for (var i = 0; i < comparisons.length; i++) {
+      final t = tests[i];
+      print('  ${comparisons[i].$1.padRight(34)}'
+          '${_f(t.mean).padLeft(7)} ±${_f(1.96 * t.se)}'
+          '   p=${_pf(t.p)}   Holm p=${_pf(holm[i])}');
+    }
+  }
+
+  List<double> diff(List<_Row> a, List<_Row> b) =>
+      [for (var i = 0; i < a.length; i++) a[i].place - b[i].place];
+
+  const speed = HandFocus.speed, balanced = HandFocus.balanced;
+  final focus = <(String, List<double>)>[];
+  final perStyle = <List<double>>[];
+  for (final s in PlayStyle.values) {
+    final a = arm(s, speed), b = arm(s, balanced);
+    if (a == null || b == null) continue;
+    final d = diff(a, b);
+    perStyle.add(d);
+    focus.add(('${s.label}: Speed − Balanced', d));
+  }
+  if (perStyle.length > 1) {
+    focus.add((
+      'all styles: Speed − Balanced',
+      [
+        for (var i = 0; i < perStyle.first.length; i++)
+          perStyle.fold<double>(0, (a, d) => a + d[i]) / perStyle.length
+      ],
+    ));
+  }
+  family('Focus (Δ < 0 means Speed places better)', focus);
+
+  final styles = <(String, List<double>)>[];
+  final values = PlayStyle.values;
+  for (var x = 0; x < values.length; x++) {
+    for (var y = x + 1; y < values.length; y++) {
+      final pairs = [
+        for (final f in HandFocus.values)
+          if (arm(values[x], f) != null && arm(values[y], f) != null)
+            diff(arm(values[x], f)!, arm(values[y], f)!)
+      ];
+      if (pairs.isEmpty) continue;
+      styles.add((
+        '${values[x].label} − ${values[y].label} (avg focus)',
+        [
+          for (var i = 0; i < pairs.first.length; i++)
+            pairs.fold<double>(0, (a, d) => a + d[i]) / pairs.length
+        ],
+      ));
+    }
+  }
+  family('Style (Δ < 0 means the first style places better)', styles);
 }

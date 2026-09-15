@@ -788,15 +788,20 @@ class _GamePageState extends State<GamePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _barDial(
-                  caption: 'STYLE',
-                  buttonKey: const Key('playStyle'),
-                  label: _game.playStyle.label,
-                  colour: playStyleColor(_game.playStyle),
-                  tooltip: 'How hard the guide (and Auto-Play) pushes: '
-                      '${_game.ruleset.isHongKong ? 'when to defend, build value, or call' : 'when to fold, when to riichi, when to call'}',
-                  onTap: () => _game.setPlayStyle(_game.playStyle.next),
-                ),
+                // Style has nothing left to weigh under Hong Kong rules — no
+                // riichi, no damaten, and the sweep in policy_sweep_test.dart
+                // found no placement effect from it either — so it is hidden
+                // rather than shown pinned on Balanced.
+                if (!_game.ruleset.isHongKong)
+                  _barDial(
+                    caption: 'STYLE',
+                    buttonKey: const Key('playStyle'),
+                    label: _game.playStyle.label,
+                    colour: playStyleColor(_game.playStyle),
+                    tooltip: 'How hard the guide (and Auto-Play) pushes: '
+                        'when to fold, when to riichi, when to call',
+                    onTap: () => _game.setPlayStyle(_game.playStyle.next),
+                  ),
                 _barDial(
                   caption: 'FOCUS',
                   buttonKey: const Key('handFocus'),

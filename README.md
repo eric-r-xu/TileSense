@@ -99,7 +99,10 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   than declaring riichi, and a **focus** — Speed or Balanced — that tilts
   chance of finishing against payout. Neither changes what a hand is worth, and
   both steer Autoplay through the same scores. Both start on
-  **Aggressive / Speed**, chosen from the sweeps below.
+  **Aggressive / Speed** under riichi, chosen from the sweeps below. Hong Kong
+  has no riichi or damaten for play style to weigh, and a sweep found no
+  placement effect from it either, so that dial is hidden and pinned to
+  Balanced there — only focus (**Speed**) is exposed.
 - **🇯🇵 Riichi and 🇭🇰 Hong Kong rules**, chosen on the welcome screen or from
   the app bar, each with a one-page rules PDF
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
@@ -154,6 +157,13 @@ acceptance, with its constants fitted to 159k guide decisions. It predicts
 outcomes far better, but in a 6000-game head-to-head it finished only 0.014
 of a placement ahead of the shipped guide (± 0.033, p = 0.40) — no measurable
 gain — so the shipped model stays.
+
+*Play style, measured and dropped:* Hong Kong has no riichi or damaten for
+play style to weigh, and a 14,000-game sweep isolating each dial found no
+placement effect from it either (every pairwise style comparison, Holm
+p = 1.0) while Speed still beat Balanced focus at every style (p ≤ 4e-5) — so
+the dial is hidden under Hong Kong and pinned to Balanced. Details:
+[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
 
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No

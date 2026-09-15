@@ -53,16 +53,31 @@ class GameController extends ChangeNotifier implements GuideHost {
     this.ruleset = Ruleset.riichi,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         _botFactory = botFactory ?? SimpleBot.new {
+    if (ruleset.isHongKong) playStyle = PlayStyle.balanced;
     _startGame();
   }
 
   /// Japanese riichi or Hong Kong rules for every hand of this game.
   Ruleset ruleset;
 
+  /// The style in effect when Hong Kong last pinned it, so it comes back on
+  /// switching to riichi rather than staying stuck on Balanced. See
+  /// [setRuleset].
+  PlayStyle? _preHongKongStyle;
+
   /// Switching rules abandons the game in progress and deals a fresh one. The
-  /// guide's dials carry across.
+  /// guide's dials carry across — except Style, which Hong Kong has no use
+  /// for (see [PlayStyle]) and pins to Balanced; riichi gets its own style
+  /// back on the way out.
   void setRuleset(Ruleset value) {
     if (ruleset == value) return;
+    if (value.isHongKong) {
+      _preHongKongStyle = playStyle;
+      playStyle = PlayStyle.balanced;
+    } else if (_preHongKongStyle != null) {
+      playStyle = _preHongKongStyle!;
+      _preHongKongStyle = null;
+    }
     ruleset = value;
     _tel?.settingChange(matchId: _matchId, setting: 'ruleset', value: value.name);
     newGame();
