@@ -107,26 +107,6 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   **0-faan minimum** — any complete hand, even a chicken hand, may be declared
   — plus flower and season tiles, the New Style discarder-pays-all table, and
   four-wind games.
-
-### How the guide does against the bots
-
-Measured with `test/policy_sweep_test.dart` on identical seeds against a
-`SimpleBot` control in your seat (details and tables in
-[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up)):
-
-- **Riichi — it wins.** Every Speed and Balanced Style × Focus pairing beat
-  the control bot by 0.11–0.26 of a placement, over 2000 East games and again
-  800 hanchan, Holm-corrected; overall the guide went from 0.247 of a placement
-  worse than the bot to 0.211 better (3000 paired hanchan, p = 4e-16).
-- **Hong Kong — it wins too.** Over 2000 East-only games on held-out seeds,
-  the guide places **0.116 of a placement better** than the bot
-  (p = 4.2e-4). It first trailed the bot: riichi's pre-ready model kept
-  breaking up close hands for wider ones, and it treated almost every
-  opponent as a threat, so it defended and refused calls. A softer
-  narrow-hand penalty and a three-set threat, chosen over two tuning rounds,
-  lifted wins per hand from 0.219 to 0.259 (the bot: 0.264) while dealing in
-  15% less than the bot. Aggressive / Speed is also the best of the six
-  Style × Focus pairings for Hong Kong.
 - A **Custom Hand & Context Builder**, on its own screen from the start
   page: pose any table by hand — your tiles, every seat's discards and calls,
   the dora indicators, the wall counter, your seat wind (East deals) and who is
@@ -134,6 +114,46 @@ Measured with `test/policy_sweep_test.dart` on identical seeds against a
   a tile on offer gets a call recommendation. Nothing on the table can exceed
   four copies, and it runs no game behind it: no bots, no turn timer, no
   autoplay.
+
+### How the guide does against the bots
+
+Every figure below is Autoplay (the guide on Aggressive / Speed) sitting in
+your seat against three `SimpleBot` opponents, compared game-by-game with a
+**control** — `SimpleBot` itself in your seat — on identical seeds. Placement
+is 1–4, lower is better; "better" below means the guide finishes that much
+higher, on average, than the bot would have. Method, tables and re-run commands:
+[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up).
+
+**🇯🇵 Riichi — the guide wins.**
+
+| Measurement | Guide vs. bot |
+|---|---|
+| 3000 paired hanchan | **0.211 of a placement better**, p = 4e-16 |
+| Style × Focus sweep, 2000 East games and 800 hanchan, Holm-corrected | Every Speed and Balanced pairing **0.11–0.26 better** |
+
+**🇭🇰 Hong Kong — the guide wins too**, on three independent sets of seeds
+that no tuning round used (East-only games, 0-faan minimum):
+
+| Held-out run | Guide avg place | Bot avg place | Guide vs. bot | Wins / hand (guide · bot) |
+|---|---|---|---|---|
+| 2000 games, seeds 13000+ | 2.369 | 2.486 | 0.116 better, p = 4.2e-4 | 0.259 · 0.264 |
+| 2000 games, seeds 60000+ | 2.428 | 2.514 | 0.086 better, p = 9.0e-3 | 0.253 · 0.258 |
+| 6000 games, seeds 100000+ | 2.437 | 2.473 | 0.036 better, p = 0.059 | 0.250 · 0.262 |
+| **All three, pooled (10,000 games)** | | | **0.062 ± 0.029 better, p = 2.6e-5** | |
+
+The edge is real but modest — about 0.06 of a placement; the first run
+overstated it. Before its Hong Kong tuning the same guide placed *behind* the
+bot (by 0.063 and 0.050 on the first two seed sets): riichi's pre-ready model
+kept breaking up close hands for wider ones, and it treated almost every
+opponent as a threat, so it defended and refused calls. A softer narrow-hand
+penalty and a three-set threat fixed both. It now wins about as often as the
+bot while dealing in about 15% less.
+
+*Tried and not adopted:* a win model that also counts pung and chow
+acceptance, with its constants fitted to 159k guide decisions. It predicts
+outcomes far better, but in a 6000-game head-to-head it finished only 0.014
+of a placement ahead of the shipped guide (± 0.033, p = 0.40) — no measurable
+gain — so the shipped model stays.
 
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No

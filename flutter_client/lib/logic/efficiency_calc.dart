@@ -138,6 +138,59 @@ class TileEfficiencyCalculator {
     return (count: r.value, tiles: r.tiles);
   }
 
+  /// Live tiles that would lower the shanten of a hand between draws (13, 10,
+  /// 7 or 4 concealed tiles) if claimed off a discard and followed by the best
+  /// discard: [pung] counts types this hand can pung (off any seat), [chow]
+  /// types it can chow (off the left seat only). A type that works both ways
+  /// counts in each. Zero for a hand that is already ready.
+  ({int pung, int chow}) callAcceptance(
+    List<int> concealedHand,
+    List<int> remainingTiles,
+  ) {
+    final hand = List<int>.of(concealedHand);
+    if (_countTiles(hand) < 4) return (pung: 0, chow: 0);
+    final base = calculateWaitingShanten(hand);
+    if (base <= 0) return (pung: 0, chow: 0);
+
+    /// Whether claiming the tile that completes a set with [a] and [b] leaves
+    /// a hand that can discard below [base]. A call adds one set, so shanten
+    /// falls by at most one; the first discard that gets there ends the search.
+    bool improvesWith(int a, int b) {
+      hand[a]--;
+      hand[b]--;
+      var improves = false;
+      for (var d = 1; d < hand.length && !improves; d++) {
+        if (d % 10 == 0 || hand[d] == 0) continue;
+        hand[d]--;
+        if (calculateWaitingShanten(hand) < base) improves = true;
+        hand[d]++;
+      }
+      hand[a]++;
+      hand[b]++;
+      return improves;
+    }
+
+    var pung = 0, chow = 0;
+    for (var t = 1; t < hand.length; t++) {
+      if (t % 10 == 0 || remainingTiles[t] == 0) continue;
+      if (hand[t] >= 2 && improvesWith(t, t)) pung += remainingTiles[t];
+      if (t > 30) continue; // honours cannot be chowed
+      final n = t % 10;
+      final runs = [
+        if (n >= 3) (t - 2, t - 1),
+        if (n >= 2 && n <= 8) (t - 1, t + 1),
+        if (n <= 7) (t + 1, t + 2),
+      ];
+      for (final (a, b) in runs) {
+        if (hand[a] > 0 && hand[b] > 0 && improvesWith(a, b)) {
+          chow += remainingTiles[t];
+          break;
+        }
+      }
+    }
+    return (pung: pung, chow: chow);
+  }
+
   /// Shanten of a hand between draws (13, 10, 7 or 4 concealed tiles). Ported
   /// from `calculate_waiting_shanten()`.
   int calculateWaitingShanten(List<int> concealedHand) {

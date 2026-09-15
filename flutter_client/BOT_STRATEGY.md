@@ -187,18 +187,25 @@ runs do not rank those six against each other.
 
 ### Hong Kong — the guide beats the bots
 
-**Result.** Over 2000 East-only games on seeds no tuning round had seen
-(`HK_TUNE_ROUND=3 HK_TUNE_SEED=13000`), Aggressive / Speed, `SimpleBot`
-opponents, common random numbers:
+**Result.** The shipped guide was measured on three sets of seeds that no
+tuning round used — East-only games, Aggressive / Speed, `SimpleBot`
+opponents, common random numbers. Δ is placement vs the control (`SimpleBot`
+in your seat); negative means the guide finishes higher.
 
-| Arm | Avg place | Win / hand | Δ place vs control | Δ vs original |
-|---|---|---|---|---|
-| control (SimpleBot) | 2.486 | 0.264 | — | — |
-| original guide (riichi's model) | 2.549 | 0.219 | +0.063 ± 0.063, p = 0.052 | — |
-| **tuned guide (shipped)** | **2.369** | **0.259** | **−0.116 ± 0.065, p = 4.2e-4** | **−0.179 ± 0.054, p < 1e-6** |
+| Held-out run | Games | Guide place | Bot place | Δ vs bot (95% CI) | p |
+|---|---|---|---|---|---|
+| seeds 13000+ | 2000 | 2.369 | 2.486 | −0.116 ± 0.065 | 4.2e-4 |
+| seeds 60000+ | 2000 | 2.428 | 2.514 | −0.086 ± 0.064 | 9.0e-3 |
+| seeds 100000+ | 6000 | 2.437 | 2.473 | −0.036 ± 0.037 | 0.059 |
+| **pooled (inverse-variance)** | **10000** | | | **−0.062 ± 0.029** | **2.6e-5** |
 
-The tuned guide places **0.116 of a placement better than the bot**, where
-the original placed 0.063 worse.
+The tuned guide beats the bot by **about 0.06 of a placement**. The first
+held-out run overstated that — the largest run found the smallest gap, and
+the three differ more than chance alone usually produces (heterogeneity
+p = 0.08) — so the pooled figure is the one to quote. Riichi's settings on the
+same seeds placed *behind* the bot (+0.063 and +0.050 on the first two), so the
+tuning is worth roughly 0.15 of a placement (0.179 and 0.136 on those runs,
+both p < 1e-5).
 
 **What was wrong.** A decision-level diagnostic
 (`HK_DIAG=600 flutter test test/hong_kong/hk_guide_diag_test.dart`) plays your
@@ -254,6 +261,40 @@ come from the separate held-out run. Shipped in `HongKongGuideTuning`:
 It now wins as often as the bot while dealing in 15% less, and wins slightly
 bigger hands.
 
+**Counting calls and calibrating the model — tried, not adopted.** The
+obvious next step was to fix the model itself rather than patch it:
+
+1. **Count calls.** `TileEfficiencyCalculator.callAcceptance` counts the live
+   tiles a hand could pung (off any seat) or chow (off the left seat) to move
+   forward, and `WinModel.pungRate` / `chowRate` add them to its width.
+2. **Calibrate for Hong Kong.** `test/hong_kong/hk_calibration_data_test.dart`
+   logged 159,092 guide decisions from 3000 games, and
+   `tools/fit_hk_win_model.py` — a line-for-line mirror of the Dart model,
+   checked to agree to 4e-16 — fitted every `WinModel` constant to whether
+   each hand went on to win.
+
+The fit transformed how well the model predicts. Riichi's constants had a
+1-shanten hand winning 41% of the time against a real 25%; on 53,938 held-out
+decisions log loss fell from 0.5575 to 0.5270 (calibrated) and 0.5246
+(calibrated with calls), with fitted rates of about 1.0 per pungable and 1.6
+per chowable tile. But predicting better is not the same as choosing better:
+
+| 2000 games, seeds 60000+ | Guide place | Δ vs bot |
+|---|---|---|
+| shipped | 2.428 | −0.086 |
+| calibrated, draws only | 2.623 | **+0.109 (worse than the bot)** |
+| calls counted, original constants | 2.425 | −0.089 |
+| calibrated with calls | 2.385 | −0.129 |
+
+Calibration alone made play *worse* — the constants that best predict the hand
+the guide kept do not rank the hands it could have kept instead. Calibrated
+with calls looked best, so it went to a direct head-to-head against the
+shipped guide over 6000 paired games on fresh seeds (`HK_TUNE_ROUND=5`):
+**0.014 of a placement better, ± 0.033, p = 0.40** — no measurable gain. The
+shipped model stays; the call counter, the calibration harness and the fitter
+remain for the next attempt, which should fit the model to *decisions* (which
+discard leads to more wins) rather than to outcomes.
+
 **Style and Focus.** The Style × Focus sweep was run on the original guide
 (2000 East-only games per arm): Aggressive / Speed placed best of the six —
 0.021 ahead of Balanced / Speed (p = 6.5e-3), 0.108 ahead of Balanced /
@@ -267,6 +308,9 @@ Re-run either sweep with, for example:
 SWEEP_GAMES=2000 SWEEP_EAST=1 flutter test test/policy_sweep_test.dart                          # riichi
 SWEEP_GAMES=2000 SWEEP_EAST=1 SWEEP_RULESET=hongKong flutter test test/policy_sweep_test.dart   # Hong Kong
 HK_TUNE_ROUND=3 HK_TUNE_SEED=13000 HK_TUNE_GAMES=2000 flutter test test/hong_kong/hk_tuning_sweep_test.dart
+HK_TUNE_ROUND=5 HK_TUNE_SEED=100000 HK_TUNE_GAMES=6000 flutter test test/hong_kong/hk_tuning_sweep_test.dart   # head-to-head
+HK_CALIB_GAMES=3000 HK_CALIB_OUT=calib.csv flutter test test/hong_kong/hk_calibration_data_test.dart
+python3 tools/fit_hk_win_model.py calib.csv holdout.csv
 HK_DIAG=600 flutter test test/hong_kong/hk_guide_diag_test.dart
 ```
 

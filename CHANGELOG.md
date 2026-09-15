@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Measured, and not adopted: a call-aware, self-play-calibrated Hong Kong
+  win model.** `TileEfficiencyCalculator.callAcceptance` counts tiles a hand
+  could pung or chow forward; the win model's constants now live in
+  `WinModel` (riichi's are unchanged and pinned by a test); and
+  `test/hong_kong/hk_calibration_data_test.dart` plus
+  `tools/fit_hk_win_model.py` fit them to self-play. The fit predicted far
+  better (held-out log loss 0.5575 → 0.5246) but played no better: 0.014 of a
+  placement ahead of the shipped guide over 6000 paired games, p = 0.40.
+  Calibration without calls played worse than the bot. The shipped model is
+  unchanged. A 6000-game held-out run also revised the shipped guide's lead
+  over the bot: **0.062 of a placement pooled over 10,000 held-out games**
+  (±0.029, p = 2.6e-5), not the 0.116 first measured.
 - **The Hong Kong guide now beats the bots.** It placed 0.063 behind
-  `SimpleBot`; it now places **0.116 ahead** over 2000 held-out East-only
-  games (p = 4.2e-4), 0.179 ahead of its old self (p < 1e-6). Two
+  `SimpleBot`; it now places ahead — 0.116 on its first 2000 held-out
+  games, 0.062 pooled over later runs — 0.179 ahead of its old self. Two
   Hong Kong-only settings in `HongKongGuideTuning`: the pre-ready penalty on
   narrow hands is halved (a narrow hand can pung or chow forward), and a
   threat needs three exposed sets, not two. Per hand, steps away from ready
