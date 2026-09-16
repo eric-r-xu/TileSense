@@ -110,7 +110,7 @@ void main() {
     try {
       game.setAutoplay(true);
       for (var i = 0; i < 500 && game.phase == GamePhase.playing; i++) {
-        await tester.pump(const Duration(milliseconds: 960));
+        await tester.pump(const Duration(milliseconds: 1104));
       }
 
       expect(game.phase, isNot(GamePhase.playing));

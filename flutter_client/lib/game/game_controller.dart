@@ -443,8 +443,11 @@ class GameController extends ChangeNotifier implements GuideHost {
   // --- the loop -------------------------------------------------------
 
   // Opponents act at half the old pace (960 ms vs 480 ms per step); fast mode
-  // halves that again for a 2x run.
-  Duration get _stepDelay => Duration(milliseconds: fastMode ? 480 : 960);
+  // halves that again for a 2x run. Both are nudged up a further 15% — the
+  // maximum this table's discard/call/riichi tiles are allowed to slow the
+  // game down by — so their travel animations (see TableView) have room to
+  // read as movement rather than a snap, without the table feeling sluggish.
+  Duration get _stepDelay => Duration(milliseconds: fastMode ? 552 : 1104);
 
   void _scheduleLoop() {
     if (_disposed || paused || (_loopTimer?.isActive ?? false)) return;

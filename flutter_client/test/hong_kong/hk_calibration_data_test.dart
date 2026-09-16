@@ -92,7 +92,7 @@ void _play(int seed, List<String> rows) {
               '${calls.chow},$unseen,$draws');
         }
       }
-      fa.elapse(const Duration(milliseconds: 960));
+      fa.elapse(const Duration(milliseconds: 1104));
     }
     game.dispose();
   });

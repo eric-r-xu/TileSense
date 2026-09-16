@@ -225,7 +225,7 @@ List<(double, int, int, int)> _shard(
           continue;
         }
       }
-      fa.elapse(const Duration(milliseconds: 960));
+      fa.elapse(const Duration(milliseconds: 1104));
     }
     final pts = game.tablePoints;
     var place = 1.0;

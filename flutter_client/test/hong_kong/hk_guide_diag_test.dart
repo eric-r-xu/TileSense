@@ -186,7 +186,7 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
         }
         continue;
       }
-      fa.elapse(const Duration(milliseconds: 960));
+      fa.elapse(const Duration(milliseconds: 1104));
     }
     game.dispose();
   });

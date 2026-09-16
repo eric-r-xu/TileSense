@@ -23,7 +23,7 @@ void main() {
     final expected =
         game.report.lines.singleWhere((l) => l.recommended).discard;
     game.setAutoplay(true);
-    await tester.pump(const Duration(milliseconds: 960));
+    await tester.pump(const Duration(milliseconds: 1104));
     expect(round.seats[0].pond.last.type, expected);
     expect(round.seats[0].riichi, isFalse);
     game.dispose();
@@ -35,7 +35,7 @@ void main() {
     try {
       game.setAutoplay(true);
       for (var i = 0; i < 500 && game.phase == GamePhase.playing; i++) {
-        await tester.pump(const Duration(milliseconds: 960));
+        await tester.pump(const Duration(milliseconds: 1104));
       }
 
       expect(game.phase, isNot(GamePhase.playing));
