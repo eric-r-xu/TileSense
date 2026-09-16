@@ -137,7 +137,7 @@ List<num> _playGame(int seed, bool guide, bool fold) {
           continue;
         }
       }
-      fa.elapse(const Duration(milliseconds: 960));
+      fa.elapse(const Duration(milliseconds: 1104));
     }
     row = [
       seed, guide ? 1 : 0, hands, //

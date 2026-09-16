@@ -387,9 +387,9 @@ class TableView extends StatelessWidget {
                                 i == s.riichiPondIndex ? 1 : 0,
                           ),
                         )
-                      : _popIn(
+                      : _travelIn(
                           ValueKey('pond-$seat-${s.pond.length}'),
-                          TileFace(
+                          child: TileFace(
                             tile: s.pond[i],
                             size: TileSize.normal,
                             scale: scale,
@@ -427,7 +427,8 @@ class TableView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (s.riichi) _riichiStick(),
+            if (s.riichi)
+              _popIn(ValueKey('riichi-$seat'), _riichiStick()),
             ...rows,
           ],
         ),
@@ -462,12 +463,46 @@ class TableView extends StatelessWidget {
     );
   }
 
-  /// A one-shot pop-in used for the freshly discarded tile.
+  /// Pre-rotation local displacement a freshly discarded tile eases in from.
+  /// Every pond is built "top-left, growing down" and *then* turned by its
+  /// own `quarterTurns` in [_pond] (0/1/2/3 for the bottom/left/top/right
+  /// seats), with each rotation chosen so that a tile displaced this way
+  /// before that turn lands, after it, displaced outward along that seat's
+  /// own edge of the table — down for you, up for across, sideways for the
+  /// two turned seats — without this animation needing to know which seat it
+  /// is. (Verified by hand for all four `quarterTurns` values: a positive
+  /// local y always rotates to point away from the centre status block.)
+  static const Offset _pondArrivalFrom = Offset(0, 26);
+
+  /// A one-shot "it just landed here" transition for a freshly discarded
+  /// tile: it eases in from [_pondArrivalFrom] while fading and scaling up,
+  /// so it reads as having travelled from the hand rather than having
+  /// appeared. Kept well under a single turn's step delay (see
+  /// `GameController._stepDelay`) so it never laps the next action.
+  Widget _travelIn(Key key, {required Widget child}) {
+    return TweenAnimationBuilder<double>(
+      key: key,
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      builder: (_, t, c) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.translate(
+          offset: _pondArrivalFrom * (1 - t),
+          child: Transform.scale(scale: 0.7 + 0.3 * t, child: c),
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  /// A one-shot pop-in for a newly formed meld (chi/pon/kan) or a riichi
+  /// stick, so a call reads as the set assembling rather than appearing whole.
   Widget _popIn(Key key, Widget child) {
     return TweenAnimationBuilder<double>(
       key: key,
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutBack,
       builder: (_, t, c) => Opacity(
         opacity: t.clamp(0.0, 1.0),
@@ -483,7 +518,14 @@ class TableView extends StatelessWidget {
       runSpacing: 2,
       children: [
         for (final m in s.melds)
-          MeldRow(m, size: TileSize.small, scale: _pondScale)
+          _popIn(
+            // The tile-id list is a meld's identity: stable across rebuilds
+            // (so an already-shown meld doesn't replay its pop), but fresh
+            // whenever a kan upgrades an existing pon's tiles, which is
+            // itself a call worth animating in again.
+            ValueKey('meld-${s.seat}-${m.tiles.map((t) => t.id).join(',')}'),
+            MeldRow(m, size: TileSize.small, scale: _pondScale),
+          ),
       ],
     );
     if (edits == null) return group;

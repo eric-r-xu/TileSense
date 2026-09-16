@@ -180,7 +180,7 @@ void _game(
               declareRiichi: d.riichi);
         }
       } else {
-        fa.elapse(const Duration(milliseconds: 960));
+        fa.elapse(const Duration(milliseconds: 1104));
       }
 
       if (myTurn && !wasRiichi && s0.pond.length > pondLen) {

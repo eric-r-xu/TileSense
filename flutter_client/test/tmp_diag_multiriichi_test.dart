@@ -96,7 +96,7 @@ void _game(int seed, void Function(String) inc) {
               declareRiichi: d.riichi);
         }
       } else {
-        fa.elapse(const Duration(milliseconds: 960));
+        fa.elapse(const Duration(milliseconds: 1104));
       }
 
       for (final s in game.round.seats) {

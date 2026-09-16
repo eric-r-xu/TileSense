@@ -23,6 +23,16 @@ class ScoringView extends StatefulWidget {
 class _ScoringViewState extends State<ScoringView> {
   static const int _autoContinueSeconds = 10;
 
+  /// Every tile in this panel renders 8% larger than its shared [TileSize]
+  /// step (within the 5–10% the panel can afford — see the `FittedBox`/`Wrap`
+  /// wrappers each row already sits in, which absorb the extra size instead
+  /// of letting it overflow the panel).
+  static const double _tileScale = 1.08;
+
+  /// Matches the "recommended" green used elsewhere (the guide's top-discard
+  /// highlight, the efficiency dial) so a winning tile reads the same way.
+  static const Color _winGreen = Color(0xff43a047);
+
   int _page = 0;
   bool _autoEnabled = true;
   // When true the panel drops to 25% opacity (and its scrim clears) so the
@@ -283,18 +293,25 @@ class _ScoringViewState extends State<ScoringView> {
                   hk ? w.hand.where((t) => t != winTile) : w.hand))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1),
-                  child: TileFace(tile: t, size: TileSize.normal),
+                  child: TileFace(
+                      tile: t, size: TileSize.normal, scale: _tileScale),
                 ),
               if (winTile != null) ...[
                 const SizedBox(width: 8),
-                TileFace(tile: winTile, size: TileSize.normal),
+                TileFace(
+                  tile: winTile,
+                  size: TileSize.normal,
+                  scale: _tileScale,
+                  highlightColor: _winGreen,
+                ),
               ],
               for (final m in w.melds) ...[
                 const SizedBox(width: 8),
                 for (final ty in m.types)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
-                    child: TileFace(type: ty, size: TileSize.normal),
+                    child: TileFace(
+                        type: ty, size: TileSize.normal, scale: _tileScale),
                   ),
               ],
             ],
@@ -362,7 +379,7 @@ class _ScoringViewState extends State<ScoringView> {
               style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(width: 2),
           for (final ty in tiles)
-            TileFace(type: ty, size: TileSize.normal),
+            TileFace(type: ty, size: TileSize.normal, scale: _tileScale),
         ],
       ),
     );
@@ -407,11 +424,11 @@ class _ScoringViewState extends State<ScoringView> {
           runSpacing: 1,
           children: [
             for (final t in sortByType(s.hand))
-              TileFace(tile: t, size: TileSize.small),
+              TileFace(tile: t, size: TileSize.small, scale: _tileScale),
             for (final m in s.melds) ...[
               const SizedBox(width: 6),
               for (final ty in m.types)
-                TileFace(type: ty, size: TileSize.small),
+                TileFace(type: ty, size: TileSize.small, scale: _tileScale),
             ],
           ],
         ),
@@ -428,7 +445,7 @@ class _ScoringViewState extends State<ScoringView> {
                     style: TextStyle(color: Colors.white54, fontSize: 11)),
                 const SizedBox(width: 2),
                 for (final wt in waits)
-                  TileFace(type: wt, size: TileSize.small),
+                  TileFace(type: wt, size: TileSize.small, scale: _tileScale),
               ],
             ),
           ),

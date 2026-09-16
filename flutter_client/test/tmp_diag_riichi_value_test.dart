@@ -176,7 +176,7 @@ void _game(int seed, List<List<num>> out,
               declareRiichi: d.riichi);
         }
       } else {
-        fa.elapse(const Duration(milliseconds: 960));
+        fa.elapse(const Duration(milliseconds: 1104));
       }
 
       // A seat that just declared: score the hand it declared on, exactly as
