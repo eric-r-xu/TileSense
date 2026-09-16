@@ -115,6 +115,21 @@ class GameController extends ChangeNotifier implements GuideHost {
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
 
+  /// Off by default: browsers routinely re-suspend playback (backgrounding,
+  /// screen lock, iPad multitasking) in ways that leave bot/Auto-Play sfx and
+  /// voice lines silently dropped, so starting muted avoids a false
+  /// impression that sound is broken. Turning it on is itself a fresh user
+  /// gesture, so it doubles as the manual "resync" a player can reach for if
+  /// the browser's audio context ever gets stuck suspended mid-game.
+  bool get soundOn => Sfx.i.enabled;
+  void setSoundOn(bool value) {
+    if (Sfx.i.enabled == value) return;
+    Sfx.i.enabled = value;
+    if (value) Sfx.i.unlock();
+    _tel?.settingChange(matchId: _matchId, setting: 'sound', value: value);
+    notifyListeners();
+  }
+
   /// When true the turn loop runs at 2x speed (opponents act twice as fast).
   bool fastMode = false;
   void setFastMode(bool value) {
