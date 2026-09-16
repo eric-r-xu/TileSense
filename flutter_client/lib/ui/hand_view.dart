@@ -273,10 +273,30 @@ class _HandViewState extends State<HandView> {
               ),
               const SizedBox(width: 6),
               const _FlutterAttribution(),
+              const SizedBox(width: 6),
+              _soundButton(),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  /// Sound toggle, the rightmost thing in the bar — bottom-right corner of the
+  /// whole app. Off by default (see [GameController.setSoundOn]): mobile
+  /// browsers routinely re-suspend Web Audio in ways that silently drop
+  /// bot/Auto-Play sfx and voice lines, so starting muted avoids a false
+  /// impression that sound is broken, and tapping this to turn it on is
+  /// itself a fresh gesture a player can reach for to resync audio mid-game.
+  Widget _soundButton() {
+    final on = game.soundOn;
+    return IconButton(
+      key: const Key('soundToggle'),
+      tooltip: on ? 'Sound on — tap to mute' : 'Sound off — tap to unmute',
+      iconSize: 28,
+      icon: Icon(on ? Icons.volume_up : Icons.volume_off),
+      color: on ? const Color(0xffe9d58f) : Colors.white38,
+      onPressed: () => game.setSoundOn(!on),
     );
   }
 

@@ -26,7 +26,9 @@ class Sfx {
 
   final AudioBackend _audio = AudioBackend();
 
-  bool enabled = true;
+  /// Off by default — see the sound toggle in `ui/hand_view.dart` (and
+  /// `GameController.setSoundOn`) for why.
+  bool enabled = false;
 
   /// Test seam: when set, every line the game asks for is recorded here. The
   /// audio stack has no plugin under a test binding, so this is the only way
