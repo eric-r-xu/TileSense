@@ -260,8 +260,8 @@ class TableView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
-                        width: 18,
-                        child: Text(seat.wind.kanji,
+                        width: 30,
+                        child: Text('${seat.wind.kanji}(${seat.wind.initial})',
                             style: const TextStyle(
                                 color: Colors.white70, fontSize: 12))),
                     if (seat.flowers.isEmpty)
@@ -667,8 +667,8 @@ class TableView extends StatelessWidget {
         round.phase != RoundPhase.callOffer;
     // `seatLabel` already carries "(you)"/"(bot)" where relevant — the real
     // guest nickname online, the fixed persona name offline.
-    final label =
-        '${s.wind.kanji} ${game.seatLabel(seat)}  ${s.points}${s.riichi ? '  ◉' : ''}';
+    final label = '${s.wind.kanji}(${s.wind.initial}) ${game.seatLabel(seat)}'
+        '  ${s.points}${s.riichi ? '  ◉' : ''}';
     final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

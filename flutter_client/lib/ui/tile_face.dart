@@ -27,6 +27,7 @@ class TileFace extends StatelessWidget {
     this.dimmed = false,
     this.rotationQuarterTurns = 0,
     this.showIndex = true,
+    this.hovered = false,
   });
 
   final Tile? tile;
@@ -51,6 +52,11 @@ class TileFace extends StatelessWidget {
   final bool dimmed;
   final int rotationQuarterTurns;
   final bool showIndex;
+
+  /// True while the pointer is hovering this tile — darkens the face a touch
+  /// so a mouse user can see which tile they're over, on top of whatever
+  /// [highlightColor] / [highlight] tint is already showing.
+  final bool hovered;
 
   TileType? get _type => tile?.type ?? type;
   bool get _aka => tile?.aka ?? false;
@@ -146,17 +152,20 @@ class TileFace extends StatelessWidget {
     } else {
       final t = _type!;
       final hc = highlightColor;
+      final baseColor = hc != null
+          ? Color.alphaBlend(
+              hc.withValues(alpha: 0.22), const Color(0xffeae7d7))
+          : highlight
+              ? const Color(0xfffff6d8)
+              : const Color(0xffeae7d7);
       face = Container(
         width: dims.$1,
         height: dims.$2,
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-          color: hc != null
-              ? Color.alphaBlend(
-                  hc.withValues(alpha: 0.22), const Color(0xffeae7d7))
-              : highlight
-                  ? const Color(0xfffff6d8)
-                  : const Color(0xffeae7d7),
+          color: hovered
+              ? Color.alphaBlend(Colors.black.withValues(alpha: 0.14), baseColor)
+              : baseColor,
           border: Border.all(
             color: borderColorOverride ??
                 hc ??
