@@ -275,7 +275,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         lastError = msg['message'] as String?;
         notifyListeners();
       case 'bot_takeover':
-        lastBotTakeoverSeat = msg['seat'] as int?;
+        // The server reports its own absolute seat here, but every seat this
+        // controller otherwise exposes to the UI (seatLabel/characterForSeat,
+        // and everything read off `round`) is local — convert so callers
+        // don't need their own special case for this one field.
+        final serverSeat = msg['seat'] as int?;
+        lastBotTakeoverSeat = serverSeat == null
+            ? null
+            : (serverSeat - (mySeat ?? 0) + 4) % 4;
         notifyListeners();
       case 'player_disconnected':
       case 'player_reconnected':
@@ -577,24 +584,57 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   @override
-  String seatLabel(int seat) {
-    final match = lobbySeats.where((s) => s.seat == seat);
-    final entry = match.isEmpty ? null : match.first;
-    final name = entry?.name;
-    final label = name == null || name.isEmpty
-        ? (entry?.isBot ?? false ? 'Bot' : 'Seat ${seat + 1}')
-        : (entry!.isBot ? '$name (bot)' : name);
-    return seat == mySeat ? '$label (you)' : label;
-  }
+  String seatLabel(int seat) =>
+      labelForLocalSeat(lobbySeats, mySeat ?? 0, seat);
 
   /// Falls back to Hubert only for a not-yet-seated lobby slot (before the
   /// server has assigned anyone there) — every seat has a real assignment by
   /// the time a game is actually running.
   @override
-  Character characterForSeat(int seat) {
-    final match = lobbySeats.where((s) => s.seat == seat);
-    final entry = match.isEmpty ? null : match.first;
-    return entry?.character ?? Character.hubert;
+  Character characterForSeat(int seat) =>
+      characterForLocalSeat(lobbySeats, mySeat ?? 0, seat);
+
+  /// [seat] here — like every seat number `TableView`/`HandView` ever pass to
+  /// [characterForSeat] or [seatLabel] — is a *local* seat, the same rotated
+  /// frame `round` itself is built in (`buildRoundFromSnapshot`: "every seat
+  /// index remapped ... so the recipient always lands at local seat 0").
+  /// [lobbySeats], in contrast, is a straight, unrotated copy of the server's
+  /// `room_state` roster, indexed by the real seat number. Converting back to
+  /// that real seat before looking it up is what these two functions are
+  /// for — skipping it, as this used to, is exactly right when `mySeat`
+  /// happens to be seat 0 and silently wrong for the other three seats a
+  /// guest can be dealt into: it showed whoever the server calls seat 0 at
+  /// every player's own "bottom" position instead of that player themselves.
+  ///
+  /// Pulled out as static, pure functions (rather than left as private
+  /// instance methods) purely so a test can exercise the seat-conversion
+  /// math directly, the same way [newMeldKind] and [playRoundEndVoice] are —
+  /// `OnlineGameController` itself always opens a real `MpClient` in its
+  /// constructor, so it can't be instantiated in a test.
+  static LobbySeat? _lobbyEntryForLocalSeat(
+      List<LobbySeat> lobbySeats, int mySeat, int localSeat) {
+    final serverSeat = (localSeat + mySeat) % 4;
+    final match = lobbySeats.where((s) => s.seat == serverSeat);
+    return match.isEmpty ? null : match.first;
+  }
+
+  @visibleForTesting
+  static String labelForLocalSeat(
+      List<LobbySeat> lobbySeats, int mySeat, int localSeat) {
+    final entry = _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat);
+    final name = entry?.name;
+    final serverSeat = (localSeat + mySeat) % 4;
+    final label = name == null || name.isEmpty
+        ? (entry?.isBot ?? false ? 'Bot' : 'Seat ${serverSeat + 1}')
+        : (entry!.isBot ? '$name (bot)' : name);
+    return localSeat == 0 ? '$label (you)' : label;
+  }
+
+  @visibleForTesting
+  static Character characterForLocalSeat(
+      List<LobbySeat> lobbySeats, int mySeat, int localSeat) {
+    return _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat)?.character ??
+        Character.hubert;
   }
 
   // --- the guide, ported from GameController --------------------------
