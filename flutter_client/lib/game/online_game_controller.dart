@@ -327,6 +327,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   void _applyRoundSnapshot(Map<String, dynamic> msg, {required bool isResult}) {
     final seat = msg['yourSeat'] as int;
+    final previousRound = _roundReady ? round : null;
     mySeat = seat;
     phase = GamePhase.values.byName(msg['gamePhase'] as String);
     _tablePoints = List<int>.from(msg['tablePoints'] as List);
@@ -344,8 +345,42 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       _playRoundEndSfx();
     } else {
       _playTurnSfx();
+      _playCallSfx(previousRound);
     }
     notifyListeners();
+  }
+
+  /// Chi/pon/kan have no signal of their own on the wire — unlike a discard
+  /// (`discardSerial`/`lastDiscardSeat`), the protocol never says "seat N
+  /// just called". Detected instead the same way a reconnecting client would
+  /// have to: any seat whose meld count grew between the last snapshot and
+  /// this one just completed a call, and the new meld's own kind says which.
+  /// `previousRound` is null on the very first snapshot, when every seat is
+  /// still empty-handed and nothing has been called yet.
+  void _playCallSfx(Round? previousRound) {
+    for (var s = 0; s < 4; s++) {
+      final kind = newMeldKind(previousRound, round, s);
+      if (kind != null) Sfx.i.play(kind);
+    }
+  }
+
+  /// The kind of sfx a newly-completed call at [seat] should play, comparing
+  /// [round]'s meld count there against [previousRound]'s — or null if
+  /// nothing new was called. Pulled out of [_playCallSfx] as a pure function
+  /// so the detection itself is unit-testable without a live connection
+  /// (`OnlineGameController` always opens a real [MpClient] in its
+  /// constructor, so the class itself cannot be instantiated in a test).
+  @visibleForTesting
+  static SfxKind? newMeldKind(Round? previousRound, Round round, int seat) {
+    final before = previousRound?.seats[seat].melds.length ?? 0;
+    final after = round.seats[seat].melds.length;
+    if (after <= before) return null;
+    return switch (round.seats[seat].melds.last.kind) {
+      MeldKind.sequence => SfxKind.chi,
+      MeldKind.triplet => SfxKind.pon,
+      MeldKind.kan => SfxKind.kan,
+      MeldKind.pair => SfxKind.pon, // unreachable: pairs are never exposed
+    };
   }
 
   void _updateCallState() {
@@ -721,9 +756,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     return counts;
   }
 
-  // --- sound: simple local cues only. The fixed bot-persona voice lines
-  // GameController plays don't make sense once other seats are real people,
-  // so they are dropped entirely rather than ported. -----------------------
+  // --- sound. Round-end wins voice the winning (and, on a mangan+ ron, the
+  // dealt-into) seat's character line, same as GameController — every seat
+  // here already has a real, displayed persona, so there is nothing
+  // mismatched about voicing it. Chi/pon/kan still only get the plain call
+  // blip (see _playCallSfx), not the caller's spoken line GameController adds
+  // for them — narrower scope, not a different rationale; worth revisiting
+  // together with round-end if that gap turns out to matter too. -----------
 
   int? _lastSfxDiscardSerial;
   void _playTurnSfx() {
@@ -736,14 +775,53 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   void _playRoundEndSfx() {
     final res = round.result;
     if (res == null) return;
-    switch (res.kind) {
-      case RoundEndKind.ron:
-        Sfx.i.play(SfxKind.ron);
-      case RoundEndKind.tsumo:
-        Sfx.i.play(SfxKind.tsumo);
-      case RoundEndKind.exhaustiveDraw:
-      case RoundEndKind.abortiveDraw:
-        break;
+    playRoundEndVoice(res, ruleset, characterForSeat);
+  }
+
+  /// Same shape as `GameController._playRoundEndSfx`: every seat here
+  /// already has a real, displayed persona (the lobby character picker, the
+  /// portraits at the table), so there is nothing "doesn't make sense" about
+  /// voicing it the same way offline does — only the source of the character
+  /// ([characterForSeat], reading the server's assignment, instead of the
+  /// fixed `kSeatCharacters` mapping) differs. A static function, taking that
+  /// lookup as a parameter, so it is unit-testable without a live connection
+  /// (`OnlineGameController` always opens a real [MpClient] in its
+  /// constructor, so the class itself cannot be instantiated in a test).
+  @visibleForTesting
+  static void playRoundEndVoice(
+    RoundResult res,
+    Ruleset ruleset,
+    Character Function(int seat) characterForSeat,
+  ) {
+    final hk = ruleset.isHongKong;
+    final VoiceKind? winLine = switch (res.kind) {
+      RoundEndKind.ron => hk ? VoiceKind.win : VoiceKind.ron,
+      RoundEndKind.tsumo => hk ? VoiceKind.win : VoiceKind.tsumo,
+      _ => null,
+    };
+    if (winLine == null) return;
+    Sfx.i.play(res.kind == RoundEndKind.ron ? SfxKind.ron : SfxKind.tsumo);
+
+    // The winning seat's character calls it. Mangan or higher chains into the
+    // celebratory "yeah"; on a mangan+ ron the discarder then gives a
+    // resigned acknowledgement right after.
+    for (var wi = 0; wi < res.winners.length; wi++) {
+      final seat = res.winners[wi];
+      final bigHand =
+          wi < res.scores.length && res.scores[wi].limitName.isNotEmpty;
+      final winner = characterForSeat(seat);
+      if (!bigHand) {
+        Sfx.i.voice(winLine, character: winner);
+        continue;
+      }
+      final steps = <(Character, VoiceKind)>[
+        (winner, winLine),
+        (winner, VoiceKind.yeah),
+      ];
+      if (res.kind == RoundEndKind.ron && res.loser != null) {
+        steps.add((characterForSeat(res.loser!), VoiceKind.acquiescement));
+      }
+      Sfx.i.voiceChain(steps);
     }
   }
 

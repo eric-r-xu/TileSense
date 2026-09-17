@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Multiplayer round-ends only ever played a plain chime — no character
+  voice acting on a win, and nothing at all for a mangan+ deal-in.**
+  `OnlineGameController._playRoundEndSfx` had intentionally dropped every
+  voice line, reasoned as "the fixed bot-persona voice lines don't make
+  sense once other seats are real people" — but every seat online already
+  has a real, displayed persona (the lobby character picker, portraits at
+  the table), so there was nothing mismatched about voicing it. It now
+  chains the same way `GameController` does: the winner's line, a mangan+
+  win adds their celebratory "yeah", and a mangan+ ron adds the discarder's
+  resigned "acquiescement" — sourcing each seat's character from the
+  server's assignment. Chi/pon/kan still only get the plain call blip (not
+  yet their spoken line) — narrower scope, not a different rationale. New
+  tests: `test/online_win_voice_test.dart`.
+- **Multiplayer never played a sound for chi/pon/kan, in either ruleset.**
+  `OnlineGameController`'s sound handling only ever covered discards and
+  round-end wins (`_playTurnSfx`/`_playRoundEndSfx`) — calls had no path to
+  `Sfx.i.play` at all. The protocol has no "seat N just called" signal the
+  way it has `discardSerial`/`lastDiscardSeat` for a discard, so the new
+  `OnlineGameController.newMeldKind` detects one the same way a reconnecting
+  client would have to: comparing meld counts between the last snapshot and
+  this one, per seat. Character voice lines remain intentionally dropped
+  online (see the comment above `_playTurnSfx`) — this only restores the
+  plain call blip every other action already had. New tests:
+  `test/online_call_sfx_test.dart`.
 - **Multiplayer: your own character could silently not match what you were
   actually assigned.** `Room.resolveCharacter` substitutes a different
   persona when the one you request is already taken by an earlier seat in
