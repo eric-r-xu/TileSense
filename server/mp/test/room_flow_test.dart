@@ -210,17 +210,21 @@ void main() {
 
     a.send({'type': 'start_game'});
     await a.waitFor((m) => m['type'] == 'room_state' && m['phase'] == 'playing');
+    // `start_game` randomizes seats, so Bob's own post-start broadcast (never
+    // his pre-start join order) says which one is actually his.
+    final bobsSeat = (await b.waitFor(
+        (m) => m['type'] == 'room_state' && m['phase'] == 'playing'))['yourSeat'] as int;
 
     final aSub = _autoplay(a);
     addTearDown(aSub.cancel);
 
-    await b.close(); // seat 1 drops without leaving cleanly
+    await b.close(); // Bob's seat drops without leaving cleanly
 
     final takeover = await a.waitFor((m) => m['type'] == 'bot_takeover',
         timeout: const Duration(seconds: 5));
-    expect(takeover['seat'], 1);
+    expect(takeover['seat'], bobsSeat);
 
-    // The table keeps playing afterwards instead of stalling on seat 1.
+    // The table keeps playing afterwards instead of stalling on that seat.
     final progressed = await a.waitFor(
         (m) => m['type'] == 'state' || m['type'] == 'round_result',
         timeout: const Duration(seconds: 10));

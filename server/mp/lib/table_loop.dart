@@ -93,11 +93,14 @@ class TableLoop {
       ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)]
       : (_roundNumber < 4 ? Wind.east : Wind.south);
 
-  /// Starts the game loop. Fills any still-empty seat with a bot first.
+  /// Starts the game loop. Randomizes who sits where first (so join order
+  /// doesn't decide who deals first), then fills any still-empty seat with a
+  /// bot.
   void start() {
     if (_started) return;
     _started = true;
     _points = List.filled(4, ruleset.startingPoints);
+    _shuffleSeats();
     for (var i = 0; i < 4; i++) {
       if (room.seats[i] == null) {
         final character = room.resolveCharacter();
@@ -113,6 +116,27 @@ class TableLoop {
     room.broadcastRoomState();
     _startRound();
     unawaited(_run());
+  }
+
+  /// Fisher-Yates over the occupied seats only — every connected guest keeps
+  /// their own [Seat] (so `room_state`'s `character`/`isHost` for them is
+  /// unaffected), just at a newly randomized index. Untouched empty slots
+  /// are filled with bots right after by [start]. Each connection's socket
+  /// handler (`server.dart`) resolves its own current seat by guest ID on
+  /// every message rather than caching the index from `join_room`/
+  /// `create_room`, so this reindexing needs no coordination with it.
+  void _shuffleSeats() {
+    final hostGuestId = room.seats[room.hostSeat]?.guestId;
+    final occupied = [
+      for (final s in room.seats)
+        if (s != null) s
+    ]..shuffle(_rng);
+    var next = 0;
+    for (var i = 0; i < 4; i++) {
+      if (room.seats[i] != null) room.seats[i] = occupied[next++];
+    }
+    final newHostSeat = room.seats.indexWhere((s) => s?.guestId == hostGuestId);
+    if (newHostSeat >= 0) room.hostSeat = newHostSeat;
   }
 
   void _startRound() {
@@ -183,7 +207,8 @@ class TableLoop {
   /// one for a single timed-out decision on an otherwise-human seat —
   /// `SimpleBot` is stateless across calls (it only ever reads `round`), so a
   /// one-off instance decides exactly as well as a persistent one would.
-  SimpleBot _botFor(int seat) => _bots[seat] ?? SimpleBot(_rng.nextInt(1 << 31));
+  SimpleBot _botFor(int seat) =>
+      _bots[seat] ?? SimpleBot(_rng.nextInt(1 << 31));
 
   Future<void> _applyBotTurn(int seat) async {
     final decision = _botFor(seat).decideTurn(round, seat);
@@ -290,14 +315,16 @@ class TableLoop {
 
     if (humanSeats.isNotEmpty) {
       _broadcastState();
-      final answers = await Future.wait(
-          [for (final seat in humanSeats) _awaitHumanAction(seat, _callTimeout)]);
+      final answers = await Future.wait([
+        for (final seat in humanSeats) _awaitHumanAction(seat, _callTimeout)
+      ]);
       if (_ended) return;
       for (var i = 0; i < humanSeats.length; i++) {
         final seat = humanSeats[i];
         final action = answers[i];
         final opt = round.callOptions.where((o) => o.seat == seat).firstOrNull;
-        if (opt == null) continue; // the option evaporated (e.g. a ron elsewhere)
+        if (opt == null)
+          continue; // the option evaporated (e.g. a ron elsewhere)
         if (isBotControlled(seat)) {
           // Converted to a bot while this call was pending; let it answer.
           final c = _botFor(seat)
@@ -443,7 +470,8 @@ class TableLoop {
     final completer = _pending[seat];
     if (completer != null && !completer.isCompleted) completer.complete(null);
     _disconnectTimers[seat]?.cancel();
-    _disconnectTimers[seat] = Timer(_disconnectGrace, () => _convertToBot(seat, 'disconnected'));
+    _disconnectTimers[seat] =
+        Timer(_disconnectGrace, () => _convertToBot(seat, 'disconnected'));
     room.broadcastRoomState();
   }
 
@@ -470,12 +498,14 @@ class TableLoop {
     final completer = _pending.remove(seat);
     if (completer != null && !completer.isCompleted) completer.complete(null);
     for (var i = 0; i < 4; i++) {
-      room.seats[i]?.send?.call({'type': 'bot_takeover', 'seat': seat, 'reason': reason});
+      room.seats[i]?.send
+          ?.call({'type': 'bot_takeover', 'seat': seat, 'reason': reason});
     }
     room.broadcastRoomState();
   }
 
-  Future<Map<String, dynamic>?> _awaitHumanAction(int seat, Duration timeout) async {
+  Future<Map<String, dynamic>?> _awaitHumanAction(
+      int seat, Duration timeout) async {
     final completer = Completer<Map<String, dynamic>?>();
     _pending[seat] = completer;
     final timer = Timer(timeout, () {

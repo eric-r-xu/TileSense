@@ -7,6 +7,7 @@
 library;
 
 import 'hong_kong/hong_kong_rules.dart';
+import 'scoring.dart';
 
 enum Ruleset {
   riichi(
@@ -50,8 +51,7 @@ enum Ruleset {
   Ruleset get next => Ruleset.values[(index + 1) % Ruleset.values.length];
 
   /// Each seat's score at the start of a game.
-  int get startingPoints =>
-      isHongKong ? HongKongRules.startingChips : 25000;
+  int get startingPoints => isHongKong ? HongKongRules.startingChips : 25000;
 
   /// Scheduled hands in a game: riichi plays East and South (hanchan), Hong
   /// Kong all four winds. [fullGame] false is East only in both.
@@ -69,4 +69,15 @@ enum Ruleset {
   String shapeLabel(int shanten) => isHongKong
       ? (shanten <= 0 ? 'ready' : '$shanten away from ready')
       : (shanten <= 0 ? 'tenpai' : '$shanten-shanten');
+
+  /// Whether [score] is worth a character's celebratory "yeah" (and, on a
+  /// ron, the discarder's resigned acquiescement) rather than just the plain
+  /// win line. Riichi already has a name for this threshold — mangan+, i.e.
+  /// [HandScore.limitName] is set. Hong Kong's own [HandScore.limitName]
+  /// only flags the payment table's 13-faan cap, which an ordinary game
+  /// essentially never reaches, so it gets its own threshold here instead:
+  /// 5 faan, the same rough "the scale stops just doubling" position mangan
+  /// (5 han) occupies among riichi hands.
+  bool isBigHand(HandScore score) =>
+      isHongKong ? score.han >= 5 : score.limitName.isNotEmpty;
 }
