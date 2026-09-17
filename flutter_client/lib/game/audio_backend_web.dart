@@ -184,11 +184,24 @@ class AudioBackend {
 
   Future<void> _resume() => _context.resume().toDart.then<void>((_) {});
 
+  /// Bounds `fetch` + `decodeAudioData`, neither of which times out on its
+  /// own. Without this, one stalled fetch (a flaky connection, or a
+  /// background tab throttling network requests) hangs forever: the voice
+  /// watchdog in `Sfx._pumpVoice` only arms once its clip has *loaded*, so a
+  /// request that never settles never arms it either, `_voiceBusy` never
+  /// clears, and every line for the rest of the session queues up silently
+  /// behind it. This turns that hang into an ordinary, recoverable failure.
+  static const _loadTimeout = Duration(seconds: 5);
+
   Future<web.AudioBuffer> _load(String path) async {
     final cached = _buffers[path];
     if (cached != null) return cached;
 
-    final request = _fetchAndDecode(path);
+    final request = _fetchAndDecode(path).timeout(
+      _loadTimeout,
+      onTimeout: () =>
+          throw TimeoutException('Audio fetch/decode timed out: $path'),
+    );
     _buffers[path] = request;
     try {
       return await request;

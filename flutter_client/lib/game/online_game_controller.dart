@@ -100,7 +100,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   void setDisplayName(String name) => _identity.saveName(name.trim());
 
   /// The persona picked on the lobby's character screen — sent with
-  /// `create_room`/`join_room` and fixed for that room's lifetime.
+  /// `create_room`/`join_room` as a request, not a guarantee: joining a room
+  /// where that persona is already taken gets you whatever
+  /// `Room.resolveCharacter` assigns instead, and `_applyRoomState`
+  /// reconciles this back to match as soon as the room confirms it, so this
+  /// never drifts from what you are actually seen as at the table.
   Character get myCharacter => _identity.character;
   void setMyCharacter(Character value) {
     _identity.saveCharacter(value);
@@ -303,6 +307,21 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       for (final s in msg['seats'] as List)
         LobbySeat.fromJson(s as Map<String, dynamic>)
     ];
+    // `Room.resolveCharacter` silently substitutes a different persona when
+    // the one requested is already taken by an earlier seat in this room
+    // (e.g. two guests both defaulting to the same cached pick). Without
+    // this, `myCharacter` — and so the lobby's own "you are ___" picker —
+    // kept showing the request instead of what was actually assigned, while
+    // every other seat's roster row (and the table, once the game starts)
+    // correctly showed the server's real pick: a visible mismatch between
+    // what you picked and what you're actually playing as.
+    if (mySeat != null) {
+      final mine = lobbySeats.where((s) => s.seat == mySeat);
+      final assigned = mine.isEmpty ? null : mine.first.character;
+      if (assigned != null && assigned != _identity.character) {
+        _identity.saveCharacter(assigned);
+      }
+    }
     notifyListeners();
   }
 
