@@ -226,4 +226,57 @@ void main() {
         timeout: const Duration(seconds: 10));
     expect(progressed, isNotNull);
   });
+
+  test(
+      'a guest requesting an already-taken character is assigned a '
+      'different one, reported in room_state', () async {
+    // Regression test for a bug where the client kept showing "you are
+    // ${requested}" after `Room.resolveCharacter` silently substituted a
+    // different persona on a collision (see `OnlineGameController
+    // .myCharacter`) — the mismatch this covers is server-side: whatever a
+    // colliding guest is assigned must actually be what `room_state` reports
+    // for their own seat, since the client now trusts that value verbatim.
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+
+    final a = await TestClient.connect(server.port);
+    final b = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    addTearDown(b.close);
+
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'character': 'eric',
+      'ruleset': 'riichi',
+      'hanchan': false,
+    });
+    final created = await a.waitFor((m) => m['type'] == 'room_state');
+    final code = created['code'] as String;
+    expect(
+      (created['seats'] as List).firstWhere((s) => s['seat'] == 0)['character'],
+      'eric',
+      reason: 'first request in an empty room is never contested',
+    );
+
+    b.send({
+      'type': 'join_room',
+      'roomCode': code,
+      'guestId': 'guest-b',
+      'name': 'Bob',
+      'character': 'eric', // already taken by seat 0
+    });
+    final joined =
+        await b.waitFor((m) => m['type'] == 'room_state' && m['yourSeat'] == 1);
+    final bCharacter =
+        (joined['seats'] as List).firstWhere((s) => s['seat'] == 1)['character']
+            as String;
+
+    expect(bCharacter, isNot('eric'),
+        reason: 'seat 0 already has it — resolveCharacter must not hand out '
+            'the same persona twice');
+    expect(bCharacter, isNotEmpty);
+  });
 }

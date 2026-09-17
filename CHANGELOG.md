@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Multiplayer: your own character could silently not match what you were
+  actually assigned.** `Room.resolveCharacter` substitutes a different
+  persona when the one you request is already taken by an earlier seat in
+  the room, but `OnlineGameController.myCharacter` (and so the lobby's "you
+  are ___" picker) kept showing the request rather than the assignment —
+  every other seat's roster row, and the table once the game started, showed
+  the real one, so the two visibly disagreed. `_applyRoomState` now
+  reconciles the local guest identity to match `room_state`'s actual
+  assignment for your own seat as soon as it arrives. New server-side
+  regression test: `server/mp/test/room_flow_test.dart`.
+- **A stalled audio fetch could permanently silence voice lines for the rest
+  of the session.** `AudioBackend._load` (web) awaited `fetch` +
+  `decodeAudioData` with no timeout. `Sfx._pumpVoice`'s watchdog only arms
+  once a clip has *loaded*, so a request that never settled (a flaky
+  connection, a backgrounded tab throttling network requests) never armed it
+  either: `_voiceBusy` stayed `true` forever and every later line queued up
+  silently behind it. `_load` now bounds the fetch/decode at 5s, turning a
+  hang into an ordinary, already-handled failure that unblocks the queue.
+
 ### Added
 - **A third guide dial, Strategy: Points or Placement, riichi only.** Points
   is the reference model this whole engine was built and tuned against, and

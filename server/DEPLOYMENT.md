@@ -330,19 +330,25 @@ flutter run -d chrome --dart-define=MP_ENDPOINT=ws://localhost:8789
 
 ### 3.2 Build the Linux binary
 
-Same recipe as §2.4, different entrypoint and package:
+Different entrypoint and package from §2.4, and — unlike the ingest
+service — this one has a `path:` dependency on `packages/mahjong_core`
+(`../../packages/mahjong_core` from `server/mp/pubspec.yaml`), so mounting
+`server/mp` alone leaves `dart pub get` unable to see it at all
+("`mahjong_core from path` doesn't exist"). Mount the repo root instead and
+copy just `server/` and `packages/`, preserving their relative layout, so
+that relative path still resolves inside the container:
 
 ```sh
-docker run --rm --platform linux/amd64 -v "$PWD/server/mp":/src -w /build dart:stable \
-  sh -c "cp -r /src/. /build && dart pub get && dart compile exe bin/mp_server.dart -o /src/tilesense-mp"
+docker run --rm --platform linux/amd64 -v "$PWD":/repo -w /build dart:stable \
+  sh -c "mkdir -p /build/server /build/packages && \
+    cp -r /repo/server/. /build/server/ && cp -r /repo/packages/. /build/packages/ && \
+    cd /build/server/mp && dart pub get && \
+    dart compile exe bin/mp_server.dart -o /repo/server/mp/tilesense-mp"
 file server/mp/tilesense-mp        # must say: ELF 64-bit ... x86-64
 ```
 
-Building against `packages/mahjong_core` (a path dependency) works from this
-recipe because the container gets the whole repo checkout copied in — a bare
-`docker run -v server/mp:/src` alone would not see `../../packages`.
-Copy the full repo, or at least `server/mp` and `packages/mahjong_core`
-together, preserving their relative layout.
+Run from the repo root, not `server/mp` — `$PWD` here has to be the whole
+checkout.
 
 ### 3.3 Copy to the Droplet and start the service
 
