@@ -423,16 +423,23 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0x66caa24e)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  color: Color(0xffe9d58f), fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          child,
-        ],
+      // Transparent so the Container's own background/border still show —
+      // it only exists so the SwitchListTile inside `child` has a Material
+      // ancestor to paint its background/ink splashes on, since those never
+      // paint on a plain DecoratedBox.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                    color: Color(0xffe9d58f), fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            child,
+          ],
+        ),
       ),
     );
   }

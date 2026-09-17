@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Hong Kong wins spoke a generic "win" line instead of ron/tsumo, offline
+  and online.** `GameController._playRoundEndSfx` and `OnlineGameController
+  .playRoundEndVoice` deliberately swapped in `VoiceKind.win` for Hong Kong,
+  reasoning the ron/tsumo clips say the Japanese terms out loud. Riichi and
+  Hong Kong now voice the same line for the same win kind — a discard win
+  plays ron, a self-draw plays tsumo — even though Hong Kong's own button
+  labels for the two stay "Win" / "Self-pick" (`Ruleset.ronLabel`/
+  `tsumoLabel`, unchanged). The plain ron/tsumo blip (`SfxKind`) already
+  played under both rulesets; only the spoken character line was gated.
+  Updated `flutter_client/test/online_win_voice_test.dart`'s two Hong Kong
+  cases; new `flutter_client/test/hong_kong/hk_win_voice_test.dart` covers
+  the offline path.
 - **Hong Kong hands almost never got the winner's celebratory "yeah" or the
   discarder's resigned acquiescement, offline or online.** Both
   `GameController._playRoundEndSfx` and `OnlineGameController

@@ -870,10 +870,12 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     Ruleset ruleset,
     Character Function(int seat) characterForSeat,
   ) {
-    final hk = ruleset.isHongKong;
+    // Ron on a discard, tsumo on a self-draw — same voice line either
+    // ruleset plays under, in parity with riichi, even though Hong Kong's
+    // own vocabulary for the two calls them Win / Self-pick.
     final VoiceKind? winLine = switch (res.kind) {
-      RoundEndKind.ron => hk ? VoiceKind.win : VoiceKind.ron,
-      RoundEndKind.tsumo => hk ? VoiceKind.win : VoiceKind.tsumo,
+      RoundEndKind.ron => VoiceKind.ron,
+      RoundEndKind.tsumo => VoiceKind.tsumo,
       _ => null,
     };
     if (winLine == null) return;
