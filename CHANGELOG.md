@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Multiplayer: whoever wasn't dealt server seat 0 saw the wrong player at
+  their own "you" spot, and the wrong character controlling their
+  neighbors.** `buildRoundFromSnapshot` deliberately rotates every seat
+  index so the local `Round` always has "me" at local seat 0 — the
+  assumption `TableView`/`HandView` are built on — but
+  `OnlineGameController.seatLabel`/`characterForSeat` still compared that
+  local seat number directly against `lobbySeats`, which is a plain,
+  unrotated copy of the server's seat roster. The two only happened to
+  agree when a player's real server seat *was* 0, which is why this went
+  unnoticed until someone was dealt into a different one: they'd see
+  whoever the server calls seat 0 labeled "(you)" and controlling their own
+  portrait, with everyone else's positions similarly offset. Both methods
+  now convert the local seat back to the real server seat
+  (`(localSeat + mySeat) % 4`) before looking it up; `lastBotTakeoverSeat`
+  (set straight from the server's own absolute seat number) is converted
+  the other way when a `bot_takeover` message arrives, so it stays in the
+  same local frame every other seat number this controller exposes uses.
+  New test: `test/online_seat_rotation_test.dart`.
 - **Multiplayer round-ends only ever played a plain chime — no character
   voice acting on a win, and nothing at all for a mangan+ deal-in.**
   `OnlineGameController._playRoundEndSfx` had intentionally dropped every
