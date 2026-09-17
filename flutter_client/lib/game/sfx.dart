@@ -11,8 +11,42 @@ enum SfxKind { riichi, chi, pon, kan, ron, tsumo, discard }
 /// (falling back to silence where a character is missing that line).
 enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah, acquiescement, win }
 
-/// The four table personalities — one per seat (0 = the human, Orderic).
-enum Character { orderic, grant, hubert, astaroth }
+/// The five table personalities. Offline, every seat's persona is
+/// customisable (`kSeatCharacters` in game_controller.dart is the default,
+/// human seat included); online, a human picks their own from
+/// [kSelectableCharacters] on the lobby screen and the server assigns
+/// whatever's left to bot-filled seats — see `Room.resolveCharacter` on the
+/// multiplayer server, whose five spellings (`.name` here) this enum must
+/// keep matching.
+enum Character { eric, orderic, grant, hubert, astaroth }
+
+/// The personas a human can pick from online — all five. `resolveCharacter`
+/// falls back to any unclaimed character in the full five-name pool for a
+/// bot-filled seat regardless of this list, so nothing needs holding back
+/// here for that. Order is display order on the picker.
+const List<Character> kSelectableCharacters = [
+  Character.eric,
+  Character.orderic,
+  Character.astaroth,
+  Character.grant,
+  Character.hubert,
+];
+
+const Map<Character, String> kCharacterName = {
+  Character.eric: 'Eric',
+  Character.orderic: 'Orderic',
+  Character.grant: 'Grant',
+  Character.hubert: 'Hubert',
+  Character.astaroth: 'Astaroth',
+};
+
+const Map<Character, String> kCharacterPortrait = {
+  Character.eric: 'assets/eric/eric.png',
+  Character.orderic: 'assets/orderic/orderic.png',
+  Character.grant: 'assets/grant/grant.png',
+  Character.hubert: 'assets/hubert/hubert.png',
+  Character.astaroth: 'assets/astaroth/astaroth.png',
+};
 
 /// Fire-and-forget sound player.
 ///
@@ -48,12 +82,28 @@ class Sfx {
     SfxKind.kan: 'sfx/click.wav',
     SfxKind.ron: 'sfx/score_count.wav',
     SfxKind.tsumo: 'sfx/score_count.wav',
-    SfxKind.discard: 'sfx/click.wav',
+    // A tile discard has no other action sound of its own — riichi, a call
+    // or a kan all take priority over this one when a discard also declares
+    // or completes one of those — so this is the plain tile-on-table clink.
+    SfxKind.discard: 'TileClink.wav',
   };
 
   /// Per-character voice assets. `null` means that character has no recording
   /// for that line, so it is silently skipped.
   static const Map<Character, Map<VoiceKind, String?>> _voiceAsset = {
+    // No riichi or acquiescement recording exists yet for Eric — those lines
+    // just stay silent for him, same as any character missing a clip.
+    Character.eric: {
+      VoiceKind.chi: 'eric/Eric_Chi.wav',
+      VoiceKind.pon: 'eric/Eric_Pon.wav',
+      VoiceKind.kan: 'eric/Eric_Kan.wav',
+      VoiceKind.riichi: 'eric/Eric_Riichi.wav',
+      VoiceKind.ron: 'eric/Eric_ron.wav',
+      VoiceKind.tsumo: 'eric/Eric_Tsumo.wav',
+      VoiceKind.yeah: 'eric/Eric_Yeah.wav',
+      VoiceKind.acquiescement: 'eric/Eric_Acquiescement.wav',
+      VoiceKind.win: 'eric/Eric_Win.wav',
+    },
     Character.orderic: {
       VoiceKind.chi: 'orderic/Orderic_Chi.wav',
       VoiceKind.pon: 'orderic/Orderic_Pon.wav',

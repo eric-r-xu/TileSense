@@ -6,40 +6,41 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../logic/bot.dart';
+import 'package:mahjong_core/bot.dart';
 import '../logic/efficiency_engine.dart';
-import '../logic/round.dart';
-import '../logic/ruleset.dart';
-import '../logic/tile.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
 import '../telemetry/telemetry.dart';
 import 'guide_host.dart';
 import 'sfx.dart';
 
+export 'guide_host.dart' show GamePhase;
+
 const int kHumanSeat = 0;
 
-/// Fixed personality per seat: 0 self (Orderic), 1 right (Grant), 2 across
-/// (Hubert), 3 left (Astaroth).
+/// The default personality per seat — 0 self (Orderic), 1 right (Grant),
+/// 2 across (Hubert), 3 left (Astaroth) — and what a fresh [GameController]
+/// starts with. Every seat, including the human's, can be changed to any of
+/// the five personas afterward; see [GameController.setSeatCharacter].
 const List<Character> kSeatCharacters = [
   Character.orderic,
   Character.grant,
   Character.hubert,
   Character.astaroth,
 ];
-Character _characterForSeat(int seat) => kSeatCharacters[seat];
 
+/// Fixed seat labels for contexts with no per-table character choice — the
+/// scenario builder's posed table (`ScenarioController.seatLabel`). The live
+/// game's own [GameController.seatLabel] tracks whatever persona is actually
+/// assigned instead, since that can change after this list was picked.
 const List<String> kSeatNames = ['Orderic', 'Grant', 'Hubert', 'Astaroth'];
-
-/// The name shown for a seat in the UI; the human seat is tagged "(you)".
-String seatDisplayName(int seat) =>
-    seat == kHumanSeat ? '${kSeatNames[seat]} (you)' : kSeatNames[seat];
 
 /// How many East-round hands before the game ends (tonpuusen). Renchan can
 /// extend past this.
 const int kRoundsPerGame = 4;
 
-enum GamePhase { playing, roundEnd, gameEnd }
-
-class GameController extends ChangeNotifier implements GuideHost {
+class GameController extends ChangeNotifier implements TableGameHost {
   /// [botFactory] builds the four opponents, one per seat, and defaults to the
   /// shipped [SimpleBot]. It exists for measurement harnesses: the stock bots
   /// never fold, which makes this table far kinder to a riichi than real play
@@ -53,7 +54,10 @@ class GameController extends ChangeNotifier implements GuideHost {
     this.ruleset = Ruleset.riichi,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         _botFactory = botFactory ?? SimpleBot.new {
-    if (ruleset.isHongKong) playStyle = PlayStyle.balanced;
+    if (ruleset.isHongKong) {
+      playStyle = PlayStyle.balanced;
+      strategy = Strategy.points;
+    }
     _startGame();
   }
 
@@ -65,18 +69,32 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// [setRuleset].
   PlayStyle? _preHongKongStyle;
 
+  /// The strategy in effect when Hong Kong last pinned it — mirrors
+  /// [_preHongKongStyle]. Placement isn't wired up for Hong Kong yet (see
+  /// [Strategy]), so this is pinned to Points the same way Style is pinned to
+  /// Balanced there.
+  Strategy? _preHongKongStrategy;
+
   /// Switching rules abandons the game in progress and deals a fresh one. The
   /// guide's dials carry across — except Style, which Hong Kong has no use
-  /// for (see [PlayStyle]) and pins to Balanced; riichi gets its own style
-  /// back on the way out.
+  /// for (see [PlayStyle]) and pins to Balanced, and Strategy, which is
+  /// riichi-only for now and pins to Points; both come back on the way out.
   void setRuleset(Ruleset value) {
     if (ruleset == value) return;
     if (value.isHongKong) {
       _preHongKongStyle = playStyle;
       playStyle = PlayStyle.balanced;
-    } else if (_preHongKongStyle != null) {
-      playStyle = _preHongKongStyle!;
-      _preHongKongStyle = null;
+      _preHongKongStrategy = strategy;
+      strategy = Strategy.points;
+    } else {
+      if (_preHongKongStyle != null) {
+        playStyle = _preHongKongStyle!;
+        _preHongKongStyle = null;
+      }
+      if (_preHongKongStrategy != null) {
+        strategy = _preHongKongStrategy!;
+        _preHongKongStrategy = null;
+      }
     }
     ruleset = value;
     _tel?.settingChange(matchId: _matchId, setting: 'ruleset', value: value.name);
@@ -112,6 +130,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// deal the same hand again.
   int _dealSerial = 0;
 
+  @override
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
 
@@ -121,7 +140,9 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// impression that sound is broken. Turning it on is itself a fresh user
   /// gesture, so it doubles as the manual "resync" a player can reach for if
   /// the browser's audio context ever gets stuck suspended mid-game.
+  @override
   bool get soundOn => Sfx.i.enabled;
+  @override
   void setSoundOn(bool value) {
     if (Sfx.i.enabled == value) return;
     Sfx.i.enabled = value;
@@ -175,6 +196,21 @@ class GameController extends ChangeNotifier implements GuideHost {
     notifyListeners();
   }
 
+  /// Points or placement — the third dial, independent of both the others.
+  /// Riichi only: [setRuleset] pins it to [Strategy.points] under Hong Kong,
+  /// the same way it pins [playStyle] to Balanced there.
+  @override
+  Strategy strategy = kDefaultStrategy;
+  @override
+  void setStrategy(Strategy value) {
+    if (strategy == value) return;
+    strategy = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'strategy', value: value.name);
+    _refreshReport();
+    notifyListeners();
+  }
+
   /// The full game when true — hanchan (East + South, 8 hands) in riichi, all
   /// four winds (16 hands) in Hong Kong — and East-only (4 hands) when false.
   /// The full game is the default.
@@ -215,6 +251,7 @@ class GameController extends ChangeNotifier implements GuideHost {
 
   /// When paused the async turn loop stops (bots and autoplay freeze). Toggled
   /// by pressing Escape.
+  @override
   bool paused = false;
   void togglePause() {
     paused = !paused;
@@ -235,7 +272,39 @@ class GameController extends ChangeNotifier implements GuideHost {
   /// 1-4 within the current round wind.
   @override
   int get handInWind => (_roundNumber % 4) + 1;
+  @override
   List<int> get tablePoints => _points;
+
+  /// Offline play never rushes the human — see [GuideHost.turnDeadlineMs].
+  @override
+  int? get turnDeadlineMs => null;
+
+  /// Which persona each seat renders and voices as, human seat included.
+  /// Starts at [kSeatCharacters]; change it with [setSeatCharacter].
+  List<Character> seatCharacters = List.of(kSeatCharacters);
+
+  Character _characterForSeat(int seat) => seatCharacters[seat];
+
+  @override
+  Character characterForSeat(int seat) => _characterForSeat(seat);
+
+  /// Assigns [seat] the persona [c]. If another seat already has it, that
+  /// seat takes whatever [seat] is giving up — a swap, so two seats never
+  /// render as the same character — the same guarantee the online lobby's
+  /// `Room.resolveCharacter` gives, done locally since every seat here is
+  /// already claimed rather than empty.
+  void setSeatCharacter(int seat, Character c) {
+    if (seatCharacters[seat] == c) return;
+    final other = seatCharacters.indexOf(c);
+    if (other != -1) seatCharacters[other] = seatCharacters[seat];
+    seatCharacters[seat] = c;
+    notifyListeners();
+  }
+
+  @override
+  String seatLabel(int seat) => seat == kHumanSeat
+      ? '${kCharacterName[_characterForSeat(seat)]!} (you)'
+      : kCharacterName[_characterForSeat(seat)]!;
 
   void setHanchan(bool value) {
     if (hanchan == value) return;
@@ -266,6 +335,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     _startRound();
   }
 
+  @override
   void newGame() {
     // A match already in progress is being abandoned for a fresh one.
     if (_matchId.isNotEmpty && phase != GamePhase.gameEnd) {
@@ -354,6 +424,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     );
   }
 
+  @override
   void continueFromRoundEnd() {
     if (phase != GamePhase.roundEnd) return;
     final r = round.result!;
@@ -503,9 +574,14 @@ class GameController extends ChangeNotifier implements GuideHost {
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
       round.addKan(seat, decision.addedKan!);
     } else {
+      // Riichi has its own declaration sound; a plain discard gets the tile
+      // clink, same as a manual one from [humanDiscard] — covers bots and
+      // Autoplay, the only two paths that reach here.
       if (decision.riichi) {
         Sfx.i.play(SfxKind.riichi);
         Sfx.i.voice(VoiceKind.riichi, character: _characterForSeat(seat));
+      } else {
+        Sfx.i.play(SfxKind.discard);
       }
       final tile = decision.discard ?? round.legalDiscards(seat).first;
       _noteDiscard(seat, tile);
@@ -742,6 +818,7 @@ class GameController extends ChangeNotifier implements GuideHost {
 
   // --- human input ---------------------------------------------------
 
+  @override
   void humanDiscard(Tile tile, {bool declareRiichi = false}) {
     if (round.finished ||
         round.turn != kHumanSeat ||
@@ -774,6 +851,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     _scheduleLoop();
   }
 
+  @override
   void humanTsumo() {
     if (round.canTsumo(kHumanSeat) && round.turn == kHumanSeat) {
       round.declareTsumo(kHumanSeat);
@@ -784,6 +862,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   }
 
   /// Declines a Hong Kong seven- or eight-flower win and keeps drawing.
+  @override
   void humanPassFlowerWin() {
     if (!round.canFlowerWin(kHumanSeat)) return;
     round.passFlowerWin(kHumanSeat);
@@ -792,6 +871,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     _scheduleLoop();
   }
 
+  @override
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
@@ -803,6 +883,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
   }
 
+  @override
   void humanAddKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
@@ -814,6 +895,7 @@ class GameController extends ChangeNotifier implements GuideHost {
     }
   }
 
+  @override
   void answerCall(CallType choice) {
     final opt = _humanCallOption;
     if (opt == null) return;
@@ -927,6 +1009,14 @@ class GameController extends ChangeNotifier implements GuideHost {
         riichiSticks: round.riichiSticks,
         style: playStyle,
         focus: handFocus,
+        strategy: strategy,
+        tablePoints: tablePoints,
+        mySeat: kHumanSeat,
+        // Hands left in the game, including this one — a floor rather than a
+        // promise, exactly like the hand counts the app bar quotes: renchan
+        // can run the game longer than this, and next turn's report
+        // recomputes it fresh from the round as it actually stands.
+        handsRemaining: (_handsPerGame - _roundNumber).clamp(1, 99),
         ruleset: ruleset,
         flowers: seat.flowers.map((t) => t.type).toList(),
       );
@@ -974,21 +1064,25 @@ class GameController extends ChangeNotifier implements GuideHost {
 
   // --- convenience for the UI -------------------------------------
 
+  @override
   bool get humanCanTsumo =>
       round.turn == kHumanSeat &&
       round.phase == RoundPhase.discarding &&
       round.canTsumo(kHumanSeat);
 
+  @override
   bool get humanCanRiichi =>
       round.turn == kHumanSeat &&
       round.phase == RoundPhase.discarding &&
       round.canRiichi(kHumanSeat);
 
+  @override
   List<TileType> get humanClosedKanTypes =>
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding
           ? round.closedKanTypes(kHumanSeat)
           : const [];
 
+  @override
   List<TileType> get humanAddedKanTypes =>
       round.turn == kHumanSeat && round.phase == RoundPhase.discarding
           ? round.addedKanTypes(kHumanSeat)
@@ -1047,6 +1141,7 @@ class GameController extends ChangeNotifier implements GuideHost {
   @override
   String? get recommendedCallReason => _humanCallAdvice?.reason;
 
+  @override
   bool get isHumanTurn =>
       round.turn == kHumanSeat &&
       round.phase == RoundPhase.discarding &&

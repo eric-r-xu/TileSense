@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/efficiency_calc.dart';
+import 'package:mahjong_core/efficiency_calc.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 
 import '../helpers.dart';

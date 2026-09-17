@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **A third guide dial, Strategy: Points or Placement, riichi only.** Points
+  is the reference model this whole engine was built and tuned against, and
+  is unchanged. Placement (opt-in, `kDefaultStrategy` stays Points) runs
+  every points-flavoured term — payout, riichi deposit, deal-in cost,
+  commitment cost — through a new closed-form heuristic,
+  `PlacementUtility.placementValue` (`lib/logic/placement_utility.dart`): a
+  logistic in each opponent's score gap, scaled by hands left in the game, no
+  simulation or opponent-hand modelling. `DiscardLine.placementExpectedValue`
+  is always computed alongside `expectedValue` so the panel can show both;
+  only the active dial's figure drives sorting and the recommendation. Riichi
+  vs damaten is compared directly on placement value when the dial is on
+  Placement, instead of the fixed points threshold Points uses. Hidden and
+  pinned to Points under Hong Kong, same treatment as Style, for a different
+  reason — see `flutter_client/BOT_STRATEGY.md` and
+  `flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only`.
+  New tests: `flutter_client/test/placement_strategy_test.dart`.
+- **An "EV (HMR)" comparison column beside Expected Value.**
+  `DiscardLine.expectedValueHmr` is `winProbability × averagePoints` and
+  nothing else — no honba/riichi-stick bonus, no risk, lock-in, commitment
+  or Style/Focus term. It mirrors the "E.V." stat in HMR (Hitori Mahjong
+  Renshuuki), a closed-source solo tsumo-only trainer with no code or data
+  ties to this project: its E.V. was worked out empirically from its own
+  simulation log as total points scored ÷ hands played, which is exactly
+  win rate × average winning score, and it has no other terms because it
+  has no other seats to add a bonus from or a deal-in to price. The column
+  is purely informational — it never drives the recommendation — and both
+  the header and each cell carry a tooltip working through the arithmetic,
+  same as Expected Value's.
+
 ### Changed
 - **The Style dial is hidden under Hong Kong rules and pinned to Balanced.**
   Style has no riichi or damaten left to weigh there — two of its three terms

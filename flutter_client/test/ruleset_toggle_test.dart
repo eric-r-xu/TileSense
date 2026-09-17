@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -25,7 +25,7 @@ void main() {
       (tester) async {
     await boot(tester);
     expect(find.textContaining('optimal Riichi Mahjong play'), findsOneWidget);
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
@@ -51,7 +51,7 @@ void main() {
     expect(find.byKey(const Key('rulesPdf_riichi')), findsOneWidget);
     expect(find.byKey(const Key('rulesPdf_hongKong')), findsOneWidget);
 
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
@@ -87,7 +87,7 @@ void main() {
 
   testWidgets('the in-game switch changes rules both ways', (tester) async {
     await boot(tester);
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Style is a riichi-only dial; pick a non-default value so the

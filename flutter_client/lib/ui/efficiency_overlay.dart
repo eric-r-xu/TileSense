@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
-import '../logic/round.dart';
-import '../logic/ruleset.dart';
-import '../main.dart' show handFocusColor, playStyleColor;
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart';
+import '../main.dart' show handFocusColor, playStyleColor, strategyColor;
 import 'tile_face.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
@@ -40,8 +39,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   @override
   Widget build(BuildContext context) {
     final r = widget.report;
+    // 380 was wide enough for the table before the Placement column; with it
+    // (and especially with it alongside the defending-only Safety/Risk/Detail
+    // columns) the table ran wider than the panel and spilled past its
+    // rounded border onto the green felt behind it.
     final panelWidth =
-        (MediaQuery.sizeOf(context).width - 16).clamp(260.0, 380.0).toDouble();
+        (MediaQuery.sizeOf(context).width - 16).clamp(260.0, 480.0).toDouble();
     return Material(
       color: const Color(0xdd031213),
       borderRadius: BorderRadius.circular(10),
@@ -60,6 +63,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             if (!_minimized) ...[
               if (!_hk) _styleDial(),
               _focusDial(),
+              if (!_hk) _strategyDial(),
               const SizedBox(height: 8),
               if (widget.game.awaitingHumanCall) _callAdvice(),
               Flexible(
@@ -78,7 +82,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
-                              'Safety vs ${seatDisplayName(widget.game.safetyOpponentSeat!)} '
+                              'Safety vs ${widget.game.seatLabel(widget.game.safetyOpponentSeat!)} '
                               '(${_hk ? 'estimated risk' : 'riichi only'})',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 9),
@@ -103,7 +107,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// tool bar (scenario builder). It is not a second setting: both read and
   /// write the one [GuideHost.playStyle], so moving either moves the other.
   ///
-  /// Riichi only — [GameController.setRuleset] pins [GuideHost.playStyle] to
+  /// Riichi only — `GameController.setRuleset` pins [GuideHost.playStyle] to
   /// Balanced under Hong Kong rules, where it has nothing left to weigh, so
   /// callers skip this when [_hk] is true rather than show a chip that does
   /// nothing.
@@ -156,6 +160,40 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 active: focus == current,
                 chipKey: Key('guideHandFocus_${focus.name}'),
                 onTap: () => widget.game.setHandFocus(focus),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The strategy dial, the third and independent axis: points a line is
+  /// worth versus how it moves final placement given the scores on the table
+  /// right now. Riichi only — see [GameController._preHongKongStrategy].
+  Widget _strategyDial() {
+    final current = widget.game.strategy;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          const Text(
+            'STRATEGY',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(width: 8),
+          for (final strategy in Strategy.values)
+            Expanded(
+              child: _dialChip(
+                label: strategy.label,
+                colour: strategyColor(strategy),
+                active: strategy == current,
+                chipKey: Key('guideStrategy_${strategy.name}'),
+                onTap: () => widget.game.setStrategy(strategy),
               ),
             ),
         ],
@@ -218,7 +256,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       r.tenpai && r.lines.isNotEmpty ? r.lines.first.valuePlan : null;
 
   /// Why the recommended tenpai line is riichi, damaten, or otherwise — the
-  /// same reasoning [GameController.recommendedCallReason] gives for calls,
+  /// same reasoning `GuideHost.recommendedCallReason` gives for calls,
   /// just for the riichi/damaten decision instead.
   Widget _planReason(DiscardLine top) {
     if (top.reason.isEmpty) return const SizedBox.shrink();
@@ -651,21 +689,149 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         child: child,
       );
 
+  /// What the "EV (HMR)" column means — a standalone comparison column, not
+  /// part of the guide's own recommendation. See
+  /// [DiscardLine.expectedValueHmr] for the exact definition and where it
+  /// comes from.
+  static const List<InlineSpan> _evHmrGeneral = [
+    TextSpan(text: 'EV (HMR)\n', style: _tipTitle),
+    TextSpan(
+        text: 'A second expected value, shown only for comparison — it plays '
+            'no part in the recommendation above.\n',
+        style: _tipBody),
+    TextSpan(
+        text: '\n  EV (HMR)  =  chance of finishing\n'
+            '               x  what the win pays\n',
+        style: _tipMath),
+    TextSpan(
+        text: '\nNo honba/riichi-stick bonus added in, and nothing '
+            'subtracted for risk, turn commitment, or Style/Focus — just '
+            'the plain win-probability-times-average-score product. This '
+            'is how the "E.V." stat works in HMR (Hitori Mahjong '
+            'Renshuuki), a closed-source solo, tsumo-only trainer this '
+            'project has no code or data ties to: worked out empirically '
+            'from its own simulation log as total points scored ÷ hands '
+            'played, which is exactly win rate × average winning score. '
+            'HMR has no other seats, so it has no honba/riichi-stick pool '
+            'to add and no ron or deal-in to price as a risk — this column '
+            'drops those same terms from Expected Value above so the two '
+            'numbers are worked the same way.\n',
+        style: _tipBody),
+    TextSpan(
+        text: '\nhttps://pathofhouou.blogspot.com/2019/05/training-tool-'
+            'hitori-mahjong-simulator.html\n',
+        style: _tipDim),
+  ];
+
+  /// This line's own [DiscardLine.expectedValueHmr] arithmetic, matching the
+  /// worked example [_evWorked] gives for Expected Value.
+  static List<InlineSpan> _evHmrWorked(DiscardLine line) {
+    final pct = (line.winProbability * 100).toStringAsFixed(
+        line.winProbability < 0.1 ? 1 : 0);
+    final spans = <InlineSpan>[
+      const TextSpan(text: '\n', style: _tipDim),
+      TextSpan(text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
+    ];
+    if (line.averagePoints <= 0) {
+      spans.add(const TextSpan(
+        text: 'This line has no winning hand to score yet.\n',
+        style: _tipBody,
+      ));
+      return spans;
+    }
+    final buf = StringBuffer()
+      ..write(_row('chance of finishing', '$pct%'))
+      ..write(_row('what the win pays', _pts(line.averagePoints)))
+      ..write('  ${'-' * 31}\n')
+      ..write(_row('EV (HMR)', _pts(line.expectedValueHmr)));
+    spans.add(TextSpan(text: buf.toString(), style: _tipMath));
+    return spans;
+  }
+
+  /// Wrap any mention of the EV (HMR) column so hovering it explains the
+  /// number. Pass [line] on a table cell to append that row's own
+  /// arithmetic.
+  Widget _evHmrTooltip(Widget child, {DiscardLine? line}) => Tooltip(
+        richMessage: TextSpan(children: [
+          ..._evHmrGeneral,
+          if (line != null) ..._evHmrWorked(line),
+        ]),
+        waitDuration: const Duration(milliseconds: 250),
+        showDuration: const Duration(seconds: 30),
+        preferBelow: false,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        constraints: const BoxConstraints(maxWidth: 460),
+        decoration: BoxDecoration(
+          color: const Color(0xf5041c1d),
+          border: Border.all(color: const Color(0x5580cbc4)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: child,
+      );
+
+  /// [DiscardLine.placementExpectedValue] is a probability-flavoured number —
+  /// typically a small fraction — so it is scaled up for the column the same
+  /// way a percentage is quoted as "36" rather than "0.36". Only relative
+  /// order and magnitude next to the other lines' mean anything; the scale
+  /// itself is arbitrary.
+  static const int _placementDisplayScale = 1000;
+
+  /// Wrap the Placement column's cells so hovering explains what the number
+  /// is — and, plainly, what it isn't: a heuristic read of how this line
+  /// moves the chance of finishing above each other seat, given the scores
+  /// on the table and hands left right now, not a simulation of the rest of
+  /// the game. Its scale only means anything next to the other lines' — not
+  /// against Expected Value's points.
+  Widget _placementTooltip(Widget child) => Tooltip(
+        message: 'Placement — a heuristic estimate of how this line moves '
+            'your chance of finishing above each other seat, given the '
+            'scores on the table and hands left right now. Not a '
+            'simulation, and not in points — the number is scaled up from a '
+            'probability so it reads at a glance, and only its order and '
+            'relative size next to the other lines here mean anything.',
+        waitDuration: const Duration(milliseconds: 250),
+        showDuration: const Duration(seconds: 30),
+        preferBelow: false,
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xf5041c1d),
+          border: Border.all(color: const Color(0x55ce93d8)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: child,
+      );
+
   /// The efficiency table — every distinct discard in hand, recommended line
   /// always first (see [EfficiencyEngine.analyze]). While defending against a
   /// riichi, two more (narrow) columns fold the safety ranking in rather than
   /// showing it as a second table.
   Widget _efficiencyTable(EfficiencyReport r) {
+    // Placement isn't wired up for Hong Kong yet (see [Strategy]), so the
+    // column that shows it is riichi-only, same as the dial that picks it.
+    final showPlacement = !_hk;
+    // Fixed leading columns (tile, shanten/away, ukeire/accepts, EV) plus the
+    // standalone EV (HMR) comparison column added right after it — then
+    // Placement and the defending columns shift down by one to make room.
+    const evHmrCol = 4;
+    final placementCol = evHmrCol + 1;
+    final firstDefendCol = placementCol + (showPlacement ? 1 : 0);
     return Table(
       columnWidths: {
         0: const FixedColumnWidth(34),
         1: const FixedColumnWidth(52),
         2: const FixedColumnWidth(48),
         3: const FixedColumnWidth(50),
+        evHmrCol: const FixedColumnWidth(50),
+        // Wide enough for the header word "Placement" on one line — at 50 it
+        // wrapped mid-word ("Placemen" / "t").
+        if (showPlacement) placementCol: const FixedColumnWidth(66),
         if (r.defending) ...{
-          4: const FixedColumnWidth(34),
-          5: const FixedColumnWidth(40),
-          6: const FixedColumnWidth(92),
+          firstDefendCol: const FixedColumnWidth(34),
+          firstDefendCol + 1: const FixedColumnWidth(40),
+          firstDefendCol + 2: const FixedColumnWidth(92),
         },
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
@@ -676,6 +842,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           _hk ? 'Away' : 'Shanten',
           _hk ? 'Accepts' : 'Ukeire',
           'Expected Value',
+          'EV (HMR)',
+          if (showPlacement) 'Placement',
           if (r.defending) ...['Safety', 'Risk', 'Detail'],
         ]),
         for (final line in r.lines)
@@ -699,11 +867,39 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               _evTooltip(
                 _cell(
                   line.expectedValue.round().toString(),
-                  bold: line.bestExpectedValue,
+                  bold: line.bestExpectedValue &&
+                      widget.game.strategy != Strategy.placement,
                   color: const Color(0xff80cbc4),
                 ),
                 line: line,
               ),
+              // Standalone comparison column — see [DiscardLine.expectedValueHmr].
+              // Never bold: it doesn't drive the recommendation, so it never
+              // needs to draw the eye the way Expected Value's winner does.
+              _evHmrTooltip(
+                _cell(
+                  line.expectedValueHmr.round().toString(),
+                  color: const Color(0xff9fb0b8),
+                ),
+                line: line,
+              ),
+              // Kept visible whichever strategy is driving the recommendation
+              // — a heuristic read of how this line moves final placement
+              // given the scores on the table right now, not a simulation of
+              // it. Bold only while Placement is the active strategy, so the
+              // bold column always matches what [line.recommended] is
+              // actually recommending.
+              if (showPlacement)
+                _placementTooltip(
+                  _cell(
+                    (line.placementExpectedValue * _placementDisplayScale)
+                        .round()
+                        .toString(),
+                    bold: line.bestExpectedValue &&
+                        widget.game.strategy == Strategy.placement,
+                    color: const Color(0xffce93d8),
+                  ),
+                ),
               if (r.defending) ...[
                 _cell(
                   line.safety == null ? '—' : '${line.safety!.rating}',
@@ -739,23 +935,32 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   TableRow _headerRow(List<String> labels) => TableRow(
         decoration: const BoxDecoration(color: Color(0x22ffffff)),
         children: labels.map((l) {
-          // The Expected Value heading carries the formula behind the column.
+          // The Expected Value and EV (HMR) headings each carry the formula
+          // behind their column.
           final isEv = l == 'Expected Value';
+          final isEvHmr = l == 'EV (HMR)';
           final cell = Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
             child: Text(l,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: isEv ? const Color(0xffbfe6e0) : Colors.white70,
+                  color: isEv
+                      ? const Color(0xffbfe6e0)
+                      : isEvHmr
+                          ? const Color(0xff9fb0b8)
+                          : Colors.white70,
                   fontSize: 9,
                   height: 1.15,
                   fontWeight: FontWeight.w700,
-                  decoration: isEv ? TextDecoration.underline : null,
+                  decoration:
+                      isEv || isEvHmr ? TextDecoration.underline : null,
                   decorationStyle: TextDecorationStyle.dotted,
                   decorationColor: const Color(0x8880cbc4),
                 )),
           );
-          return isEv ? _evTooltip(cell) : cell;
+          if (isEv) return _evTooltip(cell);
+          if (isEvHmr) return _evHmrTooltip(cell);
+          return cell;
         }).toList(),
       );
 

@@ -11,15 +11,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
-import 'efficiency_calc.dart';
-import 'hong_kong/hong_kong_rules.dart';
-import 'hong_kong/hong_kong_safety.dart';
-import 'hong_kong/hong_kong_scoring.dart';
-import 'meld.dart';
-import 'ruleset.dart';
-import 'safety.dart';
-import 'scoring.dart';
-import 'tile.dart';
+import 'package:mahjong_core/efficiency_calc.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_safety.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_scoring.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/safety.dart';
+import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/tile.dart';
+
+import 'placement_utility.dart';
 
 /// Round and hand-value inputs used by the discard EV model.
 ///
@@ -157,6 +159,39 @@ enum HandFocus {
           math.pow(chance / _chancePivot, 2 - curve).toDouble().clamp(0.0, 8.0);
 }
 
+/// Which objective the guide optimises for: the points a line is worth, or
+/// how it moves final placement. Riichi only — see
+/// [EfficiencyValueContext.placementValue] and `PlacementUtility`.
+///
+/// A third, independent dial from [PlayStyle] (danger vs. value) and
+/// [HandFocus] (speed vs. value): this one is about what "worth" means in
+/// the first place — raw points, or the shape of the podium — and it is
+/// meant to compose with the other two rather than replace them. Under
+/// [Strategy.placement] the win side of every line still runs through
+/// [HandFocus.worth] first and is then converted to a placement value on top,
+/// so Focus keeps its ordinary meaning either way.
+enum Strategy {
+  /// Every line is worth what it pays, on average, full stop.
+  points(label: 'Points'),
+
+  /// Every line is worth what it does to the chance of finishing above each
+  /// other seat, given the scores on the table right now and how many hands
+  /// are left. The same points can be worth a great deal (closing a gap in
+  /// the final hand) or almost nothing (padding an already-safe lead).
+  placement(label: 'Placement');
+
+  const Strategy({required this.label});
+
+  final String label;
+
+  Strategy get next => Strategy.values[(index + 1) % Strategy.values.length];
+}
+
+/// The dial a new game starts on. Points is the reference model this whole
+/// engine was built and tuned against; Placement is the newer, deliberately
+/// opt-in alternative.
+const Strategy kDefaultStrategy = Strategy.points;
+
 /// Tuning for the Hong Kong guide, kept in one place so
 /// `test/hong_kong/hk_tuning_sweep_test.dart` can measure alternatives against
 /// the bots on identical seeds. Riichi never reads any of it.
@@ -281,6 +316,10 @@ class EfficiencyValueContext {
     this.riichiSticks = 0,
     this.style = PlayStyle.balanced,
     this.focus = HandFocus.balanced,
+    this.strategy = Strategy.points,
+    this.tablePoints = const [25000, 25000, 25000, 25000],
+    this.mySeat = 0,
+    this.handsRemaining = 8,
     this.ruleset = Ruleset.riichi,
     this.flowers = const [],
     this.flowersEnabled = true,
@@ -313,6 +352,31 @@ class EfficiencyValueContext {
 
   /// Which hand to chase when two are worth the same. See [HandFocus].
   final HandFocus focus;
+
+  /// Points, or placement. See [Strategy].
+  final Strategy strategy;
+
+  /// All four seats' current scores, seat-indexed. Only read by
+  /// [placementValue]; defaults to an even table so any caller that never set
+  /// it — most tests, and the scenario builder, which has no score inputs at
+  /// all — gets a neutral, well-behaved placement model if one ever runs.
+  final List<int> tablePoints;
+
+  /// Which index into [tablePoints] this context is scored for.
+  final int mySeat;
+
+  /// Hands left in the game, including this one. See
+  /// `PlacementUtility.handsRemaining`.
+  final int handsRemaining;
+
+  /// What gaining [points] (negative for a loss) is worth to [mySeat]'s final
+  /// placement, given [tablePoints] and [handsRemaining] right now. See
+  /// `PlacementUtility` — a heuristic estimate, not a simulation.
+  double placementValue(double points) => PlacementUtility(
+        tablePoints: tablePoints,
+        mySeat: mySeat,
+        handsRemaining: handsRemaining,
+      ).valueOf(points);
 
   /// Riichi deposits already on the table, collected whole by the winner.
   /// A deposit you have not placed yet is not in here; the cost of placing one
@@ -347,6 +411,39 @@ class EfficiencyValueContext {
         riichiSticks: riichiSticks,
         style: style,
         focus: focus,
+        strategy: strategy,
+        tablePoints: tablePoints,
+        mySeat: mySeat,
+        handsRemaining: handsRemaining,
+        ruleset: ruleset,
+        flowers: flowers,
+        flowersEnabled: flowersEnabled,
+      );
+
+  /// The same context with one or more of the three guide dials swapped —
+  /// for comparing a line's value under a different dial without rebuilding
+  /// every other field by hand. See [withMelds] for why that matters.
+  EfficiencyValueContext copyWith({
+    PlayStyle? style,
+    HandFocus? focus,
+    Strategy? strategy,
+  }) =>
+      EfficiencyValueContext(
+        melds: melds,
+        roundWind: roundWind,
+        seatWind: seatWind,
+        isDealer: isDealer,
+        inRiichi: inRiichi,
+        wallTilesRemaining: wallTilesRemaining,
+        doraIndicators: doraIndicators,
+        honba: honba,
+        riichiSticks: riichiSticks,
+        style: style ?? this.style,
+        focus: focus ?? this.focus,
+        strategy: strategy ?? this.strategy,
+        tablePoints: tablePoints,
+        mySeat: mySeat,
+        handsRemaining: handsRemaining,
         ruleset: ruleset,
         flowers: flowers,
         flowersEnabled: flowersEnabled,
@@ -360,6 +457,7 @@ class DiscardLine {
     required this.ukeire,
     required this.accepts,
     required this.expectedValue,
+    this.placementExpectedValue = 0,
     required this.averagePoints,
     required this.valuePlan,
     required this.recommendRiichi,
@@ -381,6 +479,16 @@ class DiscardLine {
   final int ukeire;
   final List<TileType> accepts;
   final double expectedValue;
+
+  /// This same line's value under [Strategy.placement] instead of
+  /// [Strategy.points] — every points-flavoured term in [expectedValue]'s
+  /// formula run through [EfficiencyValueContext.placementValue] instead of
+  /// taken at face value. Always computed, regardless of which strategy is
+  /// active, so the panel can show both side by side; only used to rank and
+  /// recommend lines while [EfficiencyValueContext.strategy] is
+  /// [Strategy.placement]. A heuristic estimate of how this line moves final
+  /// placement, not a simulation of it.
+  final double placementExpectedValue;
   final double averagePoints;
   final String valuePlan;
   final bool recommendRiichi;
@@ -423,6 +531,21 @@ class DiscardLine {
   final double valueTilt;
 
   final double winBonus;
+
+  /// A second, simpler expected value shown beside [expectedValue] purely
+  /// for comparison — win probability × average points, and nothing else:
+  /// no [winBonus], no [valueTilt], none of [riichiLockCost], [dealInCost]
+  /// or [commitmentCost] subtracted.
+  ///
+  /// This mirrors the "E.V." stat in HMR (Hitori Mahjong Renshuuki), a
+  /// closed-source solo tsumo-only trainer this project has no code or data
+  /// ties to. HMR's E.V. was worked out empirically from its own simulation
+  /// output — total points scored ÷ hands played, i.e. win rate × average
+  /// winning score — because it plays no other seats: no honba or
+  /// riichi-stick pool to add in, no ron/deal-in to price as a risk. Kept
+  /// only as a reference point next to [expectedValue]; it never drives a
+  /// recommendation.
+  double get expectedValueHmr => winProbability * averagePoints;
 
   bool bestUkeire;
   bool bestExpectedValue;
@@ -732,6 +855,18 @@ class EfficiencyEngine {
         // tile now reads as the better line whenever the hand behind it isn't
         // worth the risk — no separate push/fold switch needed.
         expectedValue: value.expectedValue - dealInCost - commitmentCost,
+        // Same idea under [Strategy.placement]: the deal-in and commitment
+        // costs run through [EfficiencyValueContext.placementValue] instead
+        // of being subtracted as raw points, so a push that barely dents a
+        // comfortable lead is charged less than the same push from a close
+        // race would be. Riichi only, like the rest of the placement model —
+        // the win side is never priced for Hong Kong, so pricing only the
+        // cost side there would leave a one-sided, meaningless number.
+        placementExpectedValue: ruleset.isRiichi
+            ? value.placementExpectedValue +
+                valueContext.placementValue(-dealInCost) +
+                valueContext.placementValue(-commitmentCost)
+            : 0,
         averagePoints: value.averagePoints,
         valuePlan: value.plan,
         recommendRiichi: value.recommendRiichi,
@@ -746,9 +881,17 @@ class EfficiencyEngine {
       );
     }).toList();
 
-    // Rank by probability-weighted points, then use shape to break ties.
+    // Rank by probability-weighted points — or, under [Strategy.placement],
+    // by the same lines' placement value instead — then use shape to break
+    // ties. Switching the dial re-sorts and re-flags everything below exactly
+    // the way switching [PlayStyle] or [HandFocus] already does; the field
+    // the other strategy cares about stays populated on every line either
+    // way, so the panel can show both.
+    double rank(DiscardLine l) => valueContext.strategy == Strategy.placement
+        ? l.placementExpectedValue
+        : l.expectedValue;
     lines.sort((a, b) {
-      final ev = b.expectedValue.compareTo(a.expectedValue);
+      final ev = rank(b).compareTo(rank(a));
       if (ev != 0) return ev;
       final s = a.shanten.compareTo(b.shanten);
       if (s != 0) return s;
@@ -765,7 +908,7 @@ class EfficiencyEngine {
       if (bestEfficiency == null ||
           l.ukeire > bestEfficiency.ukeire ||
           (l.ukeire == bestEfficiency.ukeire &&
-              l.expectedValue > bestEfficiency.expectedValue)) {
+              rank(l) > rank(bestEfficiency))) {
         bestEfficiency = l;
       }
     }
@@ -814,10 +957,15 @@ class EfficiencyEngine {
           : tenpai
               ? (ruleset.isHongKong
                   ? 'Ready — best EV ${bestValue?.expectedValue.round() ?? 0} chips'
-                  : 'Tenpai — best EV ${bestValue?.expectedValue.round() ?? 0} pts')
+                  : valueContext.strategy == Strategy.placement
+                      ? 'Tenpai — best for placement'
+                      : 'Tenpai — best EV ${bestValue?.expectedValue.round() ?? 0} pts')
               : (ruleset.isHongKong
                   ? '$currentShanten away from ready'
-                  : '$currentShanten-shanten'),
+                  : valueContext.strategy == Strategy.placement &&
+                          ruleset.isRiichi
+                      ? '$currentShanten-shanten — best for placement'
+                      : '$currentShanten-shanten'),
     );
   }
 
@@ -1936,8 +2084,19 @@ class EfficiencyEngine {
     final plain =
         completionProbability * (projectedPoints + context.winBonus);
 
+    // Same shape as [expectedValue] above, but every points-flavoured term —
+    // the win itself, and the deposit it may owe — runs through
+    // [EfficiencyValueContext.placementValue] instead of being taken at face
+    // value. Cheap to always compute; only read while [Strategy.placement] is
+    // active.
+    final placementGain =
+        worthOfChance * context.placementValue(worthOfWin + context.winBonus);
+    final placementExpectedValue =
+        placementGain + context.placementValue(-chargedDeposit);
+
     return _ValueAssessment(
       expectedValue: tilted - chargedDeposit,
+      placementExpectedValue: placementExpectedValue,
       averagePoints: projectedPoints,
       valueTilt: tilted - plain,
       plan: context.closed ? 'RIICHI PATH' : 'YAKU PATH',
@@ -2207,6 +2366,100 @@ class EfficiencyEngine {
       );
     }
 
+    // Under [Strategy.points] the choice above (a fixed points threshold,
+    // [context.style.damatenBar]) stands as-is — this is the reference model
+    // every other constant in this file was tuned against, and it is left
+    // completely untouched. Under [Strategy.placement], when riichi is a live
+    // choice and every wait already carries a yaku on its own, compare the two
+    // paths directly on placement value instead of on the fixed threshold: a
+    // hand that is the better *points* play to declare can still be the worse
+    // *placement* play, if declaring risks a lead the table doesn't need to
+    // risk, and vice versa for a hand that needs the swing.
+    if (context.strategy == Strategy.placement &&
+        riichiAvailable &&
+        !context.inRiichi &&
+        everyDamaRon) {
+      final riichiChoice = _finishTenpaiAssessment(
+        plan: 'RIICHI',
+        selectedPoints: riichiPoints,
+        ronAvailable: true,
+        recommendRiichi: true,
+        reason: 'Riichi — better for final placement than staying quiet here.',
+        liveWaits: liveWaits,
+        remaining: remaining,
+        everyDamaRon: everyDamaRon,
+        anyDamaRon: anyDamaRon,
+        anyDamaTsumo: anyDamaTsumo,
+        damaPoints: damaPoints,
+        context: context,
+        opponentRiichi: opponentRiichi,
+        opponentIsDealer: opponentIsDealer,
+        riichiDangerFactor: riichiDangerFactor,
+      );
+      final damatenChoice = _finishTenpaiAssessment(
+        plan: 'DAMATEN',
+        selectedPoints: damaPoints,
+        ronAvailable: true,
+        recommendRiichi: false,
+        reason: 'Damaten — better for final placement than declaring here.',
+        liveWaits: liveWaits,
+        remaining: remaining,
+        everyDamaRon: everyDamaRon,
+        anyDamaRon: anyDamaRon,
+        anyDamaTsumo: anyDamaTsumo,
+        damaPoints: damaPoints,
+        context: context,
+        opponentRiichi: opponentRiichi,
+        opponentIsDealer: opponentIsDealer,
+        riichiDangerFactor: riichiDangerFactor,
+      );
+      return riichiChoice.placementExpectedValue >=
+              damatenChoice.placementExpectedValue
+          ? riichiChoice
+          : damatenChoice;
+    }
+
+    return _finishTenpaiAssessment(
+      plan: plan,
+      selectedPoints: selectedPoints,
+      ronAvailable: ronAvailable,
+      recommendRiichi: recommendRiichi,
+      reason: reason,
+      liveWaits: liveWaits,
+      remaining: remaining,
+      everyDamaRon: everyDamaRon,
+      anyDamaRon: anyDamaRon,
+      anyDamaTsumo: anyDamaTsumo,
+      damaPoints: damaPoints,
+      context: context,
+      opponentRiichi: opponentRiichi,
+      opponentIsDealer: opponentIsDealer,
+      riichiDangerFactor: riichiDangerFactor,
+    );
+  }
+
+  /// The win-probability walk, riichi lock-in cost and final [_ValueAssessment]
+  /// shared by every path out of [_assessTenpaiValue]'s plan choice — points
+  /// or placement, riichi or damaten. Pulled out so the placement comparison
+  /// above can run it twice, once per candidate plan, without duplicating the
+  /// arithmetic.
+  _ValueAssessment _finishTenpaiAssessment({
+    required String plan,
+    required double selectedPoints,
+    required bool ronAvailable,
+    required bool recommendRiichi,
+    required String reason,
+    required int liveWaits,
+    required List<int> remaining,
+    required bool everyDamaRon,
+    required bool anyDamaRon,
+    required bool anyDamaTsumo,
+    required double damaPoints,
+    required EfficiencyValueContext context,
+    bool opponentRiichi = false,
+    bool opponentIsDealer = false,
+    double riichiDangerFactor = 0.0,
+  }) {
     final unseen = _countRemaining(remaining);
     final draws = math.max(1, (context.wallTilesRemaining + 3) ~/ 4);
     final outlook = _winChanceOverTurns(
@@ -2222,6 +2475,8 @@ class EfficiencyEngine {
     final worthOfWin = context.worth(selectedPoints);
     final worthOfChance = context.focus.chanceWorth(winProbability);
     var expectedValue = worthOfChance * (worthOfWin + context.winBonus);
+    var placementExpectedValue = worthOfChance *
+        context.placementValue(worthOfWin + context.winBonus);
     final plainValue =
         winProbability * (selectedPoints + context.winBonus);
     var lockCost = 0.0;
@@ -2280,10 +2535,12 @@ class EfficiencyEngine {
             context.style.riskWeight;
       }
       expectedValue -= lockCost;
+      placementExpectedValue += context.placementValue(-lockCost);
     }
 
     return _ValueAssessment(
       expectedValue: expectedValue,
+      placementExpectedValue: placementExpectedValue,
       averagePoints: selectedPoints,
       plan: plan,
       recommendRiichi: recommendRiichi,
@@ -2496,6 +2753,7 @@ class EfficiencyEngine {
 class _ValueAssessment {
   const _ValueAssessment({
     this.expectedValue = 0,
+    this.placementExpectedValue = 0,
     this.averagePoints = 0,
     required this.plan,
     this.recommendRiichi = false,
@@ -2508,6 +2766,10 @@ class _ValueAssessment {
   });
 
   final double expectedValue;
+
+  /// The same line's value under [Strategy.placement] — see
+  /// [DiscardLine.placementExpectedValue].
+  final double placementExpectedValue;
   final double averagePoints;
   final String plan;
   final bool recommendRiichi;

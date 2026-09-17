@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/round.dart';
+import 'package:mahjong_core/round.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
 
 import 'helpers.dart';
@@ -249,7 +249,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Read off the button itself: the bar carries two dials, and a riichi game
@@ -336,7 +336,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
     // The guide is off by default; the clefairy mark opens it.
     await tester.tap(find.byKey(const Key('guideToggle')));
@@ -370,7 +370,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Move the dial off its default so we can tell a surviving match from a
@@ -389,7 +389,7 @@ void main() {
     tester.view.physicalSize = kDesignSize;
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Rotate your device'), findsNothing);
-    expect(find.text('Start'), findsNothing);
+    expect(find.text('Play Offline'), findsNothing);
     expect(labelOf(const Key('playStyle')), 'Defensive');
 
     await tester.pumpWidget(const SizedBox());

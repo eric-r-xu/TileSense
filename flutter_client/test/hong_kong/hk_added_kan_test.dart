@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/bot.dart';
-import 'package:tilesense/logic/meld.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/bot.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/tile.dart';
 
 import '../helpers.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 /// A fresh round with every hand cleared to something harmless, so tests can
 /// plant exactly the melds/hands they need without other seats accidentally

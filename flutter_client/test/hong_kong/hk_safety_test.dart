@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/safety.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/safety.dart';
+import 'package:mahjong_core/tile.dart';
 import '../helpers.dart';
-import 'package:tilesense/logic/hong_kong/hong_kong_safety.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_safety.dart';
 
 void main() {
   test('discarded and passed tiles have no immunity', () {

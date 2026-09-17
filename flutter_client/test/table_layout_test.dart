@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
@@ -68,7 +68,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
 
     // An empty pond renders nothing, so give the two of interest some tiles.

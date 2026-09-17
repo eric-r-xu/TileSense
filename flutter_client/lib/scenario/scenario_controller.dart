@@ -10,12 +10,13 @@ import 'package:flutter/foundation.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
+import '../game/sfx.dart' show Character;
 import '../logic/efficiency_engine.dart';
-import '../logic/hong_kong/hong_kong_wall.dart';
-import '../logic/round.dart';
-import '../logic/ruleset.dart';
-import '../logic/tile.dart';
-import '../logic/wall.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
+import 'package:mahjong_core/wall.dart';
 import 'scenario.dart';
 
 class ScenarioController extends ChangeNotifier implements GuideHost {
@@ -57,6 +58,19 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     rebuild();
   }
 
+  // Carried for [GuideHost] completeness — see [Scenario.strategy]. Not
+  // exposed as a toolbar toggle: the builder has no score inputs for the
+  // other three seats, so Placement would have nothing to weigh here.
+  @override
+  Strategy get strategy => scenario.strategy;
+
+  @override
+  void setStrategy(Strategy value) {
+    if (scenario.strategy == value) return;
+    scenario.strategy = value;
+    rebuild();
+  }
+
   Ruleset get ruleset => scenario.ruleset;
 
   /// The style in effect when Hong Kong last pinned it, mirroring
@@ -64,18 +78,31 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   /// [Scenario] rather than sharing state with the live game.
   PlayStyle? _preHongKongStyle;
 
+  /// Mirrors [_preHongKongStyle] for [Strategy] — see
+  /// [GameController._preHongKongStrategy].
+  Strategy? _preHongKongStrategy;
+
   /// Switches the posed table's rules. The tiles are cleared: dora, riichi
   /// and flowers mean nothing under the other game. Style is pinned to
   /// Balanced under Hong Kong, which has nothing left for it to weigh, and
+  /// Strategy to Points, which isn't wired up for Hong Kong yet — both
   /// restored on the way back to riichi.
   void setRuleset(Ruleset value) {
     if (scenario.ruleset == value) return;
     if (value.isHongKong) {
       _preHongKongStyle = scenario.style;
       scenario.style = PlayStyle.balanced;
-    } else if (_preHongKongStyle != null) {
-      scenario.style = _preHongKongStyle!;
-      _preHongKongStyle = null;
+      _preHongKongStrategy = scenario.strategy;
+      scenario.strategy = Strategy.points;
+    } else {
+      if (_preHongKongStyle != null) {
+        scenario.style = _preHongKongStyle!;
+        _preHongKongStyle = null;
+      }
+      if (_preHongKongStrategy != null) {
+        scenario.strategy = _preHongKongStrategy!;
+        _preHongKongStrategy = null;
+      }
     }
     scenario.ruleset = value;
     scenario.clear();
@@ -94,6 +121,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   int get handInWind => 1;
   @override
   int get honba => scenario.honba;
+  @override
+  int? get turnDeadlineMs => null;
+  @override
+  Character characterForSeat(int seat) => kSeatCharacters[seat];
+  @override
+  String seatLabel(int seat) => kSeatNames[seat];
 
   @override
   bool get humanFuriten =>
@@ -176,6 +209,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       riichiSticks: scenario.riichiSticks,
       style: scenario.style,
       focus: scenario.focus,
+      strategy: scenario.strategy,
       ruleset: ruleset,
       flowers: human.flowers.map((t) => t.type).toList(),
     );

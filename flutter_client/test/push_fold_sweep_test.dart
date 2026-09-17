@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// Holds the guide's defensive judgement to account across a wide spread of
 /// random tables, rather than the handful of hands the other tests pin down.

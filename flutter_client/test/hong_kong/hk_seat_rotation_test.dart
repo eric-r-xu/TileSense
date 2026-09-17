@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 void main() {
   for (final draw in [true, false]) {

@@ -7,9 +7,9 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/bot.dart';
+import 'package:mahjong_core/bot.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 /// Measures [HongKongGuideTuning] variants against the bots on identical
 /// seeds (common random numbers). Every guide arm plays Aggressive / Speed;

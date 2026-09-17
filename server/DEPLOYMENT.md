@@ -303,7 +303,107 @@ docker run --rm postgres:16 psql "$PROD_DB" -c \
 
 ---
 
-## 3. DigitalOcean — App Platform (Option B, containers)
+## 3. Multiplayer game server
+
+A second, independent sidecar — `server/mp/` — alongside the ingest service
+from §2. It has **no database**: rooms live in memory only, so restarting
+this service drops every in-progress room. That's the accepted tradeoff for
+the MVP (private room codes, guest identity, bot fill-in — see
+`server/mp/README` if present, or the multiplayer plan this section shipped
+with). Nothing here touches the ingest service or its data.
+
+### 3.1 Local
+
+```sh
+cd server/mp
+dart pub get
+dart run bin/mp_server.dart
+# -> [mp] listening on 127.0.0.1:8789
+```
+
+Point a locally-built client at it:
+
+```sh
+cd flutter_client
+flutter run -d chrome --dart-define=MP_ENDPOINT=ws://localhost:8789
+```
+
+### 3.2 Build the Linux binary
+
+Same recipe as §2.4, different entrypoint and package:
+
+```sh
+docker run --rm --platform linux/amd64 -v "$PWD/server/mp":/src -w /build dart:stable \
+  sh -c "cp -r /src/. /build && dart pub get && dart compile exe bin/mp_server.dart -o /src/tilesense-mp"
+file server/mp/tilesense-mp        # must say: ELF 64-bit ... x86-64
+```
+
+Building against `packages/mahjong_core` (a path dependency) works from this
+recipe because the container gets the whole repo checkout copied in — a bare
+`docker run -v server/mp:/src` alone would not see `../../packages`.
+Copy the full repo, or at least `server/mp` and `packages/mahjong_core`
+together, preserving their relative layout.
+
+### 3.3 Copy to the Droplet and start the service
+
+```sh
+scp server/mp/tilesense-mp                root@$DROPLET_IP:/usr/local/bin/
+scp server/mp/deploy/tilesense-mp.service root@$DROPLET_IP:/etc/systemd/system/
+
+ssh root@$DROPLET_IP
+```
+```sh
+systemctl daemon-reload
+systemctl enable --now tilesense-mp
+curl -s localhost:8789/                     # -> 404 (expected — only WebSocket upgrades are served)
+systemctl status tilesense-mp --no-pager
+```
+
+### 3.4 Wire Nginx
+
+Same site config as §2.7 (`/etc/nginx/sites-enabled/myproject`). Add the
+`location /tilesense/mp/ { ... }` block from `server/mp/deploy/nginx-mp.conf`
+inside the same `server { server_name app.ericrxu.com; }` block, near the
+`/ingest` block.
+
+```sh
+nano /etc/nginx/sites-enabled/myproject
+nginx -t                                        # MUST pass
+systemctl reload nginx
+
+curl -sI https://app.ericrxu.com/tilesense/     # game still 200, unchanged ETag
+exit
+```
+
+### 3.5 Point the client at it and redeploy
+
+```sh
+cd ~/Documents/GitHub/TileSense/flutter_client
+flutter build web --release \
+  --base-href "$BASE_HREF" \
+  --dart-define=MP_ENDPOINT=wss://app.ericrxu.com/tilesense/mp/
+```
+
+Then ship `build/web/` the same way §2.8 does.
+
+### 3.6 Smoke test
+
+Open the deployed site in two separate browser profiles/tabs, create a room
+in one, join with the code in the other, start with bots filling the other
+two seats, and play a full hand end to end. Then close one tab and confirm
+the other receives a bot-takeover notice after ~30s and keeps playing.
+
+### 3.7 Rollback (independent of ingest)
+
+| To undo | How |
+| --- | --- |
+| the client change | redeploy the previous `build/web/` |
+| the Nginx route | remove the `location /tilesense/mp/` block, `nginx -t && systemctl reload nginx` |
+| the service | `ssh root@$DROPLET_IP "systemctl disable --now tilesense-mp"` |
+
+---
+
+## 4. DigitalOcean — App Platform (Option B, containers)
 
 If the site already runs as an App Platform Docker service:
 
@@ -331,7 +431,7 @@ defines.
 
 ---
 
-## 4. Analytics starters
+## 5. Analytics starters
 
 Run these against prod with
 `docker run --rm postgres:16 psql "$PROD_DB" -c "<query>"` (or install `psql`
@@ -363,7 +463,7 @@ where ended_reason = 'game_end' group by 1 order by 1;
 
 ---
 
-## 5. Metabase (analytics dashboard)
+## 6. Metabase (analytics dashboard)
 
 Run Metabase on the Droplet (already a trusted source for the managed DB,
 always-on, behind the existing nginx + Certbot). Config lives in

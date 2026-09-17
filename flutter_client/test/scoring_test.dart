@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/scoring.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/tile.dart';
 
 import 'helpers.dart';
 

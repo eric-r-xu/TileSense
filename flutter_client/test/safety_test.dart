@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/safety.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/safety.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 
 import 'helpers.dart';

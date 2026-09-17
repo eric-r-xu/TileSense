@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/meld.dart';
-import 'package:tilesense/logic/scoring.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/tile.dart';
 import '../helpers.dart';
-import 'package:tilesense/logic/hong_kong/hong_kong_rules.dart';
-import 'package:tilesense/logic/hong_kong/hong_kong_scoring.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_scoring.dart';
 
 HandScore hkScore(String hand, String win,
         {bool self = false,

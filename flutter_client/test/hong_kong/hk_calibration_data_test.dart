@@ -6,11 +6,11 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/efficiency_calc.dart';
+import 'package:mahjong_core/efficiency_calc.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/ruleset.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// Writes the data the Hong Kong [WinModel] is fitted to: one row per discard
 /// the guide makes in seat 0, describing the hand it leaves, and whether that

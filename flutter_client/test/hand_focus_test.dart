@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/meld.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/tile.dart';
 
 import 'helpers.dart';
 
@@ -386,7 +386,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Play Offline'));
     await tester.pump(const Duration(milliseconds: 100));
     // The guide is off by default; the clefairy mark opens it.
     await tester.tap(find.byKey(const Key('guideToggle')));

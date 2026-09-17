@@ -11,9 +11,9 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../../main.dart' show playStyleColor;
-import '../logic/meld.dart';
-import '../logic/ruleset.dart';
-import '../logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
 import '../scenario/scenario.dart';
 import '../scenario/scenario_controller.dart';
 import 'efficiency_overlay.dart';

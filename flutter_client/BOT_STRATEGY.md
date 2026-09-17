@@ -26,6 +26,15 @@ do — and how that compares to how your own seat plays. Based on
 - **Style is a riichi-only dial.** Hong Kong has no riichi or damaten for it
   to weigh, and a full sweep found no placement effect from it either, so the
   toggle is hidden and pinned to Balanced under Hong Kong rules.
+- **Strategy is a riichi-only dial too, for a different reason.** Points or
+  Placement (see
+  [EXPECTED_VALUE.md](EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only))
+  changes what a line is optimised for rather than how danger is priced, and
+  the model behind it isn't specific to riichi mechanics — unlike Style, it
+  is dead code under Hong Kong by product decision, not because there is
+  nothing left for it to weigh. It starts on **Points**; Placement is opt-in
+  and has not been through a measured sweep against the bots the way Style
+  and Focus's defaults have.
 
 ## Same brain, three costumes
 

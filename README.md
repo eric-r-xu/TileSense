@@ -85,7 +85,13 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   dealing in, from its own safety rating, times what that hand pays, plus the
   turns that choosing it commits you to. Folding therefore wins on the numbers
   when the hand is not worth pushing, rather than by a separate rule. The panel
-  shows the charge as a Risk column beside the value it came off.
+  shows the charge as a Risk column beside the value it came off. A second,
+  standalone **EV (HMR)** column shows the same win-probability-times-average-
+  score product with none of that pricing folded in — the "E.V." stat from
+  HMR (Hitori Mahjong Renshuuki), a closed-source solo trainer with no code or
+  data ties to this project, worked out from its own simulation log purely
+  for comparison; it never drives the recommendation. See also:
+  [Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html).
 - A **defensive panel** when an opponent is in riichi: each tile rated 0–15
   (genbutsu / suji / one-chance / honor-by-copies) with a short reason; the
   recommendation switches to the safest discard. Scores refer only to the
@@ -103,6 +109,15 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   has no riichi or damaten for play style to weigh, and a sweep found no
   placement effect from it either, so that dial is hidden and pinned to
   Balanced there — only focus (**Speed**) is exposed.
+- A third dial, **strategy** — Points or Placement, riichi only, starting on
+  Points — that changes what "worth" means rather than how danger is priced:
+  Placement runs every points-flavoured number through a heuristic model of
+  how it moves the chance of finishing above each other seat, given the
+  scores on the table right now, and can take a damaten a hand would riichi
+  for the points, or the reverse. Opt-in and not yet swept against the bots
+  the way style and focus's defaults were; hidden and pinned to Points under
+  Hong Kong, same as style. Details:
+  [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
 - **🇯🇵 Riichi and 🇭🇰 Hong Kong rules**, chosen on the welcome screen or from
   the app bar, each with a one-page rules PDF
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),

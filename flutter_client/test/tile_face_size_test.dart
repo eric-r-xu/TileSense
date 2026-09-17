@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
 /// Guards that adding accent layers to a tile face does not change how big the

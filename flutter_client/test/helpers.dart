@@ -1,4 +1,4 @@
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// Parse a compact hand string, e.g. "123m 456m 789p 1122s EE" or "123m456m".
 /// Suit letters: m/p/s. Honors: E S W N (winds), B G R (white/green/red).
