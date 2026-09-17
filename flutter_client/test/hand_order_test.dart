@@ -44,9 +44,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
+  /// Auto-sort is checked by default now, so tests that just want a stable,
+  /// non-resorting order to drag within uncheck it first — exactly what a
+  /// player would do before rearranging their hand by hand.
+  Future<void> uncheckAutoSort(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('sortHand')));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
   testWidgets('a tile dragged right lands after the one it was dropped on',
       (tester) async {
     await startGame(tester);
+    await uncheckAutoSort(tester);
     final before = strip(tester);
     expect(before.length, greaterThanOrEqualTo(13));
 
@@ -65,6 +74,7 @@ void main() {
   testWidgets('a tile dragged left lands before the one it was dropped on',
       (tester) async {
     await startGame(tester);
+    await uncheckAutoSort(tester);
     final before = strip(tester);
 
     await dragTile(tester, 4, 1);
@@ -81,12 +91,12 @@ void main() {
   testWidgets('dragging while auto-sorted keeps the move and leaves auto-sort',
       (tester) async {
     await startGame(tester);
-    await tester.tap(find.byKey(const Key('sortHand')));
-    await tester.pump(const Duration(milliseconds: 100));
 
+    // Auto-sort is checked by default, so the hand should already be sorted
+    // with no tap needed.
     final sorted = strip(tester);
     final inOrder = [...sorted]..sort((a, b) => a.index.compareTo(b.index));
-    expect(sorted, inOrder, reason: 'auto-sort did not sort');
+    expect(sorted, inOrder, reason: 'auto-sort did not sort by default');
     expect(sorted[0], isNot(sorted[5]),
         reason: 'need two different tiles for the move to be visible');
 
@@ -109,6 +119,28 @@ void main() {
     // drag drops out of auto-sort rather than fighting it.
     await tester.pump(const Duration(milliseconds: 400));
     expect(sortedNow(), isFalse);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets(
+      'unchecking auto-sort freezes the current order instead of reverting '
+      'to draw order', (tester) async {
+    await startGame(tester);
+    final sorted = strip(tester);
+    final inOrder = [...sorted]..sort((a, b) => a.index.compareTo(b.index));
+    expect(sorted, inOrder, reason: 'auto-sort did not sort by default');
+
+    await uncheckAutoSort(tester);
+    final after = strip(tester);
+    expect(after.length, sorted.length);
+
+    // Unchecking always separates the drawn tile into its own slot at the
+    // end, but the rest of the hand must keep the sorted order it was just
+    // showing rather than jumping back to draw order.
+    final restingBefore = [...sorted]..remove(after.last);
+    expect(after.sublist(0, after.length - 1), restingBefore);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

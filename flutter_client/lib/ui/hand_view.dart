@@ -10,8 +10,8 @@ import 'meld_row.dart';
 import 'tile_face.dart';
 
 /// The human seat's concealed hand plus turn actions. An auto-sort toggle keeps
-/// the hand in tile order; while the guide is on the freshly drawn tile carries
-/// a yellow border so it stays identifiable.
+/// the hand in tile order; the freshly drawn tile always carries a yellow
+/// highlight (guide on or off) so it stays identifiable.
 class HandView extends StatefulWidget {
   const HandView({
     super.key,
@@ -26,22 +26,27 @@ class HandView extends StatefulWidget {
   /// tile highlights.
   final bool showGuide;
 
-  /// Height of the bar's bottom band: the tile row (whose height the TileSense
-  /// button beside it sets, at 104px — taller than a `large` face at
-  /// [_HandViewState._handScale]) plus the bar's 10px bottom padding. The
-  /// efficiency overlay stops above this band so it never covers a tile.
-  static const double tileRowBandHeight = 114;
+  /// Height of the bar's bottom band: the tile row (now set by a `large` face
+  /// at [_HandViewState._handScale], which is taller than the 104px TileSense
+  /// button beside it) plus the bar's 10px bottom padding. The efficiency
+  /// overlay stops above this band so it never covers a tile.
+  static const double tileRowBandHeight = 116;
 
   @override
   State<HandView> createState() => _HandViewState();
 }
 
 class _HandViewState extends State<HandView> {
-  // Off by default: tiles stay in draw order until the sort button is tapped.
-  bool _autoSort = false;
+  // On by default: tiles stay in tile order. Unchecking freezes whatever
+  // order is on screen at that moment rather than reverting to draw order.
+  bool _autoSort = true;
 
   /// Tile ids in draw order, kept stable so "auto-sort off" leaves tiles put.
   final List<int> _order = [];
+
+  /// The tile currently under the mouse pointer, so it can pick up a slight
+  /// hover shading — a no-op on touch devices, which never hover.
+  int? _hoveredTileId;
 
   TableGameHost get game => widget.game;
 
@@ -49,8 +54,9 @@ class _HandViewState extends State<HandView> {
   static const _green = Color(0xff43a047);
 
   /// How much bigger the human hand (and its open melds) render than the
-  /// authored `TileSize.large` / `TileSize.normal` steps.
-  static const double _handScale = 1.5;
+  /// authored `TileSize.large` / `TileSize.normal` steps. 1.65 = the base
+  /// 1.5 scale bumped 10% bigger.
+  static const double _handScale = 1.65;
 
   /// Fixed width for the concealed-tile strip: 13 resting tiles plus the wider
   /// slot the separated drawn tile takes, at [_handScale]. A `large` face is
@@ -69,19 +75,36 @@ class _HandViewState extends State<HandView> {
   void _reorder(int id, int targetId, List<Tile> shown) {
     if (id == targetId) return;
     setState(() {
-      if (_autoSort) {
-        // Adopt what is on screen and drop out of auto-sort, or the next
-        // rebuild would sort the move straight back out again.
-        _order
-          ..clear()
-          ..addAll(shown.map((t) => t.id));
-        _autoSort = false;
-      }
+      // Adopt what is on screen and drop out of auto-sort, or the next
+      // rebuild would sort the move straight back out again.
+      if (_autoSort) _freezeOrder(shown);
       final from = _order.indexOf(id);
       final to = _order.indexOf(targetId);
       if (from < 0 || to < 0) return;
       _order.removeAt(from);
       _order.insert(to.clamp(0, _order.length), id);
+    });
+  }
+
+  /// Snapshots [shown] (whatever order is currently on screen) into [_order]
+  /// and turns auto-sort off, so leaving auto-sort never reverts to draw
+  /// order.
+  void _freezeOrder(List<Tile> shown) {
+    _order
+      ..clear()
+      ..addAll(shown.map((t) => t.id));
+    _autoSort = false;
+  }
+
+  /// Auto-sort checkbox handler. Turning it off freezes the tile-order view
+  /// that's currently on screen; turning it back on just resumes sorting.
+  void _toggleAutoSort() {
+    setState(() {
+      if (_autoSort) {
+        _freezeOrder(sortByType(game.round.seats[kHumanSeat].hand));
+      } else {
+        _autoSort = true;
+      }
     });
   }
 
@@ -105,8 +128,9 @@ class _HandViewState extends State<HandView> {
 
     // Green = the guide's recommended discard — the very row it marks
     // recommended in the panel, so the hand and the panel never disagree.
-    // Yellow = the freshly drawn tile. A drawn tile that is also the
-    // recommended one gets both: a green tint with a yellow border.
+    // Yellow = the freshly drawn tile, shown whether the guide is on or off.
+    // A drawn tile that is also the recommended one gets both: a green tint
+    // with a yellow border.
     final showGuide = widget.showGuide;
     final topTypes = <TileType>{
       if (canPlay && showGuide)
@@ -120,16 +144,15 @@ class _HandViewState extends State<HandView> {
           (!riichiLocked || isDrawn) &&
           !round.canFlowerWin(kHumanSeat);
       final isTop = tappable && topTypes.contains(tile.type);
-      final Color? hc = !showGuide
-          ? null
-          : isTop
-              ? _green
-              : (isDrawn ? _yellow : null);
-      final Color? border = (showGuide && isDrawn && isTop) ? _yellow : null;
+      final Color? hc = isTop ? _green : (isDrawn ? _yellow : null);
+      final Color? border = (isDrawn && isTop) ? _yellow : null;
       return Padding(
         padding: EdgeInsets.only(left: separated ? 16 : 2, right: 2),
         child: InkWell(
           onTap: tappable ? () => _discard(context, tile) : null,
+          onHover: tappable
+              ? (h) => setState(() => _hoveredTileId = h ? tile.id : null)
+              : null,
           borderRadius: BorderRadius.circular(6),
           child: TileFace(
             tile: tile,
@@ -138,6 +161,7 @@ class _HandViewState extends State<HandView> {
             highlightColor: hc,
             borderColorOverride: border,
             dimmed: riichiLocked && !isDrawn,
+            hovered: _hoveredTileId == tile.id,
           ),
         ),
       );
@@ -174,7 +198,7 @@ class _HandViewState extends State<HandView> {
                 ),
               ),
             ),
-            childWhenDragging: Opacity(opacity: 0.25, child: child),
+            childWhenDragging: _DragGrabFlash(child: child),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
@@ -232,7 +256,7 @@ class _HandViewState extends State<HandView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _sortButton(),
+                          _sortToggle(),
                           const SizedBox(width: 6),
                           SizedBox(
                             width: _handStripWidth,
@@ -341,35 +365,42 @@ class _HandViewState extends State<HandView> {
     );
   }
 
-  Widget _sortButton() {
+  Widget _sortToggle() {
     return Tooltip(
       message: _autoSort
           ? 'Auto-sort: on — tiles kept in tile order.\n'
-              'Tap for your own order, or drag a tile to start one.'
+              'Uncheck to freeze this order, or drag a tile to start your own.'
           : 'Auto-sort: off — your own order.\n'
-              'Long-press a tile and drag it to move it. Tap to auto-sort.',
-      child: InkWell(
-        key: const Key('sortHand'),
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => setState(() => _autoSort = !_autoSort),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color:
-                _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _autoSort ? Icons.sort : Icons.sort_outlined,
-                size: 30,
-                color: _autoSort ? Colors.white : Colors.white60,
+              'Long-press a tile and drag it to move it. Check to resume auto-sort.',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color:
+              _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 30,
+              height: 30,
+              child: Checkbox(
+                key: const Key('sortHand'),
+                value: _autoSort,
+                onChanged: (_) => _toggleAutoSort(),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                checkColor: const Color(0xff00695c),
+                activeColor: Colors.white,
+                side: const BorderSide(color: Colors.white60, width: 1.5),
               ),
-              const SizedBox(height: 2),
-              Text(
-                'Sort Tiles',
+            ),
+            const SizedBox(height: 2),
+            InkWell(
+              borderRadius: BorderRadius.circular(4),
+              onTap: _toggleAutoSort,
+              child: Text(
+                'Auto-sort',
                 style: TextStyle(
                   fontSize: 11,
                   height: 1.15,
@@ -377,8 +408,8 @@ class _HandViewState extends State<HandView> {
                   color: _autoSort ? Colors.white : Colors.white60,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -516,6 +547,42 @@ class _HandViewState extends State<HandView> {
         onPressed: onTap,
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
       );
+}
+
+/// Shown in a tile's slot the instant a long-press grabs it: a bright flash
+/// over the usual dimmed "being dragged" look, fading out on its own. Built
+/// fresh exactly when dragging starts (this replaces [child] only then) so
+/// the one-shot [TweenAnimationBuilder] animation plays right on grab, with
+/// no extra timers or state to track.
+class _DragGrabFlash extends StatelessWidget {
+  const _DragGrabFlash({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Opacity(opacity: 0.25, child: child),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 1.0, end: 0.0),
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOut,
+              builder: (context, v, _) => v <= 0
+                  ? const SizedBox.shrink()
+                  : DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: _HandViewState._yellow.withValues(alpha: 0.55 * v),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// "Built with Flutter" credit, bottom-right of the hand bar (so bottom-right
