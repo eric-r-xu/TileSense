@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Hong Kong hands almost never got the winner's celebratory "yeah" or the
+  discarder's resigned acquiescement, offline or online.** Both
+  `GameController._playRoundEndSfx` and `OnlineGameController
+  .playRoundEndVoice` gated that chain on `HandScore.limitName` being
+  non-empty — for riichi that means mangan+, exactly as intended, but Hong
+  Kong's own `limitName` only flags the payment table's 13-faan cap, which
+  an ordinary game essentially never reaches. Any Hong Kong win under that
+  cap, however large, silently played only the plain win line. New
+  `Ruleset.isBigHand(HandScore)` (`packages/mahjong_core/lib/ruleset.dart`)
+  gives Hong Kong its own, actually-reachable threshold — 5+ faan, the same
+  "scale stops just doubling" position mangan occupies among riichi hands —
+  and both call sites now go through it. New test:
+  `packages/mahjong_core/test/ruleset_test.dart`; extended
+  `flutter_client/test/online_win_voice_test.dart` with a 5-faan case.
+- **Multiplayer chi/pon/kan only ever played the plain call blip — no
+  character voice line, unlike offline.** `OnlineGameController
+  ._playCallSfx` detected the call (via `newMeldKind`) and played its `SfxKind`
+  but never looked up the caller's character to voice it, the way
+  `GameController._playCallSfx` always has. Pulled the caller-voicing logic
+  into a new testable `OnlineGameController.playCallVoice`, mirroring
+  `playRoundEndVoice`. New tests in
+  `flutter_client/test/online_call_sfx_test.dart`.
+- **Multiplayer always dealt in join order — the room's creator was always
+  East and dealt first, guests always seated in the order they joined.**
+  `TableLoop.start` now randomizes who sits where (`_shuffleSeats`) before
+  filling any still-empty seat with a bot. Since a live connection's
+  message handler used to cache its own seat number as an int at
+  `join_room`/`create_room` time, reseating players out from under an
+  already-open socket would have stranded it on the wrong index —
+  `server.dart`'s handler now resolves a connection's current seat by guest
+  ID on every message instead of caching it, so the reindexing needs no
+  coordination with already-connected clients. New test:
+  `server/mp/test/seat_shuffle_test.dart`; updated
+  `room_flow_test.dart`'s disconnect/bot-takeover test, which had hardcoded
+  the pre-shuffle join-order seat.
 - **Multiplayer: whoever wasn't dealt server seat 0 saw the wrong player at
   their own "you" spot, and the wrong character controlling their
   neighbors.** `buildRoundFromSnapshot` deliberately rotates every seat

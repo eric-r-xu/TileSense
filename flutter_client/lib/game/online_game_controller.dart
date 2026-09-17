@@ -124,8 +124,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   bool connectionLost = false;
 
   bool get isHost =>
-      mySeat != null &&
-      lobbySeats.any((s) => s.seat == mySeat && s.isHost);
+      mySeat != null && lobbySeats.any((s) => s.seat == mySeat && s.isHost);
 
   void createRoom({required Ruleset ruleset, required bool hanchan}) {
     this.ruleset = ruleset;
@@ -280,9 +279,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         // and everything read off `round`) is local — convert so callers
         // don't need their own special case for this one field.
         final serverSeat = msg['seat'] as int?;
-        lastBotTakeoverSeat = serverSeat == null
-            ? null
-            : (serverSeat - (mySeat ?? 0) + 4) % 4;
+        lastBotTakeoverSeat =
+            serverSeat == null ? null : (serverSeat - (mySeat ?? 0) + 4) % 4;
         notifyListeners();
       case 'player_disconnected':
       case 'player_reconnected':
@@ -343,8 +341,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     _lastDiscardSeat = msg['lastDiscardSeat'] as int?;
     _lastDiscardTsumogiri = msg['lastDiscardTsumogiri'] as bool;
     _turnDeadlineMs = msg['turnDeadlineMs'] as int?;
-    round =
-        buildRoundFromSnapshot(msg['round'] as Map<String, dynamic>, mySeat: seat);
+    round = buildRoundFromSnapshot(msg['round'] as Map<String, dynamic>,
+        mySeat: seat);
     _roundReady = true;
     _updateCallState();
     _refreshReport();
@@ -364,10 +362,30 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// this one just completed a call, and the new meld's own kind says which.
   /// `previousRound` is null on the very first snapshot, when every seat is
   /// still empty-handed and nothing has been called yet.
-  void _playCallSfx(Round? previousRound) {
+  void _playCallSfx(Round? previousRound) =>
+      playCallVoice(previousRound, round, characterForSeat);
+
+  /// Plays the call blip and the caller's spoken line for every seat that
+  /// just completed a chi/pon/kan, same as `GameController._playCallSfx`. A
+  /// static function taking [characterForSeat] as a parameter, so it is
+  /// unit-testable without a live connection, same as [playRoundEndVoice].
+  @visibleForTesting
+  static void playCallVoice(
+    Round? previousRound,
+    Round round,
+    Character Function(int seat) characterForSeat,
+  ) {
     for (var s = 0; s < 4; s++) {
       final kind = newMeldKind(previousRound, round, s);
-      if (kind != null) Sfx.i.play(kind);
+      if (kind == null) continue;
+      Sfx.i.play(kind);
+      final vk = switch (kind) {
+        SfxKind.chi => VoiceKind.chi,
+        SfxKind.pon => VoiceKind.pon,
+        SfxKind.kan => VoiceKind.kan,
+        _ => null, // unreachable: newMeldKind only ever returns these three
+      };
+      if (vk != null) Sfx.i.voice(vk, character: characterForSeat(s));
     }
   }
 
@@ -451,8 +469,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     if (_roundReady &&
         round.turn == kHumanSeat &&
         round.phase == RoundPhase.discarding) {
-      _client.send(
-          {'type': 'action', 'kind': 'added_kan', 'tileType': type.name});
+      _client
+          .send({'type': 'action', 'kind': 'added_kan', 'tileType': type.name});
     }
   }
 
@@ -796,17 +814,16 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     return counts;
   }
 
-  // --- sound. Round-end wins voice the winning (and, on a mangan+ ron, the
-  // dealt-into) seat's character line, same as GameController — every seat
-  // here already has a real, displayed persona, so there is nothing
-  // mismatched about voicing it. Chi/pon/kan still only get the plain call
-  // blip (see _playCallSfx), not the caller's spoken line GameController adds
-  // for them — narrower scope, not a different rationale; worth revisiting
-  // together with round-end if that gap turns out to matter too. -----------
+  // --- sound. Round-end wins voice the winning (and, on a big-hand ron, the
+  // dealt-into) seat's character line, and chi/pon/kan voice the caller's
+  // line right after the plain call blip — all the same as GameController.
+  // Every seat here already has a real, displayed persona, so there is
+  // nothing mismatched about voicing it. -----------------------------------
 
   int? _lastSfxDiscardSerial;
   void _playTurnSfx() {
-    if (_lastSfxDiscardSerial != null && _discardSerial > _lastSfxDiscardSerial!) {
+    if (_lastSfxDiscardSerial != null &&
+        _discardSerial > _lastSfxDiscardSerial!) {
       Sfx.i.play(SfxKind.discard);
     }
     _lastSfxDiscardSerial = _discardSerial;
@@ -848,7 +865,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     for (var wi = 0; wi < res.winners.length; wi++) {
       final seat = res.winners[wi];
       final bigHand =
-          wi < res.scores.length && res.scores[wi].limitName.isNotEmpty;
+          wi < res.scores.length && ruleset.isBigHand(res.scores[wi]);
       final winner = characterForSeat(seat);
       if (!bigHand) {
         Sfx.i.voice(winLine, character: winner);

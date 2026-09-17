@@ -38,8 +38,7 @@ void main() {
         Character.astaroth,
       ][seat];
 
-  testWidgets(
-      'a mangan-or-higher ron chains win, yeah, then the acquiescement',
+  testWidgets('a mangan-or-higher ron chains win, yeah, then the acquiescement',
       (tester) async {
     Sfx.i.enabled = false; // no plugin under a test binding
     final log = <(Character, VoiceKind)>[];
@@ -143,6 +142,36 @@ void main() {
           res, Ruleset.hongKong, characterForSeat);
 
       expect(log, [(Character.hubert, VoiceKind.win)]);
+    } finally {
+      Sfx.debugVoiceLog = null;
+      Sfx.i.enabled = true;
+    }
+  });
+
+  testWidgets(
+      'a 5+ faan Hong Kong ron also chains win, yeah, then the '
+      'acquiescement — not just the 13-faan payment cap', (tester) async {
+    Sfx.i.enabled = false;
+    final log = <(Character, VoiceKind)>[];
+    Sfx.debugVoiceLog = log;
+    try {
+      final res = RoundResult(
+        kind: RoundEndKind.ron,
+        winners: const [2],
+        loser: 0,
+        pointDeltas: const {},
+        label: '',
+        scores: [score(han: 5)], // limitName only ever set at the 13-faan cap
+      );
+
+      OnlineGameController.playRoundEndVoice(
+          res, Ruleset.hongKong, characterForSeat);
+
+      expect(log, [
+        (Character.hubert, VoiceKind.win),
+        (Character.hubert, VoiceKind.yeah),
+        (Character.orderic, VoiceKind.acquiescement),
+      ]);
     } finally {
       Sfx.debugVoiceLog = null;
       Sfx.i.enabled = true;

@@ -46,17 +46,20 @@ void main() {
     ),
   ];
 
-  test('a guest at server seat 0 sees themselves at local seat 0 (identity case)', () {
+  test(
+      'a guest at server seat 0 sees themselves at local seat 0 (identity case)',
+      () {
     expect(OnlineGameController.labelForLocalSeat(seats, 0, 0), 'Eric (you)');
-    expect(
-        OnlineGameController.characterForLocalSeat(seats, 0, 0), Character.eric);
+    expect(OnlineGameController.characterForLocalSeat(seats, 0, 0),
+        Character.eric);
   });
 
   test('a guest at server seat 1 still sees themselves at local seat 0', () {
     // This is the reported bug: Matthew is dealt into server seat 1, so his
     // own local seat 0 ("the bottom, you") must resolve to his own entry —
     // not to whoever the server happens to call seat 0.
-    expect(OnlineGameController.labelForLocalSeat(seats, 1, 0), 'Matthew (you)');
+    expect(
+        OnlineGameController.labelForLocalSeat(seats, 1, 0), 'Matthew (you)');
     expect(OnlineGameController.characterForLocalSeat(seats, 1, 0),
         Character.hubert);
   });

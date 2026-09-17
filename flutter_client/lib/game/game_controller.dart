@@ -97,7 +97,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       }
     }
     ruleset = value;
-    _tel?.settingChange(matchId: _matchId, setting: 'ruleset', value: value.name);
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'ruleset', value: value.name);
     newGame();
   }
 
@@ -646,7 +647,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     for (var wi = 0; wi < res.winners.length; wi++) {
       final seat = res.winners[wi];
       final bigHand =
-          wi < res.scores.length && res.scores[wi].limitName.isNotEmpty;
+          wi < res.scores.length && ruleset.isBigHand(res.scores[wi]);
       final winner = _characterForSeat(seat);
       if (!bigHand) {
         Sfx.i.voice(winLine, character: winner);

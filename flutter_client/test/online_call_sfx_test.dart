@@ -84,4 +84,53 @@ void main() {
     expect(OnlineGameController.newMeldKind(before, after, 2), SfxKind.chi);
     expect(OnlineGameController.newMeldKind(before, after, 3), isNull);
   });
+
+  group('playCallVoice', () {
+    // `playCallVoice` calls `Sfx.i.play`/`Sfx.i.voice`, and the very first
+    // touch of the `Sfx.i` singleton in a test run initializes the audio
+    // plugin — that needs `testWidgets`' own binding already active (a plain
+    // `test()` throws `MissingPluginException`), same as
+    // `online_win_voice_test.dart`.
+    Character characterForSeat(int seat) => const [
+          Character.orderic,
+          Character.grant,
+          Character.hubert,
+          Character.astaroth,
+        ][seat];
+
+    testWidgets(
+        'the caller gets their own spoken chi/pon/kan line, not just the '
+        'blip', (tester) async {
+      Sfx.i.enabled = false;
+      final log = <(Character, VoiceKind)>[];
+      Sfx.debugVoiceLog = log;
+      try {
+        final before = roundWith(const {});
+        final after = roundWith({
+          2: [meld(MeldKind.triplet)]
+        });
+        OnlineGameController.playCallVoice(before, after, characterForSeat);
+        expect(log, [(Character.hubert, VoiceKind.pon)]);
+      } finally {
+        Sfx.debugVoiceLog = null;
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('no new meld means no voice line either', (tester) async {
+      Sfx.i.enabled = false;
+      final log = <(Character, VoiceKind)>[];
+      Sfx.debugVoiceLog = log;
+      try {
+        final steady = roundWith({
+          0: [meld(MeldKind.triplet)]
+        });
+        OnlineGameController.playCallVoice(steady, steady, characterForSeat);
+        expect(log, isEmpty);
+      } finally {
+        Sfx.debugVoiceLog = null;
+        Sfx.i.enabled = true;
+      }
+    });
+  });
 }

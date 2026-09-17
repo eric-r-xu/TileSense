@@ -30,7 +30,17 @@ Handler buildMultiplayerHandler(
 }) {
   return webSocketHandler((WebSocketChannel webSocket) {
     Room? room;
-    int? seat;
+    // The seat a connection occupies is looked up by guest ID on every use
+    // rather than cached as an int at join time: `TableLoop.start` randomizes
+    // seat assignment (see `_shuffleSeats`), which would otherwise strand an
+    // already-connected socket on its pre-shuffle index.
+    String? guestId;
+
+    int? currentSeat() {
+      final r = room;
+      final g = guestId;
+      return r == null || g == null ? null : r.seatIndexForGuest(g);
+    }
 
     void send(Map<String, dynamic> message) {
       try {
@@ -44,8 +54,8 @@ Handler buildMultiplayerHandler(
       final type = msg['type'] as String?;
       switch (type) {
         case 'create_room':
-          final guestId = msg['guestId'] as String?;
-          if (guestId == null || guestId.isEmpty) {
+          final requestedGuestId = msg['guestId'] as String?;
+          if (requestedGuestId == null || requestedGuestId.isEmpty) {
             send({'type': 'error', 'message': 'missing guestId'});
             return;
           }
@@ -53,21 +63,21 @@ Handler buildMultiplayerHandler(
               msg['ruleset'] == 'hongKong' ? Ruleset.hongKong : Ruleset.riichi;
           final hanchan = msg['hanchan'] as bool? ?? true;
           final r = manager.createRoom(
-            hostGuestId: guestId,
+            hostGuestId: requestedGuestId,
             hostName: _sanitizeName(msg['name']),
             ruleset: ruleset,
             hanchan: hanchan,
             hostCharacter: msg['character'] as String?,
           );
           room = r;
-          seat = 0;
+          guestId = requestedGuestId;
           r.seats[0]!.send = send;
           r.broadcastRoomState();
 
         case 'join_room':
           final code = msg['roomCode'] as String?;
-          final guestId = msg['guestId'] as String?;
-          if (code == null || guestId == null) {
+          final requestedGuestId = msg['guestId'] as String?;
+          if (code == null || requestedGuestId == null) {
             send({'type': 'error', 'message': 'missing roomCode or guestId'});
             return;
           }
@@ -80,25 +90,25 @@ Handler buildMultiplayerHandler(
             send({'type': 'error', 'message': 'that room has already started'});
             return;
           }
-          final existing = r.seatIndexForGuest(guestId);
+          final existing = r.seatIndexForGuest(requestedGuestId);
           final openSeat = existing ?? r.firstOpenSeat();
           if (openSeat == null) {
             send({'type': 'error', 'message': 'room is full'});
             return;
           }
           r.seats[openSeat] ??= Seat(
-            guestId: guestId,
+            guestId: requestedGuestId,
             name: _sanitizeName(msg['name']),
             character: r.resolveCharacter(msg['character'] as String?),
           );
           room = r;
-          seat = openSeat;
+          guestId = requestedGuestId;
           r.seats[openSeat]!.send = send;
           r.broadcastRoomState();
 
         case 'leave_room':
           final r = room;
-          final s = seat;
+          final s = currentSeat();
           if (r == null || s == null || r.phase != RoomPhase.lobby) return;
           r.seats[s] = null;
           if (s == r.hostSeat) {
@@ -108,24 +118,27 @@ Handler buildMultiplayerHandler(
           r.broadcastRoomState();
           manager.collectIfAbandoned(r);
           room = null;
-          seat = null;
+          guestId = null;
 
         case 'start_game':
           final r = room;
-          final s = seat;
+          final s = currentSeat();
           if (r == null ||
               s == null ||
               s != r.hostSeat ||
               r.phase != RoomPhase.lobby) {
-            send({'type': 'error', 'message': 'only the host can start the game'});
+            send({
+              'type': 'error',
+              'message': 'only the host can start the game'
+            });
             return;
           }
           r.loop = tableLoopFactory(r)..start();
 
         case 'reconnect':
           final code = msg['roomCode'] as String?;
-          final guestId = msg['guestId'] as String?;
-          if (code == null || guestId == null) {
+          final requestedGuestId = msg['guestId'] as String?;
+          if (code == null || requestedGuestId == null) {
             send({'type': 'error', 'message': 'missing roomCode or guestId'});
             return;
           }
@@ -134,17 +147,23 @@ Handler buildMultiplayerHandler(
             send({'type': 'error', 'message': 'room no longer exists'});
             return;
           }
-          final s = r.seatIndexForGuest(guestId);
+          final s = r.seatIndexForGuest(requestedGuestId);
           if (s == null) {
-            send({'type': 'error', 'message': 'you are not seated in this room'});
+            send({
+              'type': 'error',
+              'message': 'you are not seated in this room'
+            });
             return;
           }
           if (r.loop?.isBotControlled(s) ?? false) {
-            send({'type': 'error', 'message': 'this seat is now bot-controlled'});
+            send({
+              'type': 'error',
+              'message': 'this seat is now bot-controlled'
+            });
             return;
           }
           room = r;
-          seat = s;
+          guestId = requestedGuestId;
           r.seats[s]!.send = send;
           r.broadcastRoomState();
           r.loop?.handleReconnect(s);
@@ -152,7 +171,7 @@ Handler buildMultiplayerHandler(
         case 'action':
         case 'continue_round':
           final r = room;
-          final s = seat;
+          final s = currentSeat();
           if (r == null || s == null) return;
           r.loop?.handleMessage(s, msg);
 
@@ -178,7 +197,7 @@ Handler buildMultiplayerHandler(
       },
       onDone: () {
         final r = room;
-        final s = seat;
+        final s = currentSeat();
         if (r == null || s == null) return;
         r.seats[s]?.send = null;
         if (r.loop != null) {
