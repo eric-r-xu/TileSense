@@ -4,10 +4,9 @@ Chosen with the ruleset toggle (welcome screen, game app bar, or builder chip
 row); Riichi remains the default. One-page reference:
 [HK.pdf](https://app.ericrxu.com/static/HK.pdf).
 
-**Minimum: 0 faan.** Any complete hand may be declared — a chicken hand
-(雞糊, no scoring features) wins and is paid on the 0-faan row of the table.
+The scoring source is **HKMJ Cheat Sheet 1.0.pdf**, "Hong Kong Mahjong Rule Sheet / 香港麻雀正統牌型," version 1.0, April 3, 2025, by /u/danma. Its **New Style, discarder-pays-all** payment table replaces the original Japanese scoring system.
 
-The scoring source is **HKMJ Cheat Sheet 1.0.pdf**, “Hong Kong Mahjong Rule Sheet / 香港麻雀正統牌型,” version 1.0, April 3, 2025, by /u/danma. Its **New Style, discarder-pays-all** payment table replaces the original Japanese scoring system. The minimum is **0 faan** (`HongKongRules.minimumFaan`): any complete hand, including a chicken hand, may be declared.
+**Minimum: 0 faan** (`HongKongRules.minimumFaan`). Any complete hand may be declared — a chicken hand (雞糊, no scoring features) wins and is paid on the 0-faan row of the table.
 
 ## Payments
 
@@ -80,7 +79,7 @@ When a terminal/honour feature includes the 3-faan triplet award and the hand al
 - Exposing the seventh or eighth bonus tile pauses **before** its replacement. The player may claim the independent 3/8-faan flower win or continue drawing. Bots/autoplay take the available win. Flower wins use self-pick payments and do not add ordinary hand or flower bonuses.
 - Chow only from the immediately preceding player. Winning claims take priority over kong/pung, then chow. Added kongs can be robbed; concealed kongs cannot.
 - Multiple winners on one discard are retained from the existing engine. The discarder pays each independently, with result pages ordered by turn distance.
-- Dealer repeats on a win or a drawn hand. Otherwise dealership advances. A full game covers all four winds (16 dealerships); an East-only option remains. Repeats use fresh deals and add no payment. Negative chip balances do not stop the game.
+- Dealer repeats on a win or a drawn hand. Otherwise dealership advances. A full game is a hanchan — East and South (8 dealerships) — matching riichi's game length rather than the traditional four-wind game; an East-only option remains. Repeats use fresh deals and add no honba payment, but do show a dealer-repeat count in the table's centre status box in its place. Negative chip balances do not stop the game.
 - Concealed Hand includes a win on discard if there were no exposed calls. The winning discard itself does not turn a concealed hand into an exposed hand. This is the interpretation used for the sheet's concealed-hand wording.
 - Seven Pairs is a variant rule on the sheet. It is enabled here. `HongKongRules.sevenPairs` switches its scoring off; win detection and the guide's shape counting are shared with riichi, which always plays it, so turning it off fully would also need those gated.
 
@@ -108,4 +107,6 @@ The guide uses exact HK scoring for ready-hand waits and an estimate for unfinis
 
 Probability and risk parameters are heuristics, not a calibrated Hong Kong solver. The optional large simulation tools remain available separately.
 
-Internal API and telemetry names (`han`, `yaku`, `ron`, `tsumo`, `chi`, `pon`, `kan`, `hanchan`) are shared with riichi. Under Hong Kong rules `han` carries faan, `yaku` carries the scoring-feature list, and the full-game option means four winds. Riichi flags confer no action or bonus. `match_start` telemetry carries a `ruleset` field, which the ingest server does not store yet.
+The guide above is offline-only: multiplayer hides it entirely, so no seat gets an assist the others lack.
+
+Internal API and telemetry names (`han`, `yaku`, `ron`, `tsumo`, `chi`, `pon`, `kan`, `hanchan`) are shared with riichi. Under Hong Kong rules `han` carries faan and `yaku` carries the scoring-feature list; the full-game option means hanchan (East and South) for both rulesets. Riichi flags confer no action or bonus. `match_start` telemetry carries a `ruleset` field, which the ingest server does not store yet.

@@ -53,10 +53,9 @@ enum Ruleset {
   /// Each seat's score at the start of a game.
   int get startingPoints => isHongKong ? HongKongRules.startingChips : 25000;
 
-  /// Scheduled hands in a game: riichi plays East and South (hanchan), Hong
-  /// Kong all four winds. [fullGame] false is East only in both.
-  int handsPerGame({required bool fullGame}) =>
-      fullGame ? (isHongKong ? 16 : 8) : 4;
+  /// Scheduled hands in a game: East and South (hanchan) for both rulesets.
+  /// [fullGame] false is East only in both.
+  int handsPerGame({required bool fullGame}) => fullGame ? 8 : 4;
 
   /// Names for the calls and wins, in this game's vocabulary.
   String get chiLabel => isHongKong ? 'Chow' : 'Chi';

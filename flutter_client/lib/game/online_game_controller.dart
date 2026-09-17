@@ -164,6 +164,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     lobbySeats = _emptyLobby();
     _roundReady = false;
     round = _placeholderRound();
+    _dealerRepeat = 0;
     notifyListeners();
   }
 
@@ -187,6 +188,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   @override
   int get honba => _roundReady ? round.honba : 0;
+
+  /// The server never sends this separately — honba is always 0 under Hong
+  /// Kong, so it can't carry a dealer-repeat count the way riichi's does.
+  /// Instead this is derived locally: [_applyRoundSnapshot] bumps it exactly
+  /// once, on the first snapshot of a freshly dealt hand, by checking whether
+  /// that hand's dealer is the same seat as the one that just finished.
+  int _dealerRepeat = 0;
+  @override
+  int get dealerRepeat => _roundReady ? _dealerRepeat : 0;
 
   int _discardSerial = 0;
   @override
@@ -343,6 +353,16 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     _turnDeadlineMs = msg['turnDeadlineMs'] as int?;
     round = buildRoundFromSnapshot(msg['round'] as Map<String, dynamic>,
         mySeat: seat);
+    // A freshly dealt hand always follows the previous one's finished
+    // snapshot; the dealer only ever stays on the same seat when they kept
+    // it (see GameController.rotateAfterRound), so that's a safe stand-in
+    // for the "dealerKept" flag the server doesn't send over the wire.
+    if (previousRound != null &&
+        previousRound.phase == RoundPhase.finished &&
+        round.phase != RoundPhase.finished) {
+      _dealerRepeat =
+          round.dealer == previousRound.dealer ? _dealerRepeat + 1 : 0;
+    }
     _roundReady = true;
     _updateCallState();
     _refreshReport();

@@ -1,17 +1,15 @@
-/// The online table: the same `TableView`/`HandView`/`EfficiencyOverlay`/
-/// `ScoringView` widgets the offline game uses, composed against an
-/// [OnlineGameController] instead of a [GameController]. The app bar is
-/// deliberately smaller than the offline one — no ruleset/hanchan/fast-mode
-/// toggle and no pause, all single-player-only concepts — just the guide
-/// toggle (mirrored from the hand bar's own button), the room code, and
-/// Leave Room.
+/// The online table: the same `TableView`/`HandView`/`ScoringView` widgets
+/// the offline game uses, composed against an [OnlineGameController] instead
+/// of a [GameController]. No TileSense guide here — see [HandView] — and the
+/// app bar is deliberately smaller than the offline one: no ruleset/hanchan/
+/// fast-mode toggle and no pause, all single-player-only concepts — just the
+/// room code and Leave Room.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../game/guide_host.dart' show GamePhase;
 import '../game/online_game_controller.dart';
-import 'efficiency_overlay.dart';
 import 'hand_view.dart';
 import 'scoring_view.dart';
 import 'table_view.dart';
@@ -34,13 +32,10 @@ class OnlineGamePage extends StatefulWidget {
 }
 
 class _OnlineGamePageState extends State<OnlineGamePage> {
-  bool _showGuide = false;
   int? _lastShownTakeoverSeat;
   String? _lastShownError;
 
   OnlineGameController get game => widget.controller;
-
-  void _toggleGuide() => setState(() => _showGuide = !_showGuide);
 
   void _leave() {
     game.leaveRoom();
@@ -87,26 +82,25 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  key: const Key('guideToggle'),
-                  tooltip: _showGuide
-                      ? 'TileSense — hide guide'
-                      : 'TileSense — show guide',
-                  iconSize: 32,
-                  padding: EdgeInsets.zero,
-                  onPressed: _toggleGuide,
-                  icon: Opacity(
-                    opacity: _showGuide ? 1.0 : 0.4,
+                // No TileSense here — see the module doc — but a dimmed,
+                // inert clefairy still marks where it would be, so the
+                // tooltip can point back to offline play instead of the
+                // guide just silently vanishing.
+                Tooltip(
+                  message:
+                      'No TileSense guide in multiplayer — play offline for it.',
+                  child: Opacity(
+                    opacity: 0.35,
                     child: Image.asset(
                       'assets/clefairy.png',
-                      height: 32,
+                      height: 28,
                       filterQuality: FilterQuality.high,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.school, size: 32),
+                      errorBuilder: (_, __, ___) => const Icon(Icons.school,
+                          size: 28, color: Colors.white38),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Text('Room ${game.roomCode}'),
                 if (game.connectionLost) ...[
                   const SizedBox(width: 10),
@@ -124,32 +118,9 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 Column(
                   children: [
                     Expanded(child: TableView(game: game)),
-                    HandView(
-                      game: game,
-                      showGuide: _showGuide,
-                      onToggleGuide: _toggleGuide,
-                    ),
+                    HandView(game: game),
                   ],
                 ),
-                if (_showGuide)
-                  Positioned.fill(
-                    child: LayoutBuilder(
-                      builder: (context, c) => Stack(
-                        children: [
-                          Positioned(
-                            left: 8,
-                            top: 8,
-                            child: EfficiencyOverlay(
-                              game: game,
-                              report: game.report,
-                              maxHeight:
-                                  c.maxHeight - HandView.tileRowBandHeight - 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 if (game.phase != GamePhase.playing)
                   ScoringView(game: game, onGameEnd: _leave),
               ],

@@ -131,6 +131,10 @@ class TableView extends StatelessWidget {
                       _portrait(0, size: 55),
                       const SizedBox(width: 8),
                       _placard(round, 0),
+                      if (round.ruleset.isHongKong) ...[
+                        const SizedBox(width: 8),
+                        _seatFlowers(round, 0),
+                      ],
                     ],
                   ),
                 ),
@@ -161,14 +165,14 @@ class TableView extends StatelessWidget {
             // Round / honba / riichi / wall — dead centre of the pond square.
             Align(alignment: Alignment.center, child: _statusBox(round)),
 
-            // Dead wall (riichi) or exposed flowers (Hong Kong) — top-right.
-            Positioned(
-              top: 0,
-              right: 0,
-              child: round.ruleset.isHongKong
-                  ? _flowers(round)
-                  : _deadWall(round),
-            ),
+            // Dead wall — top-right. Hong Kong has no dora to show here;
+            // its flowers sit beside each seat's own placard instead.
+            if (!round.ruleset.isHongKong)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: _deadWall(round),
+              ),
           ],
         );
       }),
@@ -209,7 +213,7 @@ class TableView extends StatelessWidget {
           const SizedBox(height: 1),
           line(
               round.ruleset.isHongKong
-                  ? 'Hong Kong  ·  0-faan minimum'
+                  ? 'Hong Kong  ·  Dealer repeat ${game.dealerRepeat}'
                   : 'Honba ${game.honba}  ·  Riichi ${round.riichiSticks}',
               10,
               FontWeight.w600),
@@ -239,46 +243,35 @@ class TableView extends StatelessWidget {
     );
   }
 
-  /// Hong Kong's exposed flowers and seasons, one row per seat, in the corner
-  /// the riichi dead wall would take. In the builder, tapping selects it.
-  Widget _flowers(Round round) {
-    const label = TextStyle(color: Colors.white54, fontSize: 11);
-    return _selectable(
-      TableArea.dora,
-      -1,
-      Padding(
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('FLOWERS & SEASONS', style: label),
-            for (final seat in round.seats)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                        width: 30,
-                        child: Text('${seat.wind.kanji}(${seat.wind.initial})',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 12))),
-                    if (seat.flowers.isEmpty)
-                      const Text('—', style: label)
-                    else
-                      for (final tile in seat.flowers)
-                        Padding(
-                          padding: const EdgeInsets.all(0.5),
-                          child: TileFace(tile: tile, size: TileSize.small),
-                        ),
-                  ],
+  /// 40% bigger than the plain `TileSize.tiny` step — flowers were still
+  /// hard to make out at that size, and this is the only place they render.
+  static const double _flowerScale = 1.4;
+
+  /// Hong Kong's exposed flowers and seasons for [seat], shown as a compact
+  /// tray beside that seat's own placard rather than bundled in one corner —
+  /// so they read as belonging to that player without covering any other
+  /// tile on the table. Empty seats show nothing in the live game; the
+  /// builder keeps a small tappable placeholder so there's always something
+  /// on the table to select into flower-editing mode.
+  Widget _seatFlowers(Round round, int seat) {
+    if (!round.ruleset.isHongKong) return const SizedBox.shrink();
+    final flowers = round.seats[seat].flowers;
+    if (edits == null && flowers.isEmpty) return const SizedBox.shrink();
+    final tray = flowers.isEmpty
+        ? const SizedBox(width: 21, height: 29)
+        : Wrap(
+            spacing: 1,
+            children: [
+              for (final tile in flowers)
+                TileFace(
+                  tile: tile,
+                  size: TileSize.tiny,
+                  scale: _flowerScale,
+                  showIndex: false,
                 ),
-              ),
-          ],
-        ),
-      ),
-    );
+            ],
+          );
+    return _selectable(TableArea.dora, seat, tray);
   }
 
   /// The 14-tile dead wall: seven columns, two rows. The upper row shows the
@@ -557,6 +550,10 @@ class TableView extends StatelessWidget {
             _portrait(seat, size: 49, tooltip: game.seatLabel(seat)),
             const SizedBox(width: 6),
             _placard(round, seat),
+            if (round.ruleset.isHongKong) ...[
+              const SizedBox(width: 6),
+              _seatFlowers(round, seat),
+            ],
           ],
         ),
         const SizedBox(height: 2),
@@ -592,6 +589,10 @@ class TableView extends StatelessWidget {
           quarterTurns: isLeft ? 3 : 1,
           child: _placard(round, seat),
         ),
+        if (round.ruleset.isHongKong) ...[
+          const SizedBox(height: 4),
+          _seatFlowers(round, seat),
+        ],
       ],
     );
     final inside = Column(
@@ -613,6 +614,11 @@ class TableView extends StatelessWidget {
         ],
       ],
     );
+    // Scales the placard column down to fit rather than overflowing — the
+    // rotated placard alone already runs tall, and Hong Kong's added flower
+    // tray beneath it needs the same headroom [inside] gets.
+    final flexPlacard =
+        Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: placard));
     return SizedBox(
       width: 118,
       child: Column(
@@ -623,11 +629,11 @@ class TableView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: isLeft
-                  ? [placard, const SizedBox(width: 6), Flexible(child: inside)]
+                  ? [flexPlacard, const SizedBox(width: 6), Flexible(child: inside)]
                   : [
                       Flexible(child: inside),
                       const SizedBox(width: 6),
-                      placard
+                      flexPlacard
                     ],
             ),
           ),

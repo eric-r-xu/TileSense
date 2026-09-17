@@ -304,7 +304,7 @@ void _report(List<(String, List<(double, int, int, int)>)> results, int games,
       .toList();
   final vsBaseline = [for (final v in variants) _paired(v.$2, baseline)];
   final holm = _holm([for (final c in vsBaseline) c.p]);
-  print('\nHong Kong, ${full ? 'four winds' : 'East only'}, $games games/arm, '
+  print('\nHong Kong, ${full ? 'hanchan' : 'East only'}, $games games/arm, '
       'Aggressive / Speed\n');
   print('arm                      place   win/hd   Δ vs control          '
       'Δ vs $baselineName   raw p   Holm p');

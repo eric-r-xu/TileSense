@@ -29,8 +29,8 @@ import 'folding_bot.dart';
 ///   SWEEP_GAMES=200 SWEEP_EAST=1 SIM_FOLD=1 flutter test test/policy_sweep_test.dart
 ///   SWEEP_GAMES=200 SWEEP_RULESET=hongKong flutter test test/policy_sweep_test.dart
 ///
-/// Under Hong Kong rules the full game is four winds, FoldingBot has no riichi
-/// to fold against, and the riichi column counts self-picks instead.
+/// Under Hong Kong rules FoldingBot has no riichi to fold against, and the
+/// riichi column counts self-picks instead.
 void main() {
   final env = Platform.environment;
   final games = int.tryParse(env['SWEEP_GAMES'] ?? '') ?? 0;
@@ -46,7 +46,7 @@ void main() {
     final sw = Stopwatch()..start();
     print('${ruleset.label} rules. '
         'Opponents: ${fold ? 'FoldingBot' : 'SimpleBot (never fold)'}, '
-        '${east ? 'East-only' : (ruleset.isHongKong ? 'four winds' : 'hanchan')}, '
+        '${east ? 'East-only' : 'hanchan'}, '
         '$games games/arm');
 
     final arms = <(String, List<_Row>)>[];
