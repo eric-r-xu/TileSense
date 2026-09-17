@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart' show kHumanSeat;
-import 'package:tilesense/logic/meld.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/scenario/scenario.dart';
 import 'package:tilesense/scenario/scenario_controller.dart';
@@ -306,7 +306,7 @@ void main() {
       // Leaving drops back to the welcome screen with the game still unstarted.
       await tester.tap(find.byTooltip('Back to start'));
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('Play Offline'), findsOneWidget);
       expect(find.byType(ScenarioPage), findsNothing);
 
       await tester.pumpWidget(const SizedBox());

@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
-import '../logic/round.dart';
+import '../game/sfx.dart' show kCharacterPortrait;
+import 'package:mahjong_core/round.dart';
 import 'meld_row.dart';
 import 'tile_face.dart';
 
@@ -553,7 +554,7 @@ class TableView extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _portrait(seat, size: 49, tooltip: kSeatNames[seat]),
+            _portrait(seat, size: 49, tooltip: game.seatLabel(seat)),
             const SizedBox(width: 6),
             _placard(round, seat),
           ],
@@ -585,7 +586,7 @@ class TableView extends StatelessWidget {
     final placard = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _portrait(seat, size: 44, tooltip: kSeatNames[seat]),
+        _portrait(seat, size: 44, tooltip: game.seatLabel(seat)),
         const SizedBox(height: 4),
         RotatedBox(
           quarterTurns: isLeft ? 3 : 1,
@@ -635,14 +636,6 @@ class TableView extends StatelessWidget {
     );
   }
 
-  /// Portrait asset per seat: 0 Orderic (you), 1 Grant, 2 Hubert, 3 Astaroth.
-  static const List<String> _seatPortrait = [
-    'assets/orderic/orderic.png',
-    'assets/grant/grant.png',
-    'assets/hubert/hubert.png',
-    'assets/astaroth/astaroth.png',
-  ];
-
   /// A seat's character portrait, tucked beside its placard and sized to sit
   /// level with it. [tooltip], when given, names the player on hover — the
   /// same mechanism as the AppBar's clefairy guide toggle.
@@ -657,7 +650,7 @@ class TableView extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Image.asset(
-        _seatPortrait[seat],
+        kCharacterPortrait[game.characterForSeat(seat)]!,
         fit: BoxFit.cover,
         filterQuality: FilterQuality.medium,
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -672,8 +665,10 @@ class TableView extends StatelessWidget {
     final active = round.turn == seat &&
         !round.finished &&
         round.phase != RoundPhase.callOffer;
+    // `seatLabel` already carries "(you)"/"(bot)" where relevant — the real
+    // guest nickname online, the fixed persona name offline.
     final label =
-        '${s.wind.kanji}${seat == 0 ? ' Orderic (you)' : ''}  ${s.points}${s.riichi ? '  ◉' : ''}';
+        '${s.wind.kanji} ${game.seatLabel(seat)}  ${s.points}${s.riichi ? '  ◉' : ''}';
     final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -691,15 +686,24 @@ class TableView extends StatelessWidget {
         ),
       ),
     );
-    // The human seat gets a FURITEN badge beside its placard while tenpai but
-    // barred from ron. Only seat 0's placard renders unrotated, so keep it here.
-    if (seat == kHumanSeat && game.humanFuriten) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [placard, const SizedBox(width: 6), _furitenBadge()],
-      );
-    }
-    return placard;
+    final deadline = game.turnDeadlineMs;
+    final badges = <Widget>[
+      // The human seat gets a FURITEN badge beside its placard while tenpai
+      // but barred from ron. Only seat 0's placard renders unrotated, so
+      // keep it here.
+      if (seat == kHumanSeat && game.humanFuriten) _furitenBadge(),
+      // Online play only — see [GuideHost.turnDeadlineMs] — a per-turn
+      // countdown next to whoever's actually on the clock.
+      if (active && deadline != null) _CountdownBadge(deadlineMs: deadline),
+    ];
+    if (badges.isEmpty) return placard;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        placard,
+        for (final b in badges) ...[const SizedBox(width: 6), b],
+      ],
+    );
   }
 
   Widget _furitenBadge() => Container(
@@ -718,6 +722,68 @@ class TableView extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// Seconds remaining until [deadlineMs], ticking down once a second on its
+/// own timer — the server's `turnDeadlineMs` only changes when a fresh turn
+/// starts, so nothing else would rebuild this between broadcasts.
+class _CountdownBadge extends StatefulWidget {
+  const _CountdownBadge({required this.deadlineMs});
+  final int deadlineMs;
+
+  @override
+  State<_CountdownBadge> createState() => _CountdownBadgeState();
+}
+
+class _CountdownBadgeState extends State<_CountdownBadge> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _schedule();
+  }
+
+  @override
+  void didUpdateWidget(_CountdownBadge old) {
+    super.didUpdateWidget(old);
+    if (old.deadlineMs != widget.deadlineMs) _schedule();
+  }
+
+  void _schedule() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remainingMs = widget.deadlineMs - DateTime.now().millisecondsSinceEpoch;
+    final seconds = (remainingMs / 1000).ceil().clamp(0, 999);
+    final urgent = seconds <= 10;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: urgent ? const Color(0xffc62828) : const Color(0xff0c4747),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '${seconds}s',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
 }
 
 /// A tile that pulses (glow + gentle scale) to point at the tile a pending

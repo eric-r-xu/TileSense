@@ -7,10 +7,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
-import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle;
-import 'logic/ruleset.dart';
+import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
+import 'package:mahjong_core/ruleset.dart';
+import 'ui/character_picker.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
+import 'ui/online_page.dart';
 import 'ui/scenario_page.dart';
 import 'ui/scoring_view.dart';
 import 'ui/table_view.dart';
@@ -39,13 +41,14 @@ Color playStyleColor(PlayStyle style) => switch (style) {
       PlayStyle.aggressive => const Color(0xffff8a65),
     };
 
-/// The two guide dials sit side by side in an app bar that was already full,
-/// so they are drawn tight: no minimum width, no tap-target padding of their
-/// own, and just enough horizontal room to keep the words off each other.
+/// The guide dials sit in an app bar that was already full, so they are
+/// drawn tight: no minimum size, no tap-target padding of their own, and
+/// just enough room around the value to keep it off its neighbours — [_barDial]
+/// stacks a caption above this, and both have to clear a 50px toolbar.
 ButtonStyle _dialButtonStyle(Color colour) => TextButton.styleFrom(
       visualDensity: VisualDensity.compact,
       foregroundColor: colour,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
       minimumSize: Size.zero,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
@@ -67,9 +70,11 @@ const String _handCountCaveatHongKong =
     'any exhaustive draw, keeps it and the hand is replayed — so either '
     'length can run longer.';
 
-/// One captioned dial in the app bar: a dim fixed caption and the current
-/// value in the dial's own colour, tapped to cycle. The caption sits outside
-/// the button so the button still contains nothing but its value.
+/// One captioned dial in the app bar: a dim fixed caption on top and the
+/// current value, in the dial's own colour, on the bottom — tapped to cycle.
+/// Stacked rather than side by side so every dial reads the same way at a
+/// glance regardless of how many are showing at once, and so several dials
+/// fit across the bar instead of only stacking two deep.
 Widget _barDial({
   required String caption,
   required Key buttonKey,
@@ -80,12 +85,15 @@ Widget _barDial({
 }) =>
     Tooltip(
       message: tooltip,
-      // Fixed row height. Two stacked rows have to clear a 50px toolbar with
-      // room to spare, and a TextButton left to itself is taller than this.
+      // Fixed column height: caption line plus a shrink-wrapped button, 44px
+      // total, fits a 50px toolbar with a few pixels to spare.
       child: SizedBox(
-        height: 18,
-        child: Row(
+        width: 74,
+        height: 44,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(caption,
                 style: const TextStyle(
@@ -93,17 +101,11 @@ Widget _barDial({
                     fontSize: 8,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.6)),
-            SizedBox(
-              width: 74,
-              child: TextButton(
-                key: buttonKey,
-                onPressed: onTap,
-                style: _dialButtonStyle(colour),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(label, style: _dialLabelStyle),
-                ),
-              ),
+            TextButton(
+              key: buttonKey,
+              onPressed: onTap,
+              style: _dialButtonStyle(colour),
+              child: Text(label, style: _dialLabelStyle),
             ),
           ],
         ),
@@ -117,6 +119,14 @@ Widget _barDial({
 Color handFocusColor(HandFocus focus) => switch (focus) {
       HandFocus.speed => const Color(0xff64b5f6),
       HandFocus.balanced => const Color(0xffe9d58f),
+    };
+
+/// Colour for a strategy, on a third axis again: points stays the same gold
+/// every other dial's neutral setting uses, placement gets a podium-ish
+/// magenta so the three dials never read as one setting even at a glance.
+Color strategyColor(Strategy strategy) => switch (strategy) {
+      Strategy.points => const Color(0xffe9d58f),
+      Strategy.placement => const Color(0xffce93d8),
     };
 
 /// The design resolution the UI is authored at. Everything is laid out in these
@@ -568,6 +578,15 @@ class _GamePageState extends State<GamePage> {
   // is still here when you come back.
   bool _showBuilder = false;
 
+  // Online multiplayer, reached from the welcome screen. Like the builder it
+  // owns its own controller (an [OnlineGameController], not [_game]) so
+  // leaving it back to the menu never disturbs an offline game in progress.
+  bool _showOnline = false;
+
+  // Prefilled into the join-code field from a shared `?join=CODE` link,
+  // read once at startup.
+  String? _joinCode;
+
   // Push buffered telemetry when the tab is hidden or the app is torn down, so
   // completed rounds aren't stranded. No-op unless the app was built with
   // --dart-define=TELEMETRY=true.
@@ -581,6 +600,14 @@ class _GamePageState extends State<GamePage> {
     super.initState();
     HardwareKeyboard.instance.addHandler(_onKey);
     _lifecycle; // instantiate the listener
+    // A shared room link (https://…/tilesense/?join=CODE) jumps straight
+    // into the join flow instead of the welcome screen.
+    final join = Uri.base.queryParameters['join'];
+    if (join != null && join.isNotEmpty) {
+      _joinCode = join;
+      _showWelcome = false;
+      _showOnline = true;
+    }
   }
 
   @override
@@ -618,15 +645,31 @@ class _GamePageState extends State<GamePage> {
         onExit: () => setState(() => _showBuilder = false),
       );
     }
+    if (_showOnline) {
+      return OnlinePage(
+        initialRuleset: _game.ruleset,
+        initialJoinCode: _joinCode,
+        onExit: () => setState(() {
+          _showOnline = false;
+          _joinCode = null;
+          _showWelcome = true;
+        }),
+      );
+    }
     if (_showWelcome) {
       return _WelcomeScreen(
         ruleset: _game.ruleset,
         onRuleset: (r) => setState(() => _game.setRuleset(r)),
+        seatCharacters: _game.seatCharacters,
+        onSeatCharacter: (seat, c) => setState(() {
+          _game.setSeatCharacter(seat, c);
+        }),
         onStart: () => setState(() {
           if (_game.paused) _game.togglePause();
           _showWelcome = false;
         }),
         onBuild: () => setState(() => _showBuilder = true),
+        onPlayOnline: () => setState(() => _showOnline = true),
       );
     }
     _game.guideVisible = _showGuide; // read only by telemetry
@@ -709,19 +752,19 @@ class _GamePageState extends State<GamePage> {
               builder: (context, _) => Tooltip(
                 message: _game.ruleset.isHongKong
                     ? (_game.hanchan
-                        ? 'Full game — East, South, West and North, 16 hands.\n'
+                        ? 'Full game — East, South, West and North, 16+ hands.\n'
                             '$_handCountCaveatHongKong\n'
-                            'Tap for East only, 4 hands.'
-                        : 'East only — the East round, 4 hands.\n'
+                            'Tap for East only, 4+ hands.'
+                        : 'East only — the East round, 4+ hands.\n'
                             '$_handCountCaveatHongKong\n'
-                            'Tap for a full game: four winds, 16 hands.')
+                            'Tap for a full game: four winds, 16+ hands.')
                     : _game.hanchan
-                        ? 'Hanchan — East and South rounds, 8 hands.\n'
+                        ? 'Hanchan — East and South rounds, 8+ hands.\n'
                             '$_handCountCaveat\n'
-                            'Tap for East only, 4 hands.'
-                        : 'East only (tonpuusen) — the East round, 4 hands.\n'
+                            'Tap for East only, 4+ hands.'
+                        : 'East only (tonpuusen) — the East round, 4+ hands.\n'
                             '$_handCountCaveat\n'
-                            'Tap for hanchan: East and South, 8 hands.',
+                            'Tap for hanchan: East and South, 8+ hands.',
                 child: TextButton(
                   key: const Key('hanchan'),
                   onPressed: () => _game.setHanchan(!_game.hanchan),
@@ -773,20 +816,30 @@ class _GamePageState extends State<GamePage> {
           ],
         ),
         actions: [
-          // Both guide dials — and so both Auto-Play dials, since Auto-Play
-          // plays from the guide's own scores — kept beside the switch they
-          // steer. The guide panel carries a synced copy of each.
+          // All three guide dials — and so every Auto-Play dial, since
+          // Auto-Play plays from the guide's own scores — kept beside the
+          // switch they steer. The guide panel carries a synced copy of each.
           //
-          // Stacked rather than side by side: two full-width buttons overflow
-          // this bar, and stacking them costs about eight pixels of width
-          // instead of eighty. It also reads better, because captioning them
-          // is what makes two coloured words legible as two settings.
+          // Side by side, each one a compact caption-over-value stack (see
+          // [_barDial]): three of those clear a 50px toolbar with room to
+          // spare, where three full single-line buttons would not, and a
+          // stack reads as clearly as a row while costing far less width.
+          //
+          // All three are kept rather than pruned to the ones that move the
+          // numbers most: a decision-level sweep (self-play, live-riichi
+          // threat included for Style, since its whole effect is gated
+          // behind one) found every dial changes the top recommendation on a
+          // comparable, non-trivial share of decisions — Style 0.6-1.3% of
+          // discards and dozens of riichi/damaten calls under a live threat,
+          // Focus 0.6% of discards and a ~50% median swing in the EV number
+          // itself, Strategy 0.2% of discards and over a hundred riichi/
+          // damaten calls in a placement-sensitive sample. None of the three
+          // is a null next to the others.
           AnimatedBuilder(
             animation: _game,
-            builder: (context, _) => Column(
+            builder: (context, _) => Row(
               mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Style has nothing left to weigh under Hong Kong rules — no
                 // riichi, no damaten, and the sweep in policy_sweep_test.dart
@@ -811,6 +864,20 @@ class _GamePageState extends State<GamePage> {
                       'a quicker cheaper hand, or a slower bigger one',
                   onTap: () => _game.setHandFocus(_game.handFocus.next),
                 ),
+                // Placement isn't wired up for Hong Kong yet, so the dial is
+                // hidden there rather than shown pinned on Points — same
+                // treatment as Style just above.
+                if (!_game.ruleset.isHongKong)
+                  _barDial(
+                    caption: 'STRATEGY',
+                    buttonKey: const Key('strategy'),
+                    label: _game.strategy.label,
+                    colour: strategyColor(_game.strategy),
+                    tooltip: 'What the guide (and Auto-Play) optimises for: '
+                        'the points a line is worth, or how it moves final '
+                        'placement given the scores on the table right now',
+                    onTap: () => _game.setStrategy(_game.strategy.next),
+                  ),
               ],
             ),
           ),
@@ -920,19 +987,31 @@ class _WelcomeScreen extends StatelessWidget {
   const _WelcomeScreen({
     required this.ruleset,
     required this.onRuleset,
+    required this.seatCharacters,
+    required this.onSeatCharacter,
     required this.onStart,
     required this.onBuild,
+    required this.onPlayOnline,
   });
 
   /// The rules Start and the builder will use, and how to change them.
   final Ruleset ruleset;
   final ValueChanged<Ruleset> onRuleset;
 
+  /// Every seat's persona for the offline game Start deals into — index 0 is
+  /// the human seat. Defaults to [kSeatCharacters]; see
+  /// [GameController.setSeatCharacter].
+  final List<Character> seatCharacters;
+  final void Function(int seat, Character character) onSeatCharacter;
+
   final VoidCallback onStart;
 
   /// Opens the Custom Hand & Context Builder — a posed table, scored by the
   /// same guide, with no game running behind it.
   final VoidCallback onBuild;
+
+  /// Opens the online lobby — create a private room or join one by code.
+  final VoidCallback onPlayOnline;
 
   /// Japanese Riichi or Hong Kong, chosen before Start, each with a link to
   /// its rules PDF beneath it.
@@ -994,6 +1073,90 @@ class _WelcomeScreen extends StatelessWidget {
     );
   }
 
+  static const _seatPosition = ['You', 'Right', 'Across', 'Left'];
+
+  /// Every seat's persona, human included — defaults to [kSeatCharacters].
+  /// Bots have always had a fixed voice and portrait; this just makes that
+  /// choice visible and changeable instead of hardcoded.
+  ///
+  /// One small avatar per seat rather than a full picker row per seat: this
+  /// screen has no room to spare for four rows of five 52px portraits each.
+  /// Tapping an avatar opens the same [CharacterRow] picker the online lobby
+  /// uses, in a dialog, for that one seat.
+  Widget _characterChoice(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('CHOOSE YOUR CHARACTERS',
+            style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8)),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var seat = 0; seat < seatCharacters.length; seat++)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: GestureDetector(
+                  key: Key('seatCharacterAvatar_$seat'),
+                  onTap: () => _pickCharacter(context, seat),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xff0c4747),
+                          border: Border.fromBorderSide(
+                              BorderSide(color: Color(0xffcaa24e))),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          kCharacterPortrait[seatCharacters[seat]]!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(_seatPosition[seat],
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickCharacter(BuildContext context, int seat) => showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: kLetterboxColor,
+          title: Text('${_seatPosition[seat]}\'s character'),
+          content: SizedBox(
+            width: 340,
+            child: CharacterRow(
+              options: Character.values,
+              selected: seatCharacters[seat],
+              keyPrefix: 'seatCharacterPick_$seat',
+              onSelect: (c) {
+                onSeatCharacter(seat, c);
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     // Material ancestor: without one, Text on web can render with a stray
@@ -1001,104 +1164,137 @@ class _WelcomeScreen extends StatelessWidget {
     // Scaffold's own Material).
     return Material(
       color: kLetterboxColor,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/clefairy.png',
-                height: 140,
-                filterQuality: FilterQuality.high,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Welcome to',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 42,
-                  fontWeight: FontWeight.w600,
+      // Scrollable rather than fixed: the character choice below made this
+      // screen taller than the design canvas leaves room for at some window
+      // sizes, where it used to always fit without scrolling.
+      child: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/clefairy.png',
+                  height: 140,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
-              ),
-              const Text(
-                'TileSense',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xffe9d58f),
-                  fontSize: 66,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Three balanced lines, broken by hand rather than by the
-              // wrapper. Left to itself at a snug width the first line lands
-              // within a pixel of the limit, so any browser whose default face
-              // runs a hair wider than Roboto spills it to four. The box is
-              // ~30% wider than the longest line needs, which keeps these
-              // three lines three lines. Re-balance the breaks if the text
-              // changes — the longest line here measures ~560px.
-              SizedBox(
-                width: 720,
-                child: Text(
-                  'TileSense is a Flutter Web App built to give you a feel for\n'
-                  'optimal ${ruleset.label} Mahjong play, with recommended actions\n'
-                  'scored by efficiency, expected value, and safety.',
+                const SizedBox(height: 20),
+                const Text(
+                  'Welcome to',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 22.5,
-                    height: 1.4,
+                    color: Colors.white,
+                    fontSize: 42,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              const SizedBox(height: 22),
-              _rulesetChoice(),
-              const SizedBox(height: 22),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: onStart,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xffcaa24e),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 14),
-                      textStyle: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    child: const Text('Start'),
+                const Text(
+                  'TileSense',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xffe9d58f),
+                    fontSize: 66,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 18),
-                  OutlinedButton(
-                    key: const Key('openBuilder'),
-                    onPressed: onBuild,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xffe9d58f),
-                      side: const BorderSide(color: Color(0xffcaa24e)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                    ),
-                    child: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Custom Hand & Context Builder',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 2),
-                        Text(
-                          'Pose any table and have TileSense score it',
-                          style: TextStyle(fontSize: 12, color: Colors.white60),
-                        ),
-                      ],
+                ),
+                const SizedBox(height: 20),
+                // Three balanced lines, broken by hand rather than by the
+                // wrapper. Left to itself at a snug width the first line lands
+                // within a pixel of the limit, so any browser whose default face
+                // runs a hair wider than Roboto spills it to four. The box is
+                // ~30% wider than the longest line needs, which keeps these
+                // three lines three lines. Re-balance the breaks if the text
+                // changes — the longest line here measures ~560px.
+                SizedBox(
+                  width: 720,
+                  child: Text(
+                    'TileSense is a Flutter Web App built to give you a feel for\n'
+                    'optimal ${ruleset.label} Mahjong play, with recommended actions\n'
+                    'scored by efficiency, expected value, and safety.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 22.5,
+                      height: 1.4,
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 18),
+                _rulesetChoice(),
+                const SizedBox(height: 10),
+                _characterChoice(context),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: onStart,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xffcaa24e),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 14),
+                        textStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      child: const Text('Play Offline'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      key: const Key('playOnline'),
+                      onPressed: onPlayOnline,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xffe9d58f),
+                        side: const BorderSide(color: Color(0xffcaa24e)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                      ),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Play Online',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 2),
+                          Text(
+                            'Private room with friends — bots fill empty seats',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white60),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      key: const Key('openBuilder'),
+                      onPressed: onBuild,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xffe9d58f),
+                        side: const BorderSide(color: Color(0xffcaa24e)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                      ),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Custom Hand & Context Builder',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 2),
+                          Text(
+                            'Pose any table and have TileSense score it',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white60),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

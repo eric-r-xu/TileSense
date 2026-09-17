@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../game/game_controller.dart';
-import '../logic/round.dart';
-import '../logic/tile.dart';
+import '../game/game_controller.dart' show kHumanSeat;
+import '../game/guide_host.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
 import 'tile_face.dart';
 
@@ -18,7 +19,7 @@ class HandView extends StatefulWidget {
     required this.onToggleGuide,
     this.showGuide = true,
   });
-  final GameController game;
+  final TableGameHost game;
   final VoidCallback onToggleGuide;
 
   /// When false the guide is off: no yellow (drawn tile) or green (best discard)
@@ -42,7 +43,7 @@ class _HandViewState extends State<HandView> {
   /// Tile ids in draw order, kept stable so "auto-sort off" leaves tiles put.
   final List<int> _order = [];
 
-  GameController get game => widget.game;
+  TableGameHost get game => widget.game;
 
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);

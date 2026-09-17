@@ -1,0 +1,14 @@
+name: mahjong_core
+description: >-
+  Rules-agnostic Hong Kong / Riichi mahjong engine (wall, round state machine,
+  scoring, simple bot) shared between the Flutter client and the multiplayer
+  game server. Pure Dart, no Flutter dependency.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0

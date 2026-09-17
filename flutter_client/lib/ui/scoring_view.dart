@@ -2,19 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../game/game_controller.dart';
-import '../logic/hand_parse.dart';
-import '../logic/round.dart';
-import '../logic/scoring.dart';
-import '../logic/tile.dart';
+import '../game/guide_host.dart';
+import 'package:mahjong_core/hand_parse.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/tile.dart';
 import 'tile_face.dart';
 
 /// The between-round result panel: outcome, winning hand(s) + yaku + han/fu, and
 /// the point transfers. On a multiple ron the winners' hands are paged through
 /// with a "Next" button before the final "Continue".
 class ScoringView extends StatefulWidget {
-  const ScoringView({super.key, required this.game});
-  final GameController game;
+  const ScoringView({super.key, required this.game, this.onGameEnd});
+  final TableGameHost game;
+
+  /// Called instead of `game.newGame()` when the "New Game" button is pressed
+  /// at game end — online play has no local restart, only "leave room".
+  final VoidCallback? onGameEnd;
 
   @override
   State<ScoringView> createState() => _ScoringViewState();
@@ -41,7 +45,7 @@ class _ScoringViewState extends State<ScoringView> {
   int _secondsLeft = _autoContinueSeconds;
   Timer? _timer;
 
-  GameController get game => widget.game;
+  TableGameHost get game => widget.game;
 
   @override
   void initState() {
@@ -177,7 +181,7 @@ class _ScoringViewState extends State<ScoringView> {
                               setState(() => _page = page + 1);
                               _startCountdown();
                             } else if (gameOver) {
-                              game.newGame();
+                              (widget.onGameEnd ?? game.newGame)();
                             } else {
                               game.continueFromRoundEnd();
                             }
@@ -275,7 +279,7 @@ class _ScoringViewState extends State<ScoringView> {
     return Column(
       children: [
         Text(
-          '${w.wind.kanji} ${seatDisplayName(seat)}',
+          '${w.wind.kanji} ${game.seatLabel(seat)}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 4),
@@ -414,7 +418,7 @@ class _ScoringViewState extends State<ScoringView> {
     return Column(
       children: [
         Text(
-          '${s.wind.kanji} ${seatDisplayName(seat)}',
+          '${s.wind.kanji} ${game.seatLabel(seat)}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 3),
@@ -463,7 +467,7 @@ class _ScoringViewState extends State<ScoringView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${round.seats[i].wind.kanji} ${seatDisplayName(i)}',
+                  '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
                   style: const TextStyle(color: Colors.white),
                 ),
                 Text(
@@ -485,9 +489,9 @@ class _ScoringViewState extends State<ScoringView> {
 
   String _delta(int n) => n >= 0 ? '+$n' : '$n';
 
-  String _standings(GameController game) {
+  String _standings(TableGameHost game) {
     final entries = [
-      for (var i = 0; i < 4; i++) (seatDisplayName(i), game.tablePoints[i])
+      for (var i = 0; i < 4; i++) (game.seatLabel(i), game.tablePoints[i])
     ]..sort((a, b) => b.$2.compareTo(a.$2));
     return [
       for (var i = 0; i < entries.length; i++)

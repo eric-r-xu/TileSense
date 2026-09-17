@@ -18,11 +18,11 @@
 /// one-shanten play on.
 library;
 
-import 'package:tilesense/logic/bot.dart';
-import 'package:tilesense/logic/efficiency_calc.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/safety.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/bot.dart';
+import 'package:mahjong_core/efficiency_calc.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/safety.dart';
+import 'package:mahjong_core/tile.dart';
 
 class FoldingBot extends SimpleBot {
   FoldingBot(super.seed);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../logic/meld.dart';
-import '../logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/tile.dart';
 import 'tile_face.dart';
 
 /// One called set, rendered with real riichi notation: the called tile is

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 import 'hk_helpers.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 void main() {
   test('focus leaves scoring and win probabilities unchanged', () {

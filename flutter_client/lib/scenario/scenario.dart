@@ -9,10 +9,16 @@ library;
 
 import '../game/game_controller.dart' show kHumanSeat, kSeatNames;
 import '../logic/efficiency_engine.dart'
-    show HandFocus, PlayStyle, kDefaultHandFocus, kDefaultPlayStyle;
-import '../logic/meld.dart';
-import '../logic/ruleset.dart';
-import '../logic/tile.dart';
+    show
+        HandFocus,
+        PlayStyle,
+        Strategy,
+        kDefaultHandFocus,
+        kDefaultPlayStyle,
+        kDefaultStrategy;
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// The most tiles of one type that can exist, and the most red fives per suit.
 const int kCopiesPerTile = 4;
@@ -68,6 +74,12 @@ class Scenario {
 
   /// Whether the guide chases the faster hand or the bigger one here.
   HandFocus focus = kDefaultHandFocus;
+
+  /// Points or placement. The builder has no score inputs for the other three
+  /// seats, so this stays Points here — there is nothing for Placement to
+  /// weigh without them. Carried for [ScenarioController]'s [GuideHost]
+  /// implementation, not exposed as a toolbar toggle.
+  Strategy strategy = kDefaultStrategy;
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;

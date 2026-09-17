@@ -75,7 +75,7 @@ void main() {
       try {
         await tester.pumpWidget(const TileSenseApp());
         await tester.pump(const Duration(milliseconds: 100));
-        await tester.tap(find.text('Start'));
+        await tester.tap(find.text('Play Offline'));
         await tester.pump(const Duration(milliseconds: 100));
 
         final viewer = find.byType(InteractiveViewer);
@@ -116,7 +116,7 @@ void main() {
       try {
         await tester.pumpWidget(const TileSenseApp());
         await tester.pump(const Duration(milliseconds: 100));
-        await tester.tap(find.text('Start'));
+        await tester.tap(find.text('Play Offline'));
         await tester.pump(const Duration(milliseconds: 100));
 
         final viewer = find.byType(InteractiveViewer);

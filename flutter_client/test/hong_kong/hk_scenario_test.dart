@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/meld.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/scenario/scenario.dart';
 import 'package:tilesense/scenario/scenario_controller.dart';
@@ -9,7 +9,7 @@ import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/scenario_page.dart';
 import 'package:tilesense/ui/table_view.dart';
 import '../helpers.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 void fill(Scenario s, List<Tile> into, String spec) {
   for (final t in parseTypes(spec)) {
@@ -118,7 +118,7 @@ void main() {
       // Leaving drops back to the welcome screen with the game still unstarted.
       await tester.tap(find.byTooltip('Back to start'));
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('Play Offline'), findsOneWidget);
       expect(find.byType(ScenarioPage), findsNothing);
 
       await tester.pumpWidget(const SizedBox());

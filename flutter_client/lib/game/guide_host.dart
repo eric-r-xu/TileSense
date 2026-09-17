@@ -10,8 +10,13 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../logic/efficiency_engine.dart';
-import '../logic/round.dart';
-import '../logic/tile.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/tile.dart';
+import 'sfx.dart' show Character;
+
+/// A hanchan/game's lifecycle, independent of any one round's [RoundPhase] —
+/// shared by the live game and the online game so neither has to redefine it.
+enum GamePhase { playing, roundEnd, gameEnd }
 
 abstract class GuideHost implements Listenable {
   /// The table state being rendered.
@@ -32,6 +37,11 @@ abstract class GuideHost implements Listenable {
   /// [playStyle] is: the panel and whatever else sets it stay in sync.
   HandFocus get handFocus;
   void setHandFocus(HandFocus value);
+
+  /// Points or placement — the third, independent dial. Riichi only; see
+  /// [Strategy].
+  Strategy get strategy;
+  void setStrategy(Strategy value);
 
   /// True while the human seat has a call (chi/pon/kan/ron) to answer.
   bool get awaitingHumanCall;
@@ -57,4 +67,58 @@ abstract class GuideHost implements Listenable {
   /// Header stats: which hand of the round wind, and the honba count.
   int get handInWind;
   int get honba;
+
+  /// Wall-clock deadline (epoch ms) for whoever [Round.turn] is to discard,
+  /// or null when nobody's turn clock is running. Only the online table has
+  /// one — offline play never rushes the human, and the scenario builder has
+  /// no turn loop at all — so both report null and only the table's active
+  /// placard, which already knows whose turn it is, needs to care.
+  int? get turnDeadlineMs;
+
+  /// The name shown for a seat in the UI — the fixed bot personas offline, a
+  /// guest's display name (or "Bot" once taken over) online.
+  String seatLabel(int seat);
+
+  /// Which persona (portrait + voice) a seat renders as. Offline this is the
+  /// fixed `kSeatCharacters` mapping; online it's whatever the seat's player
+  /// picked (or the server assigned a bot), kept in sync across every client
+  /// by the room roster itself.
+  Character characterForSeat(int seat);
+}
+
+/// The turn-driving surface on top of [GuideHost]: everything the hand bar
+/// and the between-round scoring panel need to act on the human seat's turn,
+/// not just render the table. [GameController] (offline, three [SimpleBot]
+/// opponents) and `OnlineGameController` (a WebSocket connection to the
+/// multiplayer server) both implement it; the scenario builder does not — it
+/// has no turn loop for these methods to act on.
+abstract class TableGameHost implements GuideHost {
+  bool get isHumanTurn;
+  bool get humanCanTsumo;
+  bool get humanCanRiichi;
+  List<TileType> get humanClosedKanTypes;
+  List<TileType> get humanAddedKanTypes;
+
+  void humanDiscard(Tile tile, {bool declareRiichi});
+  void humanTsumo();
+  void humanClosedKan(TileType type);
+  void humanAddKan(TileType type);
+  void humanPassFlowerWin();
+  void answerCall(CallType choice);
+
+  bool get soundOn;
+  void setSoundOn(bool value);
+
+  GamePhase get phase;
+  bool get paused;
+  List<int> get tablePoints;
+
+  /// Deals the next hand once the score panel has finished paging through a
+  /// round's results.
+  void continueFromRoundEnd();
+
+  /// Abandons the game in progress and starts a fresh one. Online play has no
+  /// use for this — leaving is "leave room" instead — so `OnlineGameController`
+  /// implements it as a no-op.
+  void newGame();
 }

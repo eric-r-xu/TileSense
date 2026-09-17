@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/meld.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/tile.dart';
 
 import 'helpers.dart';
 

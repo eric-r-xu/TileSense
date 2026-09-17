@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tilesense/logic/efficiency_calc.dart';
+import 'package:mahjong_core/efficiency_calc.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// Guards the two properties the discard model is only useful if it has:
 /// hands that are closer to home have to score higher, and the acceptance

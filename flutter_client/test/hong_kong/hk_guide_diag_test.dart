@@ -6,10 +6,10 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/bot.dart';
+import 'package:mahjong_core/bot.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/ruleset.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 /// Decision-level counters for seat 0 under Hong Kong rules, the guide
 /// (Aggressive / Speed) against SimpleBot on the same seeds — to explain the

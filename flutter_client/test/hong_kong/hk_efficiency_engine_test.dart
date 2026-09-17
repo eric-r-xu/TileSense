@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/hand_parse.dart';
-import 'package:tilesense/logic/scoring.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/hand_parse.dart';
+import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/tile.dart';
 import '../helpers.dart';
 import 'hk_helpers.dart';
-import 'package:tilesense/logic/hong_kong/hong_kong_scoring.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_scoring.dart';
 
 void main() {
   const hand = '123m 456p 789s 22m 55p N';

@@ -24,6 +24,12 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
   the chance of finishing and the payout. Both start on **Aggressive / Speed**
   under riichi; under Hong Kong, style has nothing left to weigh, so it's
   hidden and pinned to Balanced, leaving only focus (**Speed**).
+- A third dial, **strategy** (Points or Placement, riichi only, starting on
+  **Points**), changes what "worth" means rather than how danger is priced:
+  Points is everything above; Placement runs every points-flavoured number
+  through a heuristic model of how it moves the chance of finishing above
+  each other seat, given the scores on the table right now — see
+  [Strategy](#strategy--points-or-placement-riichi-only).
 - Under **Hong Kong** rules the same machinery runs on faan converted to chips,
   with a 0-faan minimum — see [Under Hong Kong rules](#under-hong-kong-rules).
 - Two different estimators depending on where the hand sits:
@@ -363,13 +369,117 @@ so on Balanced (`curve` 1.0) the product is untouched.
 
 A third setting, Value (1.55), was removed after it failed to beat the bots.
 
+## Strategy — points or placement, riichi only
+
+The third, independent dial (`Strategy`): not how much danger costs (Style) or which hand to
+chase (Focus), but what "worth" means in the first place — the points a line
+pays, or how it moves final placement. **Riichi only.** The math behind it
+isn't riichi-specific, but it hasn't been wired up for Hong Kong yet, so the
+dial is hidden and pinned to Points there — the same treatment Style gets,
+for a different reason (see
+[`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-is-a-riichi-only-dial)).
+
+The engine already separates *estimating* a line (shanten, ukeire, win
+probability, what it pays, what a deal-in costs) from *valuing* it (Style's
+risk weight, Focus's curve) — Strategy is one more valuation layer on the
+same estimates, not a second engine. Under `Strategy.points` every line is
+worth `chance × payout` as everywhere above; nothing here changes for it, and
+every existing test and tuned constant still applies exactly as measured.
+Under `Strategy.placement`, every points-flavoured term in that arithmetic —
+the payout, the riichi deposit, the deal-in cost, the commitment cost — is run
+through `EfficiencyValueContext.placementValue` instead of taken at face
+value, and *that* is what gets sorted, recommended and flagged. The plain
+points numbers (`DiscardLine.expectedValue`) are always still computed and
+shown, so the panel can display both side by side and the metric for
+whichever strategy isn't driving stays visible.
+
+### `PlacementUtility` — the model behind `placementValue`
+
+Lives in `lib/logic/placement_utility.dart`, deliberately apart from the main
+engine file: no Monte Carlo, no rest-of-hand or rest-of-game simulation, no
+opponent modelling beyond the scores already on the table. It is a closed-form
+heuristic, tagged as one everywhere it is surfaced.
+
+For each of the other three seats it approximates "chance I finish above
+them" as a logistic in the score gap:
+
+```
+spread   = 5000 × sqrt(handsRemaining.clamp(1, 16))
+beat(j)  = logistic((myScore − scores[j]) / spread)
+U(score) = Σ beat(j)                                    // 0 (last, no hope) … 3 (first, lock)
+placementValue(points) = U(myScore + points) − U(myScore)
+```
+
+`handsRemaining` is hands left in the game including the current one — a
+floor, not a promise, the same as the hand counts the app bar quotes (renchan
+can run a game longer than this, and it is recomputed fresh from the round
+every turn). `spread` shrinks near the end of the game, so the same score gap
+is worth more the closer the table is to settling: a 5,000-point lead barely
+matters in East 1, and can be everything in the final hand. It is a finite
+difference, not a derivative at the current score, so a large swing (a
+mangan, a big deal-in) saturates once it crosses a rank instead of being
+extrapolated past it.
+
+The asymmetry that makes this behave like a real placement-conscious player
+falls straight out of the logistic's shape rather than being coded in
+specially: once ahead of an opponent, a loss moves the gap back *toward* the
+logistic's steepest point (so it costs more, marginally, per point) while an
+equal gain moves it further away (so it is worth less) — the model prices a
+push against a live lead as riskier than the same push from a neutral table,
+without anything checking "am I ahead" directly. The reverse holds from
+behind: a gain that starts closing the gap is worth more than the equivalent
+loss, which is what lets it push a hand `Strategy.points` would fold when the
+table needs the swing.
+
+### Riichi vs damaten under placement
+
+Normally the choice between declaring and staying quiet
+(`_assessTenpaiValue`) is a fixed points threshold — `qualifyingDamaten`,
+scaled by `Style`'s damaten bar — checked *before* riichi is even weighed as
+an alternative. That threshold is left completely untouched under
+`Strategy.points`, which is why every existing riichi/damaten test still
+passes unmodified. Under `Strategy.placement`, whenever riichi is a live
+choice and every wait already carries a yaku on its own, the threshold is
+bypassed: both the riichi path and the damaten/stand-pat path are assessed in
+full (`_finishTenpaiAssessment`, pulled out of `_assessTenpaiValue` so it can
+run twice) and whichever scores higher on `placementExpectedValue` wins. That
+is what lets the guide take damaten to protect a lead on a hand it would
+riichi for the points, and the reverse from behind — see the worked example
+in [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
+
+### Known simplifications
+
+- A heuristic proxy for "chance of finishing above seat j," not a simulation
+  of the rest of the hand or the rest of the game — tagged as an estimate
+  everywhere the panel shows it, never as a certainty.
+- Ignores what the other three seats' hands actually look like; it only ever
+  sees their scores.
+- No uma or oka, because none is modelled in this game yet — see the MVP
+  scope note in the technical spec this dial was built from. Adding either
+  would change `U`'s shape, not the rest of the machinery.
+- `spread`'s constants (5,000 points, `sqrt(handsRemaining)`) are a reasoned
+  default, not fitted — in the same spirit as `handSurvivesTurn` or the
+  `5800`/`8700` deal-in costs above, they have not been through the
+  large-scale sweep that set Style and Focus's defaults (see
+  [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up)). Targeted
+  regression tests (`test/placement_strategy_test.dart`) pin down the
+  *direction* of every effect described above; a full placement sweep against
+  the bots, the way Style and Focus were measured, is future work.
+- Chi/pon/kan/ron call advice (`adviseCall`) is not placement-aware yet — it
+  stays on `Strategy.points` regardless of the dial, matching the MVP scope
+  (discard selection, riichi vs damaten, push/fold) the spec itself lays out.
+
 ## Defaults, and the evidence for them
 
 New games and builder tables start on **Aggressive / Speed** (`kDefaultPlayStyle`,
-`kDefaultHandFocus`) under riichi. Under Hong Kong, `setRuleset` pins style to
-**Balanced** and the dial is hidden, so only Focus is exposed, starting on
-**Speed**. `EfficiencyValueContext` still defaults to Balanced / Balanced, so
-tests and callers that build a context by hand get the unweighted model.
+`kDefaultHandFocus`) under riichi, with **Strategy on Points**
+(`kDefaultStrategy`) — Placement is opt-in, unlike Style and Focus's measured
+defaults, since it has not been through the same large-scale sweep (see
+above). Under Hong Kong, `setRuleset` pins style to **Balanced** and Strategy
+to **Points**, hiding both dials, so only Focus is exposed, starting on
+**Speed**. `EfficiencyValueContext` still defaults to Balanced / Balanced /
+Points, so tests and callers that build a context by hand get the unweighted
+model.
 
 The choice is measured, not assumed — every pairing is played on identical
 seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
@@ -436,6 +546,18 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 ## What the panel shows
 
 - **Expected Value** column = `DiscardLine.expectedValue`, rounded.
+- **EV (HMR)** column = `DiscardLine.expectedValueHmr`, a standalone
+  comparison figure that plays no part in the recommendation:
+  `winProbability × averagePoints`, with none of `winBonus`, `valueTilt`,
+  `riichiLockCost`, `dealInCost` or `commitmentCost` folded in. It mirrors the
+  "E.V." stat in HMR (Hitori Mahjong Renshuuki), a closed-source solo,
+  tsumo-only trainer with no code or data ties to this project — HMR's E.V.
+  was worked out empirically from its own simulation log as total points
+  scored ÷ hands played, which is exactly win rate × average winning score,
+  and it has no other terms because it has no other seats to add a bonus from
+  or a deal-in to price. Hovering the column heading or a row's cell explains
+  the number the same way Expected Value's tooltip does. See also:
+  [Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html).
 - **Risk** column = `DiscardLine.riskCost` — the charge on the tile itself plus
   the turns it commits you to, both already taken off the value beside it.
   Shown only while defending.
@@ -476,7 +598,8 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 | File | Role |
 |---|---|
 | `lib/logic/efficiency_calc.dart` | shanten + ukeire (ported from Riichi-Trainer) |
-| `lib/logic/efficiency_engine.dart` | everything above — `analyze`, `_assessValue`, `_assessTenpaiValue`, `adviseCall`, `_kanAdvice`, `_riichiDangerFactor` |
+| `lib/logic/efficiency_engine.dart` | everything above — `analyze`, `_assessValue`, `_assessTenpaiValue`, `_finishTenpaiAssessment`, `adviseCall`, `_kanAdvice`, `_riichiDangerFactor` |
+| `lib/logic/placement_utility.dart` | `PlacementUtility` — the model behind `Strategy.placement` |
 | `lib/logic/scoring.dart` | `scoreHand` — yaku / fu / han / dora → points |
 | `lib/logic/hong_kong/hong_kong_scoring.dart` | `scoreHongKongHand` — faan patterns → chips |
 | `lib/logic/hong_kong/hong_kong_safety.dart` | Hong Kong risk ratings |
@@ -487,3 +610,4 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 | `lib/game/game_controller.dart` | `_refreshReport()` builds the context each turn; Autoplay reads the result |
 | `lib/ui/efficiency_overlay.dart` | renders the panel |
 | `test/efficiency_engine_test.dart` | regression tests (dora raises EV, dealer raises EV, dead waits, riichi-danger, …) |
+| `test/placement_strategy_test.dart` | `PlacementUtility` unit tests, and regression tests for Strategy's discard/riichi-vs-damaten effects |

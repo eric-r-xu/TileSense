@@ -6,14 +6,14 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/bot.dart';
+import 'package:mahjong_core/bot.dart';
 
 import 'folding_bot.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
-import 'package:tilesense/logic/hand_parse.dart';
-import 'package:tilesense/logic/round.dart';
-import 'package:tilesense/logic/scoring.dart';
-import 'package:tilesense/logic/tile.dart';
+import 'package:mahjong_core/hand_parse.dart';
+import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// Decision-level counters for seat 0, guide vs SimpleBot, to explain the
 /// outcome gap measured by guide_vs_bots_sim_test.dart.

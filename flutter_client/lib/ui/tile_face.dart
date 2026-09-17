@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../logic/tile.dart';
+import 'package:mahjong_core/tile.dart';
 
 /// A single mahjong tile face: the tile artwork on a cream tile, with a small
 /// red index in the top-right corner (number for suits, letter for honours).
