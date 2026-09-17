@@ -290,15 +290,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   Character characterForSeat(int seat) => _characterForSeat(seat);
 
-  /// Assigns [seat] the persona [c]. If another seat already has it, that
-  /// seat takes whatever [seat] is giving up — a swap, so two seats never
-  /// render as the same character — the same guarantee the online lobby's
-  /// `Room.resolveCharacter` gives, done locally since every seat here is
-  /// already claimed rather than empty.
+  /// Assigns [seat] the persona [c]. Seats may duplicate — this is a local
+  /// game against bots, not a room full of distinct people, so there is no
+  /// identity to protect the way the online lobby's `Room.resolveCharacter`
+  /// does for real players; two (or four) seats can share a look and voice
+  /// if that's what's picked.
   void setSeatCharacter(int seat, Character c) {
     if (seatCharacters[seat] == c) return;
-    final other = seatCharacters.indexOf(c);
-    if (other != -1) seatCharacters[other] = seatCharacters[seat];
     seatCharacters[seat] = c;
     notifyListeners();
   }
@@ -334,6 +332,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       fastMode: fastMode,
       autoplay: autoplay,
       guideVisible: guideVisible,
+      seatCharacters: [for (final c in seatCharacters) c.name],
+      seatIsBot: [for (var seat = 0; seat < 4; seat++) seat != kHumanSeat],
     );
     _startRound();
   }

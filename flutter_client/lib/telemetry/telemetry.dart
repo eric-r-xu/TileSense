@@ -93,6 +93,12 @@ class Telemetry {
 
   // --- public event surface (all no-ops when maybe() returned null) ---------
 
+  /// [seatCharacters] and [seatIsBot] are one entry per seat (index = seat):
+  /// the persona each seat renders/voices as, and whether that seat is
+  /// bot-controlled. Offline this is fixed per match at Start (exactly one
+  /// `false`, at the human seat) but seats can share a persona now that
+  /// duplicate character picks are allowed, so it's worth recording per
+  /// match rather than assumed from `human_seat` alone.
   void matchStart({
     required String matchId,
     required int seed,
@@ -100,6 +106,8 @@ class Telemetry {
     required bool fastMode,
     required bool autoplay,
     required bool guideVisible,
+    required List<String> seatCharacters,
+    required List<bool> seatIsBot,
     String ruleset = 'riichi',
   }) =>
       _add('match_start', {
@@ -111,6 +119,8 @@ class Telemetry {
         'fast_mode': fastMode,
         'autoplay': autoplay,
         'guide_visible': guideVisible,
+        'seat_characters': seatCharacters,
+        'seat_is_bot': seatIsBot,
       });
 
   void roundStart({

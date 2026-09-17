@@ -1,4 +1,4 @@
-/// One portrait-and-name option in a row of [Character] choices — shared by
+/// One portrait-and-name option in a group of [Character] choices — shared by
 /// the online lobby's "choose your character" picker and the offline
 /// welcome screen's per-seat picker, so both look and behave identically.
 library;
@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../game/sfx.dart' show Character, kCharacterName, kCharacterPortrait;
 
-/// A row of every character in [options], the current one highlighted.
+/// Every character in [options], wrapping on narrow screens.
 class CharacterRow extends StatelessWidget {
   const CharacterRow({
     super.key,
@@ -27,7 +27,9 @@ class CharacterRow extends StatelessWidget {
   final String? keyPrefix;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Wrap(
+        alignment: WrapAlignment.spaceEvenly,
+        runSpacing: 12,
         children: [
           for (final c in options)
             CharacterOption(
@@ -60,7 +62,8 @@ class CharacterOption extends StatelessWidget {
   final Key? optionKey;
 
   @override
-  Widget build(BuildContext context) => Expanded(
+  Widget build(BuildContext context) => SizedBox(
+        width: 64,
         child: GestureDetector(
           key: optionKey,
           onTap: onTap,
@@ -75,8 +78,7 @@ class CharacterOption extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: const Color(0xff0c4747),
                   border: Border.all(
-                    color:
-                        selected ? const Color(0xffcaa24e) : Colors.white24,
+                    color: selected ? const Color(0xffcaa24e) : Colors.white24,
                     width: selected ? 3 : 1,
                   ),
                 ),

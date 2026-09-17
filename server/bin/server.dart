@@ -149,14 +149,17 @@ Future<void> _applyEvent(
         Sql.named('''
           insert into matches
             (match_id, session_id, seed, hanchan, fast_mode,
-             autoplay_at_start, guide_shown_at_start, started_at)
-          values (@m, @s, @seed, @han, @fast, @auto, @guide, @at)
+             autoplay_at_start, guide_shown_at_start, seat_characters,
+             seat_is_bot, started_at)
+          values (@m, @s, @seed, @han, @fast, @auto, @guide, @chars, @bots, @at)
           on conflict (match_id) do nothing
         '''),
         parameters: {
           'm': e['match_id'], 's': sessionId, 'seed': e['seed'],
           'han': e['hanchan'], 'fast': e['fast_mode'],
           'auto': e['autoplay'], 'guide': e['guide_visible'], 'at': at,
+          'chars': _stringList(e['seat_characters']),
+          'bots': _boolList(e['seat_is_bot']),
         },
       );
     case 'round_start':
@@ -277,6 +280,12 @@ String _networkPrefix(String ip) {
 
 List<int>? _intList(Object? v) =>
     v is List ? [for (final x in v) (x as num?)?.toInt() ?? 0] : null;
+
+List<String>? _stringList(Object? v) =>
+    v is List ? [for (final x in v) x as String? ?? ''] : null;
+
+List<bool>? _boolList(Object? v) =>
+    v is List ? [for (final x in v) x as bool? ?? false] : null;
 
 String _require(Map<String, String> env, String key) {
   final v = env[key];
