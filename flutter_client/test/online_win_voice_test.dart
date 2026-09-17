@@ -123,8 +123,8 @@ void main() {
   });
 
   testWidgets(
-      'Hong Kong voices the generic win line, not the Japanese ron/tsumo '
-      'clips', (tester) async {
+      'Hong Kong voices the same ron line riichi does, even though its own '
+      'label for the call is Win', (tester) async {
     Sfx.i.enabled = false;
     final log = <(Character, VoiceKind)>[];
     Sfx.debugVoiceLog = log;
@@ -141,7 +141,7 @@ void main() {
       OnlineGameController.playRoundEndVoice(
           res, Ruleset.hongKong, characterForSeat);
 
-      expect(log, [(Character.hubert, VoiceKind.win)]);
+      expect(log, [(Character.hubert, VoiceKind.ron)]);
     } finally {
       Sfx.debugVoiceLog = null;
       Sfx.i.enabled = true;
@@ -149,7 +149,7 @@ void main() {
   });
 
   testWidgets(
-      'a 5+ faan Hong Kong ron also chains win, yeah, then the '
+      'a 5+ faan Hong Kong ron also chains ron, yeah, then the '
       'acquiescement — not just the 13-faan payment cap', (tester) async {
     Sfx.i.enabled = false;
     final log = <(Character, VoiceKind)>[];
@@ -168,7 +168,7 @@ void main() {
           res, Ruleset.hongKong, characterForSeat);
 
       expect(log, [
-        (Character.hubert, VoiceKind.win),
+        (Character.hubert, VoiceKind.ron),
         (Character.hubert, VoiceKind.yeah),
         (Character.orderic, VoiceKind.acquiescement),
       ]);
