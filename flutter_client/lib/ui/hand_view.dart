@@ -16,14 +16,18 @@ class HandView extends StatefulWidget {
   const HandView({
     super.key,
     required this.game,
-    required this.onToggleGuide,
+    this.onToggleGuide,
     this.showGuide = true,
   });
   final TableGameHost game;
-  final VoidCallback onToggleGuide;
 
-  /// When false the guide is off: no yellow (drawn tile) or green (best discard)
-  /// tile highlights.
+  /// Null hides the TileSense button entirely — multiplayer has no guide, so
+  /// nobody gets an assist the other seats lack. Offline always passes one.
+  final VoidCallback? onToggleGuide;
+
+  /// When false (or [onToggleGuide] is null) the guide is off: no green
+  /// (best discard) tile highlight. The drawn tile's yellow highlight is
+  /// unrelated to the guide and always shows.
   final bool showGuide;
 
   /// Height of the bar's bottom band: the tile row (now set by a `large` face
@@ -131,7 +135,7 @@ class _HandViewState extends State<HandView> {
     // Yellow = the freshly drawn tile, shown whether the guide is on or off.
     // A drawn tile that is also the recommended one gets both: a green tint
     // with a yellow border.
-    final showGuide = widget.showGuide;
+    final showGuide = widget.showGuide && widget.onToggleGuide != null;
     final topTypes = <TileType>{
       if (canPlay && showGuide)
         for (final l in game.report.lines)
@@ -242,8 +246,10 @@ class _HandViewState extends State<HandView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _guideButton(),
-              const SizedBox(width: 10),
+              if (widget.onToggleGuide != null) ...[
+                _guideButton(),
+                const SizedBox(width: 10),
+              ],
               // The tile strip has a fixed width (always sized for 14 tiles), so
               // the resting tiles never drift as the drawn tile comes and goes;
               // that strip is then centred in the band. Scrolls if it overflows.

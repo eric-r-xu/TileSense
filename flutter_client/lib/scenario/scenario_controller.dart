@@ -121,6 +121,10 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   int get handInWind => 1;
   @override
   int get honba => scenario.honba;
+  // The builder poses a single static hand — there is no dealer-repeat
+  // streak to show.
+  @override
+  int get dealerRepeat => 0;
   @override
   int? get turnDeadlineMs => null;
   @override

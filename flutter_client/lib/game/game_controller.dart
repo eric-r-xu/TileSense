@@ -124,6 +124,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   int _dealer = 0;
   int _roundNumber = 0; // 0-based East 1..4
   int _honba = 0;
+  int _dealerRepeat = 0;
   int _riichiSticks = 0;
 
   /// Hands dealt this game. Seeds each Hong Kong deal: its dealer repeats on a
@@ -212,9 +213,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
     notifyListeners();
   }
 
-  /// The full game when true — hanchan (East + South, 8 hands) in riichi, all
-  /// four winds (16 hands) in Hong Kong — and East-only (4 hands) when false.
-  /// The full game is the default.
+  /// The full game when true — hanchan (East + South, 8 hands), same for
+  /// both rulesets — and East-only (4 hands) when false. The full game is
+  /// the default.
   bool hanchan = true;
   int get _handsPerGame => ruleset.handsPerGame(fullGame: hanchan);
 
@@ -263,12 +264,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
   int get roundNumber => _roundNumber;
   @override
   int get honba => _honba;
+  @override
+  int get dealerRepeat => _dealerRepeat;
   int get riichiSticks => _riichiSticks;
 
-  /// East for hands 1-4, South for 5-8, and in Hong Kong West and North after.
-  Wind get roundWind => ruleset.isHongKong
-      ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)]
-      : (_roundNumber < 4 ? Wind.east : Wind.south);
+  /// East for hands 1-4, South for 5-8 — hanchan, same for both rulesets.
+  Wind get roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
 
   /// 1-4 within the current round wind.
   @override
@@ -321,6 +322,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _dealer = 0;
     _roundNumber = 0;
     _honba = 0;
+    _dealerRepeat = 0;
     _riichiSticks = 0;
     phase = GamePhase.playing;
     _matchId = newUuid();
@@ -465,6 +467,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _dealer = rot.dealer;
     _roundNumber = rot.roundNumber;
     _honba = rot.honba;
+    _dealerRepeat = dealerKept ? _dealerRepeat + 1 : 0;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
     // Riichi ends the game when anyone goes below zero; Hong Kong plays on.

@@ -8,9 +8,11 @@
 [Play the live web app](https://app.ericrxu.com/tilesense/)
 
 A mahjong **tile-efficiency trainer** for **Japanese riichi** and **Hong Kong**
-rules: play offline hands against bots while a live guide grades every discard
-— shanten, ukeire (tile acceptance), probability-weighted point value, and the
-recommended tile — and, when an opponent threatens, ranks your hand by safety.
+rules. Play offline against bots with a live guide grading every discard —
+shanten, ukeire (tile acceptance), probability-weighted point value, and the
+recommended tile — and ranking your hand by safety once an opponent threatens.
+Play online with friends too, bots filling any empty seat — multiplayer has no
+guide, so nobody gets an assist the others lack.
 
 Pick 🇯🇵 Riichi or 🇭🇰 Hong Kong on the welcome screen, or switch at any time
 from the game's app bar (which deals a new game) or the builder's chip row.
@@ -19,8 +21,9 @@ Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
 references: [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf),
 [HK.pdf](https://app.ericrxu.com/static/HK.pdf).
 
-This repo contains the cross-platform **Flutter** app for web, Android, and iOS
-under `flutter_client/`.
+This repo contains the cross-platform **Flutter** app (`flutter_client/`) for
+web, Android, and iOS, its shared pure-Dart core (`packages/mahjong_core/`),
+and the multiplayer game server (`server/mp/`) it plays online against.
 
 The shanten/ukeire math follows the Riichi-Trainer algorithm; the rules, bots,
 and 2D layout are maintained as part of TileSense.
@@ -46,10 +49,10 @@ Details, emulator/simulator launch, and release/store builds are in
 
 ## Two rulesets, one engine
 
-`lib/logic/ruleset.dart` defines `Ruleset.riichi` and `Ruleset.hongKong`. The
-round, guide, bots, scenario builder and UI are shared and branch on the
-ruleset only where the games differ. Hong Kong-only logic lives in
-`lib/logic/hong_kong/`:
+`packages/mahjong_core/lib/ruleset.dart` defines `Ruleset.riichi` and
+`Ruleset.hongKong`. The round, guide, bots, scenario builder and UI are shared
+— offline and online alike — and branch on the ruleset only where the games
+differ. Hong Kong-only logic lives in `packages/mahjong_core/lib/hong_kong/`:
 
 | File | What it holds |
 |---|---|
@@ -123,8 +126,12 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
   [Hong Kong](https://app.ericrxu.com/static/HK.pdf)). Hong Kong plays with a
   **0-faan minimum** — any complete hand, even a chicken hand, may be declared
-  — plus flower and season tiles, the New Style discarder-pays-all table, and
-  four-wind games.
+  — plus flower and season tiles and the New Style discarder-pays-all table.
+  Both rulesets play a hanchan (East and South) by default, with an
+  East-only option.
+- **Play Online**: a private room for up to four humans, any empty seat
+  filled by a bot. There is no guide here — nobody gets an assist the other
+  seats lack — so this is the offline game's own guide UI, minus the guide.
 - A **Custom Hand & Context Builder**, on its own screen from the start
   page: pose any table by hand — your tiles, every seat's discards and calls,
   the dora indicators, the wall counter, your seat wind (East deals) and who is
@@ -181,8 +188,8 @@ the dial is hidden under Hong Kong and pinned to Balanced. Details:
 [`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
 
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
-rare fu edge cases and some double-yakuman rules are approximated. No
-networking, lobby, or replays.
+rare fu edge cases and some double-yakuman rules are approximated. No replays
+yet.
 
 ### Run
 
@@ -239,22 +246,30 @@ flutter test
 ### Layout
 
 ```
+packages/mahjong_core/lib/   pure Dart core, unit-tested, shared by the app
+                              and the multiplayer server — tile model, wall,
+                              shanten+ukeire, hand parsing, scoring, safety
+                              model, SimpleBot, round state machine
+
 flutter_client/lib/
-  logic/   pure Dart, unit-tested — tile model, wall, shanten+ukeire,
-           hand parsing, scoring, safety model, SimpleBot, round state machine
-  game/    game_controller.dart — round + bots + async turn loop (ChangeNotifier)
-  ui/      table, hand, efficiency overlay, scoring screen, tile widget
+  logic/    efficiency_engine.dart — the guide's scoring-aware discard EV
+  game/     game_controller.dart (offline) / online_game_controller.dart
+  net/      multiplayer client (WebSocket)
+  scenario/ the Custom Hand & Context Builder's state
+  ui/       table, hand, efficiency overlay, scoring screen, tile widget
+
+server/mp/lib/   the multiplayer game server (table_loop.dart)
 ```
 
 ### Languages
 
-The app itself is a single **Dart** codebase — every file under `lib/` (game
-logic, UI, everything). Everything else is either Flutter-generated platform
-glue or offline tooling, not hand-maintained app code:
+The app, its shared core, and the multiplayer server are a single **Dart**
+codebase. Everything else is either Flutter-generated platform glue or
+offline tooling, not hand-maintained app code:
 
 | Language | Where | Purpose |
 |---|---|---|
-| Dart | `flutter_client/lib/` | The app — logic, game loop, UI |
+| Dart | `flutter_client/lib/`, `packages/mahjong_core/lib/`, `server/mp/lib/` | The app, its shared core, and the multiplayer server |
 | Kotlin | `android/app/.../MainActivity.kt` | Thin Android host shim, generated by `flutter create` |
 | Swift | `ios/Runner/` | Thin iOS host shim, generated by `flutter create` |
 | Java | `android/.../GeneratedPluginRegistrant.java` | Auto-generated Android plugin registration |

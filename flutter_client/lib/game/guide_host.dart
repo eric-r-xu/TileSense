@@ -68,6 +68,12 @@ abstract class GuideHost implements Listenable {
   int get handInWind;
   int get honba;
 
+  /// Hong Kong only: how many hands in a row the current dealer has kept the
+  /// seat (a win, or any exhaustive draw). Hong Kong scoring has no honba
+  /// bonus, so this is a display-only counter shown in its place — riichi
+  /// keeps using [honba] instead.
+  int get dealerRepeat;
+
   /// Wall-clock deadline (epoch ms) for whoever [Round.turn] is to discard,
   /// or null when nobody's turn clock is running. Only the online table has
   /// one — offline play never rushes the human, and the scenario builder has

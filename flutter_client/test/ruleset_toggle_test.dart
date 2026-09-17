@@ -55,13 +55,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
-    expect(labelOf(tester, const Key('hanchan')), 'Four winds');
+    expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
     // Style has nothing left to weigh under Hong Kong — no riichi, no
     // damaten, and no measured placement effect either — so the chip is
     // hidden rather than shown pinned on Balanced.
     expect(find.byKey(const Key('playStyle')), findsNothing);
     expect(labelOf(tester, const Key('handFocus')), 'Speed');
-    expect(find.text('FLOWERS & SEASONS'), findsOneWidget);
+    // Hong Kong has no dora panel — flowers show beside each seat's own
+    // placard instead, empty (and invisible) until one is actually drawn.
     expect(find.text('DORA'), findsNothing);
     expect(find.byKey(const Key('rulesPdf')), findsOneWidget);
     expect(find.textContaining('Honba'), findsNothing);
@@ -100,7 +101,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
-    expect(find.text('FLOWERS & SEASONS'), findsOneWidget);
     expect(find.byKey(const Key('playStyle')), findsNothing,
         reason: 'Hong Kong pins style to Balanced and hides the dial');
 

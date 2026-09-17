@@ -147,6 +147,14 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: Text(
+            'Multiplayer has no TileSense guide — play offline for it.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white60, fontSize: 13),
+          ),
+        ),
         TextField(
           controller: _nameCtl,
           maxLength: 24,
@@ -167,9 +175,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               const SizedBox(height: 10),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(_ruleset.isHongKong
-                    ? 'Full game (16+ hands)'
-                    : 'Full game — hanchan (8+ hands)'),
+                title: const Text('Full game — hanchan (8+ hands)'),
                 subtitle: Text(_hanchan
                     ? 'Off switches to East-only (4+ hands)'
                     : 'East-only — 4+ hands'),

@@ -749,38 +749,37 @@ class _GamePageState extends State<GamePage> {
             // East-only vs. full game length (the full game is the default).
             AnimatedBuilder(
               animation: _game,
-              builder: (context, _) => Tooltip(
-                message: _game.ruleset.isHongKong
-                    ? (_game.hanchan
-                        ? 'Full game — East, South, West and North, 16+ hands.\n'
-                            '$_handCountCaveatHongKong\n'
-                            'Tap for East only, 4+ hands.'
-                        : 'East only — the East round, 4+ hands.\n'
-                            '$_handCountCaveatHongKong\n'
-                            'Tap for a full game: four winds, 16+ hands.')
-                    : _game.hanchan
-                        ? 'Hanchan — East and South rounds, 8+ hands.\n'
-                            '$_handCountCaveat\n'
-                            'Tap for East only, 4+ hands.'
-                        : 'East only (tonpuusen) — the East round, 4+ hands.\n'
-                            '$_handCountCaveat\n'
-                            'Tap for hanchan: East and South, 8+ hands.',
-                child: TextButton(
-                  key: const Key('hanchan'),
-                  onPressed: () => _game.setHanchan(!_game.hanchan),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: const Color(0xffe9d58f),
+              builder: (context, _) {
+                final caveat = _game.ruleset.isHongKong
+                    ? _handCountCaveatHongKong
+                    : _handCountCaveat;
+                return Tooltip(
+                  message: _game.hanchan
+                      ? 'Hanchan — East and South rounds, 8+ hands.\n'
+                          '$caveat\n'
+                          'Tap for East only, 4+ hands.'
+                      : (_game.ruleset.isHongKong
+                          ? 'East only — the East round, 4+ hands.\n'
+                              '$caveat\n'
+                              'Tap for hanchan: East and South, 8+ hands.'
+                          : 'East only (tonpuusen) — the East round, 4+ hands.\n'
+                              '$caveat\n'
+                              'Tap for hanchan: East and South, 8+ hands.'),
+                  child: TextButton(
+                    key: const Key('hanchan'),
+                    onPressed: () => _game.setHanchan(!_game.hanchan),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: const Color(0xffe9d58f),
+                    ),
+                    child: Text(
+                      _game.hanchan ? 'Hanchan' : 'East only',
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
                   ),
-                  child: Text(
-                    _game.hanchan
-                        ? (_game.ruleset.isHongKong ? 'Four winds' : 'Hanchan')
-                        : 'East only',
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
+                );
+              },
             ),
             // 2x fast-mode toggle.
             AnimatedBuilder(
@@ -1235,11 +1234,22 @@ class _WelcomeScreen extends StatelessWidget {
                         backgroundColor: const Color(0xffcaa24e),
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 14),
-                        textStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                            horizontal: 16, vertical: 12),
                       ),
-                      child: const Text('Play Offline'),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Play Offline',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 2),
+                          Text(
+                            'Includes the guide',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.black54),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 8),
                     OutlinedButton(
@@ -1259,7 +1269,7 @@ class _WelcomeScreen extends StatelessWidget {
                                   fontSize: 20, fontWeight: FontWeight.bold)),
                           SizedBox(height: 2),
                           Text(
-                            'Private room with friends — bots fill empty seats',
+                            'With friends — bots fill empty seats, no guide',
                             style:
                                 TextStyle(fontSize: 12, color: Colors.white60),
                           ),

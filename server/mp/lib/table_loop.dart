@@ -89,9 +89,7 @@ class TableLoop {
 
   bool isBotControlled(int seat) => _bots.containsKey(seat);
 
-  Wind get _roundWind => ruleset.isHongKong
-      ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)]
-      : (_roundNumber < 4 ? Wind.east : Wind.south);
+  Wind get _roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
 
   /// Starts the game loop. Randomizes who sits where first (so join order
   /// doesn't decide who deals first), then fills any still-empty seat with a

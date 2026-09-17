@@ -1,4 +1,4 @@
-# TileSense — Flutter Riichi Mahjong efficiency trainer
+# TileSense — Flutter Mahjong efficiency trainer (Riichi & Hong Kong)
 
 ## What it does
 
@@ -36,7 +36,8 @@
 - Hand scoring at the end of a round: yaku list, han/fu, dora/ura/aka, limit
   hands and yakuman, and the point transfers.
 - A **Custom Hand & Context Builder**, reached from the start screen and
-  isolated from the game: it poses a [`Round`](lib/logic/round.dart) by hand
+  isolated from the game: it poses a
+  [`Round`](../packages/mahjong_core/lib/round.dart) by hand
   rather than playing one, then feeds the same `EfficiencyEngine` the live
   guide uses. You set your concealed tiles and calls, every seat's pond and
   melds, the dora indicators, wall count, round wind, your own seat wind (East
@@ -61,39 +62,47 @@
   **0-faan minimum**, real flower and season tiles, and the New Style
   discarder-pays-all table — see
   [`docs/HONG_KONG_RULES.md`](../docs/HONG_KONG_RULES.md).
+- **Play Online**: a private room for up to four humans, bots filling any
+  seat left empty. It reuses the offline game's table and hand UI, but with
+  no guide — nobody gets an assist the other seats lack.
 
 ### Rules coverage
 
-`lib/logic/efficiency_calc.dart` implements the Riichi-Trainer shanten/ukeire
-algorithm, and `efficiency_engine.dart` adds the scoring-aware expected-value
-model (walked through in [`EXPECTED_VALUE.md`](EXPECTED_VALUE.md)).
-`lib/logic/bot.dart` drives seats 1–3 only; your own seat is always played
-by the guide. The bots never call chi, though the round offers it and the guide
+`packages/mahjong_core/lib/efficiency_calc.dart` implements the Riichi-Trainer
+shanten/ukeire algorithm, and `lib/logic/efficiency_engine.dart` adds the
+scoring-aware expected-value model (walked through in
+[`EXPECTED_VALUE.md`](EXPECTED_VALUE.md)). `bot.dart` drives seats 1–3 only;
+your own seat is always played by the guide offline, or by whoever's in that
+seat online. The bots never call chi, though the round offers it and the guide
 advises on it. Scoring covers the common yaku, the standard fu table, and the
 yakuman set; rare fu corner cases and some double-yakuman rules are
-approximated. Hong Kong scoring lives in `lib/logic/hong_kong/`. There is no
-networking, lobby or replay.
+approximated. Hong Kong scoring lives in `packages/mahjong_core/lib/hong_kong/`.
+No replays yet.
 
 ## Project layout
 
 ```
-lib/
-  logic/      pure Dart, no Flutter imports, unit-tested
-    tile.dart            TileType, Tile, Wind helpers
-    wall.dart            136-tile wall, dead wall, dora reveal
-    efficiency_calc.dart shanten + ukeire (38-slot Riichi-Trainer port)
-    hand_parse.dart      agari / decomposition / waits / furiten
-    scoring.dart         yaku + han/fu -> points
-    safety.dart          defensive tile ranking vs a riichi opponent
-    bot.dart             SimpleBot opponent heuristic
-    round.dart           the offline round state machine
-    efficiency_engine.dart scoring-aware discard EV + typed UI report
-  game/
-    game_controller.dart ChangeNotifier: round + bots + async turn loop
-  ui/
-    table_view.dart, hand_view.dart, efficiency_overlay.dart,
-    scoring_view.dart, tile_face.dart
-test/                     shanten / ukeire / EV / scoring / round / widget tests
+packages/mahjong_core/lib/   pure Dart core, no Flutter imports, shared by
+                              the app and the multiplayer server
+  tile.dart              TileType, Tile, Wind helpers
+  wall.dart              136-tile wall, dead wall, dora reveal
+  efficiency_calc.dart   shanten + ukeire (38-slot Riichi-Trainer port)
+  hand_parse.dart        agari / decomposition / waits / furiten
+  scoring.dart           yaku + han/fu -> points
+  safety.dart            defensive tile ranking vs a riichi opponent
+  bot.dart               SimpleBot opponent heuristic
+  round.dart             the round state machine
+  ruleset.dart           Ruleset.riichi / Ruleset.hongKong
+  hong_kong/             Hong Kong-only scoring, wall, and safety rules
+
+flutter_client/lib/
+  logic/    efficiency_engine.dart — scoring-aware discard EV + typed UI report
+  game/     game_controller.dart (offline) and online_game_controller.dart
+  net/      multiplayer client (WebSocket)
+  scenario/ the Custom Hand & Context Builder's state
+  ui/       table_view.dart, hand_view.dart, efficiency_overlay.dart,
+            scoring_view.dart, tile_face.dart
+  test/     shanten / ukeire / EV / scoring / round / widget tests
 ```
 
 ## Web and mobile

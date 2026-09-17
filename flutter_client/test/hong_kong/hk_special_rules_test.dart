@@ -153,9 +153,14 @@ void main() {
       Tile(991, TileType.pin2)
     ]);
     r.seats[0].hand = parseTiles('1111m 222p 33p 456s EE');
+    expect(r.wall.remaining, 3);
     r.closedKan(0, TileType.man1);
+    // Each kong's replacement draw comes off the wall, same as a flower's —
+    // Hong Kong has no separately reserved dead wall to draw it from instead.
+    expect(r.wall.remaining, 2);
     expect(r.seats[0].drawn!.type, TileType.pin2);
     r.closedKan(0, TileType.pin2);
+    expect(r.wall.remaining, 1);
     expect(r.seats[0].drawn!.type, TileType.pin3);
     expect(r.seats[0].kongChain, 2);
     expect(r.canTsumo(0), isTrue);
