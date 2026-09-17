@@ -4,7 +4,7 @@ The ingest service + database for the optional gameplay telemetry. This is
 **additive** infrastructure — it does not change how the game is built or
 served (see `README.md` for the design and safety properties).
 
-Contents: `bin/server.dart`, `migrations/0001_init.sql`, `docker-compose.yml`,
+Contents: `bin/server.dart`, `migrations/*.sql`, `docker-compose.yml`,
 `Dockerfile`, `deploy/` (systemd unit, Nginx snippet, retention timer, App
 Platform spec, and `deploy/metabase/` for the analytics dashboard — §5).
 
@@ -22,6 +22,7 @@ cd server
 docker compose up -d                     # Postgres on :5432
 alias dc='docker compose exec -T db psql -U tilesense -d tilesense'
 dc -f - < migrations/0001_init.sql
+dc -f - < migrations/0002_seat_characters.sql
 dc -c '\dt'                              # -> clients, sessions, matches, rounds, events, events_default
 ```
 
@@ -167,6 +168,7 @@ Sources → Add my current IP**, plus the droplet.)
 
 ```sh
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0001_init.sql
+docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0002_seat_characters.sql
 docker run --rm    postgres:16 psql "$PROD_DB" -c '\dt'
 #   -> clients, sessions, matches, rounds, events, events_default
 ```
@@ -426,6 +428,7 @@ migration once against the attached DB:
 ```sh
 PROD_DB="$(doctl databases connection <db-id-from-app> --format URI --no-header)"
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0001_init.sql
+docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0002_seat_characters.sql
 ```
 
 Then deploy the client exactly as in 2.8 with

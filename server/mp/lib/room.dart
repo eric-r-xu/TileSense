@@ -48,7 +48,7 @@ class Room {
   /// the manager uses this to garbage-collect abandoned rooms.
   void Function()? onIdleEmpty;
 
-  /// The five player-selectable personas (see the client's `Character` enum
+  /// The player-selectable personas (see the client's `Character` enum
   /// in `lib/game/sfx.dart`, which this list's spelling must match).
   /// [resolveCharacter]'s fallback already guarantees a bot-filled seat gets
   /// whatever's unclaimed in [allCharacters], so nothing needs holding back
@@ -59,6 +59,7 @@ class Room {
     'astaroth',
     'grant',
     'hubert',
+    'erika',
   ];
   static const List<String> allCharacters = selectableCharacters;
 
@@ -68,11 +69,12 @@ class Room {
     'astaroth': 'Astaroth',
     'grant': 'Grant',
     'hubert': 'Hubert',
+    'erika': 'Erika',
   };
 
   /// Picks the character a new seat renders as: [requested] if it's one of
-  /// the five selectable personas and nobody else at this table already has
-  /// it, otherwise the first unclaimed character in the same five-name pool
+  /// the selectable personas and nobody else at this table already has
+  /// it, otherwise the first unclaimed character in the same pool
   /// — always available, since a room seats at most four. Keeps every
   /// client's avatar/name for a given seat identical and collision-free
   /// without a round trip: whoever asks first gets first pick.
@@ -86,7 +88,7 @@ class Room {
     for (final c in allCharacters) {
       if (!used.contains(c)) return c;
     }
-    return allCharacters.first; // unreachable: 5 characters, at most 4 seats
+    return allCharacters.first; // unreachable: 6 characters, at most 4 seats
   }
 
   int? seatIndexForGuest(String guestId) {

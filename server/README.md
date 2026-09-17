@@ -21,7 +21,7 @@ it does not touch how the game is built or served.
 | Path | What |
 | --- | --- |
 | `bin/server.dart` | the ingest service (shelf + postgres) |
-| `migrations/0001_init.sql` | schema — additive, re-runnable |
+| `migrations/*.sql` | schema — additive, re-runnable, applied in filename order |
 | `docker-compose.yml` | local Postgres for development |
 | `Dockerfile` | build a self-contained binary (App Platform / any container host) |
 | `.env.example` | required environment variables |

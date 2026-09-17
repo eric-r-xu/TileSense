@@ -11,17 +11,17 @@ enum SfxKind { riichi, chi, pon, kan, ron, tsumo, discard }
 /// (falling back to silence where a character is missing that line).
 enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah, acquiescement, win }
 
-/// The five table personalities. Offline, every seat's persona is
+/// The table personalities. Offline, every seat's persona is
 /// customisable (`kSeatCharacters` in game_controller.dart is the default,
 /// human seat included); online, a human picks their own from
 /// [kSelectableCharacters] on the lobby screen and the server assigns
 /// whatever's left to bot-filled seats — see `Room.resolveCharacter` on the
-/// multiplayer server, whose five spellings (`.name` here) this enum must
+/// multiplayer server, whose spellings (`.name` here) this enum must
 /// keep matching.
-enum Character { eric, orderic, grant, hubert, astaroth }
+enum Character { eric, orderic, grant, hubert, astaroth, erika }
 
-/// The personas a human can pick from online — all five. `resolveCharacter`
-/// falls back to any unclaimed character in the full five-name pool for a
+/// The personas a human can pick from online. `resolveCharacter`
+/// falls back to any unclaimed character in the full pool for a
 /// bot-filled seat regardless of this list, so nothing needs holding back
 /// here for that. Order is display order on the picker.
 const List<Character> kSelectableCharacters = [
@@ -30,6 +30,7 @@ const List<Character> kSelectableCharacters = [
   Character.astaroth,
   Character.grant,
   Character.hubert,
+  Character.erika,
 ];
 
 const Map<Character, String> kCharacterName = {
@@ -38,6 +39,7 @@ const Map<Character, String> kCharacterName = {
   Character.grant: 'Grant',
   Character.hubert: 'Hubert',
   Character.astaroth: 'Astaroth',
+  Character.erika: 'Erika',
 };
 
 const Map<Character, String> kCharacterPortrait = {
@@ -46,6 +48,7 @@ const Map<Character, String> kCharacterPortrait = {
   Character.grant: 'assets/grant/grant.png',
   Character.hubert: 'assets/hubert/hubert.png',
   Character.astaroth: 'assets/astaroth/astaroth.png',
+  Character.erika: 'assets/erika/erika.png',
 };
 
 /// Fire-and-forget sound player.
@@ -91,8 +94,6 @@ class Sfx {
   /// Per-character voice assets. `null` means that character has no recording
   /// for that line, so it is silently skipped.
   static const Map<Character, Map<VoiceKind, String?>> _voiceAsset = {
-    // No riichi or acquiescement recording exists yet for Eric — those lines
-    // just stay silent for him, same as any character missing a clip.
     Character.eric: {
       VoiceKind.chi: 'eric/Eric_Chi.wav',
       VoiceKind.pon: 'eric/Eric_Pon.wav',
@@ -103,6 +104,17 @@ class Sfx {
       VoiceKind.yeah: 'eric/Eric_Yeah.wav',
       VoiceKind.acquiescement: 'eric/Eric_Acquiescement.wav',
       VoiceKind.win: 'eric/Eric_Win.wav',
+    },
+    Character.erika: {
+      VoiceKind.chi: 'erika/Erika_Chi.wav',
+      VoiceKind.pon: 'erika/Erika_Pon.wav',
+      VoiceKind.kan: 'erika/Erika_Kan.wav',
+      VoiceKind.riichi: 'erika/Erika_Riichi.wav',
+      VoiceKind.ron: 'erika/Erika_ron.wav',
+      VoiceKind.tsumo: 'erika/Erika_Tsumo.wav',
+      VoiceKind.yeah: 'erika/Erika_Yeah.wav',
+      VoiceKind.acquiescement: 'erika/Erika_Acquiescement.wav',
+      VoiceKind.win: 'erika/Erika_Win.wav',
     },
     Character.orderic: {
       VoiceKind.chi: 'orderic/Orderic_Chi.wav',

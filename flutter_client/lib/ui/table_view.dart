@@ -267,7 +267,6 @@ class TableView extends StatelessWidget {
                   tile: tile,
                   size: TileSize.tiny,
                   scale: _flowerScale,
-                  showIndex: false,
                 ),
             ],
           );
@@ -665,7 +664,7 @@ class TableView extends StatelessWidget {
     return tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
   }
 
-  /// Seat placard (wind + score).
+  /// Seat placard (wind + score), with Hong Kong's matching bonus-tile number.
   Widget _placard(Round round, int seat) {
     final s = round.seats[seat];
     final active = round.turn == seat &&
@@ -673,7 +672,10 @@ class TableView extends StatelessWidget {
         round.phase != RoundPhase.callOffer;
     // `seatLabel` already carries "(you)"/"(bot)" where relevant — the real
     // guest nickname online, the fixed persona name offline.
-    final label = '${s.wind.kanji}(${s.wind.initial}) ${game.seatLabel(seat)}'
+    // The number follows the current wind, not the fixed character position.
+    final seatNumber = round.ruleset.isHongKong ? '${s.wind.index + 1} ' : '';
+    final label = '$seatNumber${s.wind.kanji}(${s.wind.initial}) '
+        '${game.seatLabel(seat)}'
         '  ${s.points}${s.riichi ? '  ◉' : ''}';
     final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
