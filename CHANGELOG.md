@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **A riichi tsumo showed its winning tile twice on the result screen.**
+  Every drawn tile is added to `seat.hand` on draw, win or not, so the
+  self-drawn winning tile was already sitting in the hand `ScoringView`
+  loops over — and then rendered *again*, highlighted, in the separate
+  "winning tile" slot right after. The main loop's filter (`w.hand.where((t)
+  => t != winTile)`) already existed for Hong Kong self-picks but was
+  wrongly scoped to `hk` only; it now always applies, which is also a no-op
+  for a ron (whose winning tile is never part of `w.hand` to begin with, so
+  nothing to filter). New test: `flutter_client/test/scoring_view_test.dart`.
 - **Hong Kong wins spoke a generic "win" line instead of ron/tsumo, offline
   and online.** `GameController._playRoundEndSfx` and `OnlineGameController
   .playRoundEndVoice` deliberately swapped in `VoiceKind.win` for Hong Kong,

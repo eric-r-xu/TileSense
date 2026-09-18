@@ -291,10 +291,13 @@ class _ScoringViewState extends State<ScoringView> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // A Hong Kong self-pick keeps its winning tile in hand; it is
-              // shown on its own below, so not twice.
-              for (final t in sortByType(
-                  hk ? w.hand.where((t) => t != winTile) : w.hand))
+              // A self-draw (tsumo) win keeps the winning tile in hand — it
+              // is shown separately, highlighted, right after this loop, so
+              // it must not also render here or it doubles up. A ron's
+              // winning tile is never part of `w.hand` to begin with (it
+              // came from another seat's discard), so this filter is a
+              // no-op for it either way.
+              for (final t in sortByType(w.hand.where((t) => t != winTile)))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1),
                   child: TileFace(
