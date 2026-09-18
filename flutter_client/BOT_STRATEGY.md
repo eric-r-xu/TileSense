@@ -1,4 +1,4 @@
-# Bot Strategy vs. You (Orderic)
+# Bot Strategy vs. You
 
 A plain-language breakdown of how Grant, Hubert, and Astaroth decide what to
 do — and how that compares to how your own seat plays. Based on
