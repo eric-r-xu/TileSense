@@ -175,10 +175,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               const SizedBox(height: 10),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Full game — hanchan (8+ hands)'),
+                title: const Text('Full game — hanchan/半庄 (8+ hands)'),
                 subtitle: Text(_hanchan
-                    ? 'Off switches to East-only (4+ hands)'
-                    : 'East-only — 4+ hands'),
+                    ? 'Off switches to East-only/东风战 (4+ hands)'
+                    : 'East-only/东风战 — 4+ hands'),
                 value: _hanchan,
                 onChanged: (v) => setState(() => _hanchan = v),
               ),

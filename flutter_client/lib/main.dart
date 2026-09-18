@@ -757,14 +757,14 @@ class _GamePageState extends State<GamePage> {
                   message: _game.hanchan
                       ? 'Hanchan — East and South rounds, 8+ hands.\n'
                           '$caveat\n'
-                          'Tap for East only, 4+ hands.'
+                          'Tap for East only (东风战), 4+ hands.'
                       : (_game.ruleset.isHongKong
                           ? 'East only — the East round, 4+ hands.\n'
                               '$caveat\n'
-                              'Tap for hanchan: East and South, 8+ hands.'
-                          : 'East only (tonpuusen) — the East round, 4+ hands.\n'
+                              'Tap for hanchan (半庄): East and South, 8+ hands.'
+                          : 'East only (东风战/tonpuusen) — the East round, 4+ hands.\n'
                               '$caveat\n'
-                              'Tap for hanchan: East and South, 8+ hands.'),
+                              'Tap for hanchan (半庄): East and South, 8+ hands.'),
                   child: TextButton(
                     key: const Key('hanchan'),
                     onPressed: () => _game.setHanchan(!_game.hanchan),
