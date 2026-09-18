@@ -78,7 +78,8 @@ class CharacterSelectPage extends StatelessWidget {
     final wind = seatStartingWind(seat, startingDealer);
     return Container(
       key: Key('seatCard_$seat'),
-      width: 260,
+      // Four 64px choices per row keep seven characters within two rows.
+      width: 288,
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
       decoration: BoxDecoration(
         color: const Color(0x33000000),
