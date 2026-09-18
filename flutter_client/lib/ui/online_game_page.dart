@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../game/guide_host.dart' show GamePhase;
 import '../game/online_game_controller.dart';
+import 'client_id_text.dart';
 import 'hand_view.dart';
 import 'scoring_view.dart';
 import 'table_view.dart';
@@ -50,7 +51,8 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${game.seatLabel(seat)} is now bot-controlled')),
+          SnackBar(
+              content: Text('${game.seatLabel(seat)} is now bot-controlled')),
         );
       });
     }
@@ -59,7 +61,8 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
       final message = game.lastError!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       });
     }
   }
@@ -74,10 +77,17 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
           appBar: AppBar(
             toolbarHeight: 50,
             titleSpacing: 12,
-            leading: IconButton(
-              tooltip: 'Leave room',
-              icon: const Icon(Icons.arrow_back),
-              onPressed: _leave,
+            leadingWidth: 300,
+            // The client id sits right after the back arrow, top-left, in white.
+            leading: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Leave room',
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _leave,
+                ),
+                const Expanded(child: ClientIdText()),
+              ],
             ),
             title: Row(
               mainAxisSize: MainAxisSize.min,
@@ -106,7 +116,8 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                   const SizedBox(width: 10),
                   const Tooltip(
                     message: 'Connection lost — reconnecting…',
-                    child: Icon(Icons.wifi_off, color: Colors.redAccent, size: 20),
+                    child:
+                        Icon(Icons.wifi_off, color: Colors.redAccent, size: 20),
                   ),
                 ],
               ],

@@ -10,7 +10,6 @@ import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/ruleset.dart';
-import 'telemetry/telemetry.dart' show persistentClientId;
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -487,62 +486,6 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       ),
     );
   }
-}
-
-/// A small computer icon whose tooltip shows this device's client id in large,
-/// high-contrast type. Clicking (or tapping) copies the id to the clipboard.
-/// Only the title screen carries it.
-class _ClientIdIcon extends StatefulWidget {
-  const _ClientIdIcon();
-
-  @override
-  State<_ClientIdIcon> createState() => _ClientIdIconState();
-}
-
-class _ClientIdIconState extends State<_ClientIdIcon> {
-  final String _id = persistentClientId();
-  bool _copied = false;
-
-  Future<void> _copy() async {
-    await Clipboard.setData(ClipboardData(text: _id));
-    if (!mounted) return;
-    setState(() => _copied = true);
-    await Future<void>.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _copied = false);
-  }
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-        message:
-            'Client device ID\n$_id\n${_copied ? 'Copied!' : 'Click to copy'}',
-        waitDuration: Duration.zero,
-        showDuration: const Duration(seconds: 8),
-        preferBelow: false,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        margin: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xffffdf76),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.black, width: 2),
-          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 12)],
-        ),
-        textStyle: const TextStyle(
-          color: Colors.black,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          height: 1.4,
-        ),
-        child: IconButton(
-          key: const Key('clientId'),
-          icon: Icon(_copied ? Icons.check : Icons.computer, size: 18),
-          onPressed: _copy,
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-          padding: EdgeInsets.zero,
-          color: Colors.white60,
-          hoverColor: const Color(0x22ffffff),
-        ),
-      );
 }
 
 /// Fullscreen toggle, shown on the welcome screen. Web only, and hidden once
@@ -1243,9 +1186,7 @@ class _WelcomeScreen extends StatelessWidget {
       color: kLetterboxColor,
       // Scrollable rather than fixed: this screen can be taller than the
       // design canvas leaves room for at some window sizes.
-      child: Stack(
-        children: [
-          SingleChildScrollView(
+      child: SingleChildScrollView(
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -1390,14 +1331,6 @@ class _WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Above the desktop zoom controls, which share this corner.
-          Positioned(
-            right: 8,
-            bottom: _FixedCanvas._deliberateZoom ? 44 : 8,
-            child: const _ClientIdIcon(),
-          ),
-        ],
-      ),
     );
   }
 }
