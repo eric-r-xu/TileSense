@@ -14,6 +14,7 @@ import '../game/sfx.dart'
     show Character, kCharacterPortrait, kSelectableCharacters;
 import '../main.dart' show kLetterboxColor;
 import 'character_picker.dart';
+import 'client_id_text.dart';
 
 class OnlineLobbyPage extends StatefulWidget {
   const OnlineLobbyPage({
@@ -91,13 +92,20 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       backgroundColor: kLetterboxColor,
       appBar: AppBar(
         backgroundColor: kLetterboxColor,
-        leading: IconButton(
-          tooltip: 'Back to menu',
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (game.roomCode.isNotEmpty) game.leaveRoom();
-            widget.onExit();
-          },
+        leadingWidth: 300,
+        // The client id sits right after the back arrow, top-left, in white.
+        leading: Row(
+          children: [
+            IconButton(
+              tooltip: 'Back to menu',
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                if (game.roomCode.isNotEmpty) game.leaveRoom();
+                widget.onExit();
+              },
+            ),
+            const Expanded(child: ClientIdText()),
+          ],
         ),
         title: const Text('Play Online'),
       ),

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -183,7 +182,7 @@ void main() {
       }
     });
 
-    testWidgets('the client id lives in a tooltip on the title screen only',
+    testWidgets('the client id is white text, top-left, on the online screen',
         (tester) async {
       await tester.binding.setSurfaceSize(kDesignSize);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -200,40 +199,36 @@ void main() {
         await tester.pumpWidget(const TileSenseApp());
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Never printed as text — only inside the icon's tooltip.
+        // Not on the title screen.
         final id = persistentClientId();
         expect(id, matches(RegExp(r'^[0-9a-f-]{36}$')));
         expect(find.text(id), findsNothing);
-        final icon = find.byKey(const Key('clientId'));
-        expect(icon, findsOneWidget);
-        expect(
-            tester
-                .widget<Tooltip>(
-                    find.ancestor(of: icon, matching: find.byType(Tooltip)))
-                .message,
-            contains(id));
 
-        // Hovering shows it, big and readable.
-        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-        addTearDown(mouse.removePointer);
-        await mouse.moveTo(tester.getCenter(icon));
+        await tester.tap(find.byKey(const Key('playOnline')));
         await tester.pump(const Duration(milliseconds: 100));
-        expect(
-            find.text('Client device ID\n$id\nClick to copy'), findsOneWidget);
+        final text = find.byKey(const Key('clientId'));
+        expect(text, findsOneWidget);
+        expect(find.text(id), findsOneWidget);
+        expect(tester.widget<SelectableText>(text).style?.color, Colors.white);
 
-        await tester.tap(icon);
+        // Top-left, immediately after the back arrow.
+        final back = tester.getRect(find.byTooltip('Back to menu'));
+        final rect = tester.getRect(text);
+        expect(rect.left, greaterThanOrEqualTo(back.right - 1));
+        expect(rect.top, lessThan(60));
+        expect(rect.left, lessThan(120));
+
+        // Tapping copies it.
+        await tester.tap(text);
         await tester.pump();
         expect(copied, id);
 
-        // Not on the character screen, nor at the table.
-        await tester.tap(find.text('Play Offline'));
-        await tester.pump();
-        expect(find.byKey(const Key('clientId')), findsNothing);
-        await tester.tap(find.byKey(const Key('charactersContinue')));
-        await tester.pump(const Duration(milliseconds: 100));
-        expect(find.byKey(const Key('clientId')), findsNothing);
-
+        // Back on the title screen, it is gone again.
         await tester.pump(const Duration(seconds: 3));
+        await tester.tap(find.byTooltip('Back to menu'));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text(id), findsNothing);
+
         await tester.pumpWidget(const SizedBox());
         await tester.pump();
       } finally {
