@@ -17,6 +17,8 @@ void main() {
     // Welcome screen first — Start hands off to the table.
     expect(find.text('Play Offline'), findsOneWidget);
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('TileSense'), findsWidgets);
@@ -39,6 +41,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.textContaining('PAUSED'), findsNothing);
@@ -68,6 +72,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(TableView), findsOneWidget);
@@ -84,6 +90,8 @@ void main() {
     // Start un-pauses and returns to the same game rather than dealing a new
     // one.
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(TableView), findsOneWidget);
@@ -98,6 +106,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     for (var i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }

@@ -26,6 +26,8 @@ void main() {
     await boot(tester);
     expect(find.textContaining('optimal Riichi Mahjong play'), findsOneWidget);
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
@@ -52,6 +54,8 @@ void main() {
     expect(find.byKey(const Key('rulesPdf_hongKong')), findsOneWidget);
 
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
@@ -89,6 +93,8 @@ void main() {
   testWidgets('the in-game switch changes rules both ways', (tester) async {
     await boot(tester);
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Style is a riichi-only dial; pick a non-default value so the
@@ -121,6 +127,8 @@ void main() {
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('🇭🇰 Hong Kong rules ⇄'), findsOneWidget);

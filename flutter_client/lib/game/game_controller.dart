@@ -136,12 +136,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
 
-  /// Off by default: browsers routinely re-suspend playback (backgrounding,
-  /// screen lock, iPad multitasking) in ways that leave bot/Auto-Play sfx and
-  /// voice lines silently dropped, so starting muted avoids a false
-  /// impression that sound is broken. Turning it on is itself a fresh user
-  /// gesture, so it doubles as the manual "resync" a player can reach for if
-  /// the browser's audio context ever gets stuck suspended mid-game.
+  /// On by default. Browsers routinely re-suspend playback (backgrounding,
+  /// screen lock, iPad multitasking) in ways that can leave bot/Auto-Play sfx
+  /// and voice lines silently dropped; turning sound off and on again is itself
+  /// a fresh user gesture, so it doubles as the manual "resync" a player can
+  /// reach for if the browser's audio context ever gets stuck suspended
+  /// mid-game.
   @override
   bool get soundOn => Sfx.i.enabled;
   @override
@@ -314,10 +314,26 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   // --- lifecycle -------------------------------------------------------
 
+  /// The seat that deals first, and so is East, when a match starts; the human
+  /// is [kHumanSeat], so this is what decides which wind you begin on
+  /// (`(4 - startingDealer) % 4`). Change it with [setStartingDealer].
+  int startingDealer = 0;
+
+  /// Which wind the human seat begins on.
+  Wind get humanStartingWind => Wind.values[(4 - startingDealer) % 4];
+
+  /// Picks which seat deals first. Like switching rules, this abandons the
+  /// game in progress for a fresh one, since the deal is what it changes.
+  void setStartingDealer(int seat) {
+    if (startingDealer == seat) return;
+    startingDealer = seat;
+    newGame();
+  }
+
   void _startGame() {
     _points = List.filled(4, ruleset.startingPoints);
     _dealSerial = 0;
-    _dealer = 0;
+    _dealer = startingDealer;
     _roundNumber = 0;
     _honba = 0;
     _dealerRepeat = 0;

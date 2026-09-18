@@ -314,11 +314,9 @@ class _HandViewState extends State<HandView> {
   }
 
   /// Sound toggle, the rightmost thing in the bar — bottom-right corner of the
-  /// whole app. Off by default (see [GameController.setSoundOn]): mobile
-  /// browsers routinely re-suspend Web Audio in ways that silently drop
-  /// bot/Auto-Play sfx and voice lines, so starting muted avoids a false
-  /// impression that sound is broken, and tapping this to turn it on is
-  /// itself a fresh gesture a player can reach for to resync audio mid-game.
+  /// whole app. On by default (see [GameController.setSoundOn]); toggling it is
+  /// also a fresh gesture a player can reach for to resync audio mid-game if
+  /// the browser suspended Web Audio and dropped bot/Auto-Play sfx.
   Widget _soundButton() {
     final on = game.soundOn;
     return IconButton(

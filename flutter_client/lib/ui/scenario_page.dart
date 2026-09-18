@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
+import '../game/sfx.dart' show Character;
 import '../../main.dart' show playStyleColor;
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -33,6 +34,8 @@ class ScenarioPage extends StatefulWidget {
     super.key,
     required this.onExit,
     this.initialRuleset = Ruleset.riichi,
+    this.seatCharacters,
+    this.seatWind,
   });
 
   /// Back to the welcome screen.
@@ -41,12 +44,21 @@ class ScenarioPage extends StatefulWidget {
   /// The rules the builder opens in; it can be switched from its tool bar.
   final Ruleset initialRuleset;
 
+  /// Who sits at each seat, from the character-select screen; the default
+  /// personas when null.
+  final List<Character>? seatCharacters;
+
+  /// The wind you start on, from the character-select screen; East when null.
+  final Wind? seatWind;
+
   @override
   State<ScenarioPage> createState() => _ScenarioPageState();
 }
 
 class _ScenarioPageState extends State<ScenarioPage> {
-  final ScenarioController _c = ScenarioController();
+  late final ScenarioController _c =
+      ScenarioController(
+          seatCharacters: widget.seatCharacters, seatWind: widget.seatWind);
 
   _Slot _slot = _Slot.hand;
   int _slotSeat = kHumanSeat;

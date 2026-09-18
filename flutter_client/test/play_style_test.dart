@@ -250,6 +250,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Read off the button itself: the bar carries two dials, and a riichi game
@@ -320,6 +322,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(const Key('builderPlayStyle')), 'Aggressive');
@@ -337,6 +341,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
     // The guide is off by default; the clefairy mark opens it.
     await tester.tap(find.byKey(const Key('guideToggle')));
@@ -371,6 +377,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Move the dial off its default so we can tell a surviving match from a
