@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'game/fullscreen.dart' as fs;
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/ruleset.dart';
+import 'telemetry/telemetry.dart' show persistentClientId;
 import 'ui/character_picker.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -361,23 +363,16 @@ class _FixedCanvasState extends State<_FixedCanvas> {
           autofocus: true,
           child: Listener(
             onPointerSignal: _onPointerSignal,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: InteractiveViewer(
-                    transformationController: _zoom,
-                    minScale: _minScale,
-                    maxScale: _maxScale,
-                    panEnabled: _zoomedIn,
-                    // The wheel is handled above, under a modifier. Leaving
-                    // the viewer's own scale gesture on would also bind a bare
-                    // trackpad pinch, which is the accident this build avoids.
-                    scaleEnabled: false,
-                    child: canvas,
-                  ),
-                ),
-                _zoomControls(),
-              ],
+            child: InteractiveViewer(
+              transformationController: _zoom,
+              minScale: _minScale,
+              maxScale: _maxScale,
+              panEnabled: _zoomedIn,
+              // The wheel is handled above, under a modifier. Leaving the
+              // viewer's own scale gesture on would also bind a bare trackpad
+              // pinch, which is the accident this build avoids.
+              scaleEnabled: false,
+              child: canvas,
             ),
           ),
         ),
@@ -385,9 +380,9 @@ class _FixedCanvasState extends State<_FixedCanvas> {
     );
   }
 
-  /// The zoom controls, bottom-right over the letterbox bar. Hidden on touch,
-  /// where pinch is the natural gesture and the buttons would only cover the
-  /// table. Reset is only offered once there is something to reset.
+  /// The zoom controls, stacked above the corner badge. Only built on desktop;
+  /// on touch, pinch is the natural gesture and the buttons would only cover
+  /// the table. Reset is only offered once there is something to reset.
   Widget _zoomControls() {
     Widget button(IconData icon, String tip, VoidCallback? onTap, Key key) =>
         Tooltip(
@@ -405,39 +400,61 @@ class _FixedCanvasState extends State<_FixedCanvas> {
           ),
         );
 
-    return Positioned(
-      right: 6,
-      bottom: 6,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0x99000000),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            button(
-                Icons.remove,
-                'Zoom out  (Ctrl/Cmd -)',
-                _scale > _minScale + 0.001
-                    ? () => _zoomBy(1 / _zoomStep)
-                    : null,
-                const Key('zoomOut')),
-            button(
-                Icons.add,
-                'Zoom in  (Ctrl/Cmd +)',
-                _scale < _maxScale - 0.001 ? () => _zoomBy(_zoomStep) : null,
-                const Key('zoomIn')),
-            button(
-                Icons.crop_free,
-                'Reset zoom  (Ctrl/Cmd 0)',
-                _zoomedIn ? () => _zoomTo(_minScale) : null,
-                const Key('zoomReset')),
-          ],
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x99000000),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          button(
+              Icons.remove,
+              'Zoom out  (Ctrl/Cmd -)',
+              _scale > _minScale + 0.001 ? () => _zoomBy(1 / _zoomStep) : null,
+              const Key('zoomOut')),
+          button(
+              Icons.add,
+              'Zoom in  (Ctrl/Cmd +)',
+              _scale < _maxScale - 0.001 ? () => _zoomBy(_zoomStep) : null,
+              const Key('zoomIn')),
+          button(
+              Icons.crop_free,
+              'Reset zoom  (Ctrl/Cmd 0)',
+              _zoomedIn ? () => _zoomTo(_minScale) : null,
+              const Key('zoomReset')),
+        ],
       ),
     );
   }
+
+  /// Bottom-right corner over the letterbox bar: the zoom controls on
+  /// desktop, and beneath them the client id and fullscreen button.
+  Widget _corner() => Positioned(
+        right: 6,
+        bottom: 4,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_FixedCanvas._deliberateZoom) _zoomControls(),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // There is no hover on touch, and on a phone the corner sits
+                // over the welcome screen's bottom buttons, so there the id is
+                // display-only and never eats a tap meant for the game.
+                IgnorePointer(
+                  ignoring: _FixedCanvas._pinchZoomable,
+                  child: const _ClientIdBadge(),
+                ),
+                const _FullscreenButton(),
+              ],
+            ),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -472,17 +489,161 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       // this the guide panel's outer edge sits under the notch. The letterbox
       // colour fills the inset, so nothing looks cut off.
       child: SafeArea(
-        child: _FixedCanvas._deliberateZoom
-            ? _desktopZoomable(canvas)
-            : _FixedCanvas._pinchZoomable
-                ? InteractiveViewer(
-                    transformationController: _zoom,
-                    minScale: _minScale,
-                    maxScale: _maxScale,
-                    panEnabled: _zoomedIn,
-                    child: canvas,
-                  )
-                : canvas,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _FixedCanvas._deliberateZoom
+                  ? _desktopZoomable(canvas)
+                  : _FixedCanvas._pinchZoomable
+                      ? InteractiveViewer(
+                          transformationController: _zoom,
+                          minScale: _minScale,
+                          maxScale: _maxScale,
+                          panEnabled: _zoomedIn,
+                          child: canvas,
+                        )
+                      : canvas,
+            ),
+            _corner(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// This device's client id in small white lettering, bottom-right. Hovering
+/// reveals a copy icon; clicking copies the id to the clipboard. Display-only
+/// on touch platforms (see [_FixedCanvasState._corner]).
+class _ClientIdBadge extends StatefulWidget {
+  const _ClientIdBadge();
+
+  @override
+  State<_ClientIdBadge> createState() => _ClientIdBadgeState();
+}
+
+class _ClientIdBadgeState extends State<_ClientIdBadge> {
+  final String _id = persistentClientId();
+  bool _hover = false;
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: _id));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    await Future<void>.delayed(const Duration(seconds: 2));
+    if (mounted) setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const shadow = [Shadow(color: Colors.black, blurRadius: 3)];
+    return Tooltip(
+      message: _copied ? 'Copied!' : 'Click to copy client ID',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          key: const Key('clientId'),
+          behavior: HitTestBehavior.opaque,
+          onTap: _copy,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _id,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    height: 1.2,
+                    shadows: shadow,
+                  ),
+                ),
+                if (_hover || _copied) ...[
+                  const SizedBox(width: 3),
+                  Icon(_copied ? Icons.check : Icons.copy,
+                      size: 10, color: Colors.white, shadows: shadow),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fullscreen toggle. Web only, and hidden once the app is installed (there is
+/// no browser chrome left to hide). Where the browser has no fullscreen API
+/// (iPhone Safari) it explains how to install the app instead.
+class _FullscreenButton extends StatefulWidget {
+  const _FullscreenButton();
+
+  @override
+  State<_FullscreenButton> createState() => _FullscreenButtonState();
+}
+
+class _FullscreenButtonState extends State<_FullscreenButton> {
+  void Function()? _unlisten;
+
+  @override
+  void initState() {
+    super.initState();
+    _unlisten = fs.listenFullscreenChange(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _unlisten?.call();
+    super.dispose();
+  }
+
+  void _showInstallHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Install TileSense'),
+        content: const Text(
+          "This browser can't go full screen from a web page. Install "
+          'TileSense as a web app instead and it opens full screen, with no '
+          'browser bars:\n\n'
+          '• iPhone / iPad: tap Share, then "Add to Home Screen"\n'
+          '• Chrome / Edge: use the install icon in the address bar, or '
+          'menu > "Install app"',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!fs.fullscreenButtonVisible) return const SizedBox.shrink();
+    final full = fs.isFullscreen;
+    return Tooltip(
+      message: full
+          ? 'Exit full screen'
+          : 'Full screen. For the best experience, install TileSense as a '
+              'web app (browser menu > Install / Add to Home Screen).',
+      child: IconButton(
+        key: const Key('fullscreen'),
+        icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen, size: 16),
+        onPressed: fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp,
+        visualDensity: VisualDensity.compact,
+        constraints: const BoxConstraints.tightFor(width: 24, height: 24),
+        padding: EdgeInsets.zero,
+        color: Colors.white,
+        hoverColor: const Color(0x22ffffff),
       ),
     );
   }

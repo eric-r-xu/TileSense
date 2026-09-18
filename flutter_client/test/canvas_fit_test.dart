@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/telemetry/telemetry.dart' show persistentClientId;
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 
@@ -168,6 +169,43 @@ void main() {
         await tester.pumpWidget(const SizedBox());
         await tester.pump();
       } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('the client id is shown, and a desktop click copies it',
+        (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      String? copied;
+      tester.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      });
+      try {
+        await tester.pumpWidget(const TileSenseApp());
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final badge = find.byKey(const Key('clientId'));
+        final id = tester.widget<Text>(
+            find.descendant(of: badge, matching: find.byType(Text))).data!;
+        expect(id, persistentClientId());
+        expect(id, matches(RegExp(r'^[0-9a-f-]{36}$')));
+
+        await tester.tap(badge);
+        await tester.pump();
+        expect(copied, id);
+
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      } finally {
+        tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null);
         debugDefaultTargetPlatformOverride = null;
       }
     });
