@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -153,7 +154,8 @@ void main() {
         // The buttons do. Reset is offered only once there is something to
         // reset, so it starts disabled and the canvas starts at fit.
         expect(
-            tester.widget<IconButton>(find.byKey(const Key('zoomReset')))
+            tester
+                .widget<IconButton>(find.byKey(const Key('zoomReset')))
                 .onPressed,
             isNull);
         await tester.tap(find.byKey(const Key('zoomIn')));
@@ -181,7 +183,7 @@ void main() {
       }
     });
 
-    testWidgets('the client id is shown, and a desktop click copies it',
+    testWidgets('the client id lives in a tooltip on the title screen only',
         (tester) async {
       await tester.binding.setSurfaceSize(kDesignSize);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -198,15 +200,38 @@ void main() {
         await tester.pumpWidget(const TileSenseApp());
         await tester.pump(const Duration(milliseconds: 100));
 
-        final badge = find.byKey(const Key('clientId'));
-        final id = tester.widget<Text>(
-            find.descendant(of: badge, matching: find.byType(Text))).data!;
-        expect(id, persistentClientId());
+        // Never printed as text — only inside the icon's tooltip.
+        final id = persistentClientId();
         expect(id, matches(RegExp(r'^[0-9a-f-]{36}$')));
+        expect(find.text(id), findsNothing);
+        final icon = find.byKey(const Key('clientId'));
+        expect(icon, findsOneWidget);
+        expect(
+            tester
+                .widget<Tooltip>(
+                    find.ancestor(of: icon, matching: find.byType(Tooltip)))
+                .message,
+            contains(id));
 
-        await tester.tap(badge);
+        // Hovering shows it, big and readable.
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        addTearDown(mouse.removePointer);
+        await mouse.moveTo(tester.getCenter(icon));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(
+            find.text('Client device ID\n$id\nClick to copy'), findsOneWidget);
+
+        await tester.tap(icon);
         await tester.pump();
         expect(copied, id);
+
+        // Not on the character screen, nor at the table.
+        await tester.tap(find.text('Play Offline'));
+        await tester.pump();
+        expect(find.byKey(const Key('clientId')), findsNothing);
+        await tester.tap(find.byKey(const Key('charactersContinue')));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.byKey(const Key('clientId')), findsNothing);
 
         await tester.pump(const Duration(seconds: 3));
         await tester.pumpWidget(const SizedBox());
