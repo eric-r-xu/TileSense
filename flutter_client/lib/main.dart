@@ -380,7 +380,7 @@ class _FixedCanvasState extends State<_FixedCanvas> {
     );
   }
 
-  /// The zoom controls, stacked above the corner badge. Only built on desktop;
+  /// The zoom controls. Only built on desktop;
   /// on touch, pinch is the natural gesture and the buttons would only cover
   /// the table. Reset is only offered once there is something to reset.
   Widget _zoomControls() {
@@ -428,27 +428,10 @@ class _FixedCanvasState extends State<_FixedCanvas> {
     );
   }
 
-  /// Bottom-right corner over the letterbox bar: the zoom controls on
-  /// desktop, and beneath them the client id.
-  Widget _corner() => Positioned(
-        right: 6,
-        bottom: 4,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (_FixedCanvas._deliberateZoom) _zoomControls(),
-            const SizedBox(height: 2),
-            // There is no hover on touch, and on a phone the corner sits over
-            // the welcome screen's bottom buttons, so there the id is
-            // display-only and never eats a tap meant for the game.
-            IgnorePointer(
-              ignoring: _FixedCanvas._pinchZoomable,
-              child: const _ClientIdBadge(),
-            ),
-          ],
-        ),
-      );
+  /// The zoom controls, bottom-right over the letterbox bar. Desktop only.
+  Widget _corner() => _FixedCanvas._deliberateZoom
+      ? Positioned(right: 6, bottom: 6, child: _zoomControls())
+      : const SizedBox.shrink();
 
   @override
   Widget build(BuildContext context) {
@@ -506,20 +489,18 @@ class _FixedCanvasState extends State<_FixedCanvas> {
   }
 }
 
-/// This device's client id, bottom-right, drawn in a whisper of white so it
-/// blends into whatever is behind it. Hovering brings it up to full white with
-/// a copy icon; clicking copies the id to the clipboard. Display-only on touch
-/// platforms (see [_FixedCanvasState._corner]).
-class _ClientIdBadge extends StatefulWidget {
-  const _ClientIdBadge();
+/// A small computer icon whose tooltip shows this device's client id in large,
+/// high-contrast type. Clicking (or tapping) copies the id to the clipboard.
+/// Only the title screen carries it.
+class _ClientIdIcon extends StatefulWidget {
+  const _ClientIdIcon();
 
   @override
-  State<_ClientIdBadge> createState() => _ClientIdBadgeState();
+  State<_ClientIdIcon> createState() => _ClientIdIconState();
 }
 
-class _ClientIdBadgeState extends State<_ClientIdBadge> {
+class _ClientIdIconState extends State<_ClientIdIcon> {
   final String _id = persistentClientId();
-  bool _hover = false;
   bool _copied = false;
 
   Future<void> _copy() async {
@@ -531,46 +512,37 @@ class _ClientIdBadgeState extends State<_ClientIdBadge> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    const shadow = [Shadow(color: Colors.black, blurRadius: 3)];
-    final revealed = _hover || _copied;
-    return Tooltip(
-      message: _copied ? 'Copied!' : 'Click to copy client ID',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: GestureDetector(
-          key: const Key('clientId'),
-          behavior: HitTestBehavior.opaque,
-          onTap: _copy,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _id,
-                  style: TextStyle(
-                    color:
-                        revealed ? Colors.white : const Color(0x0fffffff),
-                    fontSize: 9,
-                    height: 1.2,
-                    shadows: revealed ? shadow : null,
-                  ),
-                ),
-                if (revealed) ...[
-                  const SizedBox(width: 3),
-                  Icon(_copied ? Icons.check : Icons.copy,
-                      size: 10, color: Colors.white, shadows: shadow),
-                ],
-              ],
-            ),
-          ),
+  Widget build(BuildContext context) => Tooltip(
+        message:
+            'Client device ID\n$_id\n${_copied ? 'Copied!' : 'Click to copy'}',
+        waitDuration: Duration.zero,
+        showDuration: const Duration(seconds: 8),
+        preferBelow: false,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xffffdf76),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.black, width: 2),
+          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 12)],
         ),
-      ),
-    );
-  }
+        textStyle: const TextStyle(
+          color: Colors.black,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          height: 1.4,
+        ),
+        child: IconButton(
+          key: const Key('clientId'),
+          icon: Icon(_copied ? Icons.check : Icons.computer, size: 18),
+          onPressed: _copy,
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+          padding: EdgeInsets.zero,
+          color: Colors.white60,
+          hoverColor: const Color(0x22ffffff),
+        ),
+      );
 }
 
 /// Fullscreen toggle, shown on the welcome screen. Web only, and hidden once
@@ -1271,147 +1243,160 @@ class _WelcomeScreen extends StatelessWidget {
       color: kLetterboxColor,
       // Scrollable rather than fixed: this screen can be taller than the
       // design canvas leaves room for at some window sizes.
-      child: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/clefairy.png',
-                  height: 140,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Welcome to',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Text(
-                  'TileSense',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xffe9d58f),
-                    fontSize: 66,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Three balanced lines, broken by hand rather than by the
-                // wrapper. Left to itself at a snug width the first line lands
-                // within a pixel of the limit, so any browser whose default face
-                // runs a hair wider than Roboto spills it to four. The box is
-                // ~30% wider than the longest line needs, which keeps these
-                // three lines three lines. Re-balance the breaks if the text
-                // changes — the longest line here measures ~560px.
-                SizedBox(
-                  width: 720,
-                  child: Text(
-                    'TileSense is a Flutter Web App built to give you a feel for\n'
-                    'optimal ${ruleset.label} Mahjong play, with recommended actions\n'
-                    'scored by efficiency, expected value, and safety.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 22.5,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _rulesetChoice(),
-                const SizedBox(height: 10),
-                const _FullscreenButton(),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton(
-                      onPressed: onStart,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffcaa24e),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
-                      child: const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Play Offline',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 2),
-                          Text(
-                            'Includes the guide',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.black54),
-                          ),
-                        ],
+                    Image.asset(
+                      'assets/clefairy.png',
+                      height: 140,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Welcome to',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      key: const Key('playOnline'),
-                      onPressed: onPlayOnline,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xffe9d58f),
-                        side: const BorderSide(color: Color(0xffcaa24e)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                      ),
-                      child: const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Play Online',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 2),
-                          Text(
-                            'With friends — bots fill empty seats, no guide',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.white60),
-                          ),
-                        ],
+                    const Text(
+                      'TileSense',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xffe9d58f),
+                        fontSize: 66,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      key: const Key('openBuilder'),
-                      onPressed: onBuild,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xffe9d58f),
-                        side: const BorderSide(color: Color(0xffcaa24e)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
+                    const SizedBox(height: 20),
+                    // Three balanced lines, broken by hand rather than by the
+                    // wrapper. Left to itself at a snug width the first line lands
+                    // within a pixel of the limit, so any browser whose default face
+                    // runs a hair wider than Roboto spills it to four. The box is
+                    // ~30% wider than the longest line needs, which keeps these
+                    // three lines three lines. Re-balance the breaks if the text
+                    // changes — the longest line here measures ~560px.
+                    SizedBox(
+                      width: 720,
+                      child: Text(
+                        'TileSense is a Flutter Web App built to give you a feel for\n'
+                        'optimal ${ruleset.label} Mahjong play, with recommended actions\n'
+                        'scored by efficiency, expected value, and safety.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 22.5,
+                          height: 1.4,
+                        ),
                       ),
-                      child: const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Custom Hand & Context Builder',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 2),
-                          Text(
-                            'Pose any table and have TileSense score it',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.white60),
+                    ),
+                    const SizedBox(height: 18),
+                    _rulesetChoice(),
+                    const SizedBox(height: 10),
+                    const _FullscreenButton(),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: onStart,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xffcaa24e),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                           ),
-                        ],
-                      ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Play Offline',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold)),
+                              SizedBox(height: 2),
+                              Text(
+                                'Includes the guide',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black54),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          key: const Key('playOnline'),
+                          onPressed: onPlayOnline,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xffe9d58f),
+                            side: const BorderSide(color: Color(0xffcaa24e)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Play Online',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold)),
+                              SizedBox(height: 2),
+                              Text(
+                                'With friends — bots fill empty seats, no guide',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.white60),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          key: const Key('openBuilder'),
+                          onPressed: onBuild,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xffe9d58f),
+                            side: const BorderSide(color: Color(0xffcaa24e)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Custom Hand & Context Builder',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold)),
+                              SizedBox(height: 2),
+                              Text(
+                                'Pose any table and have TileSense score it',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.white60),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          // Above the desktop zoom controls, which share this corner.
+          Positioned(
+            right: 8,
+            bottom: _FixedCanvas._deliberateZoom ? 44 : 8,
+            child: const _ClientIdIcon(),
+          ),
+        ],
       ),
     );
   }
