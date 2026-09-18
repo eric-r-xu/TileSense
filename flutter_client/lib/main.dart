@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'game/app_update.dart' as upd;
 import 'game/fullscreen.dart' as fs;
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
@@ -553,6 +554,94 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
         icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen, size: 22),
         label: Text(full ? 'Exit full screen' : 'Full screen'),
         onPressed: fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp,
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xff80cbc4),
+          textStyle: const TextStyle(fontSize: 15),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Update" button, shown on the welcome screen. Web only. An installed or
+/// home-screen app has no reload control and nothing in the bundle is
+/// content-hashed, so this is how a player picks up a new deploy: it asks the
+/// server which build it has, then reloads with every cache dropped. Only on
+/// the welcome screen, so a reload never lands mid-match.
+class _UpdateButton extends StatefulWidget {
+  const _UpdateButton();
+
+  @override
+  State<_UpdateButton> createState() => _UpdateButtonState();
+}
+
+class _UpdateButtonState extends State<_UpdateButton> {
+  bool _busy = false;
+
+  Future<void> _onPressed() async {
+    setState(() => _busy = true);
+    final status = await upd.checkForUpdate();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    final (title, body, action) = switch (status) {
+      upd.UpdateStatus.updateAvailable => (
+          'Update available',
+          'A newer version of TileSense is ready. Update now to get it.',
+          'Update now',
+        ),
+      upd.UpdateStatus.upToDate => (
+          "You're up to date",
+          'This is the latest version. Refresh anyway to re-download every '
+              'file.',
+          'Refresh anyway',
+        ),
+      upd.UpdateStatus.unknown => (
+          'Refresh TileSense',
+          "Couldn't tell whether a newer version exists. Refresh to "
+              'download the latest files.',
+          'Refresh',
+        ),
+    };
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          TextButton(
+            key: const Key('updateConfirm'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    setState(() => _busy = true);
+    await upd.applyUpdate();
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!upd.updateButtonVisible) return const SizedBox.shrink();
+    return Tooltip(
+      message: 'Check for a newer version and refresh the app',
+      child: TextButton.icon(
+        key: const Key('updateApp'),
+        icon: _busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.refresh, size: 22),
+        label: Text(_busy ? 'Working…' : 'Update'),
+        onPressed: _busy ? null : _onPressed,
         style: TextButton.styleFrom(
           foregroundColor: const Color(0xff80cbc4),
           textStyle: const TextStyle(fontSize: 15),
@@ -1243,7 +1332,10 @@ class _WelcomeScreen extends StatelessWidget {
                     const SizedBox(height: 18),
                     _rulesetChoice(),
                     const SizedBox(height: 10),
-                    const _FullscreenButton(),
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [_FullscreenButton(), _UpdateButton()],
+                    ),
                     const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

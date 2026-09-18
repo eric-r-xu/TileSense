@@ -18,7 +18,7 @@ enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah, acquiescement, win }
 /// whatever's left to bot-filled seats — see `Room.resolveCharacter` on the
 /// multiplayer server, whose spellings (`.name` here) this enum must
 /// keep matching.
-enum Character { eric, orderic, grant, hubert, astaroth, erika }
+enum Character { eric, orderic, grant, hubert, astaroth, erika, melissa }
 
 /// The personas a human can pick from online. `resolveCharacter`
 /// falls back to any unclaimed character in the full pool for a
@@ -31,6 +31,7 @@ const List<Character> kSelectableCharacters = [
   Character.grant,
   Character.hubert,
   Character.erika,
+  Character.melissa,
 ];
 
 const Map<Character, String> kCharacterName = {
@@ -40,6 +41,7 @@ const Map<Character, String> kCharacterName = {
   Character.hubert: 'Hubert',
   Character.astaroth: 'Astaroth',
   Character.erika: 'Erika',
+  Character.melissa: 'Melissa',
 };
 
 const Map<Character, String> kCharacterPortrait = {
@@ -49,6 +51,7 @@ const Map<Character, String> kCharacterPortrait = {
   Character.hubert: 'assets/hubert/hubert.png',
   Character.astaroth: 'assets/astaroth/astaroth.png',
   Character.erika: 'assets/erika/erika.png',
+  Character.melissa: 'assets/melissa/melissa.png',
 };
 
 /// Fire-and-forget sound player.
@@ -118,6 +121,17 @@ class Sfx {
       VoiceKind.yeah: 'erika/Erika_Yeah.wav',
       VoiceKind.acquiescement: 'erika/Erika_Acquiescement.wav',
       VoiceKind.win: 'erika/Erika_Win.wav',
+    },
+    Character.melissa: {
+      VoiceKind.chi: 'melissa/Melissa_Chi.wav',
+      VoiceKind.pon: 'melissa/Melissa_Pon.wav',
+      VoiceKind.kan: 'melissa/Melissa_Kan.wav',
+      VoiceKind.riichi: 'melissa/Melissa_Riichi.wav',
+      VoiceKind.ron: 'melissa/Melissa_ron.wav',
+      VoiceKind.tsumo: 'melissa/Melissa_Tsumo.wav',
+      VoiceKind.yeah: 'melissa/Melissa_Yeah.wav',
+      VoiceKind.acquiescement: 'melissa/Melissa_Acquiescement.wav',
+      VoiceKind.win: 'melissa/Melissa_Win.wav',
     },
     Character.orderic: {
       VoiceKind.chi: 'orderic/Orderic_Chi.wav',

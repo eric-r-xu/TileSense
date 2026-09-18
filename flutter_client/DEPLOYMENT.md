@@ -166,6 +166,24 @@ it installable and offline-capable:
   it's fast) so a changed `.wav` on the server is picked up on the very next
   load instead of whenever a long-lived cache happens to expire.
 
+### Update button
+
+The welcome screen has an **Update** button (web only) so an installed or
+home-screen app, which has no reload control, can pick up a new deploy. It
+asks the server for `build_id.json`, compares it with the `BUILD_ID` compiled
+into the running bundle, and on a mismatch (or "Refresh anyway") drops service
+workers and caches, re-downloads the app shell and every bundled media file
+with `cache: 'reload'` (so the one-day media cache can't hold back a changed
+`.wav`), and reloads.
+
+- Deploys must pass `--dart-define=BUILD_ID=<id>` **and** publish the same id
+  as `build_id.json` in `build/web/` (the snippets in the DigitalOcean section
+  do both). `build_id.json` must not be long-cached; the blanket
+  `Cache-Control: no-cache` covers it.
+- Without a build id (a dev build, or a deploy that doesn't stamp one) the
+  check is inconclusive and the button just offers a refresh.
+- Build ids are compared for equality only, so any unique string works.
+
 ---
 
 ## DigitalOcean (web)
@@ -240,9 +258,12 @@ the Flutter SDK — a plain "static site" build command can't run
 
 ```sh
 cd flutter_client
-flutter build web --release
-
 RELEASE=$(date +%Y%m%d%H%M%S)
+flutter build web --release --dart-define=BUILD_ID=$RELEASE
+# The welcome screen's Update button compares this file to the id baked into
+# the running bundle. See "Update button" below.
+printf '{"build_id":"%s"}' "$RELEASE" > build/web/build_id.json
+
 ssh root@<droplet-ip> "mkdir -p /var/www/tilesense/releases/$RELEASE"
 # --delete matters: it removes files from the new release dir that no longer
 # exist in build/web, so a renamed/removed .wav can't linger.
@@ -275,7 +296,9 @@ the app and serves the result with Nginx:
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
 COPY . .
-RUN flutter build web --release
+RUN BUILD_ID=$(date +%Y%m%d%H%M%S) \
+ && flutter build web --release --dart-define=BUILD_ID=$BUILD_ID \
+ && printf '{"build_id":"%s"}' "$BUILD_ID" > build/web/build_id.json
 
 FROM nginx:alpine
 COPY --from=build /app/build/web /usr/share/nginx/html
