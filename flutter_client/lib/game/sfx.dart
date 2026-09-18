@@ -63,9 +63,12 @@ class Sfx {
 
   final AudioBackend _audio = AudioBackend();
 
-  /// Off by default — see the sound toggle in `ui/hand_view.dart` (and
-  /// `GameController.setSoundOn`) for why.
-  bool enabled = false;
+  /// On by default; the character-select screen's Sound checkbox and the
+  /// toggle in `ui/hand_view.dart` (both via `GameController.setSoundOn`) turn
+  /// it off. Browsers keep the audio context locked until the first gesture
+  /// (see `armFirstGestureUnlock`), so nothing plays before the player has
+  /// tapped something regardless of this flag.
+  bool enabled = true;
 
   /// Test seam: when set, every line the game asks for is recorded here. The
   /// audio stack has no plugin under a test binding, so this is the only way

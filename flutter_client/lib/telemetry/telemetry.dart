@@ -48,6 +48,24 @@ String newUuid() {
       '-${s.substring(16, 20)}-${s.substring(20)}';
 }
 
+String? _memoClientId;
+
+/// This device's persistent client id — the same value telemetry reports as
+/// `client_id`, and the one the UI shows in the corner. Stored in
+/// `localStorage` on web; on native it is memoized for the life of the app
+/// (there is no prefs store wired up yet), so it regenerates per launch.
+/// Safe to call whether or not telemetry is enabled.
+String persistentClientId() {
+  const key = 'ts_client_id';
+  final memo = _memoClientId;
+  if (memo != null) return memo;
+  final existing = platform.localStorageGet(key);
+  if (existing != null && existing.isNotEmpty) return _memoClientId = existing;
+  final id = newUuid();
+  platform.localStorageSet(key, id);
+  return _memoClientId = id;
+}
+
 class Telemetry {
   Telemetry._(this._endpoint) {
     _flushTimer =
@@ -70,14 +88,7 @@ class Telemetry {
   static const int _maxBuffered = 500;
   static const int _flushAt = 25;
 
-  String get _clientId {
-    const key = 'ts_client_id';
-    final existing = platform.localStorageGet(key);
-    if (existing != null && existing.isNotEmpty) return existing;
-    final id = newUuid();
-    platform.localStorageSet(key, id);
-    return id;
-  }
+  String get _clientId => persistentClientId();
 
   void _add(String type, Map<String, Object?> data) {
     _buf.add({

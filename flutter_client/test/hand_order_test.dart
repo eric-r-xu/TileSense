@@ -27,6 +27,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     for (var i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }

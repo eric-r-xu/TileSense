@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'game/fullscreen.dart' as fs;
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/ruleset.dart';
-import 'ui/character_picker.dart';
+import 'telemetry/telemetry.dart' show persistentClientId;
+import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/online_page.dart';
@@ -361,23 +363,16 @@ class _FixedCanvasState extends State<_FixedCanvas> {
           autofocus: true,
           child: Listener(
             onPointerSignal: _onPointerSignal,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: InteractiveViewer(
-                    transformationController: _zoom,
-                    minScale: _minScale,
-                    maxScale: _maxScale,
-                    panEnabled: _zoomedIn,
-                    // The wheel is handled above, under a modifier. Leaving
-                    // the viewer's own scale gesture on would also bind a bare
-                    // trackpad pinch, which is the accident this build avoids.
-                    scaleEnabled: false,
-                    child: canvas,
-                  ),
-                ),
-                _zoomControls(),
-              ],
+            child: InteractiveViewer(
+              transformationController: _zoom,
+              minScale: _minScale,
+              maxScale: _maxScale,
+              panEnabled: _zoomedIn,
+              // The wheel is handled above, under a modifier. Leaving the
+              // viewer's own scale gesture on would also bind a bare trackpad
+              // pinch, which is the accident this build avoids.
+              scaleEnabled: false,
+              child: canvas,
             ),
           ),
         ),
@@ -385,9 +380,9 @@ class _FixedCanvasState extends State<_FixedCanvas> {
     );
   }
 
-  /// The zoom controls, bottom-right over the letterbox bar. Hidden on touch,
-  /// where pinch is the natural gesture and the buttons would only cover the
-  /// table. Reset is only offered once there is something to reset.
+  /// The zoom controls, stacked above the corner badge. Only built on desktop;
+  /// on touch, pinch is the natural gesture and the buttons would only cover
+  /// the table. Reset is only offered once there is something to reset.
   Widget _zoomControls() {
     Widget button(IconData icon, String tip, VoidCallback? onTap, Key key) =>
         Tooltip(
@@ -405,39 +400,55 @@ class _FixedCanvasState extends State<_FixedCanvas> {
           ),
         );
 
-    return Positioned(
-      right: 6,
-      bottom: 6,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0x99000000),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            button(
-                Icons.remove,
-                'Zoom out  (Ctrl/Cmd -)',
-                _scale > _minScale + 0.001
-                    ? () => _zoomBy(1 / _zoomStep)
-                    : null,
-                const Key('zoomOut')),
-            button(
-                Icons.add,
-                'Zoom in  (Ctrl/Cmd +)',
-                _scale < _maxScale - 0.001 ? () => _zoomBy(_zoomStep) : null,
-                const Key('zoomIn')),
-            button(
-                Icons.crop_free,
-                'Reset zoom  (Ctrl/Cmd 0)',
-                _zoomedIn ? () => _zoomTo(_minScale) : null,
-                const Key('zoomReset')),
-          ],
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x99000000),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          button(
+              Icons.remove,
+              'Zoom out  (Ctrl/Cmd -)',
+              _scale > _minScale + 0.001 ? () => _zoomBy(1 / _zoomStep) : null,
+              const Key('zoomOut')),
+          button(
+              Icons.add,
+              'Zoom in  (Ctrl/Cmd +)',
+              _scale < _maxScale - 0.001 ? () => _zoomBy(_zoomStep) : null,
+              const Key('zoomIn')),
+          button(
+              Icons.crop_free,
+              'Reset zoom  (Ctrl/Cmd 0)',
+              _zoomedIn ? () => _zoomTo(_minScale) : null,
+              const Key('zoomReset')),
+        ],
       ),
     );
   }
+
+  /// Bottom-right corner over the letterbox bar: the zoom controls on
+  /// desktop, and beneath them the client id.
+  Widget _corner() => Positioned(
+        right: 6,
+        bottom: 4,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_FixedCanvas._deliberateZoom) _zoomControls(),
+            const SizedBox(height: 2),
+            // There is no hover on touch, and on a phone the corner sits over
+            // the welcome screen's bottom buttons, so there the id is
+            // display-only and never eats a tap meant for the game.
+            IgnorePointer(
+              ignoring: _FixedCanvas._pinchZoomable,
+              child: const _ClientIdBadge(),
+            ),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -472,17 +483,165 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       // this the guide panel's outer edge sits under the notch. The letterbox
       // colour fills the inset, so nothing looks cut off.
       child: SafeArea(
-        child: _FixedCanvas._deliberateZoom
-            ? _desktopZoomable(canvas)
-            : _FixedCanvas._pinchZoomable
-                ? InteractiveViewer(
-                    transformationController: _zoom,
-                    minScale: _minScale,
-                    maxScale: _maxScale,
-                    panEnabled: _zoomedIn,
-                    child: canvas,
-                  )
-                : canvas,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _FixedCanvas._deliberateZoom
+                  ? _desktopZoomable(canvas)
+                  : _FixedCanvas._pinchZoomable
+                      ? InteractiveViewer(
+                          transformationController: _zoom,
+                          minScale: _minScale,
+                          maxScale: _maxScale,
+                          panEnabled: _zoomedIn,
+                          child: canvas,
+                        )
+                      : canvas,
+            ),
+            _corner(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// This device's client id, bottom-right, drawn in a whisper of white so it
+/// blends into whatever is behind it. Hovering brings it up to full white with
+/// a copy icon; clicking copies the id to the clipboard. Display-only on touch
+/// platforms (see [_FixedCanvasState._corner]).
+class _ClientIdBadge extends StatefulWidget {
+  const _ClientIdBadge();
+
+  @override
+  State<_ClientIdBadge> createState() => _ClientIdBadgeState();
+}
+
+class _ClientIdBadgeState extends State<_ClientIdBadge> {
+  final String _id = persistentClientId();
+  bool _hover = false;
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: _id));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    await Future<void>.delayed(const Duration(seconds: 2));
+    if (mounted) setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const shadow = [Shadow(color: Colors.black, blurRadius: 3)];
+    final revealed = _hover || _copied;
+    return Tooltip(
+      message: _copied ? 'Copied!' : 'Click to copy client ID',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          key: const Key('clientId'),
+          behavior: HitTestBehavior.opaque,
+          onTap: _copy,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _id,
+                  style: TextStyle(
+                    color:
+                        revealed ? Colors.white : const Color(0x0fffffff),
+                    fontSize: 9,
+                    height: 1.2,
+                    shadows: revealed ? shadow : null,
+                  ),
+                ),
+                if (revealed) ...[
+                  const SizedBox(width: 3),
+                  Icon(_copied ? Icons.check : Icons.copy,
+                      size: 10, color: Colors.white, shadows: shadow),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fullscreen toggle, shown on the welcome screen. Web only, and hidden once
+/// the app is installed (there is no browser chrome left to hide). Where the
+/// browser has no fullscreen API (iPhone Safari) it explains how to install
+/// the app instead.
+class _FullscreenButton extends StatefulWidget {
+  const _FullscreenButton();
+
+  @override
+  State<_FullscreenButton> createState() => _FullscreenButtonState();
+}
+
+class _FullscreenButtonState extends State<_FullscreenButton> {
+  void Function()? _unlisten;
+
+  @override
+  void initState() {
+    super.initState();
+    _unlisten = fs.listenFullscreenChange(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _unlisten?.call();
+    super.dispose();
+  }
+
+  void _showInstallHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Install TileSense'),
+        content: const Text(
+          "This browser can't go full screen from a web page. Install "
+          'TileSense as a web app instead and it opens full screen, with no '
+          'browser bars:\n\n'
+          '• iPhone / iPad: tap Share, then "Add to Home Screen"\n'
+          '• Chrome / Edge: use the install icon in the address bar, or '
+          'menu > "Install app"',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!fs.fullscreenButtonVisible) return const SizedBox.shrink();
+    final full = fs.isFullscreen;
+    return Tooltip(
+      message: full
+          ? 'Exit full screen'
+          : 'Full screen. For the best experience, install TileSense as a '
+              'web app (browser menu > Install / Add to Home Screen).',
+      child: TextButton.icon(
+        key: const Key('fullscreen'),
+        icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen, size: 22),
+        label: Text(full ? 'Exit full screen' : 'Full screen'),
+        onPressed: fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp,
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xff80cbc4),
+          textStyle: const TextStyle(fontSize: 15),
+        ),
       ),
     );
   }
@@ -557,6 +716,9 @@ class _RotatePrompt extends StatelessWidget {
       );
 }
 
+/// Where the character-select screen leads on.
+enum _CharacterStepFor { offline, builder }
+
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
 
@@ -577,6 +739,10 @@ class _GamePageState extends State<GamePage> {
   // owns its own controller and never touches [_game], so a game in progress
   // is still here when you come back.
   bool _showBuilder = false;
+
+  // The character-select screen between the welcome screen and wherever the
+  // player is headed — the offline table or the builder. Null when not on it.
+  _CharacterStepFor? _choosingCharactersFor;
 
   // Online multiplayer, reached from the welcome screen. Like the builder it
   // owns its own controller (an [OnlineGameController], not [_game]) so
@@ -642,6 +808,8 @@ class _GamePageState extends State<GamePage> {
     if (_showBuilder) {
       return ScenarioPage(
         initialRuleset: _game.ruleset,
+        seatCharacters: List.of(_game.seatCharacters),
+        seatWind: _game.humanStartingWind,
         onExit: () => setState(() => _showBuilder = false),
       );
     }
@@ -657,18 +825,48 @@ class _GamePageState extends State<GamePage> {
       );
     }
     if (_showWelcome) {
+      final choosing = _choosingCharactersFor;
+      if (choosing != null) {
+        return CharacterSelectPage(
+          seatCharacters: _game.seatCharacters,
+          onSeatCharacter: (seat, c) =>
+              setState(() => _game.setSeatCharacter(seat, c)),
+          startingDealer: _game.startingDealer,
+          onStartingDealer: (seat) =>
+              setState(() => _game.setStartingDealer(seat)),
+          onRandomize: () => setState(() {
+            final picks = randomSeatCharacters();
+            for (var seat = 0; seat < picks.length; seat++) {
+              _game.setSeatCharacter(seat, picks[seat]);
+            }
+            _game.setStartingDealer(randomStartingDealer());
+          }),
+          advanceLabel: switch (choosing) {
+            _CharacterStepFor.offline => 'Start',
+            _CharacterStepFor.builder => 'Open Builder',
+          },
+          soundOn: _game.soundOn,
+          onSoundOn: (on) => setState(() => _game.setSoundOn(on)),
+          onBack: () => setState(() => _choosingCharactersFor = null),
+          onAdvance: () => setState(() {
+            _choosingCharactersFor = null;
+            switch (choosing) {
+              case _CharacterStepFor.offline:
+                if (_game.paused) _game.togglePause();
+                _showWelcome = false;
+              case _CharacterStepFor.builder:
+                _showBuilder = true;
+            }
+          }),
+        );
+      }
       return _WelcomeScreen(
         ruleset: _game.ruleset,
         onRuleset: (r) => setState(() => _game.setRuleset(r)),
-        seatCharacters: _game.seatCharacters,
-        onSeatCharacter: (seat, c) => setState(() {
-          _game.setSeatCharacter(seat, c);
-        }),
-        onStart: () => setState(() {
-          if (_game.paused) _game.togglePause();
-          _showWelcome = false;
-        }),
-        onBuild: () => setState(() => _showBuilder = true),
+        onStart: () =>
+            setState(() => _choosingCharactersFor = _CharacterStepFor.offline),
+        onBuild: () =>
+            setState(() => _choosingCharactersFor = _CharacterStepFor.builder),
         onPlayOnline: () => setState(() => _showOnline = true),
       );
     }
@@ -986,8 +1184,6 @@ class _WelcomeScreen extends StatelessWidget {
   const _WelcomeScreen({
     required this.ruleset,
     required this.onRuleset,
-    required this.seatCharacters,
-    required this.onSeatCharacter,
     required this.onStart,
     required this.onBuild,
     required this.onPlayOnline,
@@ -996,12 +1192,6 @@ class _WelcomeScreen extends StatelessWidget {
   /// The rules Start and the builder will use, and how to change them.
   final Ruleset ruleset;
   final ValueChanged<Ruleset> onRuleset;
-
-  /// Every seat's persona for the offline game Start deals into — index 0 is
-  /// the human seat. Defaults to [kSeatCharacters]; see
-  /// [GameController.setSeatCharacter].
-  final List<Character> seatCharacters;
-  final void Function(int seat, Character character) onSeatCharacter;
 
   final VoidCallback onStart;
 
@@ -1072,90 +1262,6 @@ class _WelcomeScreen extends StatelessWidget {
     );
   }
 
-  static const _seatPosition = ['You', 'Right', 'Across', 'Left'];
-
-  /// Every seat's persona, human included — defaults to [kSeatCharacters].
-  /// Bots have always had a fixed voice and portrait; this just makes that
-  /// choice visible and changeable instead of hardcoded.
-  ///
-  /// One small avatar per seat rather than a full picker row per seat: this
-  /// screen has no room to spare for four rows of five 52px portraits each.
-  /// Tapping an avatar opens the same [CharacterRow] picker the online lobby
-  /// uses, in a dialog, for that one seat.
-  Widget _characterChoice(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text('CHOOSE YOUR CHARACTERS',
-            style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8)),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var seat = 0; seat < seatCharacters.length; seat++)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: GestureDetector(
-                  key: Key('seatCharacterAvatar_$seat'),
-                  onTap: () => _pickCharacter(context, seat),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xff0c4747),
-                          border: Border.fromBorderSide(
-                              BorderSide(color: Color(0xffcaa24e))),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Image.asset(
-                          kCharacterPortrait[seatCharacters[seat]]!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(_seatPosition[seat],
-                          style: const TextStyle(
-                              color: Colors.white54, fontSize: 10)),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Future<void> _pickCharacter(BuildContext context, int seat) => showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: kLetterboxColor,
-          title: Text('${_seatPosition[seat]}\'s character'),
-          content: SizedBox(
-            width: 340,
-            child: CharacterRow(
-              options: Character.values,
-              selected: seatCharacters[seat],
-              keyPrefix: 'seatCharacterPick_$seat',
-              onSelect: (c) {
-                onSeatCharacter(seat, c);
-                Navigator.of(context).pop();
-              },
-            ),
-          ),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     // Material ancestor: without one, Text on web can render with a stray
@@ -1163,9 +1269,8 @@ class _WelcomeScreen extends StatelessWidget {
     // Scaffold's own Material).
     return Material(
       color: kLetterboxColor,
-      // Scrollable rather than fixed: the character choice below made this
-      // screen taller than the design canvas leaves room for at some window
-      // sizes, where it used to always fit without scrolling.
+      // Scrollable rather than fixed: this screen can be taller than the
+      // design canvas leaves room for at some window sizes.
       child: SingleChildScrollView(
         child: Center(
           child: Padding(
@@ -1223,7 +1328,7 @@ class _WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 _rulesetChoice(),
                 const SizedBox(height: 10),
-                _characterChoice(context),
+                const _FullscreenButton(),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

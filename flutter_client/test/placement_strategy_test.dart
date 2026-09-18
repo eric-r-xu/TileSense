@@ -259,6 +259,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(const Key('strategy')), 'Points');
@@ -279,6 +281,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('guideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -304,6 +308,8 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Play Offline'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byKey(const Key('strategy')));

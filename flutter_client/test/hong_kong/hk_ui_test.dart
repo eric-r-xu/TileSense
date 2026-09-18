@@ -69,6 +69,8 @@ void main() {
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Random'));
     await tester.pump(const Duration(milliseconds: 100));
