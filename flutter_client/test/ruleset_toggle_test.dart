@@ -128,16 +128,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('🇭🇰 Hong Kong rules ⇄'), findsOneWidget);
+    expect(find.text('🇭🇰 HK'), findsOneWidget);
     expect(find.text('Honba '), findsNothing);
     expect(find.text('Your flowers (0)'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('builderRuleset')));
+    await tester.tap(find.byKey(const Key('builderRuleset_riichi')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('🇯🇵 Riichi rules ⇄'), findsOneWidget);
     expect(find.text('Honba '), findsOneWidget);
     expect(find.text('Dora (1)'), findsOneWidget);
 

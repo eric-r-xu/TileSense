@@ -77,11 +77,16 @@ void main() {
     await tester.pump();
     expect(_name(tester, 0), 'Melissa');
 
+    await tester.tap(find.byKey(const Key('seatCharacterPick_2_matityahu')));
+    await tester.pump();
+    expect(_name(tester, 2), 'Matityahu');
+
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
     final table = tester.widget<TableView>(find.byType(TableView));
     expect(table.game.characterForSeat(1), Character.erika);
     expect(table.game.characterForSeat(0), Character.melissa);
+    expect(table.game.characterForSeat(2), Character.matityahu);
   });
 
   testWidgets('you are not fixed as East: pick a wind and the deal follows',
@@ -109,18 +114,6 @@ void main() {
     expect(game.round.dealer, 2);
     expect(game.round.seats[0].wind, Wind.west);
     expect(game.round.seats[2].wind, Wind.east);
-  });
-
-  testWidgets('the builder starts on the wind you chose', (tester) async {
-    await _boot(tester);
-    await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('startWind_north')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
-    await tester.pump(const Duration(milliseconds: 100));
-    final game = tester.widget<TableView>(find.byType(TableView)).game;
-    expect(game.round.seats[0].wind, Wind.north);
   });
 
   testWidgets('randomize reshuffles the characters, and Back leaves',
@@ -179,21 +172,14 @@ void main() {
         Icons.volume_off);
   });
 
-  testWidgets('the builder goes through character select too', (tester) async {
+  testWidgets('the builder skips character select and draws four characters',
+      (tester) async {
     await _boot(tester);
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump();
-    expect(find.byType(CharacterSelectPage), findsOneWidget);
-    expect(find.byType(ScenarioPage), findsNothing);
-
-    await tester.tap(find.byKey(const Key('seatCharacterPick_2_eric')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
-
+    expect(find.byType(CharacterSelectPage), findsNothing);
     expect(find.byType(ScenarioPage), findsOneWidget);
-    final table = tester.widget<TableView>(find.byType(TableView));
-    expect(table.game.characterForSeat(2), Character.eric);
-    expect(table.game.seatLabel(2), 'Eric');
+    final game = tester.widget<TableView>(find.byType(TableView)).game;
+    expect({for (var i = 0; i < 4; i++) game.characterForSeat(i)}.length, 4);
   });
 }

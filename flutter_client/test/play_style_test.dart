@@ -316,20 +316,15 @@ void main() {
     }
   });
 
-  testWidgets('the builder exposes it too', (tester) async {
+  testWidgets('the builder tool bar has no play-style button', (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(labelOf(const Key('builderPlayStyle')), 'Aggressive');
-    await tester.tap(find.byKey(const Key('builderPlayStyle')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('builderPlayStyle')), 'Defensive');
+    expect(find.byKey(const Key('builderPlayStyle')), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

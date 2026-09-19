@@ -28,7 +28,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('charactersContinue')));
       await tester.pump(const Duration(milliseconds: 100));
 
       // The guide panel hugs the canvas's left edge, so a notch eats it first.
@@ -58,7 +57,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('charactersContinue')));
       await tester.pump(const Duration(milliseconds: 100));
 
       // With no insets the canvas should use the full width it can.

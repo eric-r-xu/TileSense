@@ -674,9 +674,11 @@ class TableView extends StatelessWidget {
     // guest nickname online, the fixed persona name offline.
     // The number follows the current wind, not the fixed character position.
     final seatNumber = round.ruleset.isHongKong ? '${s.wind.index + 1} ' : '';
+    // The Custom Hand & Context Builder (`edits` set) shows just the wind: who
+    // sits where is not part of a posed table.
+    final name = edits == null ? '${game.seatLabel(seat)}  ' : ' ';
     final label = '$seatNumber${s.wind.kanji}(${s.wind.initial}) '
-        '${game.seatLabel(seat)}'
-        '  ${s.points}${s.riichi ? '  ◉' : ''}';
+        '$name${s.points}${s.riichi ? '  ◉' : ''}';
     final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

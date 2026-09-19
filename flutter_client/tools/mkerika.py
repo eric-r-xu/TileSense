@@ -27,7 +27,10 @@ PITCH = 1.05
 # words per minute. 20 wpm slower than the original 185/165 pair — a calmer
 # cadence reads as less clipped/robotic than a rushed one.
 RATE = 170
-ACQUIESCEMENT_RATE = 150
+# Disappointed "boo": `say` can't hold a vowel, so the clip is slowed by
+# ACQUIESCEMENT_STRETCH (<1 = longer, pitch-preserving) on top of a slow rate.
+ACQUIESCEMENT_RATE = 90
+ACQUIESCEMENT_STRETCH = 0.6
 
 LINES = {
     "Erika_Chi.wav": ("Chee!", RATE),
@@ -37,7 +40,7 @@ LINES = {
     "Erika_ron.wav": ("Ron!", RATE),
     "Erika_Tsumo.wav": ("Tsoo-moh!", RATE),
     "Erika_Yeah.wav": ("Yeah!", RATE),
-    "Erika_Acquiescement.wav": ("Okay.", ACQUIESCEMENT_RATE),
+    "Erika_Acquiescement.wav": ("Boooo.", ACQUIESCEMENT_RATE),
     "Erika_Win.wav": ("I win!", RATE),
 }
 
@@ -49,6 +52,7 @@ FILTER = (
     "areverse,"
     "alimiter=limit=0.89:level=false"
 )
+STRETCH = {"Erika_Acquiescement.wav": ACQUIESCEMENT_STRETCH}
 
 for name, (text, rate) in LINES.items():
     aiff = f"/tmp/{name}.aiff"
@@ -59,7 +63,7 @@ for name, (text, rate) in LINES.items():
     subprocess.run(
         [
             "ffmpeg", "-y", "-i", aiff,
-            "-af", FILTER,
+            "-af", FILTER + (f",atempo={STRETCH[name]}" if name in STRETCH else ""),
             "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le",
             out,
         ],

@@ -527,7 +527,7 @@ class _HandViewState extends State<HandView> {
     // Centred (rather than left-aligned) so it lines up under the seat badge
     // above it instead of hugging the left edge of the bar.
     return SizedBox(
-      height: 34,
+      height: 48,
       width: double.infinity,
       child: Align(
         alignment: Alignment.center,
@@ -545,11 +545,12 @@ class _HandViewState extends State<HandView> {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          minimumSize: const Size(72, 44),
         ),
         onPressed: onTap,
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(label,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
       );
 }
 
