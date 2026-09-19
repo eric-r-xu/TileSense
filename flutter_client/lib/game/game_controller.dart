@@ -12,6 +12,7 @@ import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import '../telemetry/telemetry.dart';
+import 'call_callout.dart';
 import 'guide_host.dart';
 import 'sfx.dart';
 
@@ -542,7 +543,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   void _scheduleLoop() {
     if (_disposed || paused || (_loopTimer?.isActive ?? false)) return;
-    _loopTimer = Timer(_stepDelay, _tick);
+    // A call bubble is on screen: hold the next step until it has gone.
+    _loopTimer = Timer(_stepDelay + CallCallout.i.remaining, _tick);
   }
 
   void _tick() {
@@ -588,10 +590,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
     } else if (decision.closedKan != null) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
+      CallCallout.i.show(seat, 'KAN');
       round.closedKan(seat, decision.closedKan!);
     } else if (decision.addedKan != null) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
+      CallCallout.i.show(seat, 'KAN');
       round.addKan(seat, decision.addedKan!);
     } else {
       // Riichi has its own declaration sound; a plain discard gets the tile
@@ -600,6 +604,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       if (decision.riichi) {
         Sfx.i.play(SfxKind.riichi);
         Sfx.i.voice(VoiceKind.riichi, character: _characterForSeat(seat));
+        CallCallout.i.show(seat, 'RIICHI');
       } else {
         Sfx.i.play(SfxKind.discard);
       }
@@ -665,6 +670,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // acknowledgement right after.
     for (var wi = 0; wi < res.winners.length; wi++) {
       final seat = res.winners[wi];
+      CallCallout.i.show(seat, winLine.name);
       final bigHand =
           wi < res.scores.length && ruleset.isBigHand(res.scores[wi]);
       final winner = _characterForSeat(seat);
@@ -703,6 +709,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       };
       if (vk != null) {
         Sfx.i.voice(vk, character: _characterForSeat(e.key));
+        CallCallout.i.show(e.key, vk.name);
       }
     }
   }
@@ -846,7 +853,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
       return;
     }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
-    if (declareRiichi) Sfx.i.voice(VoiceKind.riichi);
+    if (declareRiichi) {
+      Sfx.i.voice(VoiceKind.riichi);
+      CallCallout.i.show(kHumanSeat, 'RIICHI');
+    }
     if (_tel != null) {
       final recos = [
         for (final l in report.lines)
@@ -896,6 +906,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan);
+      CallCallout.i.show(kHumanSeat, 'KAN');
       round.closedKan(kHumanSeat, type);
       _refreshReport();
       notifyListeners();
@@ -908,6 +919,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan);
+      CallCallout.i.show(kHumanSeat, 'KAN');
       round.addKan(kHumanSeat, type);
       _refreshReport();
       notifyListeners();

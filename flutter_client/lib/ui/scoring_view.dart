@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../game/call_callout.dart';
 import '../game/guide_host.dart';
 import 'package:mahjong_core/hand_parse.dart';
 import 'package:mahjong_core/round.dart';
@@ -47,14 +48,27 @@ class _ScoringViewState extends State<ScoringView> {
 
   TableGameHost get game => widget.game;
 
+  // A tsumo / ron bubble may still be flashing on the table; hold the panel
+  // back until it has gone so it isn't hidden behind the scrim.
+  bool _revealed = true;
+  Timer? _revealTimer;
+
   @override
   void initState() {
     super.initState();
+    final wait = CallCallout.i.remaining;
+    if (wait > Duration.zero) {
+      _revealed = false;
+      _revealTimer = Timer(wait, () {
+        if (mounted) setState(() => _revealed = true);
+      });
+    }
     _startCountdown();
   }
 
   @override
   void dispose() {
+    _revealTimer?.cancel();
     _timer?.cancel();
     super.dispose();
   }
@@ -102,6 +116,7 @@ class _ScoringViewState extends State<ScoringView> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_revealed) return const SizedBox.shrink();
     final round = game.round;
     final r = round.result!;
     final gameOver = game.phase == GamePhase.gameEnd;

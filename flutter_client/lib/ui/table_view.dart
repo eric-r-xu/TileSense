@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../game/call_callout.dart';
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../game/sfx.dart' show kCharacterPortrait;
@@ -661,7 +662,25 @@ class TableView extends StatelessWidget {
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
-    return tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
+    final portrait =
+        tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
+    // The call bubble hangs off the portrait's inner side (towards the table)
+    // without taking any layout space, so it can't shift the seat's row.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        portrait,
+        Positioned(
+          top: size * 0.1,
+          // Left seat: bubble to the right of the portrait. Every other seat:
+          // to its left (the bottom and top portraits have the placard on
+          // their right).
+          left: seat == 3 ? size + 6 : null,
+          right: seat == 3 ? null : size + 6,
+          child: _CallBubble(seat: seat),
+        ),
+      ],
+    );
   }
 
   /// Seat placard (wind + score), with Hong Kong's matching bonus-tile number.
@@ -1005,6 +1024,77 @@ class _RemovableRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The 0.6s "PON" / "CHI" / "KAN" / "RON" / "TSUMO" / "RIICHI" bubble beside a seat's
+/// portrait: white text on black. Empty (and non-interactive) the rest of the
+/// time; [CallCallout] says when a call happens and this owns the flash timer.
+class _CallBubble extends StatefulWidget {
+  const _CallBubble({required this.seat});
+  final int seat;
+
+  @override
+  State<_CallBubble> createState() => _CallBubbleState();
+}
+
+class _CallBubbleState extends State<_CallBubble> {
+  String? _text;
+  Timer? _timer;
+  // Calls made before this bubble existed are history, not something to flash.
+  int _seenId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _seenId = CallCallout.i.latest(widget.seat)?.id ?? 0;
+    CallCallout.i.addListener(_onCall);
+  }
+
+  void _onCall() {
+    final call = CallCallout.i.latest(widget.seat);
+    if (call == null || call.id == _seenId) return;
+    _seenId = call.id;
+    _timer?.cancel();
+    _timer = Timer(CallCallout.flash, () {
+      if (mounted) setState(() => _text = null);
+    });
+    setState(() => _text = call.text);
+  }
+
+  @override
+  void dispose() {
+    CallCallout.i.removeListener(_onCall);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = _text;
+    if (text == null) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: Container(
+        key: ValueKey('call-bubble-${widget.seat}'),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: Text(
+          text,
+          maxLines: 1,
+          softWrap: false,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
+        ),
+      ),
     );
   }
 }

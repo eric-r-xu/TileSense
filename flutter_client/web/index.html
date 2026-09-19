@@ -59,9 +59,59 @@
       touch-action: none;
       overscroll-behavior: none;
     }
+
+    /* Loading screen: shown from the very first paint until Flutter draws its
+       first frame (the engine + main.dart.js can take seconds on a cold
+       cache or a slow phone connection, which otherwise looks like a blank
+       page). Removed by the script below on `flutter-first-frame`. */
+    #ts-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: #042020;
+      color: #e9d58f;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity 0.25s ease-out;
+    }
+    #ts-loading.done { opacity: 0; pointer-events: none; }
+    #ts-loading .title { font-size: 28px; font-weight: 800; letter-spacing: 2px; }
+    #ts-loading .spinner {
+      width: 38px;
+      height: 38px;
+      border: 4px solid rgba(233, 213, 143, 0.25);
+      border-top-color: #e9d58f;
+      border-radius: 50%;
+      animation: ts-spin 0.9s linear infinite;
+    }
+    #ts-loading .hint { font-size: 13px; opacity: 0; transition: opacity 0.4s; }
+    #ts-loading .hint.show { opacity: 0.75; }
+    @keyframes ts-spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
+  <div id="ts-loading" role="status" aria-live="polite">
+    <div class="title">TileSense</div>
+    <div class="spinner"></div>
+    <div class="hint" id="ts-loading-hint">Still loading&hellip; if this stays here, try reloading the page.</div>
+  </div>
+  <script>
+    (function () {
+      var el = document.getElementById('ts-loading');
+      var hint = document.getElementById('ts-loading-hint');
+      var slow = setTimeout(function () { hint.className = 'hint show'; }, 12000);
+      function hide() {
+        clearTimeout(slow);
+        el.className = 'done';
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
+      }
+      window.addEventListener('flutter-first-frame', hide, { once: true });
+    })();
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

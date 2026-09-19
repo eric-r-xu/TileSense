@@ -11,7 +11,7 @@ import 'package:mahjong_core/ruleset.dart';
 
 import '../game/online_game_controller.dart';
 import '../game/sfx.dart'
-    show Character, kCharacterPortrait, kSelectableCharacters;
+    show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
 import '../main.dart' show kLetterboxColor;
 import 'character_picker.dart';
 import 'client_id_text.dart';
@@ -37,8 +37,10 @@ class OnlineLobbyPage extends StatefulWidget {
 }
 
 class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
-  late final TextEditingController _nameCtl =
-      TextEditingController(text: widget.controller.displayName);
+  late final TextEditingController _nameCtl = TextEditingController(
+      text: _isDefaultName(widget.controller.displayName)
+          ? kCharacterName[widget.controller.myCharacter]
+          : widget.controller.displayName);
   late final TextEditingController _joinCtl =
       TextEditingController(text: widget.initialJoinCode ?? '');
   late Ruleset _ruleset = widget.initialRuleset;
@@ -47,6 +49,11 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   String? _shownError;
 
   OnlineGameController get game => widget.controller;
+
+  /// A blank name, or one that is just some character's name, is a default
+  /// rather than something the player typed — it follows the chosen character.
+  static bool _isDefaultName(String name) =>
+      name.trim().isEmpty || kCharacterName.containsValue(name.trim());
 
   @override
   void dispose() {
@@ -256,7 +263,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       child: CharacterRow(
         options: kSelectableCharacters,
         selected: _character,
-        onSelect: (c) => setState(() => _character = c),
+        onSelect: (c) => setState(() {
+          _character = c;
+          if (_isDefaultName(_nameCtl.text)) _nameCtl.text = kCharacterName[c]!;
+        }),
       ),
     );
   }

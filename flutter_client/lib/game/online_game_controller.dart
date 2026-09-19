@@ -16,6 +16,7 @@ import 'package:mahjong_core/mahjong_core.dart';
 import '../logic/efficiency_engine.dart';
 import '../net/guest_identity.dart';
 import '../net/mp_client.dart';
+import 'call_callout.dart';
 import 'game_controller.dart' show kHumanSeat;
 import 'guide_host.dart';
 import 'sfx.dart';
@@ -149,8 +150,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     });
   }
 
-  String get _effectiveName =>
-      _identity.name.trim().isEmpty ? 'Guest' : _identity.name.trim();
+  /// A blank name defaults to the chosen character's, not "Guest".
+  String get _effectiveName => _identity.name.trim().isEmpty
+      ? kCharacterName[_identity.character]!
+      : _identity.name.trim();
 
   void startGame() {
     if (roomPhase == RoomLifecycle.lobby) _client.send({'type': 'start_game'});
@@ -386,7 +389,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       playCallVoice(previousRound, round, characterForSeat);
 
   /// Plays the call blip and the caller's spoken line for every seat that
-  /// just completed a chi/pon/kan, same as `GameController._playCallSfx`. A
+  /// just completed a chi/pon/kan (and flashes RIICHI for one that just declared), same as `GameController._playCallSfx`. A
   /// static function taking [characterForSeat] as a parameter, so it is
   /// unit-testable without a live connection, same as [playRoundEndVoice].
   @visibleForTesting
@@ -396,6 +399,12 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     Character Function(int seat) characterForSeat,
   ) {
     for (var s = 0; s < 4; s++) {
+      // Riichi has no meld, so it is spotted by the flag flipping on.
+      if (previousRound != null &&
+          !previousRound.seats[s].riichi &&
+          round.seats[s].riichi) {
+        CallCallout.i.show(s, 'RIICHI');
+      }
       final kind = newMeldKind(previousRound, round, s);
       if (kind == null) continue;
       Sfx.i.play(kind);
@@ -405,7 +414,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         SfxKind.kan => VoiceKind.kan,
         _ => null, // unreachable: newMeldKind only ever returns these three
       };
-      if (vk != null) Sfx.i.voice(vk, character: characterForSeat(s));
+      if (vk != null) {
+        Sfx.i.voice(vk, character: characterForSeat(s));
+        CallCallout.i.show(s, vk.name);
+      }
     }
   }
 
@@ -886,6 +898,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     // resigned acknowledgement right after.
     for (var wi = 0; wi < res.winners.length; wi++) {
       final seat = res.winners[wi];
+      CallCallout.i.show(seat, winLine.name);
       final bigHand =
           wi < res.scores.length && ruleset.isBigHand(res.scores[wi]);
       final winner = characterForSeat(seat);
