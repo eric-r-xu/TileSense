@@ -21,7 +21,7 @@ SOURCES = ROOT / 'tools/audio_sources/melissa'
 FRAME_MS = 5.0
 SYLLABLES = {
     'Chi': 1, 'Pon': 1, 'Kan': 1, 'Riichi': 2, 'ron': 1,
-    'Tsumo': 2, 'Acquiescement': 2, 'Win': 2,
+    'Tsumo': 2, 'Acquiescement': 1, 'Win': 2,
 }
 # Very high laugh pitch obscures these vowels; use its lower register while
 # retaining the same contour, coloration, breathiness and pulse timing.

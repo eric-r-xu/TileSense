@@ -18,7 +18,16 @@ enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah, acquiescement, win }
 /// whatever's left to bot-filled seats — see `Room.resolveCharacter` on the
 /// multiplayer server, whose spellings (`.name` here) this enum must
 /// keep matching.
-enum Character { eric, orderic, grant, hubert, astaroth, erika, melissa }
+enum Character {
+  eric,
+  orderic,
+  grant,
+  hubert,
+  astaroth,
+  erika,
+  melissa,
+  matityahu
+}
 
 /// The personas a human can pick from online. `resolveCharacter`
 /// falls back to any unclaimed character in the full pool for a
@@ -32,6 +41,7 @@ const List<Character> kSelectableCharacters = [
   Character.hubert,
   Character.erika,
   Character.melissa,
+  Character.matityahu,
 ];
 
 const Map<Character, String> kCharacterName = {
@@ -42,6 +52,7 @@ const Map<Character, String> kCharacterName = {
   Character.astaroth: 'Astaroth',
   Character.erika: 'Erika',
   Character.melissa: 'Melissa',
+  Character.matityahu: 'Matityahu',
 };
 
 const Map<Character, String> kCharacterPortrait = {
@@ -52,6 +63,7 @@ const Map<Character, String> kCharacterPortrait = {
   Character.astaroth: 'assets/astaroth/astaroth.png',
   Character.erika: 'assets/erika/erika.png',
   Character.melissa: 'assets/melissa/melissa.png',
+  Character.matityahu: 'assets/matityahu/matityahu.png',
 };
 
 /// Fire-and-forget sound player.
@@ -100,6 +112,17 @@ class Sfx {
   /// Per-character voice assets. `null` means that character has no recording
   /// for that line, so it is silently skipped.
   static const Map<Character, Map<VoiceKind, String?>> _voiceAsset = {
+    Character.matityahu: {
+      VoiceKind.chi: 'matityahu/Matityahu_Chi.wav',
+      VoiceKind.pon: 'matityahu/Matityahu_Pon.wav',
+      VoiceKind.kan: 'matityahu/Matityahu_Kan.wav',
+      VoiceKind.riichi: 'matityahu/Matityahu_Riichi.wav',
+      VoiceKind.ron: 'matityahu/Matityahu_ron.wav',
+      VoiceKind.tsumo: 'matityahu/Matityahu_Tsumo.wav',
+      VoiceKind.yeah: 'matityahu/Matityahu_Yeah.wav',
+      VoiceKind.acquiescement: 'matityahu/Matityahu_Acquiescement.wav',
+      VoiceKind.win: 'matityahu/Matityahu_Win.wav',
+    },
     Character.eric: {
       VoiceKind.chi: 'eric/Eric_Chi.wav',
       VoiceKind.pon: 'eric/Eric_Pon.wav',

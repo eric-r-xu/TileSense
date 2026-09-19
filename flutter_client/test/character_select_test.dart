@@ -77,11 +77,16 @@ void main() {
     await tester.pump();
     expect(_name(tester, 0), 'Melissa');
 
+    await tester.tap(find.byKey(const Key('seatCharacterPick_2_matityahu')));
+    await tester.pump();
+    expect(_name(tester, 2), 'Matityahu');
+
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
     final table = tester.widget<TableView>(find.byType(TableView));
     expect(table.game.characterForSeat(1), Character.erika);
     expect(table.game.characterForSeat(0), Character.melissa);
+    expect(table.game.characterForSeat(2), Character.matityahu);
   });
 
   testWidgets('you are not fixed as East: pick a wind and the deal follows',
