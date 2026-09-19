@@ -11,6 +11,7 @@ import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -720,9 +721,6 @@ class _RotatePrompt extends StatelessWidget {
       );
 }
 
-/// Where the character-select screen leads on.
-enum _CharacterStepFor { offline, builder }
-
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
 
@@ -744,9 +742,14 @@ class _GamePageState extends State<GamePage> {
   // is still here when you come back.
   bool _showBuilder = false;
 
-  // The character-select screen between the welcome screen and wherever the
-  // player is headed — the offline table or the builder. Null when not on it.
-  _CharacterStepFor? _choosingCharactersFor;
+  // Who sits where in the builder, drawn afresh each time it opens: it has no
+  // character-select step of its own.
+  List<Character> _builderCharacters = randomSeatCharacters();
+  Wind _builderWind = Wind.east;
+
+  // The character-select screen between the welcome screen and the offline
+  // table.
+  bool _choosingCharacters = false;
 
   // Online multiplayer, reached from the welcome screen. Like the builder it
   // owns its own controller (an [OnlineGameController], not [_game]) so
@@ -812,8 +815,8 @@ class _GamePageState extends State<GamePage> {
     if (_showBuilder) {
       return ScenarioPage(
         initialRuleset: _game.ruleset,
-        seatCharacters: List.of(_game.seatCharacters),
-        seatWind: _game.humanStartingWind,
+        seatCharacters: _builderCharacters,
+        seatWind: _builderWind,
         onExit: () => setState(() => _showBuilder = false),
       );
     }
@@ -829,8 +832,7 @@ class _GamePageState extends State<GamePage> {
       );
     }
     if (_showWelcome) {
-      final choosing = _choosingCharactersFor;
-      if (choosing != null) {
+      if (_choosingCharacters) {
         return CharacterSelectPage(
           seatCharacters: _game.seatCharacters,
           onSeatCharacter: (seat, c) =>
@@ -845,32 +847,26 @@ class _GamePageState extends State<GamePage> {
             }
             _game.setStartingDealer(randomStartingDealer());
           }),
-          advanceLabel: switch (choosing) {
-            _CharacterStepFor.offline => 'Start',
-            _CharacterStepFor.builder => 'Open Builder',
-          },
+          advanceLabel: 'Start',
           soundOn: _game.soundOn,
           onSoundOn: (on) => setState(() => _game.setSoundOn(on)),
-          onBack: () => setState(() => _choosingCharactersFor = null),
+          onBack: () => setState(() => _choosingCharacters = false),
           onAdvance: () => setState(() {
-            _choosingCharactersFor = null;
-            switch (choosing) {
-              case _CharacterStepFor.offline:
-                if (_game.paused) _game.togglePause();
-                _showWelcome = false;
-              case _CharacterStepFor.builder:
-                _showBuilder = true;
-            }
+            _choosingCharacters = false;
+            if (_game.paused) _game.togglePause();
+            _showWelcome = false;
           }),
         );
       }
       return _WelcomeScreen(
         ruleset: _game.ruleset,
         onRuleset: (r) => setState(() => _game.setRuleset(r)),
-        onStart: () =>
-            setState(() => _choosingCharactersFor = _CharacterStepFor.offline),
-        onBuild: () =>
-            setState(() => _choosingCharactersFor = _CharacterStepFor.builder),
+        onStart: () => setState(() => _choosingCharacters = true),
+        onBuild: () => setState(() {
+          _builderCharacters = randomSeatCharacters();
+          _builderWind = Wind.values[randomStartingDealer()];
+          _showBuilder = true;
+        }),
         onPlayOnline: () => setState(() => _showOnline = true),
       );
     }

@@ -238,13 +238,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('charactersContinue')));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Seat 東 ★'), findsOneWidget, reason: 'dealer by default');
-      await tester.tap(find.byKey(const Key('seatWind')));
+      // The starting wind is random; tap round to East, which deals.
+      final seat = find.byKey(const Key('seatWind'));
+      String label() => tester.widget<Text>(find.descendant(
+          of: seat, matching: find.byType(Text))).data!;
+      for (var i = 0; i < 4 && label() != 'Seat 東 ★'; i++) {
+        await tester.tap(seat);
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(label(), 'Seat 東 ★');
+      await tester.tap(seat);
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Seat 南'), findsOneWidget);
+      expect(label(), 'Seat 南');
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox());
@@ -262,7 +269,6 @@ void main() {
 
       await tester.tap(find.byKey(const Key('openBuilder')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('charactersContinue')));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byType(ScenarioPage), findsOneWidget);
       // The guide is always on here, and the table is the real one.
@@ -289,7 +295,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('charactersContinue')));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Random'));
       await tester.pump(const Duration(milliseconds: 100));

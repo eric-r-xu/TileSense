@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../game/sfx.dart' show Character;
-import '../../main.dart' show playStyleColor;
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
@@ -205,6 +204,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
     });
   }
 
+  /// A seat's wind letter (E/S/W/N) — the builder labels seats by wind, not
+  /// by character.
+  String _windOf(int seat) => _c.round.seats[seat].wind.initial;
+
   // --- build -----------------------------------------------------------
 
   @override
@@ -302,25 +305,18 @@ class _ScenarioPageState extends State<ScenarioPage> {
               errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 30)),
           const SizedBox(width: 8),
           const Text('Custom Hand & Context Builder',
-              style: TextStyle(fontSize: 16)),
+              style: TextStyle(fontSize: 14)),
         ],
       ),
       actions: [
-        // Hidden under Hong Kong, which pins style to Balanced (see
-        // ScenarioController.setRuleset) rather than show a dial that
-        // changes nothing.
-        if (!_hk)
-          Tooltip(
-            message: 'How hard the guide pushes',
-            child: TextButton(
-              key: const Key('builderPlayStyle'),
-              onPressed: () => _edit((sc) => sc.style = sc.style.next),
-              style: _barButton(playStyleColor(s.style)),
-              child: Text(s.style.label),
-            ),
-          ),
-        _windPicker(),
-        _seatWindPicker(),
+        _rulesetToggle(),
+        const SizedBox(width: 8),
+        // Round and seat wind share one row so they sit level with each other.
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [_windPicker(), _seatWindPicker()],
+        ),
         const SizedBox(width: 8),
         _stepper('Wall', s.wallRemaining,
             (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, sc.maxWall))),
@@ -332,7 +328,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           _stepper('Sticks', s.riichiSticks,
               (v) => _edit((sc) => sc.riichiSticks = v.clamp(0, 9))),
         ],
-        const SizedBox(width: 12),
+        const SizedBox(width: 6),
         TextButton.icon(
           onPressed: _randomize,
           icon: const Icon(Icons.casino, size: 16),
@@ -363,6 +359,49 @@ class _ScenarioPageState extends State<ScenarioPage> {
             fontSize: 12,
             fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
       );
+
+  /// Hong Kong vs Riichi, side by side; the active one is filled. Switching
+  /// clears the table, since the two rule sets share no tile state.
+  Widget _rulesetToggle() {
+    Widget option(Ruleset r, String label) {
+      final selected = s.ruleset == r;
+      return InkWell(
+        key: Key('builderRuleset_${r.name}'),
+        borderRadius: BorderRadius.circular(6),
+        onTap: selected
+            ? null
+            : () => setState(() {
+                  _slot = _Slot.hand;
+                  _slotSeat = kHumanSeat;
+                  _aka = false;
+                  _c.setRuleset(r);
+                }),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xff6d4c41) : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+                color: selected ? const Color(0xffe9d58f) : Colors.white24),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : Colors.white60)),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        option(Ruleset.hongKong, '🇭🇰 HK'),
+        const SizedBox(width: 4),
+        option(Ruleset.riichi, '🇯🇵 Riichi'),
+      ],
+    );
+  }
 
   Widget _windPicker() {
     const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
@@ -517,18 +556,6 @@ class _ScenarioPageState extends State<ScenarioPage> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          // Which rules the table is scored under. Switching clears it.
-          chip(
-              '${s.ruleset.flagLabel} rules ⇄',
-              true,
-              key: const Key('builderRuleset'),
-              tint: const Color(0xff6d4c41),
-              () => setState(() {
-                    _slot = _Slot.hand;
-                    _slotSeat = kHumanSeat;
-                    _aka = false;
-                    _c.setRuleset(s.ruleset.next);
-                  })),
           const VerticalDivider(width: 14, color: Colors.white24),
           chip(
               'Your hand (${s.hand.length})',
@@ -541,7 +568,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
               _slot == _Slot.offer, () => setState(() => _slot = _Slot.offer)),
           chip(
               _hk
-                  ? '${_slotSeat == kHumanSeat ? 'Your' : kSeatNames[_slotSeat]} '
+                  ? '${_slotSeat == kHumanSeat ? 'Your' : _windOf(_slotSeat)} '
                       'flowers (${s.seats[_slotSeat].flowers.length})'
                   : 'Dora (${s.dora.length})',
               _slot == _Slot.dora,
@@ -549,7 +576,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           const VerticalDivider(width: 14, color: Colors.white24),
           for (var seat = 0; seat < 4; seat++) ...[
             chip(
-                '${seat == kHumanSeat ? "You" : kSeatNames[seat]} pond '
+                '${seat == kHumanSeat ? "You" : _windOf(seat)} pond '
                 '(${s.seats[seat].pond.length})',
                 _slot == _Slot.pond && _slotSeat == seat, () {
               setState(() {
@@ -691,7 +718,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                             : const Color(0xff294342),
                         borderRadius: BorderRadius.circular(5),
                       ),
-                      child: Text(kSeatNames[seat],
+                      child: Text(_windOf(seat),
                           style: const TextStyle(fontSize: 11)),
                     ),
                   ),
