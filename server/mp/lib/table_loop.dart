@@ -13,18 +13,20 @@ import 'package:mahjong_core/mahjong_core.dart';
 import 'room.dart';
 
 class TableLoop {
-  /// The four durations below default to their production values; tests
+  /// The turn and call clocks default to the room's chosen
+  /// [Room.timerSeconds] (30 or 60); the other durations to their production
+  /// values; tests
   /// override them to make timeout/disconnect/bot-takeover paths exercisable
   /// in milliseconds instead of tens of real seconds.
   TableLoop(
     this.room, {
-    Duration turnTimeout = const Duration(seconds: 30),
-    Duration callTimeout = const Duration(seconds: 10),
+    Duration? turnTimeout,
+    Duration? callTimeout,
     Duration disconnectGrace = const Duration(seconds: 30),
     Duration continueTimeout = const Duration(seconds: 20),
     Duration botTurnPace = const Duration(milliseconds: 900),
-  })  : _turnTimeout = turnTimeout,
-        _callTimeout = callTimeout,
+  })  : _turnTimeout = turnTimeout ?? Duration(seconds: room.timerSeconds),
+        _callTimeout = callTimeout ?? Duration(seconds: room.timerSeconds),
         _disconnectGrace = disconnectGrace,
         _continueTimeout = continueTimeout,
         _botTurnPace = botTurnPace;
@@ -74,8 +76,9 @@ class TableLoop {
   bool _lastDiscardTsumogiri = false;
 
   /// When the seat currently on the clock (round.turn, mid `discardingPhase`)
-  /// must act by, or null when nobody's turn timer is running — between
-  /// actions, during the call phase, and at round end. Read by [_sendStateTo]
+  /// must act by — or, during the call phase, when the players offered a call
+  /// must answer by — or null when no timer is running (between actions and at
+  /// round end). Read by [_sendStateTo]
   /// so every client can render the same countdown for whoever's turn it is.
   DateTime? _actionDeadline;
 
@@ -312,10 +315,13 @@ class TableLoop {
     }
 
     if (humanSeats.isNotEmpty) {
+      // Clients render the same countdown for a pending call as for a turn.
+      _actionDeadline = DateTime.now().add(_callTimeout);
       _broadcastState();
       final answers = await Future.wait([
         for (final seat in humanSeats) _awaitHumanAction(seat, _callTimeout)
       ]);
+      _actionDeadline = null;
       if (_ended) return;
       for (var i = 0; i < humanSeats.length; i++) {
         final seat = humanSeats[i];

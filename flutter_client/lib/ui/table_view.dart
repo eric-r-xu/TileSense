@@ -466,45 +466,101 @@ class TableView extends StatelessWidget {
   /// two turned seats — without this animation needing to know which seat it
   /// is. (Verified by hand for all four `quarterTurns` values: a positive
   /// local y always rotates to point away from the centre status block.)
-  static const Offset _pondArrivalFrom = Offset(0, 26);
+  static const Offset _pondArrivalFrom = Offset(0, 40);
 
   /// A one-shot "it just landed here" transition for a freshly discarded
-  /// tile: it eases in from [_pondArrivalFrom] while fading and scaling up,
-  /// so it reads as having travelled from the hand rather than having
-  /// appeared. Kept well under a single turn's step delay (see
-  /// `GameController._stepDelay`) so it never laps the next action.
+  /// tile: it glides in from [_pondArrivalFrom] while fading and growing
+  /// slightly, so it reads as having travelled from the hand rather than
+  /// having appeared. The slide, fade and scale run on their own curves —
+  /// a long, soft deceleration for the slide, a quick fade so the tile is
+  /// solid before it lands, and a gentle scale that settles with it — so no
+  /// single property snaps into place. Kept under a single turn's step delay
+  /// (see `GameController._stepDelay`, 552ms in fast mode) to within a whisker,
+  /// so it never really laps the next action.
   Widget _travelIn(Key key, {required Widget child}) {
     return TweenAnimationBuilder<double>(
       key: key,
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 576),
+      curve: Curves.linear,
+      builder: (_, t, c) {
+        // Three keyframes rather than two: glide in, ride a hair past the
+        // slot, then settle back into it.
+        final slide = _pondSlide.transform(t);
+        final fade = Curves.easeOut.transform((t / 0.45).clamp(0.0, 1.0));
+        final scale = _pondScale3.transform(t);
+        return Opacity(
+          opacity: fade,
+          child: Transform.translate(
+            offset: _pondArrivalFrom * (1 - slide),
+            child: Transform.scale(scale: scale, child: c),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
+  /// 1 = at rest in the slot; the middle keyframe overshoots to 1.06 (a few
+  /// pixels past it) before the last one settles back. Applied as
+  /// `_pondArrivalFrom * (1 - slide)`, so an overshoot slides the tile briefly
+  /// *past* its slot, away from where it came from.
+  static final TweenSequence<double> _pondSlide = TweenSequence<double>([
+    TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 1.06)
+            .chain(CurveTween(curve: Curves.easeOutQuart)),
+        weight: 70),
+    TweenSequenceItem(
+        tween: Tween(begin: 1.06, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOutSine)),
+        weight: 30),
+  ]);
+
+  static final TweenSequence<double> _pondScale3 = TweenSequence<double>([
+    TweenSequenceItem(
+        tween: Tween(begin: 0.85, end: 1.04)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 65),
+    TweenSequenceItem(
+        tween: Tween(begin: 1.04, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOutSine)),
+        weight: 35),
+  ]);
+
+  /// A one-shot pop-in for a newly formed meld (chi/pon/kan) or a riichi
+  /// stick, so a call reads as the set assembling rather than appearing whole.
+  /// Three keyframes: rise and grow in, swell just past full size, settle.
+  Widget _popIn(Key key, Widget child) {
+    return TweenAnimationBuilder<double>(
+      key: key,
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 312),
+      curve: Curves.linear,
       builder: (_, t, c) => Opacity(
-        opacity: t.clamp(0.0, 1.0),
+        opacity: Curves.easeOut.transform((t / 0.5).clamp(0.0, 1.0)),
         child: Transform.translate(
-          offset: _pondArrivalFrom * (1 - t),
-          child: Transform.scale(scale: 0.7 + 0.3 * t, child: c),
+          offset: Offset(0, 8 * (1 - Curves.easeOutCubic.transform(t))),
+          child: Transform.scale(scale: _popScale.transform(t), child: c),
         ),
       ),
       child: child,
     );
   }
 
-  /// A one-shot pop-in for a newly formed meld (chi/pon/kan) or a riichi
-  /// stick, so a call reads as the set assembling rather than appearing whole.
-  Widget _popIn(Key key, Widget child) {
-    return TweenAnimationBuilder<double>(
-      key: key,
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutBack,
-      builder: (_, t, c) => Opacity(
-        opacity: t.clamp(0.0, 1.0),
-        child: Transform.scale(scale: 0.55 + 0.45 * t, child: c),
-      ),
-      child: child,
-    );
-  }
+  static final TweenSequence<double> _popScale = TweenSequence<double>([
+    TweenSequenceItem(
+        tween: Tween(begin: 0.55, end: 1.07)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 55),
+    TweenSequenceItem(
+        tween: Tween(begin: 1.07, end: 0.98)
+            .chain(CurveTween(curve: Curves.easeInOutSine)),
+        weight: 25),
+    TweenSequenceItem(
+        tween: Tween(begin: 0.98, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOutSine)),
+        weight: 20),
+  ]);
 
   Widget _meldGroup(SeatState s) {
     final group = Wrap(
@@ -664,23 +720,7 @@ class TableView extends StatelessWidget {
     );
     final portrait =
         tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
-    // The call bubble hangs off the portrait's inner side (towards the table)
-    // without taking any layout space, so it can't shift the seat's row.
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        portrait,
-        Positioned(
-          top: size * 0.1,
-          // Left seat: bubble to the right of the portrait. Every other seat:
-          // to its left (the bottom and top portraits have the placard on
-          // their right).
-          left: seat == 3 ? size + 6 : null,
-          right: seat == 3 ? null : size + 6,
-          child: _CallBubble(seat: seat),
-        ),
-      ],
-    );
+    return _CallBubbleAnchor(seat: seat, child: portrait);
   }
 
   /// Seat placard (wind + score), with Hong Kong's matching bonus-tile number.
@@ -723,7 +763,7 @@ class TableView extends StatelessWidget {
       if (seat == kHumanSeat && game.humanFuriten) _furitenBadge(),
       // Online play only — see [GuideHost.turnDeadlineMs] — a per-turn
       // countdown next to whoever's actually on the clock.
-      if (active && deadline != null) _CountdownBadge(deadlineMs: deadline),
+      if (active && deadline != null) CountdownBadge(deadlineMs: deadline),
     ];
     if (badges.isEmpty) return placard;
     return Row(
@@ -756,15 +796,15 @@ class TableView extends StatelessWidget {
 /// Seconds remaining until [deadlineMs], ticking down once a second on its
 /// own timer — the server's `turnDeadlineMs` only changes when a fresh turn
 /// starts, so nothing else would rebuild this between broadcasts.
-class _CountdownBadge extends StatefulWidget {
-  const _CountdownBadge({required this.deadlineMs});
+class CountdownBadge extends StatefulWidget {
+  const CountdownBadge({super.key, required this.deadlineMs});
   final int deadlineMs;
 
   @override
-  State<_CountdownBadge> createState() => _CountdownBadgeState();
+  State<CountdownBadge> createState() => _CountdownBadgeState();
 }
 
-class _CountdownBadgeState extends State<_CountdownBadge> {
+class _CountdownBadgeState extends State<CountdownBadge> {
   Timer? _timer;
 
   @override
@@ -774,9 +814,9 @@ class _CountdownBadgeState extends State<_CountdownBadge> {
   }
 
   @override
-  void didUpdateWidget(_CountdownBadge old) {
-    super.didUpdateWidget(old);
-    if (old.deadlineMs != widget.deadlineMs) _schedule();
+  void didUpdateWidget(CountdownBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.deadlineMs != widget.deadlineMs) _schedule();
   }
 
   void _schedule() {
@@ -1028,21 +1068,28 @@ class _RemovableRow extends StatelessWidget {
   }
 }
 
-/// The 0.6s "PON" / "CHI" / "KAN" / "RON" / "TSUMO" / "RIICHI" bubble beside a seat's
-/// portrait: white text on black. Empty (and non-interactive) the rest of the
-/// time; [CallCallout] says when a call happens and this owns the flash timer.
-class _CallBubble extends StatefulWidget {
-  const _CallBubble({required this.seat});
+/// Wraps a seat's portrait and flashes its call bubble (see [CallCallout]):
+/// white text on black, "PON" / "CHI" / "KAN" / "RON" / "TSUMO" / "RIICHI".
+///
+/// The bubble lives in the app's root [Overlay], not in the table's own widget
+/// tree, so it paints above everything — the hand, the ponds, the scoring
+/// panel — and can never be covered. A [CompositedTransformFollower] pins it
+/// beside the portrait (following any scaling of the table). This owns the
+/// flash timer; [CallCallout] only says when a call happened.
+class _CallBubbleAnchor extends StatefulWidget {
+  const _CallBubbleAnchor({required this.seat, required this.child});
   final int seat;
+  final Widget child;
 
   @override
-  State<_CallBubble> createState() => _CallBubbleState();
+  State<_CallBubbleAnchor> createState() => _CallBubbleAnchorState();
 }
 
-class _CallBubbleState extends State<_CallBubble> {
-  String? _text;
+class _CallBubbleAnchorState extends State<_CallBubbleAnchor> {
+  final LayerLink _link = LayerLink();
+  OverlayEntry? _entry;
   Timer? _timer;
-  // Calls made before this bubble existed are history, not something to flash.
+  // Calls made before this widget existed are history, not something to flash.
   int _seenId = 0;
 
   @override
@@ -1054,47 +1101,73 @@ class _CallBubbleState extends State<_CallBubble> {
 
   void _onCall() {
     final call = CallCallout.i.latest(widget.seat);
-    if (call == null || call.id == _seenId) return;
+    if (call == null || call.id == _seenId || !mounted) return;
     _seenId = call.id;
-    _timer?.cancel();
-    _timer = Timer(CallCallout.flash, () {
-      if (mounted) setState(() => _text = null);
-    });
-    setState(() => _text = call.text);
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+    _hide();
+    // Left seat: bubble to the right of the portrait. Every other seat: to its
+    // left (the bottom and top portraits have their placard on the right).
+    final onRight = widget.seat == 3;
+    _entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: 0,
+        top: 0,
+        child: CompositedTransformFollower(
+          link: _link,
+          showWhenUnlinked: false,
+          targetAnchor: onRight ? Alignment.centerRight : Alignment.centerLeft,
+          followerAnchor:
+              onRight ? Alignment.centerLeft : Alignment.centerRight,
+          offset: Offset(onRight ? 6 : -6, 0),
+          child: _bubble(call.text),
+        ),
+      ),
+    );
+    overlay.insert(_entry!);
+    _timer = Timer(CallCallout.flash, _hide);
   }
+
+  void _hide() {
+    _timer?.cancel();
+    _timer = null;
+    _entry?.remove();
+    _entry?.dispose();
+    _entry = null;
+  }
+
+  Widget _bubble(String text) => IgnorePointer(
+        child: Container(
+          key: ValueKey('call-bubble-${widget.seat}'),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Text(
+            text,
+            maxLines: 1,
+            softWrap: false,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      );
 
   @override
   void dispose() {
     CallCallout.i.removeListener(_onCall);
-    _timer?.cancel();
+    _hide();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final text = _text;
-    if (text == null) return const SizedBox.shrink();
-    return IgnorePointer(
-      child: Container(
-        key: ValueKey('call-bubble-${widget.seat}'),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white, width: 2),
-        ),
-        child: Text(
-          text,
-          maxLines: 1,
-          softWrap: false,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      CompositedTransformTarget(link: _link, child: widget.child);
 }

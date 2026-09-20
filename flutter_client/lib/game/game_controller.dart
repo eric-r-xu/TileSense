@@ -243,6 +243,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   bool get awaitingHumanCall => _humanCallOption != null;
   CallOption? _humanCallOption;
+
+  /// Offline play never rushes the human, on a call offer or on a discard —
+  /// see [GuideHost.turnDeadlineMs]. Only the online table has clocks.
+  @override
+  int? get callDeadlineMs => null;
+
   @override
   CallOption? get humanCallOption => _humanCallOption;
 

@@ -7,6 +7,7 @@ import '../game/guide_host.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
+import 'table_view.dart' show CountdownBadge;
 import 'tile_face.dart';
 
 /// The human seat's concealed hand plus turn actions. An auto-sort toggle keeps
@@ -502,6 +503,14 @@ class _HandViewState extends State<HandView> {
       }
       buttons.add(_btn('PASS', const Color(0xff37474f),
           () => game.answerCall(CallType.none)));
+      // Time left to answer; the call is passed when it reaches zero.
+      final deadline = game.callDeadlineMs;
+      if (deadline != null) {
+        buttons.add(CountdownBadge(
+          key: const Key('callCountdown'),
+          deadlineMs: deadline,
+        ));
+      }
     } else if (game.isHumanTurn) {
       if (game.humanCanTsumo) {
         buttons.add(_btn(ruleset.tsumoLabel.toUpperCase(),

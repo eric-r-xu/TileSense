@@ -45,6 +45,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       TextEditingController(text: widget.initialJoinCode ?? '');
   late Ruleset _ruleset = widget.initialRuleset;
   bool _hanchan = true;
+  int _timerSeconds = OnlineGameController.timerChoices.first;
   late Character _character = widget.controller.myCharacter;
   String? _shownError;
 
@@ -70,7 +71,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   void _create() {
     _saveName();
     game.setMyCharacter(_character);
-    game.createRoom(ruleset: _ruleset, hanchan: _hanchan);
+    game.createRoom(
+        ruleset: _ruleset, hanchan: _hanchan, timerSeconds: _timerSeconds);
   }
 
   void _join() {
@@ -260,14 +262,62 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   Widget _characterPicker() {
     return _card(
       title: 'Choose your character',
-      child: CharacterRow(
-        options: kSelectableCharacters,
-        selected: _character,
-        onSelect: (c) => setState(() {
-          _character = c;
-          if (_isDefaultName(_nameCtl.text)) _nameCtl.text = kCharacterName[c]!;
-        }),
+      child: Column(
+        children: [
+          CharacterRow(
+            options: kSelectableCharacters,
+            selected: _character,
+            onSelect: (c) => setState(() {
+              _character = c;
+              if (_isDefaultName(_nameCtl.text)) {
+                _nameCtl.text = kCharacterName[c]!;
+              }
+            }),
+          ),
+          const SizedBox(height: 16),
+          _timerPicker(),
+        ],
       ),
+    );
+  }
+
+  /// Seconds per discard and per call offer for the room you create — 30 by
+  /// default, or 60. Applies to the whole table, so it is the host's call;
+  /// joining a room uses whatever its host picked.
+  Widget _timerPicker() {
+    Widget option(int seconds) {
+      final selected = _timerSeconds == seconds;
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: OutlinedButton(
+            key: Key('timer_$seconds'),
+            onPressed: () => setState(() => _timerSeconds = seconds),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: selected ? const Color(0x33caa24e) : null,
+              foregroundColor:
+                  selected ? const Color(0xffffdf76) : Colors.white54,
+              side: BorderSide(
+                color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                width: selected ? 2 : 1,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+            child: Text('${seconds}s'),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        const Text('Turn & call timer (room you create)',
+            style: TextStyle(color: Colors.white60, fontSize: 12)),
+        const SizedBox(height: 6),
+        Row(children: [
+          for (final t in OnlineGameController.timerChoices) option(t)
+        ]),
+      ],
     );
   }
 
@@ -335,7 +385,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         const SizedBox(height: 16),
         _card(
           title: '${game.ruleset.flagLabel} · '
-              '${game.hanchan ? "full game" : "East-only"}',
+              '${game.hanchan ? "full game" : "East-only"} · '
+              '${game.timerSeconds}s timer',
           child: Column(
             children: [
               for (final seat in game.lobbySeats) _seatRow(seat),

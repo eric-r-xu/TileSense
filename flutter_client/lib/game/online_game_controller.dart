@@ -117,6 +117,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   String roomCode = '';
   Ruleset ruleset = Ruleset.riichi;
   bool hanchan = true;
+
+  /// Seconds each player gets per discard and per call offer, chosen by the
+  /// host when the room is created (30 or 60) and echoed back by the server.
+  static const List<int> timerChoices = [30, 60];
+  int timerSeconds = 30;
   RoomLifecycle roomPhase = RoomLifecycle.lobby;
   int? mySeat;
   List<LobbySeat> lobbySeats = _emptyLobby();
@@ -127,9 +132,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   bool get isHost =>
       mySeat != null && lobbySeats.any((s) => s.seat == mySeat && s.isHost);
 
-  void createRoom({required Ruleset ruleset, required bool hanchan}) {
+  void createRoom({
+    required Ruleset ruleset,
+    required bool hanchan,
+    int timerSeconds = 30,
+  }) {
     this.ruleset = ruleset;
     this.hanchan = hanchan;
+    this.timerSeconds = timerSeconds;
     _client.send({
       'type': 'create_room',
       'guestId': _identity.guestId,
@@ -137,6 +147,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       'character': _identity.character.name,
       'ruleset': ruleset.name,
       'hanchan': hanchan,
+      'timerSeconds': timerSeconds,
     });
   }
 
@@ -216,6 +227,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   int? _turnDeadlineMs;
   @override
   int? get turnDeadlineMs => _turnDeadlineMs;
+
+  /// The server runs the call clock and shares it as `turnDeadlineMs` while a
+  /// call is pending; an older server sends null there, which just hides it.
+  @override
+  int? get callDeadlineMs => awaitingHumanCall ? _turnDeadlineMs : null;
 
   /// Online play cannot pause three other humans.
   @override
@@ -318,6 +334,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     roomCode = msg['code'] as String;
     ruleset = msg['ruleset'] == 'hongKong' ? Ruleset.hongKong : Ruleset.riichi;
     hanchan = msg['hanchan'] as bool;
+    timerSeconds = msg['timerSeconds'] as int? ?? 30;
     roomPhase = RoomLifecycle.values.byName(msg['phase'] as String);
     final yourSeat = msg['yourSeat'] as int?;
     if (yourSeat != null) mySeat = yourSeat;

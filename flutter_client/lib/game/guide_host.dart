@@ -100,6 +100,12 @@ abstract class GuideHost implements Listenable {
 /// has no turn loop for these methods to act on.
 abstract class TableGameHost implements GuideHost {
   bool get isHumanTurn;
+
+  /// Wall-clock deadline (epoch ms) for answering the call (chi / pon / kan /
+  /// ron) currently offered to the human, or null when no call is pending or
+  /// no clock is running. Drives the countdown beside the call buttons; when
+  /// it runs out the call is passed.
+  int? get callDeadlineMs;
   bool get humanCanTsumo;
   bool get humanCanRiichi;
   List<TileType> get humanClosedKanTypes;
