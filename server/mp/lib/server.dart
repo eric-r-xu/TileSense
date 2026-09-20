@@ -67,6 +67,7 @@ Handler buildMultiplayerHandler(
             hostName: _sanitizeName(msg['name']),
             ruleset: ruleset,
             hanchan: hanchan,
+            timerSeconds: Room.normalizeTimerSeconds(msg['timerSeconds']),
             hostCharacter: msg['character'] as String?,
           );
           room = r;

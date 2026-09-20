@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 /// `TableView`; neither owns the other. Sound and text are independent: the
 /// bubble shows whether or not the sound is on.
 ///
-/// This only records *that* a call happened; the bubble widget owns the 0.6s
+/// This only records *that* a call happened; the bubble widget owns the 0.86s
 /// [flash] timer, so a controller announcing a call outside any widget tree
 /// (tests, headless) leaves no timer behind.
 class CallCallout extends ChangeNotifier {
@@ -16,11 +16,11 @@ class CallCallout extends ChangeNotifier {
   static final CallCallout i = CallCallout._();
 
   /// How long a bubble stays up.
-  static const Duration flash = Duration(milliseconds: 600);
+  static const Duration flash = Duration(milliseconds: 863);
 
   DateTime? _lastAt;
 
-  /// How much of the current 0.6s flash is left (zero when none is showing).
+  /// How much of the current 0.86s flash is left (zero when none is showing).
   /// The game loop and the score panel wait this long, so play holds still
   /// while a call is on screen.
   Duration get remaining {

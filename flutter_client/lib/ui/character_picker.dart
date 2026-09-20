@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../game/sfx.dart' show Character, kCharacterName, kCharacterPortrait;
 
-/// Every character in [options], wrapping on narrow screens.
+/// Every character in [options], in a grid four to a row.
 class CharacterRow extends StatelessWidget {
   const CharacterRow({
     super.key,
@@ -26,21 +26,45 @@ class CharacterRow extends StatelessWidget {
   /// widget key without collisions. Left unkeyed when null.
   final String? keyPrefix;
 
+  /// Options per row: a fixed four-wide grid, so the choices line up the same
+  /// on every screen instead of wrapping wherever the width happens to fall.
+  static const int columns = 4;
+
   @override
-  Widget build(BuildContext context) => Wrap(
-        alignment: WrapAlignment.spaceEvenly,
-        runSpacing: 12,
-        children: [
-          for (final c in options)
-            CharacterOption(
-              character: c,
-              selected: c == selected,
-              onTap: () => onSelect(c),
-              optionKey:
-                  keyPrefix == null ? null : Key('${keyPrefix}_${c.name}'),
-            ),
+  Widget build(BuildContext context) {
+    // Each cell takes an equal quarter of the row and scales its option down
+    // if that quarter is ever narrower than the option (a tight dialog), so a
+    // row never overflows and every character stays tappable.
+    Widget cell(Character? c) => Expanded(
+          child: c == null
+              ? const SizedBox.shrink()
+              : FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: CharacterOption(
+                    character: c,
+                    selected: c == selected,
+                    onTap: () => onSelect(c),
+                    optionKey: keyPrefix == null
+                        ? null
+                        : Key('${keyPrefix}_${c.name}'),
+                  ),
+                ),
+        );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < options.length; i += columns) ...[
+          if (i > 0) const SizedBox(height: 12),
+          Row(
+            children: [
+              for (var j = i; j < i + columns; j++)
+                cell(j < options.length ? options[j] : null),
+            ],
+          ),
         ],
-      );
+      ],
+    );
+  }
 }
 
 /// One portrait + name, highlighted when [selected].
@@ -61,9 +85,11 @@ class CharacterOption extends StatelessWidget {
   /// [Key] (`key`) so [CharacterRow] can pass one through per option.
   final Key? optionKey;
 
+  static const double width = 64;
+
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 64,
+        width: width,
         child: GestureDetector(
           key: optionKey,
           onTap: onTap,

@@ -34,11 +34,29 @@ class Seat {
 }
 
 class Room {
-  Room({required this.code, required this.ruleset, required this.hanchan});
+  Room({
+    required this.code,
+    required this.ruleset,
+    required this.hanchan,
+    this.timerSeconds = defaultTimerSeconds,
+  });
+
+  /// The per-action clock (a turn's discard, or an offered call) a room may
+  /// pick from when it is created; see [normalizeTimerSeconds].
+  static const int defaultTimerSeconds = 30;
+  static const List<int> timerChoices = [30, 60];
+
+  /// Anything other than a listed choice falls back to the default, so a
+  /// missing or hand-edited value can never produce a zero or huge clock.
+  static int normalizeTimerSeconds(Object? v) =>
+      v is int && timerChoices.contains(v) ? v : defaultTimerSeconds;
 
   final String code;
   final Ruleset ruleset;
   final bool hanchan;
+
+  /// Seconds each human gets per discard and per call offer.
+  final int timerSeconds;
   RoomPhase phase = RoomPhase.lobby;
   int hostSeat = 0;
   final List<Seat?> seats = List<Seat?>.filled(4, null);
@@ -126,6 +144,7 @@ class Room {
         'code': code,
         'ruleset': ruleset.name,
         'hanchan': hanchan,
+        'timerSeconds': timerSeconds,
         'phase': phase.name,
         if (yourSeat != null) 'yourSeat': yourSeat,
         'seats': [
@@ -157,10 +176,15 @@ class RoomManager {
     required String hostName,
     required Ruleset ruleset,
     required bool hanchan,
+    int timerSeconds = Room.defaultTimerSeconds,
     String? hostCharacter,
   }) {
     final code = _freshCode();
-    final room = Room(code: code, ruleset: ruleset, hanchan: hanchan);
+    final room = Room(
+        code: code,
+        ruleset: ruleset,
+        hanchan: hanchan,
+        timerSeconds: Room.normalizeTimerSeconds(timerSeconds));
     room.seats[0] = Seat(
       guestId: hostGuestId,
       name: hostName,
