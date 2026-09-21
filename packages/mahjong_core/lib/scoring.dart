@@ -434,10 +434,13 @@ int _calcFu(
     if (d.pair! == ctx.roundWind.tile && d.pair! == ctx.seatWind.tile) fu += 2;
   }
 
-  // Wait fu (kanchan / penchan / tanki = +2; ryanmen / shanpon = 0).
-  if (_isTankiWait(d, winTile) ||
-      _isKanchanWait(d, winTile) ||
-      _isPenchanWait(d, winTile)) {
+  // Wait fu (kanchan / penchan / tanki = +2; ryanmen / shanpon = 0). A tile
+  // that could have completed the hand two ways scores the kinder one, so a
+  // ryanmen reading cancels the +2.
+  if (!_isRyanmenWait(d, winTile) &&
+      (_isTankiWait(d, winTile) ||
+          _isKanchanWait(d, winTile) ||
+          _isPenchanWait(d, winTile))) {
     fu += 2;
   }
 
@@ -639,14 +642,14 @@ bool _isChuuren(List<Meld> groups, HandDecomposition d) {
 bool _isRyanmenWait(HandDecomposition d, Tile winTile) {
   for (final m in d.melds.where((m) => m.isSequence)) {
     final n = m.low.number;
-    if (winTile.type == m.low && n <= 7 && n >= 1) {
-      // completed at the low end -> ryanmen unless penchan (12 waiting 3)
-      if (n != 1) return true;
-    }
-    if (winTile.type == TileType.values[m.low.index + 2] && m.low.number <= 7) {
-      // completed at the high end -> ryanmen unless penchan (89 waiting 7)
-      if (m.low.number + 2 != 9) return true;
-    }
+    // Completed at the low end: the hand held n+1, n+2 and waited on n. That is
+    // a two-sided wait (n and n+3) — unless the pair is 8-9, which waits on 7
+    // alone (penchan). So 1 completing 123 from 23 is ryanmen.
+    if (winTile.type == m.low && n != 7) return true;
+    // Completed at the high end: the hand held n, n+1 and waited on n+2. Two-
+    // sided (n-1 and n+2), unless the pair is 1-2, which waits on 3 alone. So
+    // 9 completing 789 from 78 is ryanmen.
+    if (winTile.type == TileType.values[m.low.index + 2] && n != 1) return true;
   }
   return false;
 }

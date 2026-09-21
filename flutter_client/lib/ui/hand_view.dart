@@ -458,6 +458,9 @@ class _HandViewState extends State<HandView> {
   Widget _actionBar(BuildContext context) {
     final buttons = <Widget>[];
     final ruleset = game.round.ruleset;
+    // Same rule as the green tile: the guide's opinions show only while it is
+    // on, and multiplayer (no toggle) never has one.
+    final showGuide = widget.showGuide && widget.onToggleGuide != null;
 
     // Furiten marker: shown whenever the human seat is tenpai but barred from
     // ron. It sits first so it stays visible next to (or instead of) the call
@@ -495,8 +498,25 @@ class _HandViewState extends State<HandView> {
             const Color(0xff4527a0), () => game.answerCall(CallType.kan)));
       }
       if (opt.types.contains(CallType.chi)) {
-        buttons.add(_btn(ruleset.chiLabel.toUpperCase(),
-            const Color(0xff00838f), () => game.answerCall(CallType.chi)));
+        final runs = game.humanChiRuns;
+        if (runs.length > 1) {
+          // Several runs could be made with this tile, so you choose which.
+          // The guide's pick, when it has one, carries a star.
+          final picked = showGuide ? game.recommendedChiRun : null;
+          for (final low in runs) {
+            buttons.add(KeyedSubtree(
+              key: Key('chiRun_${low.name}'),
+              child: _btn(
+                  '${ruleset.chiLabel.toUpperCase()} ${_runLabel(low)}'
+                  '${low == picked ? ' ★' : ''}',
+                  const Color(0xff00838f),
+                  () => game.answerCall(CallType.chi, chiLow: low)),
+            ));
+          }
+        } else {
+          buttons.add(_btn(ruleset.chiLabel.toUpperCase(),
+              const Color(0xff00838f), () => game.answerCall(CallType.chi)));
+        }
       }
       buttons.add(_btn('PASS', const Color(0xff37474f),
           () => game.answerCall(CallType.none)));
@@ -521,9 +541,26 @@ class _HandViewState extends State<HandView> {
         buttons.add(_btn('${ruleset.kanLabel.toUpperCase()} ${t.code}',
             const Color(0xff4527a0), () => game.humanAddKan(t)));
       }
-      if (game.report.recommendRiichi) {
-        buttons.add(const Chip(
-          label: Text('Riichi available', style: TextStyle(fontSize: 11)),
+      // Whenever riichi is legal — closed, and some discard leaves the hand
+      // tenpai — not only when the guide would declare it. Discarding one of
+      // those tiles offers the declaration. The guide's own preference is
+      // added only while it is on.
+      if (game.humanCanRiichi) {
+        final recommended = showGuide && game.report.recommendRiichi;
+        buttons.add(Chip(
+          key: const Key('riichiAvailable'),
+          avatar: const Icon(Icons.campaign, size: 16, color: Colors.white),
+          label: Text(
+              recommended
+                  ? 'Riichi available — recommended'
+                  : 'Riichi available',
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+          backgroundColor:
+              recommended ? const Color(0xff2e7d32) : const Color(0xff37474f),
+          side: const BorderSide(color: Color(0xffcaa24e)),
           visualDensity: VisualDensity.compact,
         ));
       }
@@ -545,6 +582,13 @@ class _HandViewState extends State<HandView> {
         ),
       ),
     );
+  }
+
+  /// "345m" for the run whose lowest tile is [low].
+  static String _runLabel(TileType low) {
+    final n = low.number;
+    final code = low.code;
+    return '$n${n + 1}${n + 2}${code.substring(code.length - 1)}';
   }
 
   Widget _btn(String label, Color color, VoidCallback onTap) => ElevatedButton(

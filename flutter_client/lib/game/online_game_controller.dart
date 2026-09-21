@@ -524,7 +524,17 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   @override
-  void answerCall(CallType choice) {
+  List<TileType> get humanChiRuns {
+    final discard = round.pendingDiscard;
+    if (_humanCallOption == null || discard == null) return const [];
+    return round.chiSequences(kHumanSeat, discard);
+  }
+
+  @override
+  TileType? get recommendedChiRun => null; // no guide in multiplayer
+
+  @override
+  void answerCall(CallType choice, {TileType? chiLow}) {
     if (_humanCallOption == null) return;
     if (choice == CallType.none) {
       _client.send({'type': 'action', 'kind': 'pass_call'});
@@ -535,7 +545,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         'callType': choice.name,
       };
       if (choice == CallType.chi) {
-        final low = _humanCallAdvice?.forAction(GuidedAction.chi)?.meldLow;
+        final low =
+            chiLow ?? _humanCallAdvice?.forAction(GuidedAction.chi)?.meldLow;
         if (low != null) payload['chiLow'] = low.name;
       }
       _client.send(payload);

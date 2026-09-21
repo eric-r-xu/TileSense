@@ -116,7 +116,17 @@ abstract class TableGameHost implements GuideHost {
   void humanClosedKan(TileType type);
   void humanAddKan(TileType type);
   void humanPassFlowerWin();
-  void answerCall(CallType choice);
+  /// Answers the pending call. [chiLow] names which run a chi takes when
+  /// several are possible (see [humanChiRuns]); left null it is the guide's
+  /// best run, or the first one the hand can make.
+  void answerCall(CallType choice, {TileType? chiLow});
+
+  /// The lowest tile of every run the pending discard could be chowed into —
+  /// 3456m offered 5m gives 345m, 456m and 567m. Empty when no call is pending.
+  List<TileType> get humanChiRuns;
+
+  /// The run the guide would chi, when it is recommending a chi at all.
+  TileType? get recommendedChiRun;
 
   bool get soundOn;
   void setSoundOn(bool value);

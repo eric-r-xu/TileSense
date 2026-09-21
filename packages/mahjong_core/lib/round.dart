@@ -436,9 +436,11 @@ class Round {
     final out =
         byType.entries.where((e) => e.value == 4).map((e) => e.key).toList();
     if (_locked(s)) {
-      // In riichi a closed kan must not change the wait; approximate by
-      // allowing it only if the kan tile isn't part of any wait shape.
-      return out.where((t) => _kanKeepsWait(s, t)).toList();
+      // In riichi only the tile just drawn may be kanned, and only if the kan
+      // leaves the wait exactly as it was — see [_kanKeepsWait].
+      return out
+          .where((t) => s.drawn?.type == t && _kanKeepsWait(s, t))
+          .toList();
     }
     return out;
   }
@@ -515,15 +517,26 @@ class Round {
     return false;
   }
 
+  /// Whether a riichi seat's closed kan of [t] (its drawn tile) leaves its wait
+  /// unchanged: the tiles the 13-tile hand was waiting on before the draw are
+  /// exactly the ones it waits on with [t] set aside as a kan. A kan that
+  /// broke tenpai or moved the wait would leave a riichi hand that is no longer
+  /// ready — and so paying noten at a draw.
   bool _kanKeepsWait(SeatState s, TileType t) {
-    final before = waitTiles([...s.hand]..removeWhere((x) => x.type == t),
-        openMelds: s.melds.length + 1);
-    // conservative: only if the hand without those 4 is still tenpai on the
-    // same tiles
-    final without = s.hand.where((x) => x.type != t).toList();
-    final after = waitTiles(without, openMelds: s.melds.length + 1);
-    return before.toSet().containsAll(after) &&
-        after.toSet().containsAll(before);
+    final drawn = s.drawn;
+    if (drawn == null) return false;
+    final before = waitTiles(
+        [
+          for (final x in s.hand)
+            if (x.id != drawn.id) x
+        ],
+        openMelds: s.melds.length).toSet();
+    final after = waitTiles(s.hand.where((x) => x.type != t).toList(),
+            openMelds: s.melds.length + 1)
+        .toSet();
+    return after.isNotEmpty &&
+        before.length == after.length &&
+        before.containsAll(after);
   }
 
   // --- actions ---------------------------------------------------------

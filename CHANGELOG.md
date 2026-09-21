@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Pinfu was missed on a two-sided wait that finishes on a terminal, and
+  wrongly given to edge waits.** `_isRyanmenWait` had its terminal cases
+  inverted: 1 completing 123 from 23 and 9 completing 789 from 78 (both
+  two-sided) counted as edge waits, while 3 completing 123 from 12 and 7
+  completing 789 from 89 (the real penchan waits) counted as two-sided. It now
+  matches the wait-fu rule beside it, and a wait that reads as two-sided as well
+  as kanchan takes the two-sided reading and its 0 fu.
+- **A riichi player could kan their way out of tenpai, then pay noten.**
+  `_kanKeepsWait` compared the hand after a closed kan with itself, so every
+  riichi kan passed. A kan that broke the wait left a riichi hand that was no
+  longer tenpai — and it then paid the noten penalty at an exhaustive draw on
+  top of its riichi stick. A riichi closed kan is now offered only for the tile
+  just drawn, and only when the hand waits on exactly the same tiles before and
+  after. This is the one place bots, the human player and the multiplayer server
+  all get their closed-kan options.
 - With auto-sort on, the just-drawn tile is no longer filed in among the sorted
   tiles: it stays at the far right, slightly spaced from the rest, exactly as it
   does with auto-sort off.
@@ -126,6 +141,12 @@ All notable changes to this project will be documented in this file.
   hang into an ordinary, already-handled failure that unblocks the queue.
 
 ### Added
+- Chi now lets you choose the run when a discard could make several (3456m
+  offered 5m gives 345m, 456m and 567m): one button per run, with the guide's
+  pick starred while it is on. Previously the guide's choice was made for you.
+- "Riichi available" now shows in the hand bar whenever riichi is legal, not
+  only when the guide would declare it; it adds "recommended" only while the
+  guide is on.
 - The mascot now sits to the left of **Single Player** on the start screen, as a
   hint that the guide is part of offline play.
 - The character-select screen has a **Game length** choice: hanchan (半庄,
