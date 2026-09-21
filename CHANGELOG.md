@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- With auto-sort on, the just-drawn tile is no longer filed in among the sorted
+  tiles: it stays at the far right, slightly spaced from the rest, exactly as it
+  does with auto-sort off.
 - **A riichi tsumo showed its winning tile twice on the result screen.**
   Every drawn tile is added to `seat.hand` on draw, win or not, so the
   self-drawn winning tile was already sitting in the hand `ScoringView`
