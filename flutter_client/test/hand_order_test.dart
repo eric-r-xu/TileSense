@@ -21,6 +21,18 @@ void main() {
       .whereType<TileType>()
       .toList();
 
+  /// The resting tiles: the strip without the drawn tile, which always sits
+  /// last, apart from the others.
+  List<TileType> resting(WidgetTester tester) {
+    final all = strip(tester);
+    return all.sublist(0, all.length - 1);
+  }
+
+  bool inTileOrder(List<TileType> tiles) {
+    final want = [...tiles]..sort((a, b) => a.index.compareTo(b.index));
+    return tiles.toString() == want.toString();
+  }
+
   Future<void> startGame(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -96,9 +108,9 @@ void main() {
 
     // Auto-sort is checked by default, so the hand should already be sorted
     // with no tap needed.
-    final sorted = strip(tester);
-    final inOrder = [...sorted]..sort((a, b) => a.index.compareTo(b.index));
-    expect(sorted, inOrder, reason: 'auto-sort did not sort by default');
+    final sorted = resting(tester);
+    expect(inTileOrder(sorted), isTrue,
+        reason: 'auto-sort did not sort by default');
     expect(sorted[0], isNot(sorted[5]),
         reason: 'need two different tiles for the move to be visible');
 
@@ -108,11 +120,7 @@ void main() {
     // also pulls the drawn tile out to its own slot on the right, so the
     // resting strip is a tile shorter than the sorted one was. What matters is
     // that the hand is no longer being held in tile order.
-    bool sortedNow() {
-      final now = strip(tester);
-      final want = [...now]..sort((a, b) => a.index.compareTo(b.index));
-      return now.toString() == want.toString();
-    }
+    bool sortedNow() => inTileOrder(resting(tester));
 
     expect(sortedNow(), isFalse,
         reason: 'the move was sorted straight back out');
@@ -130,19 +138,43 @@ void main() {
       'unchecking auto-sort freezes the current order instead of reverting '
       'to draw order', (tester) async {
     await startGame(tester);
-    final sorted = strip(tester);
-    final inOrder = [...sorted]..sort((a, b) => a.index.compareTo(b.index));
-    expect(sorted, inOrder, reason: 'auto-sort did not sort by default');
+    final sortedResting = resting(tester);
+    final drawnBefore = strip(tester).last;
+    expect(inTileOrder(sortedResting), isTrue,
+        reason: 'auto-sort did not sort by default');
 
     await uncheckAutoSort(tester);
-    final after = strip(tester);
-    expect(after.length, sorted.length);
 
-    // Unchecking always separates the drawn tile into its own slot at the
-    // end, but the rest of the hand must keep the sorted order it was just
-    // showing rather than jumping back to draw order.
-    final restingBefore = [...sorted]..remove(after.last);
-    expect(after.sublist(0, after.length - 1), restingBefore);
+    // The drawn tile stays in its own slot at the end, and the rest of the
+    // hand keeps the sorted order it was just showing rather than jumping back
+    // to draw order.
+    expect(strip(tester).last, drawnBefore);
+    expect(resting(tester), sortedResting);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets(
+      'auto-sort keeps the drawn tile on the right, spaced from the rest',
+      (tester) async {
+    await startGame(tester);
+    // Sorted: the resting tiles are in tile order, the drawn tile is not
+    // filed among them.
+    expect(inTileOrder(resting(tester)), isTrue);
+
+    final rects = [
+      for (var i = 0; i < handTiles.evaluate().length; i++)
+        tester.getRect(handTiles.at(i)),
+    ];
+    final drawn = rects.last;
+    final beforeDrawn = rects[rects.length - 2];
+    expect(drawn.left, greaterThan(beforeDrawn.right),
+        reason: 'the drawn tile sits to the right of every resting tile');
+    final restingGap = rects[1].left - rects[0].right;
+    expect(drawn.left - beforeDrawn.right, greaterThan(restingGap),
+        reason: 'and is spaced a little further from them than they are '
+            'from each other');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

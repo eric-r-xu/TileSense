@@ -216,24 +216,21 @@ class _HandViewState extends State<HandView> {
       );
     }
 
-    // Auto-sort on: show all 14 tiles in tile order (drawn marked by its
-    // border). Off: resting tiles in the order you have put them in, drawn
-    // tile separated on the right. Either way the tiles can be dragged into a
-    // different order — doing it while sorted just turns auto-sort off.
-    final List<Widget> tiles;
-    if (_autoSort) {
-      final shown = sortByType(seat.hand);
-      tiles = [for (final t in shown) draggableTile(t, shown)];
-    } else {
-      final resting = [...seat.hand]..remove(drawn);
-      final shown = _drawOrdered(resting);
-      tiles = [
-        for (final t in shown) draggableTile(t, shown),
-        // The drawn tile is held apart until you keep it, so it has no slot in
-        // the order yet and is not a drop target.
-        if (drawn != null) tileButton(drawn, separated: true),
-      ];
-    }
+    // The resting tiles are in tile order (auto-sort on) or in the order you
+    // have put them in (off); either way the drawn tile is held apart on the
+    // right, slightly spaced from the rest, until you keep or discard it — so
+    // sorting never files it away among the others. Tiles can be dragged into
+    // a different order; doing it while sorted just turns auto-sort off.
+    final resting = [
+      for (final t in seat.hand)
+        if (drawn == null || t.id != drawn.id) t,
+    ];
+    final shown = _autoSort ? sortByType(resting) : _drawOrdered(resting);
+    final List<Widget> tiles = [
+      for (final t in shown) draggableTile(t, shown),
+      // It has no slot in the order yet and is not a drop target.
+      if (drawn != null) tileButton(drawn, separated: true),
+    ];
 
     return Container(
       width: double.infinity,
