@@ -258,7 +258,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -280,7 +280,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -307,7 +307,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));

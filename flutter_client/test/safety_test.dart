@@ -100,12 +100,12 @@ void main() {
       // The glossary no longer restates what genbutsu is; the rating's own
       // label in the table carries it.
       expect(find.textContaining('their own discards'), findsNothing);
-      // Every mention of Expected Value explains the number on hover: the
+      // Every mention of TileSense EV explains the number on hover: the
       // column heading, and each row's own cell.
       Finder evTips({bool worked = false}) => find.byWidgetPredicate((w) {
             if (w is! Tooltip) return false;
             final t = w.richMessage?.toPlainText() ?? '';
-            return t.contains('EV  =  chance of finishing') &&
+            return t.startsWith('TILESENSE EV') &&
                 t.contains('THIS CUT') == worked;
           });
       expect(evTips(), findsOneWidget, reason: 'the column heading');
@@ -117,7 +117,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.textContaining('The average points this discard is worth'),
           findsOneWidget);
-      expect(find.textContaining('EV  =  chance of finishing'), findsOneWidget);
+      expect(find.textContaining('EV = chance'), findsOneWidget);
       // Generalised: no tenpai/pre-tenpai split and no raw coefficients.
       expect(find.textContaining('pre-tenpai'), findsNothing);
       expect(find.textContaining('5800'), findsNothing);

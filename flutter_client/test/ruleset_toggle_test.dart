@@ -25,7 +25,7 @@ void main() {
       (tester) async {
     await boot(tester);
     expect(find.textContaining('optimal Riichi Mahjong play'), findsOneWidget);
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -53,7 +53,7 @@ void main() {
     expect(find.byKey(const Key('rulesPdf_riichi')), findsOneWidget);
     expect(find.byKey(const Key('rulesPdf_hongKong')), findsOneWidget);
 
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -92,7 +92,7 @@ void main() {
 
   testWidgets('the in-game switch changes rules both ways', (tester) async {
     await boot(tester);
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));

@@ -123,6 +123,12 @@ All notable changes to this project will be documented in this file.
   hang into an ordinary, already-handled failure that unblocks the queue.
 
 ### Added
+- The mascot now sits to the left of **Single Player** on the start screen, as a
+  hint that the guide is part of offline play.
+- The character-select screen has a **Game length** choice: hanchan (半庄,
+  default) or East only (东风战).
+- The mascot art is replaced everywhere it is used (in-app, favicon, PWA icons —
+  now `-v3` to bust caches, README).
 - **A third guide dial, Strategy: Points or Placement, riichi only.** Points
   is the reference model this whole engine was built and tuned against, and
   is unchanged. Placement (opt-in, `kDefaultStrategy` stays Points) runs

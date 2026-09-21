@@ -42,19 +42,54 @@ void main() {
         {0, 1, 2, 3});
   });
 
+  testWidgets('the guide mascot is the Single Player button\'s icon',
+      (tester) async {
+    await _boot(tester);
+    final button = find.widgetWithText(ElevatedButton, 'Single Player');
+    final mascot = find.descendant(
+        of: button, matching: find.byKey(const Key('startGuideMascot')));
+    expect(mascot, findsOneWidget);
+    expect(tester.getRect(mascot).right,
+        lessThanOrEqualTo(tester.getRect(find.text('Single Player')).left));
+  });
+
+  testWidgets('character select picks hanchan (default) or East only',
+      (tester) async {
+    await _boot(tester);
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+
+    bool selected(String key) {
+      final b = tester.widget<OutlinedButton>(find.byKey(Key(key)));
+      return b.style!.side!.resolve({})!.width == 2;
+    }
+
+    expect(selected('lengthHanchan'), isTrue);
+    expect(selected('lengthEastOnly'), isFalse);
+
+    await tester.tap(find.byKey(const Key('lengthEastOnly')));
+    await tester.pump();
+    expect(selected('lengthEastOnly'), isTrue);
+    expect(selected('lengthHanchan'), isFalse);
+
+    await tester.tap(find.byKey(const Key('lengthHanchan')));
+    await tester.pump();
+    expect(selected('lengthHanchan'), isTrue);
+  });
+
   testWidgets('offline goes through character select, with the old defaults',
       (tester) async {
     await _boot(tester);
     expect(find.text('CHOOSE YOUR CHARACTERS'), findsNothing,
         reason: 'the welcome screen no longer hosts the picker');
 
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     expect(find.text('CHOOSE YOUR CHARACTERS'), findsOneWidget);
 
     // Each seat is labelled with its starting wind and where it sits.
     const winds = ['East', 'South', 'West', 'North'];
-    const positions = ['You', 'Right', 'Across', 'Left'];
+    const positions = ['YOU', 'Right', 'Across', 'Left'];
     const defaults = ['Orderic', 'Grant', 'Hubert', 'Astaroth'];
     const kanji = ['東', '南', '西', '北'];
     for (var seat = 0; seat < 4; seat++) {
@@ -92,7 +127,7 @@ void main() {
   testWidgets('you are not fixed as East: pick a wind and the deal follows',
       (tester) async {
     await _boot(tester);
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('startWind_west')));
@@ -119,7 +154,7 @@ void main() {
   testWidgets('randomize reshuffles the characters, and Back leaves',
       (tester) async {
     await _boot(tester);
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
 
     final winds = <String>{};
@@ -138,7 +173,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('charactersBack')));
     await tester.pump();
-    expect(find.text('Play Offline'), findsOneWidget);
+    expect(find.text('Single Player'), findsOneWidget);
     expect(find.byType(CharacterSelectPage), findsNothing);
   });
 
@@ -148,7 +183,7 @@ void main() {
     await _boot(tester);
     expect(Sfx.i.enabled, isTrue);
 
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     Checkbox box() => tester.widget<Checkbox>(find.descendant(
         of: find.byKey(const Key('soundCheckbox')),

@@ -98,7 +98,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 // guide just silently vanishing.
                 Tooltip(
                   message:
-                      'No TileSense guide in multiplayer — play offline for it.',
+                      'No TileSense guide in multiplayer — play single player for it.',
                   child: Opacity(
                     opacity: 0.35,
                     child: Image.asset(

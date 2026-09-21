@@ -128,7 +128,7 @@ void main() {
       // Leaving drops back to the welcome screen with the game still unstarted.
       await tester.tap(find.byTooltip('Back to start'));
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Play Offline'), findsOneWidget);
+      expect(find.text('Single Player'), findsOneWidget);
       expect(find.byType(ScenarioPage), findsNothing);
 
       await tester.pumpWidget(const SizedBox());

@@ -132,7 +132,7 @@ void main() {
       const headings = {
         'Shanten': 'SHANTEN',
         'Ukeire': 'UKEIRE',
-        'Expected Value': 'EXPECTED VALUE',
+        'TileSense EV': 'TILESENSE EV',
         'EV (HMR)': 'EV (HMR)',
         'Placement': 'PLACEMENT',
         'Safety': 'SAFETY',
@@ -237,11 +237,11 @@ void main() {
         // At least the dial's chip and the table row ('Balanced' is also a
         // Focus chip).
         expect(find.text(style.label), findsAtLeastNWidgets(2));
-        // ('x2.00' is both Defensive's risk weight and Aggressive's bar.)
+        // ('×2.00' is both Defensive's risk weight and Aggressive's bar.)
         expect(
-            find.text('x${style.riskWeight.toStringAsFixed(2)}'), findsWidgets);
+            find.text('×${style.riskWeight.toStringAsFixed(2)}'), findsWidgets);
         expect(
-            find.text('x${style.damatenBar.toStringAsFixed(2)}'), findsWidgets);
+            find.text('×${style.damatenBar.toStringAsFixed(2)}'), findsWidgets);
         final quietFrom =
             '${thousands(GuideConstants.damatenMinPoints * style.damatenBar)} '
             '(${thousands(GuideConstants.dealerDamatenMinPoints * style.damatenBar)} dealer)';
@@ -259,7 +259,7 @@ void main() {
       expect(
           text('Which hand to chase when two lines are close'), findsOneWidget);
       expect(text('prefers the likelier cheap hand'), findsOneWidget);
-      expect(text('no tilt: plain chance x payout'), findsOneWidget);
+      expect(text('no tilt: plain chance × payout'), findsOneWidget);
       const speed = HandFocus.speed;
       for (final pts in [2000.0, 5000.0, 8000.0, 16000.0]) {
         expect(find.text(thousands(speed.worth(pts))), findsWidgets,
@@ -268,7 +268,37 @@ void main() {
       for (final chance in [0.05, 0.15, 0.25, 0.5]) {
         expect(find.text(rate(speed.chanceWorth(chance))), findsWidgets);
       }
-      expect(text('^${speed.curve}'), findsOneWidget);
+      // The exponent is a real superscript, not a caret in the text.
+      expect(find.text('${speed.curve}'), findsOneWidget);
+      expect(text('^${speed.curve}'), findsNothing);
+    });
+  });
+
+  testWidgets('formulas are one line each, with real sub- and superscripts',
+      (tester) async {
+    await withPanel(tester, (_) async {
+      await openTip(tester, 'PLACEMENT');
+      // Every equation is a single unwrapped line, however long.
+      for (final lead in ['worth(gain) = ', 'u(score) = ', 'spread = ']) {
+        final eq = find.textContaining(lead);
+        expect(eq, findsOneWidget, reason: lead);
+        expect(tester.widget<Text>(eq).softWrap, isFalse);
+      }
+      // "3 other seats" hangs below the sum as a subscript widget.
+      expect(find.text('3 other seats'), findsOneWidget);
+    });
+  });
+
+  testWidgets('the shanten tooltip only says what 0 means', (tester) async {
+    await withPanel(tester, (_) async {
+      final tip = find.byWidgetPredicate((w) =>
+          w is Tooltip &&
+          (w.richMessage?.toPlainText().startsWith('SHANTEN\n') ?? false));
+      final text = (tester.widget<Tooltip>(tip.first).richMessage as TextSpan)
+          .toPlainText();
+      expect(text, contains('(0 means tenpai)'));
+      expect(text, isNot(contains('Higher')));
+      expect(text, isNot(contains('win')));
     });
   });
 
@@ -300,7 +330,7 @@ void main() {
     await withPanel(tester, (_) async {
       await openTip(tester, 'PLACEMENT');
       expect(text('How a line moves your chance of finishing'), findsOneWidget);
-      expect(text('scaled up x1,000'), findsOneWidget);
+      expect(text('scaled up ×1,000'), findsOneWidget);
       expect(text('not a simulation'), findsOneWidget);
 
       double gain(List<int> table, int hands, double pts) =>
@@ -379,8 +409,9 @@ void main() {
         expect(find.text(v.round().toString()), findsWidgets);
       }
       expect(find.text('Shanten'), findsWidgets);
-      final ends = ((1 - GuideConstants.survivesTurn) * 100).toStringAsFixed(1);
-      expect(text('$ends%'), findsOneWidget);
+      expect(text('Means, not medians'), findsOneWidget);
+      expect(find.textContaining('Ending first'), findsNothing,
+          reason: 'the end-of-hand rate is explained under TileSense EV');
     });
     await withPanel(tester, (_) async {
       await openTip(tester, 'ACCEPTS');
@@ -389,11 +420,41 @@ void main() {
     }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong);
   });
 
-  testWidgets('the Expected Value tooltip points at where each part is worked',
+  testWidgets(
+      'EV (HMR) sits left of TileSense EV, and TileSense EV says what EV is',
+      (tester) async {
+    await withPanel(tester, (_) async {
+      expect(find.text('Expected Value'), findsNothing);
+      expect(tester.getTopLeft(find.text('EV (HMR)')).dx,
+          lessThan(tester.getTopLeft(find.text('TileSense EV')).dx));
+      final message = (tester
+              .widget<Tooltip>(tooltipTitled('TILESENSE EV').first)
+              .richMessage as TextSpan)
+          .toPlainText();
+      expect(message, contains('(EV = Expected Value)'));
+    });
+  });
+
+  testWidgets('the EV (HMR) tooltip links to the HMR write-up', (tester) async {
+    await withPanel(tester, (_) async {
+      final span = (tester
+          .widget<Tooltip>(tooltipTitled('EV (HMR)').first)
+          .richMessage as TextSpan);
+      TextSpan? link;
+      span.visitChildren((s) {
+        if (s is TextSpan && s.recognizer != null) link = s;
+        return true;
+      });
+      expect(link, isNotNull, reason: 'an embedded, tappable link');
+      expect(link!.text, contains('Hitori Mahjong Renshuuki'));
+    });
+  });
+
+  testWidgets('the TileSense EV tooltip points at where each part is worked',
       (tester) async {
     await withPanel(tester, (_) async {
       final message = (tester
-              .widget<Tooltip>(tooltipTitled('EXPECTED VALUE').first)
+              .widget<Tooltip>(tooltipTitled('TILESENSE EV').first)
               .richMessage as TextSpan)
           .toPlainText();
       expect(message, contains('hover Ukeire'));

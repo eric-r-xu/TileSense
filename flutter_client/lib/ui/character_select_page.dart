@@ -44,6 +44,8 @@ class CharacterSelectPage extends StatelessWidget {
     required this.onRandomize,
     required this.soundOn,
     required this.onSoundOn,
+    required this.hanchan,
+    required this.onHanchan,
     required this.onAdvance,
     required this.onBack,
     required this.advanceLabel,
@@ -65,6 +67,11 @@ class CharacterSelectPage extends StatelessWidget {
   /// the game (and it can still be toggled from the table).
   final bool soundOn;
   final ValueChanged<bool> onSoundOn;
+
+  /// Game length: the full game (hanchan, East + South) when true, East only
+  /// when false. Hanchan is the default.
+  final bool hanchan;
+  final ValueChanged<bool> onHanchan;
 
   /// Leaves for wherever the player was headed (the table or the builder).
   final VoidCallback onAdvance;
@@ -116,9 +123,15 @@ class CharacterSelectPage extends StatelessWidget {
             ],
           ),
           Text(
-            kSeatPositionNames[seat],
+            seat == 0
+                ? kSeatPositionNames[seat].toUpperCase()
+                : kSeatPositionNames[seat],
             key: Key('seatPosition_$seat'),
-            style: const TextStyle(color: Colors.white54, fontSize: 14),
+            style: TextStyle(
+              color: seat == 0 ? Colors.white : Colors.white54,
+              fontSize: 14,
+              fontWeight: seat == 0 ? FontWeight.w800 : FontWeight.normal,
+            ),
           ),
           const SizedBox(height: 10),
           Container(
@@ -195,6 +208,41 @@ class CharacterSelectPage extends StatelessWidget {
     );
   }
 
+  /// "Game length: 半庄 Hanchan · 东风战 East only" — hanchan is the default.
+  Widget _lengthChoice() {
+    Widget option(Key key, String label, bool value) {
+      final on = hanchan == value;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: OutlinedButton(
+          key: key,
+          onPressed: () => onHanchan(value),
+          style: OutlinedButton.styleFrom(
+            backgroundColor: on ? const Color(0x33caa24e) : null,
+            foregroundColor: on ? const Color(0xffffdf76) : Colors.white54,
+            side: BorderSide(
+                color: on ? _gold : Colors.white24, width: on ? 2 : 1),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          ),
+          child: Text(label,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Game length',
+            style: TextStyle(color: Colors.white54, fontSize: 14)),
+        const SizedBox(width: 10),
+        option(const Key('lengthHanchan'), '半庄 Hanchan', true),
+        option(const Key('lengthEastOnly'), '东风战 East only', false),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Material ancestor: without one, Text on web can render with a stray
@@ -232,7 +280,9 @@ class CharacterSelectPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _windChoice(),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 8),
+                    _lengthChoice(),
+                    const SizedBox(height: 14),
                     Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 16,

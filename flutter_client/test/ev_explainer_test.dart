@@ -181,7 +181,7 @@ void main() {
         recommendRiichi: false,
       );
       expect(evWaterfall(line).map((s) => s.label),
-          ['EV (HMR)', 'Expected Value']);
+          ['EV (HMR)', 'TileSense EV']);
     });
   });
 
@@ -236,7 +236,7 @@ void main() {
         expect(find.byKey(const Key('ev-win-chart')), findsOneWidget);
         expect(find.byKey(const Key('ev-hit-chart')), findsOneWidget);
         expect(find.byKey(const Key('ev-waterfall')), findsOneWidget);
-        expect(find.text('Expected Value'), findsWidgets);
+        expect(find.text('TileSense EV'), findsWidgets);
       });
     });
 
@@ -289,13 +289,13 @@ void main() {
       });
     });
 
-    testWidgets('the Expected Value tooltip shows its multiplication',
+    testWidgets('the TileSense EV tooltip shows its multiplication',
         (tester) async {
       await withOverlay(tester, (line) async {
         final tips = find.byWidgetPredicate((w) =>
             w is Tooltip &&
             (w.richMessage?.toPlainText().contains('THIS CUT') ?? false) &&
-            (w.richMessage!.toPlainText().startsWith('EXPECTED VALUE')));
+            (w.richMessage!.toPlainText().startsWith('TILESENSE EV')));
         expect(tips, findsWidgets);
         final text = tester
             .widget<Tooltip>(tips.first)
@@ -303,7 +303,7 @@ void main() {
             .toPlainText();
         final chance = '${(line.winProbability * 100).toStringAsFixed(2)}%';
         expect(text, contains('so on average'));
-        expect(text, contains('= $chance x '));
+        expect(text, contains('= $chance × '));
         // Shorter than before: the general explainer stays a screenful.
         final general = text.substring(0, text.indexOf('THIS CUT'));
         expect(general.length, lessThan(900));

@@ -1,14 +1,14 @@
 # <img width="35" height="35" alt="tileSense" src="https://github.com/user-attachments/assets/5b178736-39e4-489d-9bc5-3ffa7f927057" /> TileSense 
 
 
-<img width="215" height="215" alt="clefairy" src="https://github.com/user-attachments/assets/448af05c-3065-46d3-9c4e-73c267c7a1ae" />
+<img width="215" height="215" alt="clefairy" src="flutter_client/assets/clefairy.png" />
 
 --- 
 
 [Play the live web app](https://app.ericrxu.com/tilesense/)
 
 A mahjong **tile-efficiency trainer** for **Japanese riichi** and **Hong Kong**
-rules. Play offline against bots with a live guide grading every discard —
+rules. Play single player against bots with a live guide grading every discard —
 shanten, ukeire (tile acceptance), probability-weighted point value, and the
 recommended tile — and ranking your hand by safety once an opponent threatens.
 Play online with friends too, bots filling any empty seat — multiplayer has no
