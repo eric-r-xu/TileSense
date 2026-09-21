@@ -450,6 +450,87 @@ class EfficiencyValueContext {
       );
 }
 
+/// One turn of the walk behind [DiscardLine.winProbability].
+class WinTurn {
+  const WinTurn({
+    required this.turn,
+    required this.hit,
+    required this.cumulative,
+    required this.alive,
+    this.reachedTenpai,
+  });
+
+  /// 1-based: the first draw still to come is turn 1.
+  final int turn;
+
+  /// Chance this line finishes on exactly this turn.
+  final double hit;
+
+  /// Chance it has finished by the end of this turn.
+  final double cumulative;
+
+  /// Chance the hand is still running, unfinished, when this turn starts.
+  final double alive;
+
+  /// Chance the hand has reached tenpai by the end of this turn. Only the
+  /// walks that start before tenpai know it.
+  final double? reachedTenpai;
+}
+
+/// Which estimator produced a line's [DiscardLine.winProbability].
+enum WinEstimator {
+  /// Ready: [WinBreakdown.width] live tiles complete the hand.
+  tenpai,
+
+  /// Not ready: a shanten-by-shanten walk towards tenpai and then a win.
+  shantenWalk,
+
+  /// One away with a tenpai on offer: each improving draw is followed into the
+  /// tenpai it would really reach.
+  tenpaiLookahead,
+}
+
+/// The working behind [DiscardLine.winProbability], for the chart the panel
+/// opens on a tap: the inputs the estimator was given and the turn-by-turn
+/// series it produced. [win] is always [DiscardLine.winProbability].
+class WinBreakdown {
+  const WinBreakdown({
+    required this.estimator,
+    required this.turns,
+    required this.width,
+    required this.unseen,
+    required this.draws,
+    required this.chancesPerTurn,
+    required this.survivesTurn,
+    this.shanten = 0,
+  });
+
+  final WinEstimator estimator;
+  final List<WinTurn> turns;
+
+  /// Live tiles that finish the hand (tenpai), or the tiles that advance it
+  /// (shanten walk).
+  final double width;
+
+  /// Tiles you cannot see, out of which every draw comes.
+  final int unseen;
+
+  /// Draws this hand still has left.
+  final int draws;
+
+  /// Shots at the finishing tile per turn — above the plain draw once a ron is
+  /// possible, below it when the hand can only be self-drawn.
+  final double chancesPerTurn;
+
+  /// Chance the hand is still running after one more of your turns.
+  final double survivesTurn;
+
+  /// Steps from tenpai for the shanten walk; 0 otherwise.
+  final int shanten;
+
+  double get win => turns.isEmpty ? 0 : turns.last.cumulative;
+}
+
 class DiscardLine {
   DiscardLine({
     required this.discard,
@@ -466,6 +547,7 @@ class DiscardLine {
     this.dealInCost = 0,
     this.commitmentCost = 0,
     this.winProbability = 0,
+    this.winBreakdown,
     this.riichiLockCost = 0,
     this.valueTilt = 0,
     this.winBonus = 0,
@@ -520,6 +602,10 @@ class DiscardLine {
   /// completed hand before it. [riichiLockCost] is what declaring riichi costs
   /// against the hands it doesn't win; zero unless the plan is to declare.
   final double winProbability;
+
+  /// How [winProbability] was worked out, turn by turn — null on a line with
+  /// no win to estimate (no yaku, dead wait, a plain defensive fold).
+  final WinBreakdown? winBreakdown;
   final double riichiLockCost;
 
   /// What the [HandFocus] dial moved this line by: the gap between the payout
@@ -760,7 +846,8 @@ class EfficiencyEngine {
     final winModel = _winModelFor(ruleset);
     final unseenNow = _countRemaining(remaining);
     final drawsNow = math.max(1, (valueContext.wallTilesRemaining + 3) ~/ 4);
-    ({double win, double reached})? tenpaiLookahead(TileEfficiencyResult r) {
+    ({double win, double reached, List<WinTurn> series})? tenpaiLookahead(
+        TileEfficiencyResult r) {
       if (!hasTenpaiLine || r.shanten != 1 || unseenNow <= 1) return null;
       final after = toTrainerCounts(_handAfterDiscard(hand, r.discard));
       // One entry per improving draw: its live copies and the widest wait it
@@ -783,9 +870,12 @@ class EfficiencyEngine {
       var alive = 1.0; // still 1-shanten and the hand still running
       var win = 0.0;
       var reached = 0.0;
+      final series = <WinTurn>[];
       for (var turn = 0; turn < drawsNow; turn++) {
         final hit = alive * step;
         reached += hit;
+        final winBefore = win;
+        final aliveBefore = alive;
         final left = drawsNow - 1 - turn;
         if (left > 0) {
           var chance = 0.0;
@@ -802,8 +892,19 @@ class EfficiencyEngine {
           win += hit * chance / copies;
         }
         alive *= (1 - step) * winModel.survivesTurn;
+        series.add(WinTurn(
+          turn: turn + 1,
+          hit: win - winBefore,
+          cumulative: win.clamp(0.0, 1.0),
+          alive: aliveBefore,
+          reachedTenpai: reached.clamp(0.0, 1.0),
+        ));
       }
-      return (win: win.clamp(0.0, 1.0), reached: reached.clamp(0.0, 1.0));
+      return (
+        win: win.clamp(0.0, 1.0),
+        reached: reached.clamp(0.0, 1.0),
+        series: series,
+      );
     }
 
     final lines = byType.values.map((r) {
@@ -875,6 +976,7 @@ class EfficiencyEngine {
         dealInCost: dealInCost,
         commitmentCost: commitmentCost,
         winProbability: value.winProbability,
+        winBreakdown: value.winBreakdown,
         riichiLockCost: value.riichiLockCost,
         valueTilt: value.valueTilt,
         winBonus: valueContext.winBonus.toDouble(),
@@ -1755,7 +1857,7 @@ class EfficiencyEngine {
   /// whatever has not won yet only carries on if the hand is still running —
   /// the other three seats are drawing too, and one of them winning (or the
   /// wall running out) ends yours.
-  static ({double win, double turns}) _winChanceOverTurns({
+  static ({double win, double turns, List<WinTurn> series}) _winChanceOverTurns({
     required double waitWidth,
     required int unseen,
     required int draws,
@@ -1763,19 +1865,27 @@ class EfficiencyEngine {
     double survivesTurn = _handSurvivesTurn,
   }) {
     if (unseen <= 0 || draws <= 0 || waitWidth <= 0) {
-      return (win: 0, turns: 0);
+      return (win: 0, turns: 0, series: const <WinTurn>[]);
     }
     final rate = math.min(1.0, waitWidth / unseen);
     final perTurn = 1 - math.pow(1 - rate, chancesPerTurn).toDouble();
     var alive = 1.0;
     var won = 0.0;
     var turns = 0.0;
+    final series = <WinTurn>[];
     for (var turn = 0; turn < draws; turn++) {
       turns += alive; // this turn is only played if the hand got this far
-      won += alive * perTurn;
+      final hit = alive * perTurn;
+      series.add(WinTurn(
+        turn: turn + 1,
+        hit: hit,
+        cumulative: (won + hit).clamp(0.0, 1.0),
+        alive: alive,
+      ));
+      won += hit;
       alive *= (1 - perTurn) * survivesTurn;
     }
-    return (win: won.clamp(0.0, 1.0), turns: turns);
+    return (win: won.clamp(0.0, 1.0), turns: turns, series: series);
   }
 
   /// The chance a hand this far from home actually wins, over the draws it has
@@ -1793,8 +1903,12 @@ class EfficiencyEngine {
   ///
   /// [width] is drawn acceptance, plus weighted call acceptance when [model]
   /// counts calls.
-  static ({double win, double reachedTenpai, double turns})
-      _winProbabilityFromShanten({
+  static ({
+    double win,
+    double reachedTenpai,
+    double turns,
+    List<WinTurn> series
+  }) _winProbabilityFromShanten({
     required int shanten,
     required double width,
     required int unseen,
@@ -1802,7 +1916,7 @@ class EfficiencyEngine {
     WinModel model = WinModel.riichi,
   }) {
     if (shanten < 1 || draws <= 0 || unseen <= 0 || width <= 0) {
-      return (win: 0, reachedTenpai: 0, turns: 0);
+      return (win: 0, reachedTenpai: 0, turns: 0, series: const <WinTurn>[]);
     }
 
     // How much wider (or narrower) this hand is than a typical one that far
@@ -1852,10 +1966,13 @@ class EfficiencyEngine {
     var won = 0.0;
     var reached = 0.0;
     var turnsPlayed = 0.0;
+    final series = <WinTurn>[];
 
     for (var turn = 0; turn < draws; turn++) {
       // Only the turns the hand actually reaches are turns you discard on.
-      turnsPlayed += states.fold<double>(0, (a, b) => a + b);
+      final aliveNow = states.fold<double>(0, (a, b) => a + b);
+      turnsPlayed += aliveNow;
+      final wonBefore = won;
       final next = List<double>.filled(shanten + 2, 0);
       for (var s = shanten + 1; s >= 1; s--) {
         final mass = states[s];
@@ -1874,11 +1991,19 @@ class EfficiencyEngine {
         next[s] *= model.survivesTurn;
       }
       states.setAll(0, next);
+      series.add(WinTurn(
+        turn: turn + 1,
+        hit: won - wonBefore,
+        cumulative: won.clamp(0.0, 1.0),
+        alive: aliveNow,
+        reachedTenpai: reached.clamp(0.0, 1.0),
+      ));
     }
     return (
       win: won.clamp(0.0, 1.0),
       reachedTenpai: reached.clamp(0.0, 1.0),
       turns: turnsPlayed,
+      series: series,
     );
   }
 
@@ -1928,7 +2053,7 @@ class EfficiencyEngine {
     double? projectedPointsOverride,
     double? projectedDamaOverride,
     double? projectedDoraReference,
-    ({double win, double reached})? tenpaiLookahead,
+    ({double win, double reached, List<WinTurn> series})? tenpaiLookahead,
   }) {
     // A normal discard analysis starts with 14 tiles including open melds.
     // Off-turn defensive reads can have only 13, so avoid pretending those
@@ -1987,6 +2112,17 @@ class EfficiencyEngine {
         useLookahead ? tenpaiLookahead.win : outlook.win;
     final reachedTenpai =
         useLookahead ? tenpaiLookahead.reached : outlook.reachedTenpai;
+    final breakdown = WinBreakdown(
+      estimator:
+          useLookahead ? WinEstimator.tenpaiLookahead : WinEstimator.shantenWalk,
+      turns: useLookahead ? tenpaiLookahead.series : outlook.series,
+      width: width,
+      unseen: unseen,
+      draws: draws,
+      chancesPerTurn: winModel.winChancesPerTurn,
+      survivesTurn: winModel.survivesTurn,
+      shanten: result.shanten,
+    );
 
     // Hong Kong has no deposit to bill and no dora to adjust for: the line is
     // worth its chance times an estimate of what the hand's visible patterns
@@ -2002,6 +2138,7 @@ class EfficiencyEngine {
         valueTilt: tilted - completionProbability * projectedPoints,
         plan: 'BUILD HAND',
         winProbability: completionProbability,
+        winBreakdown: breakdown,
         turnsExposed: outlook.turns,
       );
     }
@@ -2015,8 +2152,8 @@ class EfficiencyEngine {
     // outrank its own tenpai line, which reads as "break tenpai to rebuild".
     final baseProjectedPoints = projectedPointsOverride ??
         (context.closed
-            ? (context.isDealer ? 5800.0 : 3900.0)
-            : (context.isDealer ? 2900.0 : 2000.0));
+            ? (context.isDealer ? _projectedClosedDealer : _projectedClosed)
+            : (context.isDealer ? _projectedOpenDealer : _projectedOpen));
 
     // Adjusted for the dora this particular line keeps. Without it every
     // pre-tenpai discard is quoted the same payout whatever it throws away, so
@@ -2101,6 +2238,7 @@ class EfficiencyEngine {
       valueTilt: tilted - plain,
       plan: context.closed ? 'RIICHI PATH' : 'YAKU PATH',
       winProbability: completionProbability,
+      winBreakdown: breakdown,
       riichiLockCost: chargedDeposit,
       turnsExposed: outlook.turns,
     );
@@ -2111,6 +2249,14 @@ class EfficiencyEngine {
   /// before tenpai, where the hand's exact shape is not yet known and only the
   /// representative payout is on hand.
   static const double _riichiValueMultiple = 1.5;
+
+  /// What an unfinished hand is quoted as paying, by whether it is closed and
+  /// whether you deal — the placeholder [_assessValue] uses before tenpai, until
+  /// a real hand can be scored.
+  static const double _projectedClosedDealer = 5800;
+  static const double _projectedClosed = 3900;
+  static const double _projectedOpenDealer = 2900;
+  static const double _projectedOpen = 2000;
 
   /// Dora (indicated plus red fives) held by a hand this shape, on average.
   /// One indicator puts four tiles in a 136-tile wall and you hold thirteen of
@@ -2546,6 +2692,16 @@ class EfficiencyEngine {
       recommendRiichi: recommendRiichi,
       reason: reason,
       winProbability: winProbability,
+      winBreakdown: WinBreakdown(
+        estimator: WinEstimator.tenpai,
+        turns: outlook.series,
+        width: liveWaits.toDouble(),
+        unseen: unseen,
+        draws: draws,
+        chancesPerTurn:
+            ronAvailable ? _winChancesPerTurn : _tsumoOnlyChancesPerTurn,
+        survivesTurn: _handSurvivesTurn,
+      ),
       riichiLockCost: lockCost,
       valueTilt: worthOfChance * (worthOfWin + context.winBonus) - plainValue,
       damaPoints: damaPoints,
@@ -2598,6 +2754,15 @@ class EfficiencyEngine {
         damaPoints: points,
         valueTilt: expected - outlook.win * points,
         winProbability: outlook.win,
+        winBreakdown: WinBreakdown(
+          estimator: WinEstimator.tenpai,
+          turns: outlook.series,
+          width: liveWaits.toDouble(),
+          unseen: _countRemaining(remaining),
+          draws: math.max(0, (context.wallTilesRemaining + 3) ~/ 4),
+          chancesPerTurn: HongKongGuideTuning.winModel.winChancesPerTurn,
+          survivesTurn: HongKongGuideTuning.winModel.survivesTurn,
+        ),
         turnsExposed: outlook.turns,
         plan: 'READY',
         reason:
@@ -2759,6 +2924,7 @@ class _ValueAssessment {
     this.recommendRiichi = false,
     this.reason = '',
     this.winProbability = 0,
+    this.winBreakdown,
     this.riichiLockCost = 0,
     this.turnsExposed = 0,
     this.damaPoints = 0,
@@ -2789,6 +2955,10 @@ class _ValueAssessment {
   /// does not win. Together with [averagePoints] and the deal-in cost they
   /// reconstruct [expectedValue] exactly.
   final double winProbability;
+
+  /// The turn-by-turn working behind [winProbability] — see
+  /// [DiscardLine.winBreakdown].
+  final WinBreakdown? winBreakdown;
   final double riichiLockCost;
 
   /// How many more turns this line expects to still be in the hand, and so how
@@ -2799,4 +2969,55 @@ class _ValueAssessment {
   /// Plain-English justification for [plan], shown in the guide panel.
   /// Only populated at tenpai — earlier shanten has nothing to explain yet.
   final String reason;
+}
+
+/// The tuned numbers behind the guide, read-only, so the panel's tooltips can
+/// quote the live values instead of copies that would drift the first time one
+/// is retuned. Nothing here is a setting; every value is the engine's own.
+abstract final class GuideConstants {
+  /// Chance the hand is still running after one more of your turns.
+  static double get survivesTurn => EfficiencyEngine._handSurvivesTurn;
+
+  /// Average ukeire of an ordinary hand at each shanten (index 0 = tenpai).
+  static List<double> get typicalUkeire => EfficiencyEngine._typicalUkeire;
+
+  /// Pre-tenpai payout placeholders: closed / open, non-dealer / dealer.
+  static double get projectedClosed => EfficiencyEngine._projectedClosed;
+  static double get projectedClosedDealer =>
+      EfficiencyEngine._projectedClosedDealer;
+  static double get projectedOpen => EfficiencyEngine._projectedOpen;
+  static double get projectedOpenDealer =>
+      EfficiencyEngine._projectedOpenDealer;
+
+  /// The multiple one dora is worth to a pre-tenpai payout, and how many dora a
+  /// hand this shape usually holds.
+  static double get doraValueMultiple => EfficiencyEngine._doraValueMultiple;
+  static double get baselineDora => EfficiencyEngine._baselineDora;
+
+  /// Chance a cut of this 0..15 safety rating deals in.
+  static double dealInRate(int rating) => EfficiencyEngine._dealInRateByRating[
+      rating.clamp(0, EfficiencyEngine._dealInRateByRating.length - 1)];
+
+  /// What a deal-in costs: riichi points (non-dealer / dealer), then Hong Kong
+  /// chips. Honba adds 300 each on top in riichi.
+  static double get dealInCost => EfficiencyEngine._dealInCost;
+  static double get dealerDealInCost => EfficiencyEngine._dealerDealInCost;
+  static double get hongKongDealInCost => EfficiencyEngine._hongKongDealInCost;
+
+  /// How much of each later turn a pushing cut is charged for, and how many of
+  /// your discards a live riichi lasts.
+  static double get pushCommitment => EfficiencyEngine._pushCommitment;
+  static double get riichiPushHorizon => EfficiencyEngine._riichiPushHorizon;
+
+  /// The least a hand must pay to stay damaten instead of declaring
+  /// (non-dealer / dealer), before the Style dial scales it.
+  static int get damatenMinPoints => EfficiencyEngine._damatenMinPoints;
+  static int get dealerDamatenMinPoints =>
+      EfficiencyEngine._dealerDamatenMinPoints;
+
+  /// The payout and chance the Focus dial pivots around: nothing moves at
+  /// exactly these.
+  static double get focusPointsPivot => HandFocus._pointsPivot;
+  static double get focusHongKongPointsPivot => HandFocus._hongKongPointsPivot;
+  static double get focusChancePivot => HandFocus._chancePivot;
 }

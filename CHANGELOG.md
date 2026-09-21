@@ -151,8 +151,69 @@ All notable changes to this project will be documented in this file.
   is purely informational — it never drives the recommendation — and both
   the header and each cell carry a tooltip working through the arithmetic,
   same as Expected Value's.
+- **Tapping an EV (HMR) number opens charts of how it was made.** The cell
+  is underlined and clickable; the tooltip stays on hover / long-press. The
+  page (`lib/ui/ev_explainer_dialog.dart`, hand-drawn with `CustomPainter`
+  so there is no new dependency) shows the chance of finishing turn by turn
+  — cumulative line plus a per-turn bar chart, with the reached-tenpai line
+  before tenpai — the inputs the estimator was given, what the win pays, and
+  a waterfall carrying EV (HMR) up to the Expected Value column through
+  honba/sticks, the Focus tilt, and each cost. Touch, drag or hover a chart
+  for any turn's numbers. To feed it, `DiscardLine.winBreakdown`
+  (`WinBreakdown` / `WinTurn` / `WinEstimator`) now records the per-turn
+  series `_winChanceOverTurns`, `_winProbabilityFromShanten` and the
+  tenpai lookahead were already computing and discarding; no number the
+  guide produces changes. New tests:
+  `flutter_client/test/ev_explainer_test.dart` (each line's series ends on
+  its table win probability, the waterfall lands on Expected Value, tap →
+  dialog).
 
 ### Changed
+- **The STYLE, FOCUS, STRATEGY and PLACEMENT tooltips are bulleted, with real
+  tables, and the Safety section is always in the guide.** Every heading
+  tooltip now follows one layout — a one-line answer, bullets, a table where a
+  reference table is in play, then the formula. New tables: typical ukeire by
+  shanten (Ukeire / Accepts); deal-in chance by safety rating with what earns
+  each rating (Safety, riichi and Hong Kong's own scale); risk weight, damaten
+  bar and the payout each Style stays quiet from; what Speed counts a payout
+  and a chance as (FOCUS, in chips under Hong Kong); and what ±8,000 points is
+  worth at an even table, with a big lead, far behind, and on the last hand
+  (PLACEMENT). The tables are real `Table` widgets inside the tooltip, so
+  columns line up in any font, and every value is read from the engine. The
+  Safety, Risk and Detail columns are no longer hidden until a riichi is out:
+  they always show, with "—" when there is nothing to defend against, so their
+  tooltips are reachable on any turn under either ruleset (Detail is 80px wide,
+  down from 92, to keep the table inside the panel). New tests in
+  `flutter_client/test/guide_tooltips_test.dart`.
+- **The guide's glossary under the table is gone; every heading and dial
+  that names a concept explains itself on hover instead.** Shanten / Away,
+  Ukeire / Accepts, Safety, Risk, Detail, Placement, and the STYLE / FOCUS /
+  STRATEGY dial names each carry a tooltip, and the GUIDE title keeps the
+  legend with no heading of its own (green / yellow tile, the pause key — not
+  shown in the scenario builder, which has none). The tooltips hold the
+  heuristics behind each concept — the Speed payout and chance curves, the
+  Style risk weights and damaten bars, the placement model with a worked
+  example, the deal-in rate by rating, the commitment charge, the
+  typical-ukeire table — read live from the engine through a new read-only
+  `GuideConstants` (and `HandFocus` / `PlayStyle` / `PlacementUtility`), so
+  retuning a constant cannot leave the text stale. Each section of the
+  Expected Value tooltip now ends with a pointer to where its working lives.
+  The pre-tenpai payout placeholders (3,900 / 5,800 closed, 2,000 / 2,900
+  open) are named constants instead of inline literals, and the tap-through
+  chart page states them. Also fixed a stale mention of the removed Value
+  focus setting. New tests: `flutter_client/test/guide_tooltips_test.dart`;
+  `safety_test.dart` and the two scenario tests now assert on the tooltips
+  instead of the deleted bullets.
+- **The Expected Value and EV (HMR) tooltips are shorter and quote the chance
+  of finishing to two decimals.** Each general explainer is a few one-line
+  parts instead of paragraphs (formula, then chance / payout / risk / focus),
+  and the worked "THIS CUT" block now shows the multiplication behind its
+  "so on average" row — `= 33.10% x (11,740 + 300)` — so the number can be
+  checked by eye. The chance reads `33.10%` rather than `33%` (and the
+  explainer dialog's headline matches). The HMR tooltip drops its long URL
+  paragraph for a one-line description of what HMR's E.V. is; the link stays
+  in `EXPECTED_VALUE.md`. No number changes. Tests:
+  `flutter_client/test/ev_explainer_test.dart`.
 - **The Style dial is hidden under Hong Kong rules and pinned to Balanced.**
   Style has no riichi or damaten left to weigh there — two of its three terms
   were already dead code — and a 14,000-game sweep (`_dialEffects` in

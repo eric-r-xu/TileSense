@@ -79,7 +79,15 @@ void main() {
       // No live-game controls.
       expect(find.textContaining('Auto-Play'), findsNothing);
       expect(find.byTooltip('Pause'), findsNothing);
-      expect(find.text('• Esc — pause the game'), findsNothing);
+      // No pause key here, so the GUIDE legend doesn't advertise one.
+      final guideTip = find.byWidgetPredicate((w) =>
+          w is Tooltip &&
+          (w.richMessage?.toPlainText().startsWith('GUIDE\n') ?? false));
+      expect(guideTip, findsOneWidget);
+      expect(
+          (tester.widget<Tooltip>(guideTip).richMessage as TextSpan)
+              .toPlainText(),
+          isNot(contains('Esc')));
 
       await tester.tap(find.text('Random'));
       await tester.pump(const Duration(milliseconds: 100));
