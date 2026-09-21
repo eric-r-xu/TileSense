@@ -850,6 +850,8 @@ class _GamePageState extends State<GamePage> {
           advanceLabel: 'Start',
           soundOn: _game.soundOn,
           onSoundOn: (on) => setState(() => _game.setSoundOn(on)),
+          hanchan: _game.hanchan,
+          onHanchan: (h) => setState(() => _game.setHanchan(h)),
           onBack: () => setState(() => _choosingCharacters = false),
           onAdvance: () => setState(() {
             _choosingCharacters = false;
@@ -1342,20 +1344,37 @@ class _WelcomeScreen extends StatelessWidget {
                             backgroundColor: const Color(0xffcaa24e),
                             foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                                horizontal: 10, vertical: 12),
                           ),
-                          child: const Column(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Play Offline',
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold)),
-                              SizedBox(height: 2),
-                              Text(
-                                'Includes the guide',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.black54),
+                              // The mascot that toggles the guide at the table,
+                              // as the button's icon: the guide comes with
+                              // offline play.
+                              Image.asset(
+                                'assets/clefairy.png',
+                                key: const Key('startGuideMascot'),
+                                height: 36,
+                                filterQuality: FilterQuality.high,
+                                errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink(),
+                              ),
+                              const SizedBox(width: 8),
+                              const Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('Single Player',
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Includes the guide',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.black54),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -1368,7 +1387,7 @@ class _WelcomeScreen extends StatelessWidget {
                             foregroundColor: const Color(0xffe9d58f),
                             side: const BorderSide(color: Color(0xffcaa24e)),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
+                                horizontal: 12, vertical: 12),
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,
@@ -1394,7 +1413,7 @@ class _WelcomeScreen extends StatelessWidget {
                             foregroundColor: const Color(0xffe9d58f),
                             side: const BorderSide(color: Color(0xffcaa24e)),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
+                                horizontal: 12, vertical: 12),
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,

@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
@@ -437,7 +439,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  /// Text styles for the Expected Value tooltip. Deliberately larger than the
+  /// Text styles for the TileSense EV tooltip. Deliberately larger than the
   /// 9px panel body — the panel is a dense table you scan, the tooltip is
   /// something you stop and read.
   static const _tipTitle = TextStyle(
@@ -455,8 +457,61 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     fontFamily: 'monospace',
     fontFamilyFallback: ['Menlo', 'Consolas', 'Courier New', 'monospace'],
   );
+  static const _tipEquation = TextStyle(
+    color: Color(0xff9fe0d8),
+    fontSize: 13.5,
+    height: 1.5,
+    fontStyle: FontStyle.italic,
+  );
   static const _tipDim =
       TextStyle(color: Colors.white60, fontSize: 11.5, height: 1.5);
+
+  /// One equation on one line, with real subscripts and superscripts: write
+  /// `_{sub}` and `^{sup}` in [src]. Never wraps — a line too wide for the
+  /// tooltip is scaled down to fit instead — and ends the line itself.
+  static InlineSpan _math(String src) {
+    const small = 0.72;
+    final base = _tipEquation.fontSize!;
+    final parts = <InlineSpan>[];
+    final token = RegExp(r'([_^])\{([^}]*)\}');
+    var at = 0;
+    void plain(String t) {
+      if (t.isNotEmpty) parts.add(TextSpan(text: t));
+    }
+
+    for (final m in token.allMatches(src)) {
+      plain(src.substring(at, m.start));
+      final up = m.group(1) == '^';
+      parts.add(WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: Transform.translate(
+          offset: Offset(0, base * (up ? -0.42 : 0.24)),
+          child: Text(m.group(2)!,
+              softWrap: false,
+              style: _tipEquation.copyWith(fontSize: base * small)),
+        ),
+      ));
+      at = m.end;
+    }
+    plain(src.substring(at));
+    return TextSpan(children: [
+      const TextSpan(text: '  ', style: _tipBody),
+      WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text.rich(
+            TextSpan(children: parts),
+            softWrap: false,
+            style: _tipEquation,
+          ),
+        ),
+      ),
+      const TextSpan(text: '\n', style: _tipBody),
+    ]);
+  }
   static const _tipHead = TextStyle(
       color: Color(0xff9fe0d8),
       fontSize: 10,
@@ -475,7 +530,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         if (more != null) TextSpan(text: '→ $more\n', style: _tipDim),
       ]);
 
-  /// What the Expected Value column means, in general terms — the same answer
+  /// What the TileSense EV column means, in general terms — the same answer
   /// whether the hand is ready or five tiles away, and whether or not anyone
   /// is in riichi. The exact coefficients live in the README; what matters
   /// here is which way each part pushes the number.
@@ -484,15 +539,13 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       _evGeneralFor(Ruleset.hongKong);
 
   static List<InlineSpan> _evGeneralFor(Ruleset ruleset) => [
-        const TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
+        const TextSpan(text: 'TILESENSE EV\n', style: _tipTitle),
         TextSpan(
-            text: 'The average ${ruleset.unit} this discard is worth to you.\n',
+            text: 'The average ${ruleset.unit} this discard is worth to you '
+                '(EV = Expected Value).\n',
             style: _tipBody),
-        const TextSpan(
-            text: '\n  EV  =  chance of finishing\n'
-                '         x  what the win pays\n'
-                '         -  what the cut risks\n',
-            style: _tipMath),
+        const TextSpan(text: '\n', style: _tipBody),
+        _math('TileSense EV = chance_{finish} × payout_{win} − risk_{cut}'),
         _tipPart(
             'CHANCE OF FINISHING',
             'Odds you win before the hand ends. More live tiles and more draws '
@@ -651,15 +704,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
 
   static List<InlineSpan> _shantenTip(bool hk) => [
         TextSpan(text: '${hk ? 'AWAY' : 'SHANTEN'}\n', style: _tipTitle),
-        const TextSpan(
-            text: 'How many tiles you are from a ready hand.\n',
+        TextSpan(
+            text: 'How many tiles you are from a ready hand '
+                '(0 means ${hk ? 'ready' : 'tenpai'}).',
             style: _tipBody),
-        const TextSpan(text: '\n', style: _tipBody),
-        ..._bullets([
-          ('0', hk ? 'ready' : 'tenpai, one tile from winning'),
-          if (!hk) ('win', 'the hand is already complete'),
-          ('Higher', 'further away'),
-        ]),
       ];
 
   static List<InlineSpan> _ukeireTip(bool hk) {
@@ -677,12 +725,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           'Wider than ordinary',
           'steps forward faster, but never faster than an ordinary hand'
         ),
-        (
-          'Ending first',
-          'each turn the hand has a ${_rate(1 - GuideConstants.survivesTurn)} '
-              'chance of ending before it wins: another seat wins, or the '
-              'wall runs out'
-        ),
       ]),
       _tipSection('AN ORDINARY HAND HAS'),
       _tipTable(
@@ -691,6 +733,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           ['Ukeire', for (final v in typical) v.round().toString()],
         ],
       ),
+      const TextSpan(
+          text: '\nMeans, not medians: the average ukeire of the best discard '
+              'at each shanten, measured over simulated solo games by a '
+              'greedy efficiency player (no defence, no calls).',
+          style: _tipDim),
     ];
   }
 
@@ -795,7 +842,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           if (!hk)
             (
               'Style weight',
-              'x${PlayStyle.values.map((s) => s.riskWeight.toStringAsFixed(2)).join(' / ')} '
+              '×${PlayStyle.values.map((s) => s.riskWeight.toStringAsFixed(2)).join(' / ')} '
                   'for ${PlayStyle.values.map((s) => s.label).join(' / ')}'
             ),
           (
@@ -814,11 +861,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           ),
         ]),
         _tipSection('FORMULA'),
-        TextSpan(
-            text: '  risk  =  deal-in chance  x  deal-in cost'
-                '${hk ? '' : '  x  Style weight'}\n'
-                '        +  the later-turns charge\n',
-            style: _tipMath),
+        _math('risk = chance_{deal-in} × cost_{deal-in}'
+            '${hk ? '' : ' × weight_{style}'} + charge_{later turns}'),
       ];
 
   static List<InlineSpan> _detailTip() => [
@@ -862,13 +906,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         ('Uses', 'the scores on the table and the hands left right now'),
         (
           'Not points',
-          'scaled up x1,000 so it reads at a glance; only its order '
+          'scaled up ×1,000 so it reads at a glance; only its order '
               'against the other lines means anything'
-        ),
-        (
-          'Converted piece by piece',
-          'the win, the riichi stick and a deal-in are each valued on '
-              'their own'
         ),
         ('A heuristic', 'not a simulation'),
       ]),
@@ -890,13 +929,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               'and least when you are comfortably ahead.\n',
           style: _tipDim),
       _tipSection('FORMULA'),
-      TextSpan(
-          text: '  worth(gain) = u(score + gain) - u(score)\n'
-              '  u(score)    = sum over the 3 other seats of\n'
-              '                logistic((score - theirs) / spread)\n'
-              '  spread      = ${_pts(PlacementUtility.baseSpread)} x '
-              'sqrt(hands left)\n',
-          style: _tipMath),
+      _math('worth(gain) = u(score + gain) − u(score)'),
+      _math('u(score) = Σ_{3 other seats} logistic((score − score_{theirs}) '
+          '/ spread)'),
+      _math('spread = ${_pts(PlacementUtility.baseSpread)} × '
+          '√(hands left)'),
     ];
   }
 
@@ -920,8 +957,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           for (final st in PlayStyle.values)
             [
               st.label,
-              'x${st.riskWeight.toStringAsFixed(2)}',
-              'x${st.damatenBar.toStringAsFixed(2)}',
+              '×${st.riskWeight.toStringAsFixed(2)}',
+              '×${st.damatenBar.toStringAsFixed(2)}',
               '${_pts(normal * st.damatenBar)} '
                   '(${_pts(dealer * st.damatenBar)} dealer)',
             ],
@@ -973,7 +1010,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           'Speed',
           'prefers the likelier cheap hand over the unlikelier big one'
         ),
-        ('Balanced', 'no tilt: plain chance x payout'),
+        ('Balanced', 'no tilt: plain chance × payout'),
       ]),
       _tipSection('WHAT SPEED DOES'),
       TextSpan(
@@ -996,14 +1033,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         left: const {},
       ),
       _tipSection('FORMULA'),
-      TextSpan(
-          text: '  payout worth  =  ${n(pivot)} x (pts / ${n(pivot)})'
-              '^${speed.curve}\n'
-              '  chance worth  =  $chance x (p / $chance)'
-              '^${(2 - speed.curve).toStringAsFixed(2)}\n',
-          style: _tipMath),
+      _math('payout_{worth} = ${n(pivot)} × (payout / ${n(pivot)})'
+          '^{${speed.curve}}'),
+      _math('chance_{worth} = $chance × (chance / $chance)'
+          '^{${(2 - speed.curve).toStringAsFixed(2)}}'),
       const TextSpan(
-          text: '\nThe "Speed tilt" row in an Expected Value tooltip is the '
+          text: '\nThe "Speed tilt" row in a TileSense EV tooltip is the '
               'difference this makes.',
           style: _tipDim),
     ];
@@ -1072,7 +1107,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       if (line.riskCost > 0.5) {
         spans.add(TextSpan(
             text: _row('risk of this cut', '-${_pts(line.riskCost)}') +
-                _row('expected value', _pts(line.expectedValue)),
+                _row('TileSense EV', _pts(line.expectedValue)),
             style: _tipMath));
       }
       return spans;
@@ -1086,7 +1121,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     }
     buf.write(_row('so on average', _pts(gross)));
     // The multiplication behind that row, so it can be checked by eye.
-    buf.write('    = $chance x '
+    buf.write('    = $chance × '
         '${line.winBonus > 0 ? '(${_pts(line.averagePoints)} + ${_pts(line.winBonus)})' : _pts(line.averagePoints)}\n');
     if (line.valueTilt.abs() > 0.5) {
       final sign = line.valueTilt > 0 ? '+' : '-';
@@ -1103,12 +1138,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       buf.write(_row('less turns committed', '-${_pts(line.commitmentCost)}'));
     }
     buf.write('  ${'-' * 31}\n');
-    buf.write(_row('expected value', _pts(line.expectedValue)));
+    buf.write(_row('TileSense EV', _pts(line.expectedValue)));
     spans.add(TextSpan(text: buf.toString(), style: _tipMath));
     return spans;
   }
 
-  /// Wrap any mention of Expected Value so hovering it explains the number.
+  /// Wrap any mention of TileSense EV so hovering it explains the number.
   /// Pass [line] on a table cell to append that row's own arithmetic.
   Widget _evTooltip(Widget child, {DiscardLine? line}) => _tipBox(child, [
         ...(_hk ? _evGeneralHongKong : _evGeneral),
@@ -1119,28 +1154,44 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// part of the guide's own recommendation. See
   /// [DiscardLine.expectedValueHmr] for the exact definition and where it
   /// comes from.
-  static const List<InlineSpan> _evHmrGeneral = [
+  static final List<InlineSpan> _evHmrGeneral = [
     TextSpan(text: 'EV (HMR)\n', style: _tipTitle),
     TextSpan(
         text: 'A plain comparison figure — it never changes the '
             'recommendation.\n',
         style: _tipBody),
-    TextSpan(
-        text: '\n  EV (HMR)  =  chance of finishing\n'
-            '               x  what the win pays\n',
-        style: _tipMath),
+    const TextSpan(text: '\n', style: _tipBody),
+    _math('EV_{HMR} = chance_{finish} × payout_{win}'),
     TextSpan(
         text: '\nNo honba or sticks, no risk costs, no Style or Focus tilt.\n',
         style: _tipBody),
-    TextSpan(
-        text: '\nMirrors the "E.V." stat in HMR (Hitori Mahjong Renshuuki), a '
-            'solo tsumo-only trainer: points won ÷ hands played, which is '
-            'win rate × average win.',
-        style: _tipDim),
+    TextSpan(style: _tipDim, children: [
+      const TextSpan(text: '\nMirrors the "E.V." stat in '),
+      TextSpan(
+        text: 'HMR (Hitori Mahjong Renshuuki)',
+        style: const TextStyle(
+          color: Color(0xff80cbc4),
+          decoration: TextDecoration.underline,
+          decorationColor: Color(0xff80cbc4),
+        ),
+        recognizer: _hmrLink,
+        mouseCursor: SystemMouseCursors.click,
+      ),
+      const TextSpan(
+          text: ', a solo tsumo-only trainer: points won ÷ hands played, '
+              'which is win rate × average win.'),
+    ]),
   ];
 
+  /// Where HMR is written up. One recognizer for the life of the app: the
+  /// tooltip's text is static, so there is nothing to dispose of.
+  static final TapGestureRecognizer _hmrLink = TapGestureRecognizer()
+    ..onTap = () => launchUrl(Uri.parse(_hmrUrl));
+  static const _hmrUrl =
+      'https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html';
+
   /// This line's own [DiscardLine.expectedValueHmr] arithmetic, matching the
-  /// worked example [_evWorked] gives for Expected Value.
+  /// worked example [_evWorked] gives for TileSense EV.
   static List<InlineSpan> _evHmrWorked(DiscardLine line) {
     final spans = <InlineSpan>[
       const TextSpan(text: '\n', style: _tipDim),
@@ -1207,23 +1258,26 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     // Placement isn't wired up for Hong Kong yet (see [Strategy]), so the
     // column that shows it is riichi-only, same as the dial that picks it.
     final showPlacement = !_hk;
-    // Fixed leading columns (tile, shanten/away, ukeire/accepts, EV) plus the
-    // standalone EV (HMR) comparison column added right after it — then
-    // Placement and the safety columns shift down by one to make room.
+    // Fixed leading columns (tile, shanten/away, ukeire/accepts), then the
+    // standalone EV (HMR) comparison column and TileSense EV — HMR first, so
+    // the plain product reads before the figure built up from it — then
+    // Placement and the safety columns.
     //
     // The safety columns are always there, even with nobody to defend against
     // (their cells then read "—"): the headings are where Safety, Risk and
     // Detail are explained, so they must be reachable on any turn.
-    const evHmrCol = 4;
-    final placementCol = evHmrCol + 1;
+    const evHmrCol = 3;
+    const evCol = 4;
+    final placementCol = evCol + 1;
     final firstSafetyCol = placementCol + (showPlacement ? 1 : 0);
     return Table(
       columnWidths: {
         0: const FixedColumnWidth(34),
         1: const FixedColumnWidth(52),
         2: const FixedColumnWidth(48),
-        3: const FixedColumnWidth(50),
         evHmrCol: const FixedColumnWidth(50),
+        // Wide enough for "TileSense" on one line at the 9px heading size.
+        evCol: const FixedColumnWidth(58),
         // Wide enough for the header word "Placement" on one line — at 50 it
         // wrapped mid-word ("Placemen" / "t").
         if (showPlacement) placementCol: const FixedColumnWidth(66),
@@ -1231,7 +1285,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         // the table has to fit the panel's 456px inside its padding.
         firstSafetyCol: const FixedColumnWidth(34),
         firstSafetyCol + 1: const FixedColumnWidth(40),
-        firstSafetyCol + 2: const FixedColumnWidth(80),
+        firstSafetyCol + 2: const FixedColumnWidth(72),
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -1240,8 +1294,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           '',
           _hk ? 'Away' : 'Shanten',
           _hk ? 'Accepts' : 'Ukeire',
-          'Expected Value',
           'EV (HMR)',
+          'TileSense EV',
           if (showPlacement) 'Placement',
           'Safety',
           'Risk',
@@ -1264,19 +1318,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               _cell(line.shanten == -1 ? 'win' : line.shanten.toString()),
               _cell(line.ukeire.toString(),
                   bold: line.bestUkeire, color: const Color(0xffffdf76)),
-              // Each cell explains its own number, not just the column.
-              _evTooltip(
-                _cell(
-                  line.expectedValue.round().toString(),
-                  bold: line.bestExpectedValue &&
-                      widget.game.strategy != Strategy.placement,
-                  color: const Color(0xff80cbc4),
-                ),
-                line: line,
-              ),
               // Standalone comparison column — see [DiscardLine.expectedValueHmr].
               // Never bold: it doesn't drive the recommendation, so it never
-              // needs to draw the eye the way Expected Value's winner does.
+              // needs to draw the eye the way TileSense EV's winner does.
               // Tap opens the charts behind the number ([showEvExplainer]);
               // the tooltip keeps explaining it on hover / long-press.
               _evHmrTooltip(
@@ -1286,6 +1330,16 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   onTap: () => showEvExplainer(context, line,
                       unit: widget.game.round.ruleset.unit, hongKong: _hk),
                   key: ValueKey('ev-hmr-${line.discard.code}'),
+                ),
+                line: line,
+              ),
+              // Each cell explains its own number, not just the column.
+              _evTooltip(
+                _cell(
+                  line.expectedValue.round().toString(),
+                  bold: line.bestExpectedValue &&
+                      widget.game.strategy != Strategy.placement,
+                  color: const Color(0xff80cbc4),
                 ),
                 line: line,
               ),
@@ -1344,7 +1398,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           // Every heading that names a concept carries its own explainer, in
           // place of a glossary underneath the table.
           final tip = switch (l) {
-            'Expected Value' => (_hk ? _evGeneralHongKong : _evGeneral),
+            'TileSense EV' => (_hk ? _evGeneralHongKong : _evGeneral),
             'EV (HMR)' => _evHmrGeneral,
             'Shanten' || 'Away' => _shantenTip(_hk),
             'Ukeire' || 'Accepts' => _ukeireTip(_hk),
@@ -1359,7 +1413,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             child: Text(l,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: l == 'Expected Value'
+                  color: l == 'TileSense EV'
                       ? const Color(0xffbfe6e0)
                       : l == 'EV (HMR)'
                           ? const Color(0xff9fb0b8)

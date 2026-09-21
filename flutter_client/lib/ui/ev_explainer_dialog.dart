@@ -7,7 +7,7 @@ import 'tile_face.dart';
 
 /// Opens the "how is this number made" page for one discard's EV (HMR) cell:
 /// the chance of finishing turn by turn, what the win pays, and how the plain
-/// product of the two grows into the guide's Expected Value.
+/// product of the two grows into the guide's TileSense EV (Expected Value).
 ///
 /// Takes the [DiscardLine] as it was when tapped. The line is immutable, so the
 /// page keeps describing the cell that was clicked even if the game moves on
@@ -24,7 +24,7 @@ Future<void> showEvExplainer(
           EvExplainerDialog(line: line, unit: unit, hongKong: hongKong),
     );
 
-/// One bar of the Expected Value waterfall. A [total] is a level measured from
+/// One bar of the TileSense EV waterfall. A [total] is a level measured from
 /// zero; anything else is a step up or down from the running level.
 class EvStep {
   const EvStep(this.label, this.delta, {this.total = false});
@@ -55,7 +55,7 @@ List<EvStep> evWaterfall(DiscardLine line) {
   add('deal-in risk', -line.dealInCost);
   add('turns committed', -line.commitmentCost);
   add('other', line.expectedValue - running);
-  steps.add(EvStep('Expected Value', line.expectedValue, total: true));
+  steps.add(EvStep('TileSense EV', line.expectedValue, total: true));
   return steps;
 }
 
@@ -368,15 +368,15 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
     ]);
   }
 
-  // ── 3 · from EV (HMR) to Expected Value ─────────────────────────────────
+  // ── 3 · from EV (HMR) to TileSense EV ─────────────────────────────────
 
   Widget _waterfallSection() {
     final steps = evWaterfall(line);
-    return _section('3 · From EV (HMR) to Expected Value', [
+    return _section('3 · From EV (HMR) to TileSense EV', [
       const Text(
         'EV (HMR) is just the first bar. The guide then adds what riding a '
         'win collects, applies your Focus tilt, and charges what this cut '
-        'risks — the last bar is the Expected Value column, and the one that '
+        'risks — the last bar is the TileSense EV column, and the one that '
         'picks the recommendation.',
         style: TextStyle(height: 1.35),
       ),
@@ -646,7 +646,7 @@ class _ChartPainter extends CustomPainter {
       old.color != color;
 }
 
-/// The Expected Value waterfall: one row per [EvStep], bars laid out on a
+/// The TileSense EV waterfall: one row per [EvStep], bars laid out on a
 /// shared scale so a step's length is its size in points.
 class _Waterfall extends StatelessWidget {
   const _Waterfall({super.key, required this.steps});

@@ -15,8 +15,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // Welcome screen first — Start hands off to the table.
-    expect(find.text('Play Offline'), findsOneWidget);
-    await tester.tap(find.text('Play Offline'));
+    expect(find.text('Single Player'), findsOneWidget);
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -40,7 +40,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -71,7 +71,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -89,7 +89,7 @@ void main() {
 
     // Start un-pauses and returns to the same game rather than dealing a new
     // one.
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -105,7 +105,7 @@ void main() {
   testWidgets('tapping a hand tile discards without crashing', (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     for (var i = 0; i < 8; i++) {

@@ -545,8 +545,7 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 
 ## What the panel shows
 
-- **Expected Value** column = `DiscardLine.expectedValue`, rounded.
-- **EV (HMR)** column = `DiscardLine.expectedValueHmr`, a standalone
+- **EV (HMR)** column (left of TileSense EV) = `DiscardLine.expectedValueHmr`, a standalone
   comparison figure that plays no part in the recommendation:
   `winProbability × averagePoints`, with none of `winBonus`, `valueTilt`,
   `riichiLockCost`, `dealInCost` or `commitmentCost` folded in. It mirrors the
@@ -556,18 +555,20 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
   scored ÷ hands played, which is exactly win rate × average winning score,
   and it has no other terms because it has no other seats to add a bonus from
   or a deal-in to price. Hovering the column heading or a row's cell explains
-  the number the same way Expected Value's tooltip does. **Tapping** a row's
+  the number the same way TileSense EV's tooltip does. **Tapping** a row's
   EV (HMR) cell opens `ev_explainer_dialog.dart`: the win probability as a
   turn-by-turn chart (from `DiscardLine.winBreakdown`), what the win pays,
-  and a waterfall from EV (HMR) to Expected Value. See also:
+  and a waterfall from EV (HMR) to TileSense EV. See also:
   [Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html).
+- **TileSense EV** column (EV = Expected Value) = `DiscardLine.expectedValue`,
+  rounded.
 - **Risk** column = `DiscardLine.riskCost` — the charge on the tile itself plus
   the turns it commits you to, both already taken off the value beside it.
   Shown only while defending.
 - The value / "average" figure = `averagePoints` — what it pays *if* you win,
   before multiplying by the win chance.
 - The plan tag and reason string come straight from `_ValueAssessment`.
-- Hovering the Expected Value column heading or a single row's cell explains
+- Hovering the TileSense EV column heading or a single row's cell explains
   the number in plain English. On a row it also shows that line's own
   arithmetic. The terms it prints are exposed on `DiscardLine` and reconstruct
   the number exactly:
@@ -590,7 +591,7 @@ is in play, then the formula.
 |---|---|---|
 | Shanten / Away | what it counts | — |
 | Ukeire / Accepts | what it is, how width feeds the win chance | typical ukeire by shanten |
-| Expected Value, EV (HMR) | the formula, with a pointer to where each part is worked | — |
+| TileSense EV, EV (HMR) | the formula, with a pointer to where each part is worked | — |
 | Safety | what the rating means (riichi; Hong Kong has its own five-tier scale) | deal-in chance by rating |
 | Risk | what goes into the charge | — |
 | Detail | why a tile has its rating | — |

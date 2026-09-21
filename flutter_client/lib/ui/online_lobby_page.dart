@@ -167,7 +167,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         const Padding(
           padding: EdgeInsets.only(bottom: 16),
           child: Text(
-            'Multiplayer has no TileSense guide — play offline for it.',
+            'Multiplayer has no TileSense guide — play single player for it.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white60, fontSize: 13),
           ),

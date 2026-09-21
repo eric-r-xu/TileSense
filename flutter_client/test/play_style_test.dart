@@ -249,7 +249,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -335,7 +335,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -371,7 +371,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Play Offline'));
+    await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -392,7 +392,7 @@ void main() {
     tester.view.physicalSize = kDesignSize;
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Rotate your device'), findsNothing);
-    expect(find.text('Play Offline'), findsNothing);
+    expect(find.text('Single Player'), findsNothing);
     expect(labelOf(const Key('playStyle')), 'Defensive');
 
     await tester.pumpWidget(const SizedBox());
