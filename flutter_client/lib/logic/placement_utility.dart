@@ -36,6 +36,9 @@ class PlacementUtility {
   /// EXPECTED_VALUE.md's "known simplifications".
   static const double _baseSpread = 5000;
 
+  /// [_baseSpread], for the panel's tooltip to quote.
+  static double get baseSpread => _baseSpread;
+
   double get _spread =>
       _baseSpread * math.sqrt(handsRemaining.clamp(1, 16).toDouble());
 

@@ -556,7 +556,10 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
   scored ÷ hands played, which is exactly win rate × average winning score,
   and it has no other terms because it has no other seats to add a bonus from
   or a deal-in to price. Hovering the column heading or a row's cell explains
-  the number the same way Expected Value's tooltip does. See also:
+  the number the same way Expected Value's tooltip does. **Tapping** a row's
+  EV (HMR) cell opens `ev_explainer_dialog.dart`: the win probability as a
+  turn-by-turn chart (from `DiscardLine.winBreakdown`), what the win pays,
+  and a waterfall from EV (HMR) to Expected Value. See also:
   [Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html).
 - **Risk** column = `DiscardLine.riskCost` — the charge on the tile itself plus
   the turns it commits you to, both already taken off the value beside it.
@@ -564,15 +567,47 @@ price. Ron and tsumo always win: EV = the actual points, always recommended
 - The value / "average" figure = `averagePoints` — what it pays *if* you win,
   before multiplying by the win chance.
 - The plan tag and reason string come straight from `_ValueAssessment`.
-- Hovering any mention of Expected Value — the column heading, the glossary
-  entry, or a single row's cell — explains the number in plain English. On a row
-  it also shows that line's own arithmetic. The terms it prints are exposed on
-  `DiscardLine` and reconstruct the number exactly:
+- Hovering the Expected Value column heading or a single row's cell explains
+  the number in plain English. On a row it also shows that line's own
+  arithmetic. The terms it prints are exposed on `DiscardLine` and reconstruct
+  the number exactly:
 
   ```
   expectedValue = winProbability × (averagePoints + winBonus)
                   − riichiLockCost − dealInCost − commitmentCost
   ```
+
+## Where each part is explained in the panel
+
+There is no glossary under the table: every heading and dial that names a
+concept explains itself on hover, and quotes the tuned numbers from the engine
+itself (`GuideConstants`, `PlayStyle`, `HandFocus`, `PlacementUtility`) so a
+retune cannot leave the text stale. Each tooltip has the same layout — a
+one-line answer, bullets for the ideas, a real table wherever a reference table
+is in play, then the formula.
+
+| Hover | Explains | Table |
+|---|---|---|
+| Shanten / Away | what it counts | — |
+| Ukeire / Accepts | what it is, how width feeds the win chance | typical ukeire by shanten |
+| Expected Value, EV (HMR) | the formula, with a pointer to where each part is worked | — |
+| Safety | what the rating means (riichi; Hong Kong has its own five-tier scale) | deal-in chance by rating |
+| Risk | what goes into the charge | — |
+| Detail | why a tile has its rating | — |
+| Placement | how a line moves your finish among the four seats | what ±8,000 is worth in five situations |
+| STYLE | what each style does | risk weight, damaten bar and the payout it stays quiet from |
+| FOCUS | what Speed does (chips under Hong Kong) | payout and chance, as counted by Speed |
+| STRATEGY | Points versus Placement | the two definitions |
+| GUIDE (title) | the green / yellow tile legend and the pause key | — |
+
+The **Safety, Risk and Detail columns are always in the table**, showing "—"
+when nobody is being defended against, so their headings — and the tooltips on
+them — can be reached on any turn, under either ruleset. STYLE, STRATEGY and
+Placement are riichi-only (Hong Kong pins Style to Balanced and Strategy to
+Points, and has no Placement column); everything else applies to both.
+
+Tapping an EV (HMR) number opens the turn-by-turn chart page, which also states
+the pre-tenpai payout placeholders.
 
 ## Known simplifications (by design)
 

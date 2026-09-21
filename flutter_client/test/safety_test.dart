@@ -84,19 +84,31 @@ void main() {
 
       expect(find.text('Safety vs Grant (riichi only)'), findsOneWidget);
       expect(find.text('Genbutsu (riichi only)'), findsOneWidget);
-      expect(find.textContaining('riichi opponent only'), findsOneWidget);
+      // The glossary under the table is gone: what Safety means now lives in a
+      // tooltip on its heading, and never shows as standing text.
+      expect(find.textContaining('riichi opponent only'), findsNothing);
+      expect(find.textContaining('• '), findsNothing);
+      Finder headingTip(String title) => find.byWidgetPredicate((w) =>
+          w is Tooltip &&
+          (w.richMessage?.toPlainText().startsWith('$title\n') ?? false));
+      expect(headingTip('SAFETY'), findsOneWidget);
+      expect(
+          (tester.widget<Tooltip>(headingTip('SAFETY')).richMessage
+                  as TextSpan)
+              .toPlainText(),
+          contains('How safe a tile is to cut against a riichi'));
       // The glossary no longer restates what genbutsu is; the rating's own
       // label in the table carries it.
       expect(find.textContaining('their own discards'), findsNothing);
       // Every mention of Expected Value explains the number on hover: the
-      // column heading, the glossary entry, and each row's own cell.
+      // column heading, and each row's own cell.
       Finder evTips({bool worked = false}) => find.byWidgetPredicate((w) {
             if (w is! Tooltip) return false;
             final t = w.richMessage?.toPlainText() ?? '';
             return t.contains('EV  =  chance of finishing') &&
                 t.contains('THIS CUT') == worked;
           });
-      expect(evTips(), findsNWidgets(2), reason: 'heading and glossary');
+      expect(evTips(), findsOneWidget, reason: 'the column heading');
       expect(evTips(worked: true), findsNWidgets(report.lines.length),
           reason: 'one per discard row');
 

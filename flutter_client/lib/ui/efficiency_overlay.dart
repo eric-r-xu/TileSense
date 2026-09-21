@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../game/guide_host.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/placement_utility.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import '../main.dart' show handFocusColor, playStyleColor, strategyColor;
+import 'ev_explainer_dialog.dart';
 import 'tile_face.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
@@ -90,8 +92,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                           ),
                         _efficiencyTable(r),
                       ],
-                      const SizedBox(height: 10),
-                      _glossary(),
                     ],
                   ),
                 ),
@@ -117,15 +117,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
-          const Text(
-            'STYLE',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
+          _dialLabel('STYLE', _styleTip()),
           const SizedBox(width: 8),
           for (final style in PlayStyle.values)
             Expanded(child: _styleChip(style, style == current)),
@@ -142,15 +134,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          const Text(
-            'FOCUS',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
+          _dialLabel('FOCUS', _focusTip()),
           const SizedBox(width: 8),
           for (final focus in HandFocus.values)
             Expanded(
@@ -176,15 +160,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          const Text(
-            'STRATEGY',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
+          _dialLabel('STRATEGY', _strategyTip()),
           const SizedBox(width: 8),
           for (final strategy in Strategy.values)
             Expanded(
@@ -231,8 +207,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             color: active
                 ? colour.withValues(alpha: 0.22)
                 : const Color(0x14ffffff),
-            border: Border.all(
-                color: active ? colour : const Color(0x33ffffff)),
+            border:
+                Border.all(color: active ? colour : const Color(0x33ffffff)),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -336,13 +312,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               errorBuilder: (_, __, ___) => const SizedBox.shrink()),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              _minimized ? 'GUIDE — Tap to expand' : 'GUIDE — Tap to minimize',
-              style: const TextStyle(
-                color: Color(0xffe9d58f),
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
+            child: _tipBox(
+              Text(
+                _minimized
+                    ? 'GUIDE — Tap to expand'
+                    : 'GUIDE — Tap to minimize',
+                style: const TextStyle(
+                  color: Color(0xffe9d58f),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
+              _guideTip(),
             ),
           ),
           if (r.recommendRiichi && !_minimized)
@@ -456,57 +437,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  /// Succinct bulleted glossary: controls, column terms, and the tile-
-  /// highlight legend, all in one small white footnote block.
-  Widget _glossary() {
-    const style = TextStyle(color: Colors.white70, fontSize: 9, height: 1.35);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.showGameControls)
-          const Text('• Esc — pause the game', style: style),
-        if (_hk) ...[
-          Text('• Away — tiles away from a ready hand (0 = ready)',
-              style: style),
-          Text('• Accepts — live tiles that bring you closer to ready',
-              style: style),
-        ] else ...[
-          Text('• Shanten — tiles away from a ready hand (0 = tenpai)',
-              style: style),
-          Text('• Ukeire — live tiles that reduce shanten', style: style),
-        ],
-        _evTooltip(
-          Text(
-            '• Expected Value — chance of finishing x what the win '
-            'pays, less what the cut risks',
-            style: style.copyWith(
-              decoration: TextDecoration.underline,
-              decorationStyle: TextDecorationStyle.dotted,
-              decorationColor: const Color(0x8880cbc4),
-            ),
-          ),
-        ),
-        Text(
-            _hk
-                ? '• Safety — higher means lower estimated risk; no discard '
-                    'immunity'
-                : '• Safety — 0 (dangerous) to 15 (genbutsu); riichi opponent only',
-            style: style),
-        Text(
-            '• Risk — ${_hk ? 'chips' : 'points'} taken off EV for the danger '
-            'of this cut',
-            style: style),
-        if (!_hk)
-          Text('• Style — how much danger the guide will take on',
-              style: style),
-        Text('• Focus — what it will take that danger for: a quicker hand '
-            'or a bigger one', style: style),
-        Text('• Green tile — the guide\'s recommended discard', style: style),
-        Text('• Yellow tile — the tile you just drew', style: style),
-      ],
-    );
-  }
-
   /// Text styles for the Expected Value tooltip. Deliberately larger than the
   /// 9px panel body — the panel is a dense table you scan, the tooltip is
   /// something you stop and read.
@@ -538,9 +468,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// labelled parts rather than one block of prose, and each heading is the
   /// same phrase the worked example below uses for that row — so a reader can
   /// go straight from a number to the sentence explaining it.
-  static TextSpan _tipPart(String heading, String body) => TextSpan(children: [
+  static TextSpan _tipPart(String heading, String body, {String? more}) =>
+      TextSpan(children: [
         TextSpan(text: '\n$heading\n', style: _tipHead),
         TextSpan(text: body, style: _tipBody),
+        if (more != null) TextSpan(text: '→ $more\n', style: _tipDim),
       ]);
 
   /// What the Expected Value column means, in general terms — the same answer
@@ -552,49 +484,557 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       _evGeneralFor(Ruleset.hongKong);
 
   static List<InlineSpan> _evGeneralFor(Ruleset ruleset) => [
-    const TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
-    TextSpan(
-        text: 'The average ${ruleset.unit} this discard is worth to you.\n',
-        style: _tipBody),
-    const TextSpan(
-        text: '\n  EV  =  chance of finishing\n'
-            '         x  what the win pays\n'
-            '         -  what the cut risks\n',
-        style: _tipMath),
-    _tipPart('CHANCE OF FINISHING',
-        'Winning once you are ready, and getting there first. Rises with more '
-        'useful tiles still live and more draws left to find them.\n'),
-    if (ruleset.isHongKong) ...[
-      _tipPart('WHAT THE WIN PAYS',
-          'Hong Kong faan converted to chips. Once a discard leaves you ready '
-          'this is scored exactly; before that it is an estimate from the '
-          'patterns the hand already shows.\n'),
-      _tipPart('WHAT THE CUT RISKS',
-          'Estimated loss against an opponent with three or more exposed sets. '
-          'A previously discarded tile can still win; no tile is guaranteed '
-          'safe.\n'),
-    ] else ...[
-      _tipPart('WHAT THE WIN PAYS',
-          'What this line collects if it lands, plus any honba and riichi '
-          'sticks already on the table. Once a discard leaves you tenpai this '
-          'is scored exactly; before that it is an estimate, adjusted for the '
-          'dora this particular cut keeps.\n'),
-      _tipPart('WHAT THE CUT RISKS',
-          'Declaring riichi stakes 1,000 you only get back by winning — so it '
-          'is charged even on a quiet table, and never for more than declaring '
-          'is worth. With a riichi out against you, the cut is charged again: '
-          'how often a tile this safe deals in, and the turns it commits you to '
-          'after this one. A genbutsu cut commits you to nothing.\n'),
-    ],
-    _tipPart('FOCUS',
-        'Speed and Value tilt the trade between the first two terms — Speed '
-        'pays points for a better chance of getting there, Value does the '
-        'reverse. Balanced leaves it alone, and shows no tilt line below.\n'),
-    TextSpan(
-        text: '\nHigher is better, and it can go negative: a dangerous cut on '
-            'a cheap hand loses ${ruleset.unit} on average.',
-        style: _tipDim),
+        const TextSpan(text: 'EXPECTED VALUE\n', style: _tipTitle),
+        TextSpan(
+            text: 'The average ${ruleset.unit} this discard is worth to you.\n',
+            style: _tipBody),
+        const TextSpan(
+            text: '\n  EV  =  chance of finishing\n'
+                '         x  what the win pays\n'
+                '         -  what the cut risks\n',
+            style: _tipMath),
+        _tipPart(
+            'CHANCE OF FINISHING',
+            'Odds you win before the hand ends. More live tiles and more draws '
+                'left raise it.\n',
+            more: 'hover Ukeire · tap the EV (HMR) number for the chart'),
+        if (ruleset.isHongKong) ...[
+          _tipPart(
+              'WHAT THE WIN PAYS',
+              'Faan as chips. Exact once ready; before that, estimated from the '
+                  'patterns shown.\n',
+              more: 'tap the EV (HMR) number for the working'),
+          _tipPart(
+              'WHAT THE CUT RISKS',
+              'Estimated loss to an opponent with 3+ exposed sets. No tile is '
+                  'fully safe.\n',
+              more: 'hover Risk and Safety'),
+        ] else ...[
+          _tipPart(
+              'WHAT THE WIN PAYS',
+              'Points if it lands, plus honba and riichi sticks. Exact once '
+                  'tenpai; an estimate before.\n',
+              more: 'tap the EV (HMR) number for the working'),
+          _tipPart(
+              'WHAT THE CUT RISKS',
+              'The riichi stick (lost unless you win). Against a live riichi, also '
+                  'how often this tile deals in and the turns it commits you to.\n',
+              more: 'hover Risk and Safety'),
+        ],
+        _tipPart(
+            'FOCUS',
+            'Speed pays some payout for a better chance of finishing. Balanced '
+                'adds no tilt.\n',
+            more: ruleset.isHongKong
+                ? 'hover FOCUS'
+                : 'hover FOCUS · STRATEGY and Placement for the rest'),
+        const TextSpan(
+            text: '\nHigher is better. A dangerous, cheap cut can go negative.',
+            style: _tipDim),
+      ];
+
+  // ── Explainers for the headings and dials ─────────────────────────────────
+  //
+  // Each one replaces a line of the old glossary under the table, and carries
+  // the tuned numbers behind its concept. Those are read from the engine
+  // ([GuideConstants], [PlayStyle], [HandFocus], [PlacementUtility]) so a
+  // retune shows up here without anyone remembering to edit the text.
+  //
+  // The layout is the same throughout: a one-line answer, bullets for the
+  // ideas, a real table wherever a reference table is in play, and the formula
+  // last for anyone who wants it.
+
+  /// 0.07 -> "7.0%".
+  static String _rate(double v) => '${(v * 100).toStringAsFixed(1)}%';
+
+  /// 0.4132 -> "+0.41", -0.2371 -> "−0.24".
+  static String _signed(double v) =>
+      '${v < 0 ? '−' : '+'}${v.abs().toStringAsFixed(2)}';
+
+  /// A bulleted list: a bold lead-in, then the sentence it introduces.
+  static List<InlineSpan> _bullets(List<(String, String)> items) => [
+        for (final (lead, text) in items)
+          TextSpan(children: [
+            const TextSpan(text: '•  ', style: _tipBody),
+            TextSpan(
+                text: lead,
+                style: _tipBody.copyWith(fontWeight: FontWeight.w700)),
+            TextSpan(text: text.isEmpty ? '\n' : ' — $text\n', style: _tipBody),
+          ]),
+      ];
+
+  /// A small heading over a table or list inside a tooltip.
+  static TextSpan _tipSection(String heading) =>
+      TextSpan(text: '\n$heading\n', style: _tipHead);
+
+  /// A reference table inside a tooltip. Real cells rather than padded text,
+  /// so the columns line up in any font; [left] names the columns that read as
+  /// words (the rest are numbers and sit on the right).
+  static InlineSpan _tipTable(
+    List<String> head,
+    List<List<String>> rows, {
+    Set<int> left = const {0},
+  }) {
+    Widget cell(String text, int col, {bool header = false}) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          child: Text(
+            text,
+            textAlign: left.contains(col) ? TextAlign.left : TextAlign.right,
+            style: header
+                ? const TextStyle(
+                    color: Color(0xff9fe0d8),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3)
+                : const TextStyle(color: Colors.white, fontSize: 11.5),
+          ),
+        );
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Table(
+          defaultColumnWidth: const IntrinsicColumnWidth(),
+          border: const TableBorder(
+            top: BorderSide(color: Color(0x5580cbc4)),
+            bottom: BorderSide(color: Color(0x5580cbc4)),
+            horizontalInside: BorderSide(color: Color(0x22ffffff)),
+          ),
+          children: [
+            TableRow(
+              decoration: const BoxDecoration(color: Color(0x2280cbc4)),
+              children: [
+                for (var c = 0; c < head.length; c++)
+                  cell(head[c], c, header: true),
+              ],
+            ),
+            for (final row in rows)
+              TableRow(children: [
+                for (var c = 0; c < row.length; c++) cell(row[c], c),
+              ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// A dial's name, underlined the way the headings are so it reads as
+  /// something to hover.
+  Widget _dialLabel(String text, List<InlineSpan> tip) => _tipBox(
+        Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+            decoration: TextDecoration.underline,
+            decorationStyle: TextDecorationStyle.dotted,
+            decorationColor: Color(0x8880cbc4),
+          ),
+        ),
+        tip,
+      );
+
+  /// What has no heading of its own: the tile colours and the pause key.
+  List<InlineSpan> _guideTip() => [
+        const TextSpan(text: 'GUIDE\n', style: _tipTitle),
+        ..._bullets([
+          ('Green tile', 'the recommended discard'),
+          ('Yellow tile', 'the tile you just drew'),
+          if (widget.showGameControls) ('Esc', 'pause the game'),
+        ]),
+        const TextSpan(
+            text: '\nHover a heading or a dial for what it means.',
+            style: _tipDim),
+      ];
+
+  static List<InlineSpan> _shantenTip(bool hk) => [
+        TextSpan(text: '${hk ? 'AWAY' : 'SHANTEN'}\n', style: _tipTitle),
+        const TextSpan(
+            text: 'How many tiles you are from a ready hand.\n',
+            style: _tipBody),
+        const TextSpan(text: '\n', style: _tipBody),
+        ..._bullets([
+          ('0', hk ? 'ready' : 'tenpai, one tile from winning'),
+          if (!hk) ('win', 'the hand is already complete'),
+          ('Higher', 'further away'),
+        ]),
+      ];
+
+  static List<InlineSpan> _ukeireTip(bool hk) {
+    final typical = GuideConstants.typicalUkeire;
+    return [
+      TextSpan(text: '${hk ? 'ACCEPTS' : 'UKEIRE'}\n', style: _tipTitle),
+      TextSpan(
+          text:
+              'Live tiles that ${hk ? 'bring you closer to ready' : 'reduce shanten'}'
+              ' — how many draws help.\n',
+          style: _tipBody),
+      const TextSpan(text: '\n', style: _tipBody),
+      ..._bullets([
+        (
+          'Wider than ordinary',
+          'steps forward faster, but never faster than an ordinary hand'
+        ),
+        (
+          'Ending first',
+          'each turn the hand has a ${_rate(1 - GuideConstants.survivesTurn)} '
+              'chance of ending before it wins: another seat wins, or the '
+              'wall runs out'
+        ),
+      ]),
+      _tipSection('AN ORDINARY HAND HAS'),
+      _tipTable(
+        ['Shanten', for (var i = 0; i < typical.length; i++) '$i'],
+        [
+          ['Ukeire', for (final v in typical) v.round().toString()],
+        ],
+      ),
+    ];
+  }
+
+  /// The riichi ratings this guide reports, in the order the reference table
+  /// lists them, with what earns each one (see `rankSafety`).
+  static const List<(int, String)> _riichiRatings = [
+    (15, 'Genbutsu — already discarded by that player'),
+    (13, 'Honor, 1 live'),
+    (12, 'Double suji'),
+    (11, 'Suji terminal'),
+    (9, 'Honor, 2 live'),
+    (8, 'No-chance tile'),
+    (7, 'Half suji'),
+    (6, 'Suji 2/3/7/8, or honor with 3 live'),
+    (3, 'Non-suji 2/3/7/8'),
+    (2, 'Non-suji middle tile'),
   ];
+
+  /// Hong Kong has no furiten, so nothing is ever certainly safe (see
+  /// `rankHongKongSafety`).
+  static const List<(int, String)> _hongKongRatings = [
+    (14, 'Honor, none unseen'),
+    (11, 'Honor, 1 unseen'),
+    (6, 'Honor, 2 or more unseen'),
+    (5, 'Terminal'),
+    (3, 'Suit tile'),
+  ];
+
+  static List<InlineSpan> _safetyTip(bool hk) {
+    final ratings = hk ? _hongKongRatings : _riichiRatings;
+    return [
+      const TextSpan(text: 'SAFETY\n', style: _tipTitle),
+      TextSpan(
+          text: hk
+              ? 'How risky a tile is to cut against an opponent with an '
+                  'exposed hand. Higher = safer.\n'
+              : 'How safe a tile is to cut against a riichi. 0 = dangerous, '
+                  '15 = genbutsu.\n',
+          style: _tipBody),
+      const TextSpan(text: '\n', style: _tipBody),
+      ..._bullets(hk
+          ? [
+              (
+                'Never certain',
+                'with no furiten, a tile an opponent discarded can still win'
+              ),
+              (
+                'Rated when',
+                'an opponent shows ${HongKongGuideTuning.threatExposedSets} '
+                    'or more exposed sets — otherwise the column shows —'
+              ),
+            ]
+          : [
+              (
+                'Genbutsu',
+                'a tile that player discarded, or that passed them after '
+                    'their riichi, cannot win their hand'
+              ),
+              ('Suji', 'a tile three away from one they discarded is safer'),
+              (
+                'Rated when',
+                'someone is in riichi — otherwise the column shows —'
+              ),
+            ]),
+      _tipSection('CHANCE A CUT DEALS IN'),
+      _tipTable(
+        ['Rating', 'Tile', 'Deals in'],
+        [
+          for (final (rating, label) in ratings)
+            ['$rating', label, _rate(GuideConstants.dealInRate(rating))],
+        ],
+        left: const {1},
+      ),
+      TextSpan(
+          text: hk
+              ? '\nA deal-in is charged '
+                  '${GuideConstants.hongKongDealInCost.round()} chips.'
+              : '\nA deal-in costs ${_pts(GuideConstants.dealInCost)} '
+                  '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
+                  'plus 300 a honba.',
+          style: _tipDim),
+    ];
+  }
+
+  static List<InlineSpan> _riskTip(bool hk) => [
+        const TextSpan(text: 'RISK\n', style: _tipTitle),
+        TextSpan(
+            text: '${hk ? 'Chips' : 'Points'} taken off EV for the danger of '
+                'this cut.\n',
+            style: _tipBody),
+        const TextSpan(text: '\n', style: _tipBody),
+        ..._bullets([
+          ('Deal-in chance', 'from the tile\'s Safety rating'),
+          (
+            'Deal-in cost',
+            hk
+                ? '${GuideConstants.hongKongDealInCost.round()} chips'
+                : '${_pts(GuideConstants.dealInCost)} points '
+                    '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
+                    'plus 300 a honba'
+          ),
+          if (!hk)
+            (
+              'Style weight',
+              'x${PlayStyle.values.map((s) => s.riskWeight.toStringAsFixed(2)).join(' / ')} '
+                  'for ${PlayStyle.values.map((s) => s.label).join(' / ')}'
+            ),
+          (
+            'Later turns',
+            '${(GuideConstants.pushCommitment * 100).round()}% of the charge '
+                'again for each turn the cut commits you to'
+          ),
+          (
+            'How long',
+            hk
+                ? 'the hand\'s own expected length; a tile with no risk '
+                    'commits you to nothing'
+                : 'as long as the riichi lasts, about '
+                    '${GuideConstants.riichiPushHorizon} of your discards; a '
+                    'genbutsu cut commits you to nothing'
+          ),
+        ]),
+        _tipSection('FORMULA'),
+        TextSpan(
+            text: '  risk  =  deal-in chance  x  deal-in cost'
+                '${hk ? '' : '  x  Style weight'}\n'
+                '        +  the later-turns charge\n',
+            style: _tipMath),
+      ];
+
+  static List<InlineSpan> _detailTip() => [
+        const TextSpan(text: 'DETAIL\n', style: _tipTitle),
+        const TextSpan(
+            text: 'Why this tile has the Safety rating it does.\n',
+            style: _tipBody),
+        const TextSpan(text: '\n', style: _tipBody),
+        ..._bullets(const [
+          ('Shows', 'genbutsu, suji, honor with copies left, and so on'),
+          (
+            'Empty',
+            'nobody is being defended against, so there is nothing '
+                'to explain'
+          ),
+        ]),
+      ];
+
+  /// The four situations the Placement tooltip works +/-8,000 through: the
+  /// table's scores (mine first), and how many hands are left.
+  static const List<(String, List<int>, int)> _placementScenes = [
+    ('Even table', [25000, 25000, 25000, 25000], 8),
+    ('Big lead', [45000, 20000, 18000, 17000], 8),
+    ('Far behind', [8000, 30000, 32000, 30000], 8),
+    ('Even table, last hand', [25000, 25000, 25000, 25000], 1),
+    ('Big lead, last hand', [45000, 20000, 18000, 17000], 1),
+  ];
+
+  static List<InlineSpan> _placementTip() {
+    double gain(List<int> table, int hands, double points) =>
+        PlacementUtility(tablePoints: table, mySeat: 0, handsRemaining: hands)
+            .valueOf(points);
+    return [
+      const TextSpan(text: 'PLACEMENT\n', style: _tipTitle),
+      const TextSpan(
+          text: 'How a line moves your chance of finishing above the other '
+              'three seats.\n',
+          style: _tipBody),
+      const TextSpan(text: '\n', style: _tipBody),
+      ..._bullets(const [
+        ('Uses', 'the scores on the table and the hands left right now'),
+        (
+          'Not points',
+          'scaled up x1,000 so it reads at a glance; only its order '
+              'against the other lines means anything'
+        ),
+        (
+          'Converted piece by piece',
+          'the win, the riichi stick and a deal-in are each valued on '
+              'their own'
+        ),
+        ('A heuristic', 'not a simulation'),
+      ]),
+      _tipSection('WHAT 8,000 POINTS IS WORTH'),
+      _tipTable(
+        ['Situation', 'Hands left', '+8,000', '−8,000'],
+        [
+          for (final (label, table, hands) in _placementScenes)
+            [
+              label,
+              '$hands',
+              _signed(gain(table, hands, 8000)),
+              _signed(gain(table, hands, -8000)),
+            ],
+        ],
+      ),
+      const TextSpan(
+          text: '\nPoints matter most in a close race and late in the game, '
+              'and least when you are comfortably ahead.\n',
+          style: _tipDim),
+      _tipSection('FORMULA'),
+      TextSpan(
+          text: '  worth(gain) = u(score + gain) - u(score)\n'
+              '  u(score)    = sum over the 3 other seats of\n'
+              '                logistic((score - theirs) / spread)\n'
+              '  spread      = ${_pts(PlacementUtility.baseSpread)} x '
+              'sqrt(hands left)\n',
+          style: _tipMath),
+    ];
+  }
+
+  List<InlineSpan> _styleTip() {
+    final dealer = GuideConstants.dealerDamatenMinPoints;
+    final normal = GuideConstants.damatenMinPoints;
+    return [
+      const TextSpan(text: 'STYLE\n', style: _tipTitle),
+      const TextSpan(
+          text: 'How much danger the guide will take on.\n', style: _tipBody),
+      const TextSpan(text: '\n', style: _tipBody),
+      ..._bullets(const [
+        ('Defensive', 'folds sooner, and stays quiet on cheaper hands'),
+        ('Balanced', 'the reference setting'),
+        ('Aggressive', 'pushes further, and declares riichi more often'),
+      ]),
+      _tipSection('THE NUMBERS'),
+      _tipTable(
+        ['Style', 'Risk weight', 'Damaten bar', 'Stays quiet from'],
+        [
+          for (final st in PlayStyle.values)
+            [
+              st.label,
+              'x${st.riskWeight.toStringAsFixed(2)}',
+              'x${st.damatenBar.toStringAsFixed(2)}',
+              '${_pts(normal * st.damatenBar)} '
+                  '(${_pts(dealer * st.damatenBar)} dealer)',
+            ],
+        ],
+        left: const {0},
+      ),
+      const TextSpan(text: '\n', style: _tipBody),
+      ..._bullets(const [
+        (
+          'Risk weight',
+          'multiplies every deal-in and commitment charge in Risk'
+        ),
+        (
+          'Damaten bar',
+          'scales the least a hand must pay to stay quiet instead of '
+              'declaring riichi'
+        ),
+        (
+          'Hong Kong',
+          'this dial is hidden and pinned to Balanced — there is '
+              'no riichi to weigh'
+        ),
+      ]),
+    ];
+  }
+
+  List<InlineSpan> _focusTip() {
+    final hk = _hk;
+    const speed = HandFocus.speed;
+    final ruleset = hk ? Ruleset.hongKong : Ruleset.riichi;
+    final pivot = hk
+        ? GuideConstants.focusHongKongPointsPivot
+        : GuideConstants.focusPointsPivot;
+    final chance = GuideConstants.focusChancePivot;
+    final unit = hk ? 'chips' : 'points';
+    String n(double v) => v == v.roundToDouble() ? _pts(v) : v.toString();
+    final payouts = hk
+        ? const [8.0, 16.0, 32.0, 64.0]
+        : const [2000.0, 5000.0, 8000.0, 16000.0];
+    const chances = [0.05, 0.15, 0.25, 0.5];
+    return [
+      const TextSpan(text: 'FOCUS\n', style: _tipTitle),
+      const TextSpan(
+          text: 'Which hand to chase when two lines are close.\n',
+          style: _tipBody),
+      const TextSpan(text: '\n', style: _tipBody),
+      ..._bullets(const [
+        (
+          'Speed',
+          'prefers the likelier cheap hand over the unlikelier big one'
+        ),
+        ('Balanced', 'no tilt: plain chance x payout'),
+      ]),
+      _tipSection('WHAT SPEED DOES'),
+      TextSpan(
+          text: 'Big payouts count for less than face value and small ones '
+              'for more; likely chances count for more and unlikely ones '
+              'for less. Nothing moves at exactly ${n(pivot)} $unit or '
+              '${(chance * 100).round()}%.\n',
+          style: _tipBody),
+      _tipTable(
+        ['Payout', 'Counts as', 'Chance', 'Counts as'],
+        [
+          for (var i = 0; i < payouts.length; i++)
+            [
+              n(payouts[i]),
+              n(speed.worth(payouts[i], ruleset: ruleset).roundToDouble()),
+              '${(chances[i] * 100).round()}%',
+              _rate(speed.chanceWorth(chances[i])),
+            ],
+        ],
+        left: const {},
+      ),
+      _tipSection('FORMULA'),
+      TextSpan(
+          text: '  payout worth  =  ${n(pivot)} x (pts / ${n(pivot)})'
+              '^${speed.curve}\n'
+              '  chance worth  =  $chance x (p / $chance)'
+              '^${(2 - speed.curve).toStringAsFixed(2)}\n',
+          style: _tipMath),
+      const TextSpan(
+          text: '\nThe "Speed tilt" row in an Expected Value tooltip is the '
+              'difference this makes.',
+          style: _tipDim),
+    ];
+  }
+
+  List<InlineSpan> _strategyTip() => [
+        const TextSpan(text: 'STRATEGY\n', style: _tipTitle),
+        const TextSpan(
+            text: 'What a line\'s "worth" means.\n', style: _tipBody),
+        _tipTable(
+          ['Strategy', 'A line is worth'],
+          const [
+            ['Points', 'what it pays, on average'],
+            [
+              'Placement',
+              'what it does to your chance of finishing above each other '
+                  'seat, given the scores and hands left'
+            ],
+          ],
+          left: const {0, 1},
+        ),
+        ..._bullets(const [
+          ('Style and Focus', 'still apply under either'),
+          ('Hong Kong', 'always Points — this dial is hidden'),
+          ('The working', 'hover Placement in the table'),
+        ]),
+      ];
+
+  /// 0.4632 -> "46.32%". Two decimals so two cuts a hair apart still read
+  /// differently in the tooltip.
+  static String _chance(double p) => '${(p * 100).toStringAsFixed(2)}%';
 
   /// 1234.5 -> "1,235".
   static String _pts(double v) {
@@ -617,12 +1057,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// row is labelled with the phrase the section above uses for it.
   static List<InlineSpan> _evWorked(DiscardLine line, HandFocus focus) {
     final gross = line.winProbability * (line.averagePoints + line.winBonus);
-    final pct = (line.winProbability * 100).toStringAsFixed(
-        line.winProbability < 0.1 ? 1 : 0);
+    final chance = _chance(line.winProbability);
     final spans = <InlineSpan>[
       const TextSpan(text: '\n', style: _tipDim),
-      TextSpan(
-          text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
+      TextSpan(text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
     ];
 
     if (line.averagePoints <= 0) {
@@ -641,12 +1079,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     }
 
     final buf = StringBuffer()
-      ..write(_row('chance of finishing', '$pct%'))
+      ..write(_row('chance of finishing', chance))
       ..write(_row('what the win pays', _pts(line.averagePoints)));
     if (line.winBonus > 0) {
       buf.write(_row('honba and sticks', '+${_pts(line.winBonus)}'));
     }
     buf.write(_row('so on average', _pts(gross)));
+    // The multiplication behind that row, so it can be checked by eye.
+    buf.write('    = $chance x '
+        '${line.winBonus > 0 ? '(${_pts(line.averagePoints)} + ${_pts(line.winBonus)})' : _pts(line.averagePoints)}\n');
     if (line.valueTilt.abs() > 0.5) {
       final sign = line.valueTilt > 0 ? '+' : '-';
       buf.write(_row('${focus.label.toLowerCase()} tilt',
@@ -659,8 +1100,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       buf.write(_row('less deal-in risk', '-${_pts(line.dealInCost)}'));
     }
     if (line.commitmentCost > 0.5) {
-      buf.write(
-          _row('less turns committed', '-${_pts(line.commitmentCost)}'));
+      buf.write(_row('less turns committed', '-${_pts(line.commitmentCost)}'));
     }
     buf.write('  ${'-' * 31}\n');
     buf.write(_row('expected value', _pts(line.expectedValue)));
@@ -670,24 +1110,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
 
   /// Wrap any mention of Expected Value so hovering it explains the number.
   /// Pass [line] on a table cell to append that row's own arithmetic.
-  Widget _evTooltip(Widget child, {DiscardLine? line}) => Tooltip(
-        richMessage: TextSpan(children: [
-          ...(_hk ? _evGeneralHongKong : _evGeneral),
-          if (line != null) ..._evWorked(line, widget.game.handFocus),
-        ]),
-        waitDuration: const Duration(milliseconds: 250),
-        showDuration: const Duration(seconds: 30),
-        preferBelow: false,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-        margin: const EdgeInsets.symmetric(horizontal: 12),
-        constraints: const BoxConstraints(maxWidth: 460),
-        decoration: BoxDecoration(
-          color: const Color(0xf5041c1d),
-          border: Border.all(color: const Color(0x5580cbc4)),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: child,
-      );
+  Widget _evTooltip(Widget child, {DiscardLine? line}) => _tipBox(child, [
+        ...(_hk ? _evGeneralHongKong : _evGeneral),
+        if (line != null) ..._evWorked(line, widget.game.handFocus),
+      ]);
 
   /// What the "EV (HMR)" column means — a standalone comparison column, not
   /// part of the guide's own recommendation. See
@@ -696,38 +1122,26 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   static const List<InlineSpan> _evHmrGeneral = [
     TextSpan(text: 'EV (HMR)\n', style: _tipTitle),
     TextSpan(
-        text: 'A second expected value, shown only for comparison — it plays '
-            'no part in the recommendation above.\n',
+        text: 'A plain comparison figure — it never changes the '
+            'recommendation.\n',
         style: _tipBody),
     TextSpan(
         text: '\n  EV (HMR)  =  chance of finishing\n'
             '               x  what the win pays\n',
         style: _tipMath),
     TextSpan(
-        text: '\nNo honba/riichi-stick bonus added in, and nothing '
-            'subtracted for risk, turn commitment, or Style/Focus — just '
-            'the plain win-probability-times-average-score product. This '
-            'is how the "E.V." stat works in HMR (Hitori Mahjong '
-            'Renshuuki), a closed-source solo, tsumo-only trainer this '
-            'project has no code or data ties to: worked out empirically '
-            'from its own simulation log as total points scored ÷ hands '
-            'played, which is exactly win rate × average winning score. '
-            'HMR has no other seats, so it has no honba/riichi-stick pool '
-            'to add and no ron or deal-in to price as a risk — this column '
-            'drops those same terms from Expected Value above so the two '
-            'numbers are worked the same way.\n',
+        text: '\nNo honba or sticks, no risk costs, no Style or Focus tilt.\n',
         style: _tipBody),
     TextSpan(
-        text: '\nhttps://pathofhouou.blogspot.com/2019/05/training-tool-'
-            'hitori-mahjong-simulator.html\n',
+        text: '\nMirrors the "E.V." stat in HMR (Hitori Mahjong Renshuuki), a '
+            'solo tsumo-only trainer: points won ÷ hands played, which is '
+            'win rate × average win.',
         style: _tipDim),
   ];
 
   /// This line's own [DiscardLine.expectedValueHmr] arithmetic, matching the
   /// worked example [_evWorked] gives for Expected Value.
   static List<InlineSpan> _evHmrWorked(DiscardLine line) {
-    final pct = (line.winProbability * 100).toStringAsFixed(
-        line.winProbability < 0.1 ? 1 : 0);
     final spans = <InlineSpan>[
       const TextSpan(text: '\n', style: _tipDim),
       TextSpan(text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
@@ -740,7 +1154,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       return spans;
     }
     final buf = StringBuffer()
-      ..write(_row('chance of finishing', '$pct%'))
+      ..write(_row('chance of finishing', _chance(line.winProbability)))
       ..write(_row('what the win pays', _pts(line.averagePoints)))
       ..write('  ${'-' * 31}\n')
       ..write(_row('EV (HMR)', _pts(line.expectedValueHmr)));
@@ -751,11 +1165,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// Wrap any mention of the EV (HMR) column so hovering it explains the
   /// number. Pass [line] on a table cell to append that row's own
   /// arithmetic.
-  Widget _evHmrTooltip(Widget child, {DiscardLine? line}) => Tooltip(
-        richMessage: TextSpan(children: [
-          ..._evHmrGeneral,
-          if (line != null) ..._evHmrWorked(line),
-        ]),
+  Widget _evHmrTooltip(Widget child, {DiscardLine? line}) => _tipBox(child, [
+        ..._evHmrGeneral,
+        if (line != null) ..._evHmrWorked(line),
+      ]);
+
+  /// The panel's dark tooltip around [child] — one look for every explainer,
+  /// whether it sits on a column heading, a dial label or a table cell.
+  Widget _tipBox(Widget child, List<InlineSpan> body) => Tooltip(
+        richMessage: TextSpan(children: body),
         waitDuration: const Duration(milliseconds: 250),
         showDuration: const Duration(seconds: 30),
         preferBelow: false,
@@ -777,32 +1195,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// itself is arbitrary.
   static const int _placementDisplayScale = 1000;
 
-  /// Wrap the Placement column's cells so hovering explains what the number
-  /// is — and, plainly, what it isn't: a heuristic read of how this line
-  /// moves the chance of finishing above each other seat, given the scores
-  /// on the table and hands left right now, not a simulation of the rest of
-  /// the game. Its scale only means anything next to the other lines' — not
-  /// against Expected Value's points.
-  Widget _placementTooltip(Widget child) => Tooltip(
-        message: 'Placement — a heuristic estimate of how this line moves '
-            'your chance of finishing above each other seat, given the '
-            'scores on the table and hands left right now. Not a '
-            'simulation, and not in points — the number is scaled up from a '
-            'probability so it reads at a glance, and only its order and '
-            'relative size next to the other lines here mean anything.',
-        waitDuration: const Duration(milliseconds: 250),
-        showDuration: const Duration(seconds: 30),
-        preferBelow: false,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        margin: const EdgeInsets.symmetric(horizontal: 12),
-        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xf5041c1d),
-          border: Border.all(color: const Color(0x55ce93d8)),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: child,
-      );
+  /// Wrap the Placement heading and cells so hovering explains what the number
+  /// is — and, plainly, what it isn't. See [_placementTip].
+  Widget _placementTooltip(Widget child) => _tipBox(child, _placementTip());
 
   /// The efficiency table — every distinct discard in hand, recommended line
   /// always first (see [EfficiencyEngine.analyze]). While defending against a
@@ -814,10 +1209,14 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final showPlacement = !_hk;
     // Fixed leading columns (tile, shanten/away, ukeire/accepts, EV) plus the
     // standalone EV (HMR) comparison column added right after it — then
-    // Placement and the defending columns shift down by one to make room.
+    // Placement and the safety columns shift down by one to make room.
+    //
+    // The safety columns are always there, even with nobody to defend against
+    // (their cells then read "—"): the headings are where Safety, Risk and
+    // Detail are explained, so they must be reachable on any turn.
     const evHmrCol = 4;
     final placementCol = evHmrCol + 1;
-    final firstDefendCol = placementCol + (showPlacement ? 1 : 0);
+    final firstSafetyCol = placementCol + (showPlacement ? 1 : 0);
     return Table(
       columnWidths: {
         0: const FixedColumnWidth(34),
@@ -828,11 +1227,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         // Wide enough for the header word "Placement" on one line — at 50 it
         // wrapped mid-word ("Placemen" / "t").
         if (showPlacement) placementCol: const FixedColumnWidth(66),
-        if (r.defending) ...{
-          firstDefendCol: const FixedColumnWidth(34),
-          firstDefendCol + 1: const FixedColumnWidth(40),
-          firstDefendCol + 2: const FixedColumnWidth(92),
-        },
+        // 80 rather than the old 92 for Detail: with all three always shown
+        // the table has to fit the panel's 456px inside its padding.
+        firstSafetyCol: const FixedColumnWidth(34),
+        firstSafetyCol + 1: const FixedColumnWidth(40),
+        firstSafetyCol + 2: const FixedColumnWidth(80),
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -844,7 +1243,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           'Expected Value',
           'EV (HMR)',
           if (showPlacement) 'Placement',
-          if (r.defending) ...['Safety', 'Risk', 'Detail'],
+          'Safety',
+          'Risk',
+          'Detail',
         ]),
         for (final line in r.lines)
           TableRow(
@@ -876,10 +1277,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               // Standalone comparison column — see [DiscardLine.expectedValueHmr].
               // Never bold: it doesn't drive the recommendation, so it never
               // needs to draw the eye the way Expected Value's winner does.
+              // Tap opens the charts behind the number ([showEvExplainer]);
+              // the tooltip keeps explaining it on hover / long-press.
               _evHmrTooltip(
-                _cell(
+                _tappableCell(
                   line.expectedValueHmr.round().toString(),
                   color: const Color(0xff9fb0b8),
+                  onTap: () => showEvExplainer(context, line,
+                      unit: widget.game.round.ruleset.unit, hongKong: _hk),
+                  key: ValueKey('ev-hmr-${line.discard.code}'),
                 ),
                 line: line,
               ),
@@ -900,7 +1306,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                     color: const Color(0xffce93d8),
                   ),
                 ),
-              if (r.defending) ...[
+              ...[
                 _cell(
                   line.safety == null ? '—' : '${line.safety!.rating}',
                   color: switch (line.safety?.rating) {
@@ -935,33 +1341,65 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   TableRow _headerRow(List<String> labels) => TableRow(
         decoration: const BoxDecoration(color: Color(0x22ffffff)),
         children: labels.map((l) {
-          // The Expected Value and EV (HMR) headings each carry the formula
-          // behind their column.
-          final isEv = l == 'Expected Value';
-          final isEvHmr = l == 'EV (HMR)';
+          // Every heading that names a concept carries its own explainer, in
+          // place of a glossary underneath the table.
+          final tip = switch (l) {
+            'Expected Value' => (_hk ? _evGeneralHongKong : _evGeneral),
+            'EV (HMR)' => _evHmrGeneral,
+            'Shanten' || 'Away' => _shantenTip(_hk),
+            'Ukeire' || 'Accepts' => _ukeireTip(_hk),
+            'Placement' => _placementTip(),
+            'Safety' => _safetyTip(_hk),
+            'Risk' => _riskTip(_hk),
+            'Detail' => _detailTip(),
+            _ => null,
+          };
           final cell = Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
             child: Text(l,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: isEv
+                  color: l == 'Expected Value'
                       ? const Color(0xffbfe6e0)
-                      : isEvHmr
+                      : l == 'EV (HMR)'
                           ? const Color(0xff9fb0b8)
                           : Colors.white70,
                   fontSize: 9,
                   height: 1.15,
                   fontWeight: FontWeight.w700,
-                  decoration:
-                      isEv || isEvHmr ? TextDecoration.underline : null,
+                  decoration: tip == null ? null : TextDecoration.underline,
                   decorationStyle: TextDecorationStyle.dotted,
                   decorationColor: const Color(0x8880cbc4),
                 )),
           );
-          if (isEv) return _evTooltip(cell);
-          if (isEvHmr) return _evHmrTooltip(cell);
-          return cell;
+          return tip == null ? cell : _tipBox(cell, tip);
         }).toList(),
+      );
+
+  /// A [_cell] that opens something when tapped — underlined the way the
+  /// column headings are, so it reads as clickable.
+  Widget _tappableCell(String text,
+          {required VoidCallback onTap, Color? color, Key? key}) =>
+      MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          key: key,
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(3),
+            child: Text(
+              text,
+              style: TextStyle(
+                color: color ?? Colors.white,
+                fontSize: 11,
+                decoration: TextDecoration.underline,
+                decorationStyle: TextDecorationStyle.dotted,
+                decorationColor: const Color(0x8880cbc4),
+              ),
+            ),
+          ),
+        ),
       );
 
   Widget _cell(String text, {bool bold = false, Color? color}) => Padding(
