@@ -934,18 +934,30 @@ class GameController extends ChangeNotifier implements TableGameHost {
   }
 
   @override
-  void answerCall(CallType choice) {
+  List<TileType> get humanChiRuns {
+    final discard = round.pendingDiscard;
+    if (_humanCallOption == null || discard == null) return const [];
+    return round.chiSequences(kHumanSeat, discard);
+  }
+
+  @override
+  TileType? get recommendedChiRun => _chiLowFor(_humanCallAdvice);
+
+  @override
+  void answerCall(CallType choice, {TileType? chiLow}) {
     final opt = _humanCallOption;
     if (opt == null) return;
     final choices = <int, CallType>{};
-    final chiLow = <int, TileType>{};
+    final chiLows = <int, TileType>{};
     if (choice != CallType.none) choices[opt.seat] = choice;
 
-    // Several runs can often be made with the same tile; take the one the
-    // guide rates highest rather than making you pick between them.
+    // Several runs can often be made with the same tile. The one you picked
+    // wins; with none picked (a single run, or an answer given without a
+    // choice) it is the one the guide rates highest.
     if (choice == CallType.chi) {
-      final low = _humanCallAdvice?.forAction(GuidedAction.chi)?.meldLow;
-      if (low != null) chiLow[opt.seat] = low;
+      final low =
+          chiLow ?? _humanCallAdvice?.forAction(GuidedAction.chi)?.meldLow;
+      if (low != null) chiLows[opt.seat] = low;
     }
 
     // Let the remaining bot seats decide too.
@@ -971,7 +983,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices); // voices every calling seat, human included
-    round.resolveCalls(choices, chiLow: chiLow);
+    round.resolveCalls(choices, chiLow: chiLows);
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
