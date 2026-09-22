@@ -11,6 +11,7 @@ import 'dart:math';
 import 'package:mahjong_core/mahjong_core.dart';
 
 import 'room.dart';
+import 'telemetry.dart';
 
 class TableLoop {
   /// The turn and call clocks default to the room's chosen
@@ -18,6 +19,15 @@ class TableLoop {
   /// values; tests
   /// override them to make timeout/disconnect/bot-takeover paths exercisable
   /// in milliseconds instead of tens of real seconds.
+  ///
+  /// [telemetry] defaults to [MpTelemetry.maybe], which is a no-op unless
+  /// `INGEST_URL` is set — tests never set it, so they get an inert instance
+  /// without needing to pass one explicitly; the room's host (always a real
+  /// human seat in production — bots only ever fill an otherwise-empty one)
+  /// is the guest every batch for this match is posted under. A `TableLoop`
+  /// built directly against a bare, not-yet-seated `Room` (some tests do
+  /// this) has no host seat to report under yet, so telemetry just stays off
+  /// rather than throwing.
   TableLoop(
     this.room, {
     Duration? turnTimeout,
@@ -25,14 +35,25 @@ class TableLoop {
     Duration disconnectGrace = const Duration(seconds: 30),
     Duration continueTimeout = const Duration(seconds: 20),
     Duration botTurnPace = const Duration(milliseconds: 900),
+    MpTelemetry? telemetry,
   })  : _turnTimeout = turnTimeout ?? Duration(seconds: room.timerSeconds),
         _callTimeout = callTimeout ?? Duration(seconds: room.timerSeconds),
         _disconnectGrace = disconnectGrace,
         _continueTimeout = continueTimeout,
-        _botTurnPace = botTurnPace;
+        _botTurnPace = botTurnPace,
+        _tel = telemetry ??
+            (room.seats[room.hostSeat] == null
+                ? null
+                : MpTelemetry.maybe(
+                    hostGuestId: room.seats[room.hostSeat]!.guestId,
+                    hostSessionId: newUuid(),
+                  ));
 
   final Room room;
   final Random _rng = Random();
+  final MpTelemetry? _tel;
+  late final String _matchId;
+  late String _roundId;
 
   /// How long a human seat gets to answer its own turn (discard / kan /
   /// riichi / tsumo) before a bot plays that one decision for it.
@@ -115,6 +136,31 @@ class TableLoop {
     }
     room.phase = RoomPhase.playing;
     room.broadcastRoomState();
+    _matchId = newUuid();
+    final tel = _tel;
+    if (tel != null) {
+      tel.matchStart(
+        matchId: _matchId,
+        roomCode: room.code,
+        ruleset: ruleset.name,
+        hanchan: room.hanchan,
+        timerSeconds: room.timerSeconds,
+        seatCharacters: [for (final s in room.seats) s?.character],
+        seatIsBot: [for (final s in room.seats) s?.isBot ?? false],
+        seatGuestIds: [
+          for (final s in room.seats) (s == null || s.isBot) ? null : s.guestId
+        ],
+        participants: [
+          for (var i = 0; i < 4; i++)
+            if (!room.seats[i]!.isBot)
+              {
+                'seat': '$i',
+                'sessionId': i == room.hostSeat ? tel.hostSessionId : newUuid(),
+                'guestId': room.seats[i]!.guestId,
+              },
+        ],
+      );
+    }
     _startRound();
     unawaited(_run());
   }
@@ -153,6 +199,17 @@ class TableLoop {
     _discardSerial = 0;
     _lastDiscardSeat = null;
     _lastDiscardTsumogiri = false;
+    _roundId = newUuid();
+    _tel?.roundStart(
+      matchId: _matchId,
+      roundId: _roundId,
+      roundIndex: _roundNumber,
+      roundWind: _roundWind.name,
+      handNumber: (_roundNumber % 4) + 1,
+      dealerSeat: _dealer,
+      honba: _honba,
+      riichiSticks: _riichiSticks,
+    );
   }
 
   Future<void> _run() async {
@@ -283,6 +340,13 @@ class TableLoop {
           }
           if (tile == null) return false;
           _noteDiscard(seat, tile);
+          _tel?.humanDecision(
+            matchId: _matchId,
+            roundId: _roundId,
+            actorSeat: seat,
+            kind: 'discard',
+            tile: tile.code,
+          );
           round.discard(seat, tile, declareRiichi: declareRiichi);
           _broadcastState();
           return true;
@@ -347,12 +411,14 @@ class TableLoop {
         }
         _timeoutStrikes[seat] = 0;
         final kind = action['kind'] as String?;
+        var called = false;
         if (kind == 'call') {
           final callType = _parseCallType(action['callType']);
           if (callType != null &&
               callType != CallType.none &&
               opt.types.contains(callType)) {
             choices[seat] = callType;
+            called = true;
             if (callType == CallType.chi) {
               final low = _parseTileType(action['chiLow']);
               if (low != null) chiLow[seat] = low;
@@ -360,6 +426,13 @@ class TableLoop {
           }
         }
         // 'pass_call' (or any other/garbled message) leaves this seat passing.
+        _tel?.humanDecision(
+          matchId: _matchId,
+          roundId: _roundId,
+          actorSeat: seat,
+          kind: called ? 'call' : 'pass',
+          tile: round.pendingDiscard?.code,
+        );
       }
     }
 
@@ -375,6 +448,21 @@ class TableLoop {
     final dealerKept = isExhaustiveDraw
         ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
         : r.winners.contains(_dealer);
+
+    _tel?.roundEnd(
+      matchId: _matchId,
+      roundId: _roundId,
+      endKind: r.kind.name,
+      winners: r.winners,
+      loser: r.loser,
+      han: r.score?.han,
+      fu: r.score?.fu,
+      points: r.score?.points,
+      yaku: [for (final y in r.score?.yaku ?? const []) y.name],
+      pointDeltas: [for (var i = 0; i < 4; i++) r.pointDeltas[i] ?? 0],
+      tenpaiAtDraw: r.tenpaiAtDraw,
+      dealerKept: dealerKept,
+    );
 
     _riichiSticks = round.riichiSticks;
     final rot = _rotateAfterRound(
@@ -398,6 +486,16 @@ class TableLoop {
     if (gameOver) {
       _ended = true;
       room.phase = RoomPhase.ended;
+      final tel = _tel;
+      if (tel != null) {
+        tel.matchEnd(
+          matchId: _matchId,
+          reason: 'game_end',
+          finalPoints: _points,
+          seatPlaces: _placesFromPoints(_points),
+        );
+        unawaited(tel.dispose());
+      }
       return;
     }
 
@@ -446,6 +544,15 @@ class TableLoop {
     );
   }
 
+  /// 1..4 standing per seat by final points (ties share the higher place) —
+  /// the multiplayer analogue of `GameController._humanPlace`, computed for
+  /// every seat at once rather than just the one human seat single-player
+  /// has.
+  static List<int> _placesFromPoints(List<int> points) => [
+        for (var seat = 0; seat < points.length; seat++)
+          1 + points.where((p) => p > points[seat]).length,
+      ];
+
   // --- network I/O ----------------------------------------------------------
 
   /// Called by the connection layer for every `{"type":"action",...}` and
@@ -484,6 +591,12 @@ class TableLoop {
   void handleReconnect(int seat) {
     _disconnectTimers.remove(seat)?.cancel();
     _timeoutStrikes.remove(seat);
+    _tel?.seatEvent(
+      matchId: _matchId,
+      actorSeat: seat,
+      event: 'reconnected',
+      guestId: room.seats[seat]?.guestId,
+    );
     room.broadcastRoomState();
     _sendStateTo(seat);
   }
@@ -496,6 +609,13 @@ class TableLoop {
 
   void _convertToBot(int seat, String reason) {
     if (isBotControlled(seat)) return;
+    _tel?.seatEvent(
+      matchId: _matchId,
+      actorSeat: seat,
+      event: 'bot_takeover',
+      guestId: room.seats[seat]?.guestId,
+      reason: reason,
+    );
     _bots[seat] = SimpleBot(_rng.nextInt(1 << 31));
     room.seats[seat]?.isBot = true;
     _disconnectTimers.remove(seat)?.cancel();

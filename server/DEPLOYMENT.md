@@ -23,6 +23,7 @@ docker compose up -d                     # Postgres on :5432
 alias dc='docker compose exec -T db psql -U tilesense -d tilesense'
 dc -f - < migrations/0001_init.sql
 dc -f - < migrations/0002_seat_characters.sql
+dc -f - < migrations/0003_multiplayer.sql
 dc -c '\dt'                              # -> clients, sessions, matches, rounds, events, events_default
 ```
 
@@ -169,6 +170,7 @@ Sources → Add my current IP**, plus the droplet.)
 ```sh
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0001_init.sql
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0002_seat_characters.sql
+docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0003_multiplayer.sql
 docker run --rm    postgres:16 psql "$PROD_DB" -c '\dt'
 #   -> clients, sessions, matches, rounds, events, events_default
 ```
@@ -308,11 +310,25 @@ docker run --rm postgres:16 psql "$PROD_DB" -c \
 ## 3. Multiplayer game server
 
 A second, independent sidecar — `server/mp/` — alongside the ingest service
-from §2. It has **no database**: rooms live in memory only, so restarting
-this service drops every in-progress room. That's the accepted tradeoff for
-the MVP (private room codes, guest identity, bot fill-in — see
+from §2. It has **no database of its own**: rooms live in memory only, so
+restarting this service drops every in-progress room. That's the accepted
+tradeoff for the MVP (private room codes, guest identity, bot fill-in — see
 `server/mp/README` if present, or the multiplayer plan this section shipped
-with). Nothing here touches the ingest service or its data.
+with).
+
+That tradeoff is about live room state only. Session *data* — matches,
+rounds, discards/calls, who joined/left/went-bot — is recorded into the same
+Postgres §1 set up, the same way single-player's is: `server/mp` is the
+authoritative source for a shared match (it computed every round for all
+four seats, so it is the one writer, not up to four browsers each reporting
+their own view), and forwards batched events to the ingest service's
+`/ingest` endpoint over loopback — see `server/mp/lib/telemetry.dart` and
+`server/migrations/0003_multiplayer.sql`. Controlled by one env var,
+`INGEST_URL`: unset (the default for `dart run bin/mp_server.dart` with no
+env set) means entirely off, exactly like the client's own telemetry when
+`TELEMETRY_ENDPOINT` has nothing to talk to. A dead or slow ingest service
+never affects a live game — every send is fire-and-forget with errors
+swallowed.
 
 ### 3.1 Local
 
@@ -328,6 +344,22 @@ Point a locally-built client at it:
 ```sh
 cd flutter_client
 flutter run -d chrome --dart-define=MP_ENDPOINT=ws://localhost:8789
+```
+
+To also exercise multiplayer session recording locally, run it with
+`INGEST_URL` pointing at the ingest service from §1.2 (both need to be up —
+§1.1's Postgres included):
+
+```sh
+cd server/mp
+INGEST_URL=http://127.0.0.1:8787/ingest dart run bin/mp_server.dart
+```
+
+Play a room through, then (reusing the `dc` alias from §1.1):
+
+```sh
+dc -c "select match_id, mode, room_code, timer_seconds, seat_places from matches where mode = 'multiplayer' order by started_at desc limit 5;"
+dc -c "select seat, guest_id from match_participants where match_id = '<a match_id from above>' order by seat;"
 ```
 
 ### 3.2 Build the Linux binary
@@ -401,6 +433,15 @@ in one, join with the code in the other, start with bots filling the other
 two seats, and play a full hand end to end. Then close one tab and confirm
 the other receives a bot-takeover notice after ~30s and keeps playing.
 
+Then confirm that hand was actually recorded:
+
+```sh
+docker run --rm postgres:16 psql "$PROD_DB" -c \
+  "select match_id, room_code, seat_characters, seat_is_bot from matches where mode = 'multiplayer' order by started_at desc limit 1;"
+docker run --rm postgres:16 psql "$PROD_DB" -c \
+  "select kind, actor_seat, tile from events where match_id = '<the match_id above>' order by occurred_at;"
+```
+
 ### 3.7 Rollback (independent of ingest)
 
 | To undo | How |
@@ -408,6 +449,7 @@ the other receives a bot-takeover notice after ~30s and keeps playing.
 | the client change | redeploy the previous `build/web/` |
 | the Nginx route | remove the `location /tilesense/mp/` block, `nginx -t && systemctl reload nginx` |
 | the service | `ssh root@$DROPLET_IP "systemctl disable --now tilesense-mp"` |
+| just multiplayer session recording, keeping the game running | `ssh root@$DROPLET_IP` and remove the `Environment=INGEST_URL=...` line from `/etc/systemd/system/tilesense-mp.service`, then `systemctl daemon-reload && systemctl restart tilesense-mp` |
 
 ---
 
@@ -429,6 +471,7 @@ migration once against the attached DB:
 PROD_DB="$(doctl databases connection <db-id-from-app> --format URI --no-header)"
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0001_init.sql
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0002_seat_characters.sql
+docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0003_multiplayer.sql
 ```
 
 Then deploy the client exactly as in 2.8 with
