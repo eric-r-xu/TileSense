@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
+import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/tile.dart';
 
 import 'helpers.dart';
@@ -683,5 +684,46 @@ void main() {
     expect(manyDraws.valuePlan, 'RIICHI');
     expect(manyDraws.recommendRiichi, isTrue);
     expect(manyDraws.expectedValue, greaterThan(fewDraws.expectedValue));
+  });
+
+  test(
+      'an open hand worth well past the damaten bar is OPEN YAKU, never '
+      'DAMATEN — riichi was never on the table to stay quiet instead of', () {
+    // Same shape of hand and the same value as a closed damaten would be,
+    // but with a called yakuhai triplet standing in for the third set —
+    // there is no riichi/damaten choice for an open hand to make.
+    final hand = parseTiles('234m 567m 22p 45s 9s');
+    final visible = toCounts34(hand);
+    const dora = [TileType.pin1, TileType.man3, TileType.sou3];
+    for (final t in dora) {
+      visible[t.index - 1]++;
+    }
+    final report = EfficiencyEngine().analyze(
+      hand: hand,
+      visibleCounts34: visible,
+      canRiichi: true,
+      valueContext: EfficiencyValueContext(
+        melds: [
+          Meld(
+            kind: MeldKind.triplet,
+            low: TileType.haku,
+            concealed: false,
+            calledFromSeatOffset: 1,
+          ),
+        ],
+        roundWind: Wind.east,
+        seatWind: Wind.south,
+        isDealer: false,
+        inRiichi: false,
+        wallTilesRemaining: 40,
+        doraIndicators: dora,
+      ),
+    );
+    final line = report.lines.firstWhere((l) => l.shanten == 0);
+
+    expect(line.averagePoints, greaterThan(GuideConstants.damatenMinPoints));
+    expect(line.valuePlan, 'OPEN YAKU');
+    expect(line.reason, isNot(contains('riichi')));
+    expect(line.reason, isNot(contains('Damaten')));
   });
 }

@@ -120,6 +120,9 @@ void main() {
     );
     expect(tileInHand, findsWidgets);
 
+    // A first tap only raises the tile; a second discards it.
+    await tester.tap(tileInHand.last, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(tileInHand.last, warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 100));
     for (var i = 0; i < 10; i++) {

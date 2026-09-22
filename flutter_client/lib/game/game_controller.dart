@@ -860,7 +860,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
     if (declareRiichi) {
-      Sfx.i.voice(VoiceKind.riichi);
+      Sfx.i.voice(VoiceKind.riichi, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'RIICHI');
     }
     if (_tel != null) {

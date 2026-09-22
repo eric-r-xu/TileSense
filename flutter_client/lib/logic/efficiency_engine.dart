@@ -2462,7 +2462,10 @@ class EfficiencyEngine {
     final damatenMinimum =
         (context.isDealer ? _dealerDamatenMinPoints : _damatenMinPoints) *
             context.style.damatenBar;
-    final qualifyingDamaten = everyDamaRon && minimumDamaRon >= damatenMinimum;
+    // Closed only: an open hand was never choosing riichi over staying quiet
+    // — see the `everyDamaRon` arm below, which labels that case OPEN YAKU.
+    final qualifyingDamaten =
+        context.closed && everyDamaRon && minimumDamaRon >= damatenMinimum;
 
     late final String plan;
     late final double selectedPoints;
