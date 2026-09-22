@@ -122,41 +122,6 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// host when the room is created (30 or 60) and echoed back by the server.
   static const List<int> timerChoices = [30, 60];
   int timerSeconds = 30;
-
-  /// 2x bot pace, a room-wide setting only the host can change (the server
-  /// paces bot turns, so it can't be per-client like single player's).
-  bool fastBots = false;
-  void setFastBots(bool value) {
-    if (!isHost || value == fastBots) return;
-    _client.send({'type': 'set_fast_bots', 'value': value});
-  }
-
-  /// Auto-discard: while on, each of this player's turns immediately cuts
-  /// the tile just drawn. Purely client-side. Pauses (does nothing) when a
-  /// tsumo or flower win is on offer, so a win is never thrown away, and
-  /// when there's no drawn tile (the discard right after a call).
-  bool autoDiscard = false;
-  void setAutoDiscard(bool value) {
-    if (autoDiscard == value) return;
-    autoDiscard = value;
-    _maybeAutoDiscard();
-    notifyListeners();
-  }
-
-  /// The drawn tile auto-discard last sent, so a repeat `state` broadcast
-  /// during the same turn (e.g. after a reconnect) doesn't send it twice.
-  int? _autoDiscardedTileId;
-
-  void _maybeAutoDiscard() {
-    if (!autoDiscard || !isHumanTurn) return;
-    if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) return;
-    final drawn = round.seats[kHumanSeat].drawn;
-    if (drawn == null || drawn.id == _autoDiscardedTileId) return;
-    if (!round.legalDiscards(kHumanSeat).any((t) => t.id == drawn.id)) return;
-    _autoDiscardedTileId = drawn.id;
-    humanDiscard(drawn);
-  }
-
   RoomLifecycle roomPhase = RoomLifecycle.lobby;
   int? mySeat;
   List<LobbySeat> lobbySeats = _emptyLobby();
@@ -370,7 +335,6 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     ruleset = msg['ruleset'] == 'hongKong' ? Ruleset.hongKong : Ruleset.riichi;
     hanchan = msg['hanchan'] as bool;
     timerSeconds = msg['timerSeconds'] as int? ?? 30;
-    fastBots = msg['fastBots'] as bool? ?? false;
     roomPhase = RoomLifecycle.values.byName(msg['phase'] as String);
     final yourSeat = msg['yourSeat'] as int?;
     if (yourSeat != null) mySeat = yourSeat;
@@ -422,7 +386,6 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     _roundReady = true;
     _updateCallState();
     _refreshReport();
-    if (!isResult) _maybeAutoDiscard();
     if (isResult) {
       _playRoundEndSfx();
     } else {

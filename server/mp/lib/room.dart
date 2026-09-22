@@ -57,10 +57,6 @@ class Room {
 
   /// Seconds each human gets per discard and per call offer.
   final int timerSeconds;
-
-  /// 2x: bots take their turns at half the normal pace. Host-toggled at any
-  /// point (lobby or mid-game), and read by [TableLoop] on every bot turn.
-  bool fastBots = false;
   RoomPhase phase = RoomPhase.lobby;
   int hostSeat = 0;
   final List<Seat?> seats = List<Seat?>.filled(4, null);
@@ -107,7 +103,10 @@ class Room {
   /// client's avatar/name for a given seat identical and collision-free
   /// without a round trip: whoever asks first gets first pick.
   String resolveCharacter([String? requested]) {
-    final used = {for (final s in seats) if (s != null) s.character};
+    final used = {
+      for (final s in seats)
+        if (s != null) s.character
+    };
     if (requested != null &&
         selectableCharacters.contains(requested) &&
         !used.contains(requested)) {
@@ -151,7 +150,6 @@ class Room {
         'ruleset': ruleset.name,
         'hanchan': hanchan,
         'timerSeconds': timerSeconds,
-        'fastBots': fastBots,
         'phase': phase.name,
         if (yourSeat != null) 'yourSeat': yourSeat,
         'seats': [
@@ -205,8 +203,8 @@ class RoomManager {
   String _freshCode() {
     String code;
     do {
-      code = String.fromCharCodes(List.generate(
-          6, (_) => _codeAlphabet.codeUnitAt(_rng.nextInt(_codeAlphabet.length))));
+      code = String.fromCharCodes(List.generate(6,
+          (_) => _codeAlphabet.codeUnitAt(_rng.nextInt(_codeAlphabet.length))));
     } while (_rooms.containsKey(code));
     return code;
   }
@@ -218,4 +216,13 @@ class RoomManager {
       _rooms.remove(room.code);
     }
   }
+
+  /// Flushes every in-progress room's buffered telemetry — called once, on
+  /// process shutdown, so a deploy's `systemctl restart` never strands up
+  /// to 15s of already-recorded rounds/discards that were only sitting in
+  /// memory. A no-op per room with no game running yet, or telemetry off.
+  Future<void> flushAllTelemetry() => Future.wait([
+        for (final room in _rooms.values)
+          if (room.loop != null) room.loop!.flushTelemetry(),
+      ]);
 }

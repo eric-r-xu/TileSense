@@ -136,16 +136,6 @@ Handler buildMultiplayerHandler(
           }
           r.loop = tableLoopFactory(r)..start();
 
-        case 'set_fast_bots':
-          final r = room;
-          final s = currentSeat();
-          if (r == null || s == null || s != r.hostSeat) {
-            send({'type': 'error', 'message': 'only the host can change 2x'});
-            return;
-          }
-          r.fastBots = msg['value'] == true;
-          r.broadcastRoomState();
-
         case 'reconnect':
           final code = msg['roomCode'] as String?;
           final requestedGuestId = msg['guestId'] as String?;

@@ -248,4 +248,59 @@ void main() {
       expect((start['seat_is_bot'] as List).where((b) => b == true).length, 1);
     });
   });
+
+  group('RoomManager.flushAllTelemetry (process-shutdown flush)', () {
+    test('flushes every in-progress room, not just the first one', () async {
+      var flushes = 0;
+      MpTelemetry telFor(String hostGuestId) => MpTelemetry.maybe(
+            hostGuestId: hostGuestId,
+            hostSessionId: '$hostGuestId-session',
+            env: const {'INGEST_URL': 'http://x.invalid/ingest'},
+            post: (url, body) async => flushes++,
+          )!;
+
+      final manager = RoomManager();
+      final roomA = manager.createRoom(
+          hostGuestId: 'alice',
+          hostName: 'Alice',
+          ruleset: Ruleset.riichi,
+          hanchan: true);
+      final roomB = manager.createRoom(
+          hostGuestId: 'zoe',
+          hostName: 'Zoe',
+          ruleset: Ruleset.riichi,
+          hanchan: true);
+
+      final telA = telFor('alice');
+      final telB = telFor('zoe');
+      addTearDown(telA.dispose);
+      addTearDown(telB.dispose);
+
+      // Bot-fills the other three seats and starts — realistic: a room with
+      // only its host present still starts a real game (see `start_game` in
+      // server.dart). match_start is buffered synchronously by start(), but
+      // nothing has posted yet — the 15s timer hasn't fired.
+      roomA.loop = TableLoop(roomA, botTurnPace: Duration.zero, telemetry: telA)
+        ..start();
+      roomB.loop = TableLoop(roomB, botTurnPace: Duration.zero, telemetry: telB)
+        ..start();
+      expect(flushes, 0);
+
+      await manager.flushAllTelemetry();
+      expect(flushes, 2,
+          reason: 'both rooms should flush, not just whichever is first');
+    });
+
+    test('a lobby-only room (no game started yet) is skipped, not an error',
+        () async {
+      final manager = RoomManager();
+      manager.createRoom(
+          hostGuestId: 'alice',
+          hostName: 'Alice',
+          ruleset: Ruleset.riichi,
+          hanchan: true);
+
+      await expectLater(manager.flushAllTelemetry(), completes);
+    });
+  });
 }

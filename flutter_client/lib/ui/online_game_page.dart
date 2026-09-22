@@ -1,9 +1,9 @@
 /// The online table: the same `TableView`/`HandView`/`ScoringView` widgets
 /// the offline game uses, composed against an [OnlineGameController] instead
 /// of a [GameController]. No TileSense guide here — see [HandView] — and the
-/// app bar is deliberately smaller than the offline one: no ruleset/hanchan
-/// toggle and no pause, all single-player-only concepts — just the room code,
-/// Leave Room, the host's room-wide 2x bot pace, and a personal auto-discard.
+/// app bar is deliberately smaller than the offline one: no ruleset/hanchan/
+/// fast-mode toggle and no pause, all single-player-only concepts — just the
+/// room code and Leave Room.
 library;
 
 import 'package:flutter/material.dart';
@@ -122,75 +122,6 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 ],
               ],
             ),
-            actions: [
-              // Auto-discard: cut each drawn tile as soon as it arrives.
-              Tooltip(
-                message: game.autoDiscard
-                    ? 'Auto-discard on: each drawn tile is discarded right '
-                        'away (pauses for a win).\nTap to turn off.'
-                    : 'Auto-discard off.\nTap to discard each drawn tile '
-                        'automatically.',
-                child: TextButton(
-                  key: const Key('autoDiscard'),
-                  onPressed: () => game.setAutoDiscard(!game.autoDiscard),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: game.autoDiscard
-                        ? const Color(0xffffdf76)
-                        : Colors.white38,
-                  ),
-                  child: Text(
-                    'Auto-discard',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      decoration: game.autoDiscard
-                          ? TextDecoration.none
-                          : TextDecoration.lineThrough,
-                    ),
-                  ),
-                ),
-              ),
-              // 2x bot pace — room-wide, so only the host can flip it.
-              Tooltip(
-                message: [
-                  game.fastBots
-                      ? 'Bots move at double speed.'
-                      : 'Bots move at normal speed.',
-                  game.isHost
-                      ? (game.fastBots
-                          ? 'Tap for normal speed.'
-                          : 'Tap for double speed.')
-                      : 'Only the host can change this.',
-                ].join('\n'),
-                child: TextButton(
-                  key: const Key('fastBots'),
-                  onPressed: game.isHost
-                      ? () => game.setFastBots(!game.fastBots)
-                      : null,
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: game.fastBots
-                        ? const Color(0xffffdf76)
-                        : Colors.white38,
-                    disabledForegroundColor: game.fastBots
-                        ? const Color(0x99ffdf76)
-                        : Colors.white24,
-                  ),
-                  child: Text(
-                    '2x',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      decoration: game.fastBots
-                          ? TextDecoration.none
-                          : TextDecoration.lineThrough,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
           ),
           body: SafeArea(
             child: Stack(
