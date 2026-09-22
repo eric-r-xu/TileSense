@@ -55,4 +55,56 @@ void main() {
       await tester.pump();
     }
   });
+
+  testWidgets(
+      'an exhaustive draw reveals tenpai hands at normal size, without '
+      'overflowing the panel', (tester) async {
+    Sfx.i.enabled = false;
+    final game = GameController(seed: 6);
+    game.togglePause();
+    try {
+      final r = Round.posed(
+        dealer: 0,
+        roundWind: Wind.east,
+        wall: Wall.posed(remaining: 0, dora: const []),
+        startingPoints: List.filled(4, 25000),
+      );
+      // Tenpai on 5p: a plain two-sided wait, nothing exotic — the size of
+      // the reveal is what this test is about, not its content.
+      r.seats[0].hand = parseTiles('123m 456p 789s 22m 34p');
+      r.result = RoundResult(
+        kind: RoundEndKind.exhaustiveDraw,
+        winners: const [],
+        pointDeltas: const {},
+        label: 'Exhaustive draw',
+        tenpaiAtDraw: const [0],
+      );
+      game.round = r;
+      game.phase = GamePhase.roundEnd;
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+          MaterialApp(home: Scaffold(body: ScoringView(game: game))));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // The reveal now matches the winning hand's TileSize.normal, not the
+      // old TileSize.small.
+      final revealed = tester
+          .widgetList<TileFace>(find.byType(TileFace))
+          .where((w) => w.tile != null)
+          .toList();
+      expect(revealed, isNotEmpty);
+      expect(revealed.every((w) => w.size == TileSize.normal), isTrue,
+          reason: 'the tenpai reveal should render at normal size');
+
+      // Still inside the panel: no render overflow, and every tile sits
+      // within the scrollable panel's bounds (it wraps/scrolls instead).
+      expect(tester.takeException(), isNull);
+    } finally {
+      game.dispose();
+      Sfx.i.enabled = true;
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }
+  });
 }
