@@ -3,7 +3,8 @@
 /// of a [GameController]. No TileSense guide here — see [HandView] — and the
 /// app bar is deliberately smaller than the offline one: no ruleset/hanchan/
 /// fast-mode toggle and no pause, all single-player-only concepts — just the
-/// room code and Leave Room.
+/// room code, Leave Room, and a personal (client-side only) riichi
+/// auto-discard toggle.
 library;
 
 import 'package:flutter/material.dart';
@@ -122,6 +123,42 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 ],
               ],
             ),
+            actions: [
+              // Auto-discard while locked into riichi — every discard after
+              // declaring is already forced to be the drawn tile, so this
+              // just skips confirming it. Purely local; not a room setting.
+              Tooltip(
+                message: game.autoDiscardInRiichi
+                    ? 'While in riichi, your drawn tile is cut right away — '
+                        'still pauses for a self-kan or a win.\n'
+                        'Tap to turn off.'
+                    : 'Off — while in riichi, confirm each drawn tile '
+                        'yourself.\n'
+                        'Tap to cut it automatically instead.',
+                child: TextButton(
+                  key: const Key('autoDiscardInRiichi'),
+                  onPressed: () =>
+                      game.setAutoDiscardInRiichi(!game.autoDiscardInRiichi),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: game.autoDiscardInRiichi
+                        ? const Color(0xffffdf76)
+                        : Colors.white38,
+                  ),
+                  child: Text(
+                    'Riichi Auto',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      decoration: game.autoDiscardInRiichi
+                          ? TextDecoration.none
+                          : TextDecoration.lineThrough,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
           body: SafeArea(
             child: Stack(

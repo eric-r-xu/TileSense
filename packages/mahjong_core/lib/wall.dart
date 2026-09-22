@@ -32,18 +32,30 @@ class Wall implements TileWall {
     _build();
   }
 
-  /// A wall posed for a hand-built scenario rather than dealt out: exactly
-  /// [remaining] tiles left in the live wall and exactly [dora] revealed as
-  /// dora indicators (with matching ura beneath them). Nothing is ever drawn
-  /// from it — the scenario builder never advances a turn — so only the count
-  /// and the revealed indicators matter, not which physical tiles they are.
-  Wall.posed({required int remaining, required List<TileType> dora})
-      : _rng = Random(0) {
+  /// A wall posed for a hand-built scenario, or for the multiplayer client's
+  /// reconstruction of the server's real wall, rather than dealt out:
+  /// exactly [remaining] tiles left in the live wall and exactly [dora]
+  /// revealed as dora indicators, with [ura] beneath them once those are
+  /// known too (round over, riichi win — see `protocol.dart`). Nothing is
+  /// ever drawn from it — the scenario builder never advances a turn, and
+  /// the online client only ever renders it — so only the count and the
+  /// revealed indicators matter, not which physical tiles they are.
+  /// [ura] left at its default renders as an unrevealed "?" wherever shown,
+  /// same as any other not-yet-known tile — pass it once the round result
+  /// actually carries it.
+  Wall.posed({
+    required int remaining,
+    required List<TileType> dora,
+    List<TileType> ura = const [],
+  }) : _rng = Random(0) {
     _dead.addAll([
       for (var i = 0; i < 14; i++) Tile(-1 - i, TileType.blank),
     ]);
     for (var i = 0; i < dora.length && i < 5; i++) {
       _dead[4 + i * 2] = Tile(-100 - i, dora[i]);
+    }
+    for (var i = 0; i < ura.length && i < 5; i++) {
+      _dead[5 + i * 2] = Tile(-300 - i, ura[i]);
     }
     _doraRevealed = dora.isEmpty ? 0 : dora.length.clamp(1, 5);
     _live.addAll([

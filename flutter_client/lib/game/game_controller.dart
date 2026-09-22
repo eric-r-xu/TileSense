@@ -169,6 +169,40 @@ class GameController extends ChangeNotifier implements TableGameHost {
     notifyListeners();
   }
 
+  /// While locked into riichi, cut the drawn tile the moment your turn
+  /// starts instead of waiting for a manual tap — every later discard is
+  /// already forced to be the drawn tile ([Round.discard]'s tsumogiri
+  /// lock), so this just skips confirming a choice that was never really
+  /// yours to make. Independent of [autoplay], which already handles every
+  /// turn (riichi or not) on its own.
+  bool autoDiscardInRiichi = false;
+  void setAutoDiscardInRiichi(bool value) {
+    if (autoDiscardInRiichi == value) return;
+    autoDiscardInRiichi = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'auto_discard_in_riichi', value: value);
+    notifyListeners();
+  }
+
+  /// Returns true if it fired (and so already advanced the turn/notified
+  /// listeners itself via [humanDiscard]) — false leaves the caller to do
+  /// its own normal notify. Never fires with a self-kan on offer (a real
+  /// decision, left to the player) or a tsumo/flower win on offer (a win is
+  /// never thrown away).
+  bool _maybeAutoDiscardInRiichi() {
+    if (!autoDiscardInRiichi) return false;
+    final human = round.seats[kHumanSeat];
+    if (!human.riichi) return false;
+    if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) {
+      return false;
+    }
+    if (round.closedKanTypes(kHumanSeat).isNotEmpty) return false;
+    final drawn = human.drawn;
+    if (drawn == null) return false;
+    humanDiscard(drawn);
+    return true;
+  }
+
   /// How the guide weighs danger against value. Feeds every score it produces,
   /// so it steers Autoplay — which plays from those scores — as well as the
   /// panel.
@@ -458,10 +492,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // Apply honba / dealer rotation. The dealer keeps their seat (renchan) on a
     // win of their own or, at an exhaustive draw, on being tenpai.
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
-    // Hong Kong: the dealer also repeats on any draw, tenpai or not.
-    final dealerKept = isExhaustiveDraw
-        ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
-        : r.winners.contains(_dealer);
+    // An abortive draw (e.g. kyuushu kyuuhai) is a void hand — the dealer
+    // always repeats, whoever they are, no tenpai check involved.
+    // Hong Kong: the dealer also repeats on any (ordinary) draw, tenpai or not.
+    final dealerKept = r.kind == RoundEndKind.abortiveDraw ||
+        (isExhaustiveDraw
+            ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
+            : r.winners.contains(_dealer));
 
     _tel?.roundEnd(
       matchId: _matchId,
@@ -572,7 +609,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       case RoundPhase.discarding:
         if (round.turn == kHumanSeat && !autoplay) {
           _refreshReport();
-          notifyListeners();
+          if (!_maybeAutoDiscardInRiichi()) notifyListeners();
         } else {
           _botOrAutoTurn(round.turn);
         }
@@ -907,6 +944,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _scheduleLoop();
   }
 
+  /// Kyuushu kyuuhai — aborts the round on the human's own first
+  /// uninterrupted draw. See [Round.canDeclareKyuushu].
+  @override
+  void humanDeclareKyuushu() {
+    if (!round.canDeclareKyuushu(kHumanSeat)) return;
+    round.declareKyuushu(kHumanSeat);
+    phase = GamePhase.roundEnd;
+    _playRoundEndSfx();
+    notifyListeners();
+  }
+
   @override
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
@@ -1125,6 +1173,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
       round.turn == kHumanSeat &&
       round.phase == RoundPhase.discarding &&
       round.canRiichi(kHumanSeat);
+
+  @override
+  bool get humanCanDeclareKyuushu => round.canDeclareKyuushu(kHumanSeat);
 
   @override
   List<TileType> get humanClosedKanTypes =>
