@@ -81,6 +81,10 @@ class TableLoop {
   /// a time. Zero in tests that just want the end state fast.
   final Duration _botTurnPace;
 
+  /// [_botTurnPace], halved while the host has 2x on ([Room.fastBots]).
+  Duration get _botPace =>
+      room.fastBots ? _botTurnPace ~/ 2 : _botTurnPace;
+
   Ruleset get ruleset => room.ruleset;
   int get _handsPerGame => ruleset.handsPerGame(fullGame: room.hanchan);
 
@@ -281,7 +285,8 @@ class TableLoop {
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
-    if (_botTurnPace > Duration.zero) await Future.delayed(_botTurnPace);
+    final pace = _botPace;
+    if (pace > Duration.zero) await Future.delayed(pace);
     _broadcastState();
   }
 

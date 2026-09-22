@@ -178,6 +178,44 @@ void main() {
     }
   });
 
+  test('only the host can toggle 2x bot pace, and every seat sees it',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+
+    final a = await TestClient.connect(server.port);
+    final b = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    addTearDown(b.close);
+
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'riichi',
+      'hanchan': false,
+    });
+    final created = await a.waitFor((m) => m['type'] == 'room_state');
+    expect(created['fastBots'], false);
+    b.send({
+      'type': 'join_room',
+      'roomCode': created['code'],
+      'guestId': 'guest-b',
+      'name': 'Bob',
+    });
+    await b.waitFor((m) => m['type'] == 'room_state');
+
+    b.send({'type': 'set_fast_bots', 'value': true});
+    await b.waitFor((m) => m['type'] == 'error');
+    expect(manager.find(created['code'] as String)!.fastBots, false);
+
+    a.send({'type': 'set_fast_bots', 'value': true});
+    await b.waitFor(
+        (m) => m['type'] == 'room_state' && m['fastBots'] == true);
+    expect(manager.find(created['code'] as String)!.fastBots, true);
+  });
+
   test('a disconnected seat converts to bot control after the grace period',
       () async {
     final manager = RoomManager();
