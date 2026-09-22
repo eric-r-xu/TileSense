@@ -57,6 +57,10 @@ class Room {
 
   /// Seconds each human gets per discard and per call offer.
   final int timerSeconds;
+
+  /// 2x: bots take their turns at half the normal pace. Host-toggled at any
+  /// point (lobby or mid-game), and read by [TableLoop] on every bot turn.
+  bool fastBots = false;
   RoomPhase phase = RoomPhase.lobby;
   int hostSeat = 0;
   final List<Seat?> seats = List<Seat?>.filled(4, null);
@@ -147,6 +151,7 @@ class Room {
         'ruleset': ruleset.name,
         'hanchan': hanchan,
         'timerSeconds': timerSeconds,
+        'fastBots': fastBots,
         'phase': phase.name,
         if (yourSeat != null) 'yourSeat': yourSeat,
         'seats': [
