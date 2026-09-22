@@ -440,17 +440,22 @@ class _ScoringViewState extends State<ScoringView> {
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 3),
+        // Normal rather than small: a tenpai reveal is read closely, tile by
+        // tile, so it gets the same size as the winning hand above it. The
+        // surrounding Wrap + the panel's own SingleChildScrollView (see
+        // [build]) absorb the extra size by wrapping to more rows and
+        // scrolling, rather than letting it overflow.
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 1,
-          runSpacing: 1,
+          spacing: 2,
+          runSpacing: 2,
           children: [
             for (final t in sortByType(s.hand))
-              TileFace(tile: t, size: TileSize.small, scale: _tileScale),
+              TileFace(tile: t, size: TileSize.normal, scale: _tileScale),
             for (final m in s.melds) ...[
               const SizedBox(width: 6),
               for (final ty in m.types)
-                TileFace(type: ty, size: TileSize.small, scale: _tileScale),
+                TileFace(type: ty, size: TileSize.normal, scale: _tileScale),
             ],
           ],
         ),
