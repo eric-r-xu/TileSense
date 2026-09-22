@@ -111,11 +111,17 @@ abstract class TableGameHost implements GuideHost {
   List<TileType> get humanClosedKanTypes;
   List<TileType> get humanAddedKanTypes;
 
+  /// Nine kinds of terminals/honors, on your own first uninterrupted draw —
+  /// available to any seat, not just the dealer, riichi only.
+  bool get humanCanDeclareKyuushu;
+
   void humanDiscard(Tile tile, {bool declareRiichi});
   void humanTsumo();
   void humanClosedKan(TileType type);
   void humanAddKan(TileType type);
   void humanPassFlowerWin();
+  void humanDeclareKyuushu();
+
   /// Answers the pending call. [chiLow] names which run a chi takes when
   /// several are possible (see [humanChiRuns]); left null it is the guide's
   /// best run, or the first one the hand can make.

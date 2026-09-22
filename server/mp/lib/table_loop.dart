@@ -306,6 +306,11 @@ class TableLoop {
         round.passFlowerWin(seat);
         _broadcastState();
         return true;
+      case 'kyuushu':
+        if (!round.canDeclareKyuushu(seat)) return false;
+        round.declareKyuushu(seat);
+        _broadcastState();
+        return true;
       case 'closed_kan':
         {
           final type = _parseTileType(action['tileType']);
@@ -453,9 +458,12 @@ class TableLoop {
   Future<void> _handleRoundEnd() async {
     final r = round.result!;
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
-    final dealerKept = isExhaustiveDraw
-        ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
-        : r.winners.contains(_dealer);
+    // An abortive draw (e.g. kyuushu kyuuhai) is a void hand — the dealer
+    // always repeats, whoever they are, no tenpai check involved.
+    final dealerKept = r.kind == RoundEndKind.abortiveDraw ||
+        (isExhaustiveDraw
+            ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
+            : r.winners.contains(_dealer));
 
     _tel?.roundEnd(
       matchId: _matchId,

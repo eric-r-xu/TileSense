@@ -9,7 +9,8 @@ import 'helpers.dart';
 /// A fresh round with a closed tanyao/pinfu tenpai on 5p/8p planted on seat 1,
 /// and seat 2 armed to discard [feed] (defaults to 5p, one of the waits) as its
 /// just-drawn tile. Returns the round and the exact tile seat 2 will cut.
-(Round, Tile) _furitenScenario({required bool waiterRiichi, TileType feed = TileType.pin5}) {
+(Round, Tile) _furitenScenario(
+    {required bool waiterRiichi, TileType feed = TileType.pin5}) {
   final round = Round(
     seed: 1,
     dealer: 0,
@@ -68,8 +69,8 @@ void main() {
           case RoundPhase.callOffer:
             final choices = <int, CallType>{};
             for (final opt in round.callOptions) {
-              final c = bots[opt.seat]
-                  .decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
+              final c = bots[opt.seat].decideCall(
+                  round, opt.seat, round.pendingDiscard!, opt.types);
               if (c != CallType.none) choices[opt.seat] = c;
             }
             round.resolveCalls(choices);
@@ -81,8 +82,8 @@ void main() {
       }
 
       expect(round.finished, isTrue, reason: 'seed $seed did not finish');
-      final total =
-          round.seats.fold<int>(0, (a, s) => a + s.points) + round.riichiSticks * 1000;
+      final total = round.seats.fold<int>(0, (a, s) => a + s.points) +
+          round.riichiSticks * 1000;
       expect(total, 100000, reason: 'points not conserved for seed $seed');
     }
   });
@@ -132,8 +133,8 @@ void main() {
 
       final drawn = round.seats[0].drawn!;
       // Try to cut a different tile from hand.
-      final other = round.seats[0].hand.firstWhere((t) => t.id != drawn.id,
-          orElse: () => drawn);
+      final other = round.seats[0].hand
+          .firstWhere((t) => t.id != drawn.id, orElse: () => drawn);
       final poolBefore = round.seats[0].pond.length;
       round.discard(0, other);
       // The drawn tile went out, not the one we asked for.
@@ -141,6 +142,62 @@ void main() {
           reason: 'riichi hand must tsumogiri');
       return; // one successful scenario is enough
     }
+  });
+
+  test(
+      "ippatsu survives to the declarer's own next draw when nothing "
+      'interrupts the go-around', () {
+    final round = Round(
+      seed: 1,
+      dealer: 0,
+      roundWind: Wind.east,
+      honba: 0,
+      riichiSticks: 0,
+      startingPoints: List.filled(4, 25000),
+    );
+    // A tenpai 13 (ryanmen on 5p/8p) plus one unrelated tile to discard —
+    // exactly what a 14-tile "just drew" hand looks like the turn before
+    // declaring.
+    final extra = Tile(990, TileType.chun);
+    round.seats[0].hand = [...parseTiles('234m 567m 234p 67p 88s'), extra];
+    round.seats[0].drawn = extra;
+    round.turn = 0;
+    round.phase = RoundPhase.discarding;
+
+    round.discard(0, extra, declareRiichi: true);
+    expect(round.seats[0].riichi, isTrue);
+    expect(round.seats[0].ippatsu, isTrue);
+
+    // Advance to seat 0's next draw, with every other seat just
+    // tsumogiri-ing and every call declined — the textbook uninterrupted
+    // ippatsu go-around.
+    var guard = 0;
+    while (!(round.phase == RoundPhase.discarding && round.turn == 0) &&
+        !round.finished &&
+        guard++ < 200) {
+      switch (round.phase) {
+        case RoundPhase.discarding:
+          round.discard(round.turn, round.seats[round.turn].drawn!);
+          break;
+        case RoundPhase.callOffer:
+          round.resolveCalls({});
+          break;
+        case RoundPhase.drawing:
+        case RoundPhase.finished:
+          guard = 200;
+          break;
+      }
+    }
+    expect(round.finished, isFalse);
+    expect(round.turn, 0);
+    expect(round.seats[0].drawn, isNotNull,
+        reason: 'the go-around should have come back to a fresh draw');
+
+    // Nothing interrupted the go-around — a tsumo on this very draw is a
+    // legitimate ippatsu tsumo, so the flag must still be set.
+    expect(round.seats[0].ippatsu, isTrue,
+        reason: 'ippatsu was cleared before the declarer even drew, '
+            'denying a legitimate ippatsu win on this draw');
   });
 
   test('a wait tile in your own discards is furiten and bars ron on any wait',
@@ -194,7 +251,8 @@ void main() {
     }
   });
 
-  test('a riichi hand that passes a winning discard is permanently furiten', () {
+  test('a riichi hand that passes a winning discard is permanently furiten',
+      () {
     final (round, feed) = _furitenScenario(waiterRiichi: true);
     expect(round.canRon(1, feed), isTrue);
 
@@ -208,8 +266,7 @@ void main() {
     // Even after the temporary flag would clear on a later draw, riichi
     // furiten holds for the rest of the round.
     round.seats[1].tempFuriten = false;
-    expect(round.isFuriten(1), isTrue,
-        reason: 'riichi furiten never clears');
+    expect(round.isFuriten(1), isTrue, reason: 'riichi furiten never clears');
     expect(round.canRon(1, Tile(8, TileType.pin5)), isFalse);
   });
 
@@ -244,8 +301,8 @@ void main() {
           case RoundPhase.callOffer:
             final choices = <int, CallType>{};
             for (final opt in round.callOptions) {
-              final c = bots[opt.seat]
-                  .decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
+              final c = bots[opt.seat].decideCall(
+                  round, opt.seat, round.pendingDiscard!, opt.types);
               if (c != CallType.none) choices[opt.seat] = c;
             }
             round.resolveCalls(choices);
@@ -277,6 +334,7 @@ void main() {
                 'disagrees');
       }
     }
-    expect(sawDraw, isTrue, reason: 'no exhaustive draw in the first 120 seeds');
+    expect(sawDraw, isTrue,
+        reason: 'no exhaustive draw in the first 120 seeds');
   });
 }

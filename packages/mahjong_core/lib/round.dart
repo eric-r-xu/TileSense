@@ -128,8 +128,7 @@ class Round {
     required List<int> startingPoints,
     this.ruleset = Ruleset.riichi,
     TileWall? wall,
-  })  : wall = wall ??
-            (ruleset.isHongKong ? HongKongWall(seed) : Wall(seed)),
+  })  : wall = wall ?? (ruleset.isHongKong ? HongKongWall(seed) : Wall(seed)),
         startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];
@@ -367,6 +366,39 @@ class Round {
         _anyRiichiDiscardTenpai(s);
   }
 
+  /// Kyuushu kyuuhai (nine kinds of terminals/honors): whether [seat] may
+  /// abort the round right now — their own first decision this hand, with
+  /// nothing at the table having happened yet (no call, no kan — the same
+  /// [_firstGoAround] window double riichi uses), and their 14-tile hand
+  /// holding at least nine *different* terminal/honor types. Available to
+  /// any seat, not just the dealer. Riichi only; Hong Kong has no such rule.
+  bool canDeclareKyuushu(int seat) {
+    if (ruleset.isHongKong) return false;
+    if (phase != RoundPhase.discarding || turn != seat) return false;
+    final s = seats[seat];
+    if (!_firstGoAround || s.pond.isNotEmpty) return false;
+    final distinctTerminalsOrHonors = {
+      for (final t in s.hand)
+        if (t.type.isTerminalOrHonor) t.type,
+    };
+    return distinctTerminalsOrHonors.length >= 9;
+  }
+
+  /// Aborts the round on [seat]'s kyuushu kyuuhai. No one wins or pays —
+  /// riichi sticks already on the table, if any, are left exactly where the
+  /// exhaustive-draw path leaves them, to carry into the next hand.
+  void declareKyuushu(int seat) {
+    assert(canDeclareKyuushu(seat));
+    phase = RoundPhase.finished;
+    result = RoundResult(
+      kind: RoundEndKind.abortiveDraw,
+      winners: const [],
+      pointDeltas: const {},
+      label: 'Kyuushu Kyuuhai — nine terminals/honors',
+    );
+    _postFinish(dealerRepeat: true);
+  }
+
   bool canPon(int seat, Tile discard) {
     if (seat == pendingDiscardSeat) return false;
     // Hong Kong: nothing can be called off the last discard.
@@ -525,12 +557,11 @@ class Round {
   bool _kanKeepsWait(SeatState s, TileType t) {
     final drawn = s.drawn;
     if (drawn == null) return false;
-    final before = waitTiles(
-        [
-          for (final x in s.hand)
-            if (x.id != drawn.id) x
-        ],
-        openMelds: s.melds.length).toSet();
+    final before = waitTiles([
+      for (final x in s.hand)
+        if (x.id != drawn.id) x
+    ], openMelds: s.melds.length)
+        .toSet();
     final after = waitTiles(s.hand.where((x) => x.type != t).toList(),
             openMelds: s.melds.length + 1)
         .toSet();
@@ -587,14 +618,6 @@ class Round {
     if (declareRiichi) s.riichiPondIndex = s.pond.length - 1;
     _discardsThisRound++;
     if (turn == dealer && _discardsThisRound > 1) _firstGoAround = false;
-
-    // Clear other seats' ippatsu once a call-free go-around is broken by any
-    // discard that isn't their own riichi turn.
-    for (final o in seats) {
-      if (o.seat != seat && o.riichi && o.riichiPondIndex != o.pond.length) {
-        // ippatsu window: only the turn immediately after declaration
-      }
-    }
 
     pendingDiscard = tile;
     pendingDiscardSeat = seat;
@@ -1015,9 +1038,7 @@ class Round {
     final noten = [
       if (ruleset.isRiichi)
         for (var i = 0; i < 4; i++) i
-    ]
-        .where((i) => !tenpai.contains(i))
-        .toList();
+    ].where((i) => !tenpai.contains(i)).toList();
     if (tenpai.isNotEmpty && noten.isNotEmpty) {
       const pot = 3000;
       final gain = pot ~/ tenpai.length;
@@ -1049,23 +1070,13 @@ class Round {
   }
 
   void _advanceTurn() {
-    // Clear the ippatsu window for anyone whose declaration turn has passed.
-    for (final s in seats) {
-      if (s.riichi && s.riichiPondIndex >= 0 && s.seat != turn) {
-        final sinceDeclare = s.pond.length - 1 - s.riichiPondIndex;
-        if (sinceDeclare >= 0 && s.seat != turn) {
-          // ippatsu only survives to the declarer's own next draw
-        }
-      }
-    }
+    // Ippatsu itself is cleared where it actually ends: any call (see
+    // `_applyChi`/`_applyPonOrKan`), or the declarer's own next discard
+    // (`discard`'s `else { s.ippatsu = false; }`) — never here. It must
+    // still be set when the go-around comes back around to the declarer's
+    // own draw below, so a tsumo right on that draw still counts.
     seats[turn].drawn = null;
     turn = (turn + 1) % 4;
-    // ippatsu is lost once it comes back around to the declarer
-    if (seats[turn].riichi &&
-        seats[turn].ippatsu &&
-        seats[turn].pond.isNotEmpty) {
-      seats[turn].ippatsu = false;
-    }
     _beginDraw();
   }
 

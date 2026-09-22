@@ -119,8 +119,7 @@ RoundResult roundResultFromJson(
   return RoundResult(
     kind: RoundEndKind.values.byName(json['kind'] as String),
     winners: [for (final w in json['winners'] as List) localSeat(w as int)],
-    loser:
-        json['loser'] == null ? null : localSeat(json['loser'] as int),
+    loser: json['loser'] == null ? null : localSeat(json['loser'] as int),
     score: scoreJson == null ? null : handScoreFromJson(scoreJson),
     scores: [
       for (final s in json['scores'] as List)
@@ -128,7 +127,8 @@ RoundResult roundResultFromJson(
     ],
     winTiles: {
       for (final e in (json['winTiles'] as Map<String, dynamic>).entries)
-        localSeat(int.parse(e.key)): tileFromJson(e.value as Map<String, dynamic>)
+        localSeat(int.parse(e.key)):
+            tileFromJson(e.value as Map<String, dynamic>)
     },
     pointDeltas: {
       for (final e in (json['pointDeltas'] as Map<String, dynamic>).entries)
@@ -162,6 +162,11 @@ Map<String, dynamic> roundSnapshotToJson(
     'doraIndicators': [
       for (final d in round.wall.doraIndicators()) d.name,
     ],
+    // Secret until the round is actually over — sending it any earlier
+    // would leak a riichi hand's ura dora to every seat in real time.
+    'uraDoraIndicators': round.result == null
+        ? const <String>[]
+        : [for (final d in round.wall.uraDoraIndicators()) d.name],
     'pendingDiscard':
         round.pendingDiscard == null ? null : tileToJson(round.pendingDiscard!),
     'pendingDiscardSeat':
@@ -214,11 +219,17 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     for (final d in json['doraIndicators'] as List)
       TileType.values.byName(d as String)
   ];
+  final ura = [
+    for (final d in (json['uraDoraIndicators'] as List? ?? const []))
+      TileType.values.byName(d as String)
+  ];
   final wall = ruleset.isHongKong
       ? HongKongWall.posed(remaining: wallRemaining)
-      : Wall.posed(remaining: wallRemaining, dora: dora);
+      : Wall.posed(remaining: wallRemaining, dora: dora, ura: ura);
 
-  final seatsJson = [for (final s in json['seats'] as List) s as Map<String, dynamic>];
+  final seatsJson = [
+    for (final s in json['seats'] as List) s as Map<String, dynamic>
+  ];
   final startingPoints = List<int>.filled(4, 0);
   for (final sj in seatsJson) {
     startingPoints[localSeat(sj['seat'] as int)] = sj['points'] as int;
@@ -261,7 +272,8 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     seat.drawn = drawn;
     seat.pond = tilesFromJson(sj['pond'] as List);
     seat.melds = [
-      for (final m in sj['melds'] as List) meldFromJson(m as Map<String, dynamic>)
+      for (final m in sj['melds'] as List)
+        meldFromJson(m as Map<String, dynamic>)
     ];
     seat.flowers = tilesFromJson(sj['flowers'] as List);
     seat.riichi = sj['riichi'] as bool;

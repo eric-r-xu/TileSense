@@ -192,6 +192,37 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   GamePhase phase = GamePhase.playing;
 
+  /// While locked into riichi, cut the drawn tile the moment it arrives
+  /// instead of waiting for a manual tap — purely a local/client-side
+  /// convenience (never sent to the server): every later discard is already
+  /// forced to be the drawn tile, so this just skips confirming a choice
+  /// that was never really yours to make. See [_maybeAutoDiscardInRiichi].
+  bool autoDiscardInRiichi = false;
+  void setAutoDiscardInRiichi(bool value) {
+    if (autoDiscardInRiichi == value) return;
+    autoDiscardInRiichi = value;
+    notifyListeners();
+  }
+
+  /// The drawn tile [_maybeAutoDiscardInRiichi] last cut, so a repeat
+  /// `state` broadcast for the same turn (e.g. after a reconnect) doesn't
+  /// send the discard twice.
+  int? _autoDiscardedTileId;
+
+  /// Never fires with a self-kan on offer (a real decision, left to the
+  /// player) or a tsumo/flower win on offer (a win is never thrown away).
+  void _maybeAutoDiscardInRiichi() {
+    if (!autoDiscardInRiichi || !isHumanTurn) return;
+    final human = round.seats[kHumanSeat];
+    if (!human.riichi) return;
+    if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) return;
+    if (round.closedKanTypes(kHumanSeat).isNotEmpty) return;
+    final drawn = human.drawn;
+    if (drawn == null || drawn.id == _autoDiscardedTileId) return;
+    _autoDiscardedTileId = drawn.id;
+    humanDiscard(drawn);
+  }
+
   List<int> _tablePoints = List.filled(4, 0);
   @override
   List<int> get tablePoints => _tablePoints;
@@ -391,6 +422,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     } else {
       _playTurnSfx();
       _playCallSfx(previousRound);
+      _maybeAutoDiscardInRiichi();
     }
     notifyListeners();
   }
@@ -504,6 +536,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   @override
+  void humanDeclareKyuushu() {
+    if (_roundReady && round.canDeclareKyuushu(kHumanSeat)) {
+      _client.send({'type': 'action', 'kind': 'kyuushu'});
+    }
+  }
+
+  @override
   void humanClosedKan(TileType type) {
     if (_roundReady &&
         round.turn == kHumanSeat &&
@@ -590,6 +629,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       round.turn == kHumanSeat &&
       round.phase == RoundPhase.discarding &&
       round.canRiichi(kHumanSeat);
+
+  @override
+  bool get humanCanDeclareKyuushu =>
+      _roundReady && round.canDeclareKyuushu(kHumanSeat);
 
   @override
   List<TileType> get humanClosedKanTypes => _roundReady &&

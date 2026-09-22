@@ -185,8 +185,7 @@ class _HandViewState extends State<HandView> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 110),
           curve: Curves.easeOut,
-          transform:
-              Matrix4.translationValues(0, raised ? -_liftHeight : 0, 0),
+          transform: Matrix4.translationValues(0, raised ? -_liftHeight : 0, 0),
           child: InkWell(
             onTap: tappable ? () => _tapTile(context, tile) : null,
             onHover: tappable
@@ -412,8 +411,7 @@ class _HandViewState extends State<HandView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color:
-              _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
+          color: _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -576,6 +574,13 @@ class _HandViewState extends State<HandView> {
         ));
       }
     } else if (game.isHumanTurn) {
+      // Nine kinds of terminals/honors — only ever on your own first
+      // uninterrupted draw, so this never overlaps a real turn's usual
+      // choices; it just sits alongside them when it's on offer at all.
+      if (game.humanCanDeclareKyuushu) {
+        buttons.add(_btn('KYUUSHU KYUUHAI', const Color(0xff8d6e63),
+            game.humanDeclareKyuushu));
+      }
       if (game.humanCanTsumo) {
         buttons.add(_btn(ruleset.tsumoLabel.toUpperCase(),
             const Color(0xff2e7d32), game.humanTsumo));
@@ -675,7 +680,8 @@ class _DragGrabFlash extends StatelessWidget {
                   ? const SizedBox.shrink()
                   : DecoratedBox(
                       decoration: BoxDecoration(
-                        color: _HandViewState._yellow.withValues(alpha: 0.55 * v),
+                        color:
+                            _HandViewState._yellow.withValues(alpha: 0.55 * v),
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
