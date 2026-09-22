@@ -80,6 +80,7 @@ class Room {
     'erika',
     'melissa',
     'matityahu',
+    'sherman',
   ];
   static const List<String> allCharacters = selectableCharacters;
 
@@ -92,6 +93,7 @@ class Room {
     'erika': 'Erika',
     'melissa': 'Melissa',
     'matityahu': 'Matityahu',
+    'sherman': 'Sherman',
   };
 
   /// Picks the character a new seat renders as: [requested] if it's one of

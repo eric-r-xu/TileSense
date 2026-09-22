@@ -231,7 +231,7 @@ void main() {
     expect(progressed, isNotNull);
   });
 
-  for (final character in ['eric', 'erika', 'melissa', 'matityahu']) {
+  for (final character in ['eric', 'erika', 'melissa', 'matityahu', 'sherman']) {
     test(
         'a guest requesting already-taken $character is assigned a '
         'different one, reported in room_state', () async {

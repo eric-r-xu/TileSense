@@ -33,9 +33,10 @@ class HandView extends StatefulWidget {
 
   /// Height of the bar's bottom band: the tile row (now set by a `large` face
   /// at [_HandViewState._handScale], which is taller than the 104px TileSense
-  /// button beside it) plus the bar's 10px bottom padding. The efficiency
-  /// overlay stops above this band so it never covers a tile.
-  static const double tileRowBandHeight = 116;
+  /// button beside it) plus the bar's 10px bottom padding, plus the headroom
+  /// every tile reserves above itself to raise into on a first tap. The
+  /// efficiency overlay stops above this band so it never covers a tile.
+  static const double tileRowBandHeight = 116 + _HandViewState._liftHeight;
 
   @override
   State<HandView> createState() => _HandViewState();
@@ -53,10 +54,24 @@ class _HandViewState extends State<HandView> {
   /// hover shading — a no-op on touch devices, which never hover.
   int? _hoveredTileId;
 
+  /// The tile a first tap raised, staged for discard. A second tap on it — or
+  /// [_discard] itself — discards it; a tap on any other tile just moves the
+  /// raise there instead. Cleared whenever a new tile is drawn (see [build]),
+  /// so it never survives past the turn it was raised on.
+  int? _selectedTileId;
+
+  /// [Tile.drawn]'s id as of the last build, so [build] can tell a fresh draw
+  /// apart from a rebuild mid-turn and drop a stale raise exactly once, at
+  /// the turn boundary.
+  int? _lastDrawnId;
+
   TableGameHost get game => widget.game;
 
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);
+
+  /// How far a raised tile lifts off the row, in logical pixels.
+  static const double _liftHeight = 12;
 
   /// How much bigger the human hand (and its open melds) render than the
   /// authored `TileSize.large` / `TileSize.normal` steps. 1.65 = the base
@@ -131,6 +146,15 @@ class _HandViewState extends State<HandView> {
     // After riichi the hand is frozen — only the drawn tile can be discarded.
     final riichiLocked = seat.riichi && drawn != null;
 
+    // A fresh draw means a new turn started, so any raise from the last one
+    // is stale — drop it. Mutating the field directly (rather than through
+    // setState) is safe here: it only needs to take effect in this build,
+    // which is already underway.
+    if (drawn?.id != _lastDrawnId) {
+      _lastDrawnId = drawn?.id;
+      _selectedTileId = null;
+    }
+
     // Green = the guide's recommended discard — the very row it marks
     // recommended in the panel, so the hand and the panel never disagree.
     // Yellow = the freshly drawn tile, shown whether the guide is on or off.
@@ -151,22 +175,33 @@ class _HandViewState extends State<HandView> {
       final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = isTop ? _green : (isDrawn ? _yellow : null);
       final Color? border = (isDrawn && isTop) ? _yellow : null;
+      final raised = tappable && tile.id == _selectedTileId;
       return Padding(
-        padding: EdgeInsets.only(left: separated ? 16 : 2, right: 2),
-        child: InkWell(
-          onTap: tappable ? () => _discard(context, tile) : null,
-          onHover: tappable
-              ? (h) => setState(() => _hoveredTileId = h ? tile.id : null)
-              : null,
-          borderRadius: BorderRadius.circular(6),
-          child: TileFace(
-            tile: tile,
-            size: TileSize.large,
-            scale: _handScale,
-            highlightColor: hc,
-            borderColorOverride: border,
-            dimmed: riichiLocked && !isDrawn,
-            hovered: _hoveredTileId == tile.id,
+        // The top inset is reserved on every tile, raised or not, so a raise
+        // is just the tile moving up into space that was already there —
+        // nothing else in the row has to shift to make room for it.
+        padding: EdgeInsets.only(
+            top: _liftHeight, left: separated ? 16 : 2, right: 2),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOut,
+          transform:
+              Matrix4.translationValues(0, raised ? -_liftHeight : 0, 0),
+          child: InkWell(
+            onTap: tappable ? () => _tapTile(context, tile) : null,
+            onHover: tappable
+                ? (h) => setState(() => _hoveredTileId = h ? tile.id : null)
+                : null,
+            borderRadius: BorderRadius.circular(6),
+            child: TileFace(
+              tile: tile,
+              size: TileSize.large,
+              scale: _handScale,
+              highlightColor: hc,
+              borderColorOverride: border,
+              dimmed: riichiLocked && !isDrawn,
+              hovered: _hoveredTileId == tile.id,
+            ),
           ),
         ),
       );
@@ -415,6 +450,18 @@ class _HandViewState extends State<HandView> {
         ),
       ),
     );
+  }
+
+  /// A tile tap: the first one just raises it (staging it for discard), and
+  /// a second tap on that same raised tile discards it. Tapping a different
+  /// tile moves the raise there instead, without discarding anything.
+  void _tapTile(BuildContext context, Tile tile) {
+    if (_selectedTileId == tile.id) {
+      setState(() => _selectedTileId = null);
+      _discard(context, tile);
+    } else {
+      setState(() => _selectedTileId = tile.id);
+    }
   }
 
   void _discard(BuildContext context, Tile tile) {

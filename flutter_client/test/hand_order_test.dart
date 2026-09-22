@@ -6,8 +6,9 @@ import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
 /// Putting your own hand in your own order: long-press a tile and drag it
-/// where you want it. Tapping still discards and the strip still scrolls —
-/// which is exactly why lifting a tile takes a long press and not a drag.
+/// where you want it. A plain tap instead raises a tile and a second tap
+/// discards it, and the strip still scrolls — which is exactly why lifting a
+/// tile to reorder it takes a long press and not a drag.
 void main() {
   final handTiles = find.descendant(
     of: find.byType(HandView),
@@ -180,14 +181,40 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('a plain tap still discards', (tester) async {
+  testWidgets('a first tap raises a tile, and a second discards it',
+      (tester) async {
+    await startGame(tester);
+    final before = strip(tester).length;
+    final tileRect = tester.getRect(handTiles.first);
+
+    await tester.tap(handTiles.first, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 200));
+    // Still in hand — the first tap only raised it.
+    expect(strip(tester).length, before);
+    await tester.pump(const Duration(milliseconds: 200)); // finish the rise
+    expect(tester.getRect(handTiles.first).top, lessThan(tileRect.top),
+        reason: 'a raised tile should sit higher than before');
+
+    await tester.tap(handTiles.first, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(strip(tester).length, lessThan(before),
+        reason: 'a second tap on the raised tile should discard it');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('tapping a different tile moves the raise instead of discarding',
+      (tester) async {
     await startGame(tester);
     final before = strip(tester).length;
 
     await tester.tap(handTiles.first, warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 200));
-    expect(strip(tester).length, lessThan(before),
-        reason: 'tapping a tile stopped discarding it');
+    await tester.tap(handTiles.at(1), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(strip(tester).length, before,
+        reason: 'tapping a second tile should raise it, not discard either');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
