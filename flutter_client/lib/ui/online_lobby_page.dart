@@ -125,8 +125,13 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
+                // The setup screen runs two columns side by side (name +
+                // create on the left, character + join on the right) so it
+                // fits in kDesignSize's 820px height without scrolling; the
+                // waiting-room screen is a single narrow column, unchanged.
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+                  constraints:
+                      BoxConstraints(maxWidth: game.roomCode.isEmpty ? 1100 : 520),
                   child: game.roomCode.isEmpty ? _setupCard() : _roomCard(),
                 ),
               ),
@@ -160,6 +165,11 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
 
   // --- before a room exists: name, ruleset/hanchan, create or join --------
 
+  /// Two columns side by side rather than one long stack, so the whole setup
+  /// screen fits in kDesignSize's 820px height without scrolling: name and
+  /// room creation on the left (what a host fills in), character and joining
+  /// on the right (what a joiner fills in) — the two things nobody needs to
+  /// see at once, so splitting them costs nothing.
   Widget _setupCard() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -172,83 +182,109 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             style: TextStyle(color: Colors.white60, fontSize: 13),
           ),
         ),
-        TextField(
-          controller: _nameCtl,
-          maxLength: 24,
-          decoration: const InputDecoration(
-            labelText: 'Your name',
-            counterText: '',
-          ),
-          style: const TextStyle(color: Colors.white),
-        ),
-        const SizedBox(height: 20),
-        _characterPicker(),
-        const SizedBox(height: 20),
-        _card(
-          title: 'Create a room',
-          child: Column(
-            children: [
-              _rulesetPicker(),
-              const SizedBox(height: 10),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Full game — hanchan/半庄 (8+ hands)'),
-                subtitle: Text(_hanchan
-                    ? 'Off switches to East-only/东风战 (4+ hands)'
-                    : 'East-only/东风战 — 4+ hands'),
-                value: _hanchan,
-                onChanged: (v) => setState(() => _hanchan = v),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  key: const Key('createRoom'),
-                  onPressed: _create,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xffcaa24e),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _nameCtl,
+                    maxLength: 24,
+                    decoration: const InputDecoration(
+                      labelText: 'Your name',
+                      helperText: 'Defaults to your character — edit to '
+                          'use your own',
+                      counterText: '',
+                    ),
+                    style: const TextStyle(color: Colors.white),
                   ),
-                  child: const Text('Create Room'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        _card(
-          title: 'Join a room',
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  key: const Key('joinCode'),
-                  controller: _joinCtl,
-                  textCapitalization: TextCapitalization.characters,
-                  maxLength: 8,
-                  decoration: const InputDecoration(
-                    labelText: 'Room code',
-                    counterText: '',
+                  const SizedBox(height: 20),
+                  _card(
+                    title: 'Create a room',
+                    child: Column(
+                      children: [
+                        _rulesetPicker(),
+                        const SizedBox(height: 10),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title:
+                              const Text('Full game — hanchan/半庄 (8+ hands)'),
+                          subtitle: Text(_hanchan
+                              ? 'Off switches to East-only/东风战 (4+ hands)'
+                              : 'East-only/东风战 — 4+ hands'),
+                          value: _hanchan,
+                          onChanged: (v) => setState(() => _hanchan = v),
+                        ),
+                        const SizedBox(height: 10),
+                        _timerPicker(),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            key: const Key('createRoom'),
+                            onPressed: _create,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xffcaa24e),
+                              foregroundColor: Colors.black,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Create Room'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  style: const TextStyle(color: Colors.white, letterSpacing: 2),
-                  onSubmitted: (_) => _join(),
-                ),
+                ],
               ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                key: const Key('joinRoom'),
-                onPressed: _join,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff00695c),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                ),
-                child: const Text('Join'),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              flex: 6,
+              child: Column(
+                children: [
+                  _characterPicker(),
+                  const SizedBox(height: 20),
+                  _card(
+                    title: 'Join a room',
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            key: const Key('joinCode'),
+                            controller: _joinCtl,
+                            textCapitalization: TextCapitalization.characters,
+                            maxLength: 8,
+                            decoration: const InputDecoration(
+                              labelText: 'Room code',
+                              counterText: '',
+                            ),
+                            style: const TextStyle(
+                                color: Colors.white, letterSpacing: 2),
+                            onSubmitted: (_) => _join(),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          key: const Key('joinRoom'),
+                          onPressed: _join,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xff00695c),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                          ),
+                          child: const Text('Join'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
@@ -262,21 +298,19 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   Widget _characterPicker() {
     return _card(
       title: 'Choose your character',
-      child: Column(
-        children: [
-          CharacterRow(
-            options: kSelectableCharacters,
-            selected: _character,
-            onSelect: (c) => setState(() {
-              _character = c;
-              if (_isDefaultName(_nameCtl.text)) {
-                _nameCtl.text = kCharacterName[c]!;
-              }
-            }),
-          ),
-          const SizedBox(height: 16),
-          _timerPicker(),
-        ],
+      // All nine in the one row the right column is wide enough for, rather
+      // than [CharacterRow]'s default four-per-row wrap — that's most of the
+      // height this rework saves.
+      child: CharacterRow(
+        options: kSelectableCharacters,
+        columns: kSelectableCharacters.length,
+        selected: _character,
+        onSelect: (c) => setState(() {
+          _character = c;
+          if (_isDefaultName(_nameCtl.text)) {
+            _nameCtl.text = kCharacterName[c]!;
+          }
+        }),
       ),
     );
   }
