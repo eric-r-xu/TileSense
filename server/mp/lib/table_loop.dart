@@ -81,10 +81,6 @@ class TableLoop {
   /// a time. Zero in tests that just want the end state fast.
   final Duration _botTurnPace;
 
-  /// [_botTurnPace], halved while the host has 2x on ([Room.fastBots]).
-  Duration get _botPace =>
-      room.fastBots ? _botTurnPace ~/ 2 : _botTurnPace;
-
   Ruleset get ruleset => room.ruleset;
   int get _handsPerGame => ruleset.handsPerGame(fullGame: room.hanchan);
 
@@ -116,6 +112,14 @@ class TableLoop {
   bool _started = false;
 
   bool isBotControlled(int seat) => _bots.containsKey(seat);
+
+  /// Pushes whatever telemetry is buffered right now, without waiting for
+  /// the 15s timer. A no-op if telemetry is off, or nothing is buffered.
+  /// Called for every room on process shutdown (see `bin/mp_server.dart`) —
+  /// otherwise a `systemctl restart` mid-match could silently drop up to
+  /// 15s of already-happened rounds/discards that never made it to
+  /// Postgres, on top of whatever room state it already drops by design.
+  Future<void> flushTelemetry() => _tel?.flush() ?? Future.value();
 
   Wind get _roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
 
@@ -285,8 +289,7 @@ class TableLoop {
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
-    final pace = _botPace;
-    if (pace > Duration.zero) await Future.delayed(pace);
+    if (_botTurnPace > Duration.zero) await Future.delayed(_botTurnPace);
     _broadcastState();
   }
 
