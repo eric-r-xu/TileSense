@@ -438,9 +438,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       playCallVoice(previousRound, round, characterForSeat);
 
   /// Plays the call blip and the caller's spoken line for every seat that
-  /// just completed a chi/pon/kan (and flashes RIICHI for one that just declared), same as `GameController._playCallSfx`. A
-  /// static function taking [characterForSeat] as a parameter, so it is
-  /// unit-testable without a live connection, same as [playRoundEndVoice].
+  /// just completed a chi/pon/kan or just declared riichi (riichi has no
+  /// meld, so it is spotted by the flag flipping on instead), same as
+  /// `GameController`'s handling of a bot's own riichi. A static function
+  /// taking [characterForSeat] as a parameter, so it is unit-testable
+  /// without a live connection, same as [playRoundEndVoice].
   @visibleForTesting
   static void playCallVoice(
     Round? previousRound,
@@ -448,10 +450,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     Character Function(int seat) characterForSeat,
   ) {
     for (var s = 0; s < 4; s++) {
-      // Riichi has no meld, so it is spotted by the flag flipping on.
       if (previousRound != null &&
           !previousRound.seats[s].riichi &&
           round.seats[s].riichi) {
+        Sfx.i.play(SfxKind.riichi);
+        Sfx.i.voice(VoiceKind.riichi, character: characterForSeat(s));
         CallCallout.i.show(s, 'RIICHI');
       }
       final kind = newMeldKind(previousRound, round, s);

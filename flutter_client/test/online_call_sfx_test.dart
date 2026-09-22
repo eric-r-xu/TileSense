@@ -132,5 +132,42 @@ void main() {
         Sfx.i.enabled = true;
       }
     });
+
+    testWidgets(
+        'a seat declaring riichi sounds its own spoken line, not just the '
+        'silent RIICHI bubble', (tester) async {
+      // Regression test: riichi has no meld, so it was the one call kind
+      // `playCallVoice` detected (to flash the bubble) but never actually
+      // sounded — every other call kind below it in the same loop already
+      // played its blip and voice line.
+      Sfx.i.enabled = false;
+      final log = <(Character, VoiceKind)>[];
+      Sfx.debugVoiceLog = log;
+      try {
+        final before = roundWith(const {});
+        final after = roundWith(const {});
+        after.seats[3].riichi = true;
+        OnlineGameController.playCallVoice(before, after, characterForSeat);
+        expect(log, [(Character.astaroth, VoiceKind.riichi)]);
+      } finally {
+        Sfx.debugVoiceLog = null;
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('already being in riichi does not re-sound it', (tester) async {
+      Sfx.i.enabled = false;
+      final log = <(Character, VoiceKind)>[];
+      Sfx.debugVoiceLog = log;
+      try {
+        final steady = roundWith(const {});
+        steady.seats[1].riichi = true;
+        OnlineGameController.playCallVoice(steady, steady, characterForSeat);
+        expect(log, isEmpty);
+      } finally {
+        Sfx.debugVoiceLog = null;
+        Sfx.i.enabled = true;
+      }
+    });
   });
 }
