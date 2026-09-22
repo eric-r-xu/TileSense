@@ -85,8 +85,8 @@ class CharacterSelectPage extends StatelessWidget {
     final wind = seatStartingWind(seat, startingDealer);
     return Container(
       key: Key('seatCard_$seat'),
-      // Four 64px choices per row; the picker grows with the roster.
-      width: 288,
+      // Five 64px choices per row keep the roster and controls on screen.
+      width: 344,
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
       decoration: BoxDecoration(
         color: const Color(0x33000000),
@@ -163,6 +163,7 @@ class CharacterSelectPage extends StatelessWidget {
           const SizedBox(height: 10),
           CharacterRow(
             options: kSelectableCharacters,
+            columns: 5,
             selected: character,
             keyPrefix: 'seatCharacterPick_$seat',
             onSelect: (c) => onSeatCharacter(seat, c),

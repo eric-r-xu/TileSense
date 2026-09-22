@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../game/sfx.dart' show Character, kCharacterName, kCharacterPortrait;
 
-/// Every character in [options], in a grid four to a row.
+/// Every character in [options], in a grid with [columns] choices per row.
 class CharacterRow extends StatelessWidget {
   const CharacterRow({
     super.key,
@@ -15,7 +15,8 @@ class CharacterRow extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     this.keyPrefix,
-  });
+    this.columns = 4,
+  }) : assert(columns > 0);
 
   final List<Character> options;
   final Character selected;
@@ -26,14 +27,13 @@ class CharacterRow extends StatelessWidget {
   /// widget key without collisions. Left unkeyed when null.
   final String? keyPrefix;
 
-  /// Options per row: a fixed four-wide grid, so the choices line up the same
-  /// on every screen instead of wrapping wherever the width happens to fall.
-  static const int columns = 4;
+  /// Narrow dialogs use four; the wider offline seat cards use five.
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
-    // Each cell takes an equal quarter of the row and scales its option down
-    // if that quarter is ever narrower than the option (a tight dialog), so a
+    // Each cell takes an equal share of the row and scales its option down
+    // if that share is ever narrower than the option (a tight dialog), so a
     // row never overflows and every character stays tappable.
     Widget cell(Character? c) => Expanded(
           child: c == null
