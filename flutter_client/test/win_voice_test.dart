@@ -17,6 +17,7 @@ void main() {
     required String seat0Hand,
   }) {
     final game = GameController(seed: 4);
+    game.autoWin = false; // these exercise the manual win/call buttons
     final round = game.round;
     round.seats[kHumanSeat]
       ..hand = parseTiles(seat0Hand)

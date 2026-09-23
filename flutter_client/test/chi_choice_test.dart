@@ -15,6 +15,7 @@ void main() {
   /// Seat 3 cuts [fed]; seat 0 is its kamicha, so seat 0 is offered the call.
   GameController awaitingCall(Tile fed, {required String seat0Hand}) {
     final game = GameController(seed: 4);
+    game.autoWin = false; // these exercise the manual win/call buttons
     final round = game.round;
     round.seats[kHumanSeat]
       ..hand = parseTiles(seat0Hand)
@@ -121,6 +122,7 @@ void main() {
     /// Human to move, closed and one discard from tenpai on 3p.
     GameController onTurn({bool tenpaiAfterDiscard = true}) {
       final game = GameController(seed: 4);
+    game.autoWin = false; // these exercise the manual win/call buttons
       final round = game.round;
       final drawn = Tile(900, TileType.pin9);
       round.seats[kHumanSeat]

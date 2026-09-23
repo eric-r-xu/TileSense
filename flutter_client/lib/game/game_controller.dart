@@ -175,13 +175,36 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// lock), so this just skips confirming a choice that was never really
   /// yours to make. Independent of [autoplay], which already handles every
   /// turn (riichi or not) on its own.
-  bool autoDiscardInRiichi = false;
+  @override
+  bool autoDiscardInRiichi = true;
+  @override
   void setAutoDiscardInRiichi(bool value) {
     if (autoDiscardInRiichi == value) return;
     autoDiscardInRiichi = value;
     _tel?.settingChange(
         matchId: _matchId, setting: 'auto_discard_in_riichi', value: value);
     notifyListeners();
+  }
+
+  /// Declare ron/tsumo automatically the moment one is legal — see
+  /// [_maybeAutoTsumo] and [_resolveCallPhase]. Independent of [autoplay],
+  /// which already makes its own win decisions.
+  @override
+  bool autoWin = true;
+  @override
+  void setAutoWin(bool value) {
+    if (autoWin == value) return;
+    autoWin = value;
+    _tel?.settingChange(matchId: _matchId, setting: 'auto_win', value: value);
+    notifyListeners();
+  }
+
+  /// Returns true if it fired (and so already ended the round/notified
+  /// listeners itself via [humanTsumo]).
+  bool _maybeAutoTsumo() {
+    if (!autoWin || !round.canTsumo(kHumanSeat)) return false;
+    humanTsumo();
+    return true;
   }
 
   /// Returns true if it fired (and so already advanced the turn/notified
@@ -609,7 +632,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
       case RoundPhase.discarding:
         if (round.turn == kHumanSeat && !autoplay) {
           _refreshReport();
-          if (!_maybeAutoDiscardInRiichi()) notifyListeners();
+          if (!_maybeAutoTsumo() && !_maybeAutoDiscardInRiichi()) {
+            notifyListeners();
+          }
         } else {
           _botOrAutoTurn(round.turn);
         }
@@ -666,6 +691,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
     for (final opt in round.callOptions) {
       if (opt.seat == kHumanSeat && !autoplay) {
         _humanCallOption = opt;
+        if (autoWin && opt.types.contains(CallType.ron)) {
+          answerCall(CallType.ron); // settles the bot seats' calls too
+          return;
+        }
         // Worked out once here rather than per rebuild: adviseCall runs a full
         // analysis per option, and the overlay rebuilds on every notify.
         _humanCallAdvice = _guidedCallAdvice(opt);
@@ -959,7 +988,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void humanClosedKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
-      Sfx.i.voice(VoiceKind.kan);
+      Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'KAN');
       round.closedKan(kHumanSeat, type);
       _refreshReport();
@@ -972,7 +1001,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void humanAddKan(TileType type) {
     if (round.turn == kHumanSeat && round.phase == RoundPhase.discarding) {
       Sfx.i.play(SfxKind.kan);
-      Sfx.i.voice(VoiceKind.kan);
+      Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'KAN');
       round.addKan(kHumanSeat, type);
       _refreshReport();

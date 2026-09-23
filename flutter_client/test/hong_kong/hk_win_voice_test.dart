@@ -21,6 +21,7 @@ void main() {
     Sfx.debugVoiceLog = log;
 
     final game = GameController(seed: 4, ruleset: Ruleset.hongKong);
+    game.autoWin = false; // these exercise the manual win/call buttons
     final round = game.round;
     // 0-faan minimum: any complete hand wins, no yaku needed.
     round.seats[kHumanSeat]
@@ -60,6 +61,7 @@ void main() {
     Sfx.debugVoiceLog = log;
 
     final game = GameController(seed: 4, ruleset: Ruleset.hongKong);
+    game.autoWin = false; // these exercise the manual win/call buttons
     final round = game.round;
     final drawn = Tile(902, TileType.pin2);
     round.seats[kHumanSeat]

@@ -1012,42 +1012,6 @@ class _GamePageState extends State<GamePage> {
                 ),
               ),
             ),
-            // Auto-discard while locked into riichi — every discard after
-            // declaring is already forced to be the drawn tile, so this
-            // just skips confirming it. Independent of Autoplay.
-            AnimatedBuilder(
-              animation: _game,
-              builder: (context, _) => Tooltip(
-                message: _game.autoDiscardInRiichi
-                    ? 'While in riichi, your drawn tile is cut right away — '
-                        'still pauses for a self-kan or a win.\n'
-                        'Tap to turn off.'
-                    : 'Off — while in riichi, confirm each drawn tile '
-                        'yourself.\n'
-                        'Tap to cut it automatically instead.',
-                child: TextButton(
-                  key: const Key('autoDiscardInRiichi'),
-                  onPressed: () =>
-                      _game.setAutoDiscardInRiichi(!_game.autoDiscardInRiichi),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: _game.autoDiscardInRiichi
-                        ? const Color(0xffffdf76)
-                        : Colors.white38,
-                  ),
-                  child: Text(
-                    'Riichi Auto',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      decoration: _game.autoDiscardInRiichi
-                          ? TextDecoration.none
-                          : TextDecoration.lineThrough,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
         actions: [

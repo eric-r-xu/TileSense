@@ -54,7 +54,7 @@ void main() {
       round.turn = kHumanSeat;
       round.phase = RoundPhase.discarding;
 
-      // Toggle left at its default (off).
+      game.setAutoDiscardInRiichi(false);
       await tester.pump(const Duration(seconds: 2));
 
       expect(round.seats[kHumanSeat].pond, isEmpty,
