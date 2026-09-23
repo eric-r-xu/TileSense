@@ -53,6 +53,18 @@ void main() {
     expect(OnlineGameController.newMeldKind(before, after, 3), SfxKind.kan);
   });
 
+  test('an added kan upgrading a pon in place sounds kan', () {
+    // Shouminkan replaces the pon rather than appending a meld, so the meld
+    // count doesn't change — only the kan count does.
+    final before = roundWith({
+      1: [meld(MeldKind.sequence), meld(MeldKind.triplet)]
+    });
+    final after = roundWith({
+      1: [meld(MeldKind.sequence), meld(MeldKind.kan)]
+    });
+    expect(OnlineGameController.newMeldKind(before, after, 1), SfxKind.kan);
+  });
+
   test('no new meld at that seat plays nothing', () {
     final steady = roundWith({
       0: [meld(MeldKind.triplet)]

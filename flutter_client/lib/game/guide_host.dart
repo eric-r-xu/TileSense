@@ -137,6 +137,17 @@ abstract class TableGameHost implements GuideHost {
   bool get soundOn;
   void setSoundOn(bool value);
 
+  /// While locked into riichi, cut each drawn tile automatically — still
+  /// pauses for a self-kan or a win. Toggled from the hand bar, and only
+  /// shown there once the human has declared riichi.
+  bool get autoDiscardInRiichi;
+  void setAutoDiscardInRiichi(bool value);
+
+  /// Declare ron/tsumo on your own the moment one is legal, instead of
+  /// waiting for the button. On by default; toggled from the hand bar.
+  bool get autoWin;
+  void setAutoWin(bool value);
+
   GamePhase get phase;
   bool get paused;
   List<int> get tablePoints;

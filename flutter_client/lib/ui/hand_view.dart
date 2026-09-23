@@ -294,7 +294,20 @@ class _HandViewState extends State<HandView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _sortToggle(),
+                          // Auto-discard only matters once you're locked
+                          // into riichi, so it only appears then.
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _sortToggle(),
+                              const SizedBox(height: 4),
+                              _autoWinToggle(),
+                              if (seat.riichi) ...[
+                                const SizedBox(height: 4),
+                                _autoDiscardToggle(),
+                              ],
+                            ],
+                          ),
                           const SizedBox(width: 6),
                           SizedBox(
                             width: _handStripWidth,
@@ -402,49 +415,113 @@ class _HandViewState extends State<HandView> {
   }
 
   Widget _sortToggle() {
-    return Tooltip(
-      message: _autoSort
+    return _miniToggle(
+      key: const Key('sortHand'),
+      label: 'Auto-sort',
+      value: _autoSort,
+      onTap: _toggleAutoSort,
+      activeColor: const Color(0xff00695c),
+      tooltip: _autoSort
           ? 'Auto-sort: on — tiles kept in tile order.\n'
               'Uncheck to freeze this order, or drag a tile to start your own.'
           : 'Auto-sort: off — your own order.\n'
               'Long-press a tile and drag it to move it. Check to resume auto-sort.',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: _autoSort ? const Color(0xff00695c) : const Color(0xff294342),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: Checkbox(
-                key: const Key('sortHand'),
-                value: _autoSort,
-                onChanged: (_) => _toggleAutoSort(),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                checkColor: const Color(0xff00695c),
-                activeColor: Colors.white,
-                side: const BorderSide(color: Colors.white60, width: 1.5),
-              ),
-            ),
-            const SizedBox(height: 2),
-            InkWell(
-              borderRadius: BorderRadius.circular(4),
-              onTap: _toggleAutoSort,
-              child: Text(
-                'Auto-sort',
-                style: TextStyle(
-                  fontSize: 11,
-                  height: 1.15,
-                  fontWeight: FontWeight.w600,
-                  color: _autoSort ? Colors.white : Colors.white60,
+    );
+  }
+
+  /// Auto-win: declares ron/tsumo the moment one is legal.
+  Widget _autoWinToggle() {
+    final game = widget.game;
+    final on = game.autoWin;
+    return _miniToggle(
+      key: const Key('autoWin'),
+      label: 'Auto-win',
+      value: on,
+      onTap: () => game.setAutoWin(!on),
+      activeColor: const Color(0xff2e7d32),
+      tooltip: on
+          ? 'Auto-win: on — ron and tsumo are declared for you '
+              'as soon as you can win.\nUncheck to decide yourself.'
+          : 'Auto-win: off — press the win button yourself.\n'
+              'Check to declare ron/tsumo automatically.',
+    );
+  }
+
+  /// Riichi auto-discard: every discard after declaring is already forced to
+  /// be the drawn tile, so this just skips confirming it. Never auto-kans —
+  /// a self-kan (or a win) still waits for you.
+  Widget _autoDiscardToggle() {
+    final game = widget.game;
+    final on = game.autoDiscardInRiichi;
+    return _miniToggle(
+      key: const Key('autoDiscardInRiichi'),
+      label: 'Auto-discard',
+      value: on,
+      onTap: () => game.setAutoDiscardInRiichi(!on),
+      activeColor: const Color(0xff8a6d1f),
+      tooltip: on
+          ? 'Auto-discard: on — your drawn tile is cut right away.\n'
+              'Still pauses for a self-kan or a win. Uncheck to turn off.'
+          : 'Auto-discard: off — confirm each drawn tile yourself.\n'
+              'Check to cut it automatically (kans are never automatic).',
+    );
+  }
+
+  /// A compact one-line checkbox chip, shared by the toggles stacked left
+  /// of the hand so they line up at the same width — up to three of them fit
+  /// within the tile row's height.
+  Widget _miniToggle({
+    required Key key,
+    required String label,
+    required bool value,
+    required VoidCallback onTap,
+    required Color activeColor,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: value ? activeColor : const Color(0xff294342),
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: onTap,
+          child: Container(
+            width: 86,
+            padding: const EdgeInsets.fromLTRB(3, 2, 6, 2),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Checkbox(
+                    key: key,
+                    value: value,
+                    onChanged: (_) => onTap(),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    checkColor: activeColor,
+                    activeColor: Colors.white,
+                    side: const BorderSide(color: Colors.white60, width: 1.5),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: value ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -197,11 +197,52 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// convenience (never sent to the server): every later discard is already
   /// forced to be the drawn tile, so this just skips confirming a choice
   /// that was never really yours to make. See [_maybeAutoDiscardInRiichi].
-  bool autoDiscardInRiichi = false;
+  @override
+  bool autoDiscardInRiichi = true;
+  @override
   void setAutoDiscardInRiichi(bool value) {
     if (autoDiscardInRiichi == value) return;
     autoDiscardInRiichi = value;
     notifyListeners();
+  }
+
+  /// Declare ron/tsumo automatically the moment one is legal — purely
+  /// client-side, same as [autoDiscardInRiichi]: it just sends the action the
+  /// button would have. See [_maybeAutoWin].
+  @override
+  bool autoWin = true;
+  @override
+  void setAutoWin(bool value) {
+    if (autoWin == value) return;
+    autoWin = value;
+    notifyListeners();
+    if (value && _roundReady && !round.finished) _maybeAutoWin();
+  }
+
+  /// The `discardSerial` (ron) or drawn tile id (tsumo) [_maybeAutoWin] last
+  /// won on, so a repeat `state` broadcast for the same moment (e.g. after a
+  /// reconnect) doesn't send the win twice.
+  String? _autoWonKey;
+
+  /// Returns true if it sent a win, so the caller skips auto-discarding.
+  bool _maybeAutoWin() {
+    if (!autoWin) return false;
+    final opt = _humanCallOption;
+    if (opt != null && opt.types.contains(CallType.ron)) {
+      final key = 'ron:$_discardSerial';
+      if (_autoWonKey == key) return true;
+      _autoWonKey = key;
+      answerCall(CallType.ron);
+      return true;
+    }
+    if (isHumanTurn && round.canTsumo(kHumanSeat)) {
+      final key = 'tsumo:${round.seats[kHumanSeat].drawn?.id}';
+      if (_autoWonKey == key) return true;
+      _autoWonKey = key;
+      humanTsumo();
+      return true;
+    }
+    return false;
   }
 
   /// The drawn tile [_maybeAutoDiscardInRiichi] last cut, so a repeat
@@ -422,7 +463,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     } else {
       _playTurnSfx();
       _playCallSfx(previousRound);
-      _maybeAutoDiscardInRiichi();
+      if (!_maybeAutoWin()) _maybeAutoDiscardInRiichi();
     }
     notifyListeners();
   }
@@ -483,7 +524,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   static SfxKind? newMeldKind(Round? previousRound, Round round, int seat) {
     final before = previousRound?.seats[seat].melds.length ?? 0;
     final after = round.seats[seat].melds.length;
-    if (after <= before) return null;
+    if (after <= before) {
+      // An added kan (shouminkan) upgrades an existing pon in place, so the
+      // meld count stays put — spot it by the kan count going up instead.
+      int kans(Round? r) =>
+          r?.seats[seat].melds.where((m) => m.kind == MeldKind.kan).length ??
+          0;
+      return kans(round) > kans(previousRound) ? SfxKind.kan : null;
+    }
     return switch (round.seats[seat].melds.last.kind) {
       MeldKind.sequence => SfxKind.chi,
       MeldKind.triplet => SfxKind.pon,
