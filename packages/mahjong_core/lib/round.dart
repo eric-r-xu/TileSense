@@ -603,7 +603,12 @@ class Round {
     if (declareRiichi) {
       s.riichi = true;
       s.ippatsu = true;
-      if (_firstGoAround) s.doubleRiichi = true;
+      // Double riichi: declared on this seat's very first discard, with no
+      // call or kan anywhere at the table yet. `_firstGoAround` alone is not
+      // enough — it stays true through the dealer's second discard (it is only
+      // cleared after that discard lands), so the dealer's own-pond check is
+      // what keeps a second-turn riichi from counting.
+      if (_firstGoAround && s.allDiscards.isEmpty) s.doubleRiichi = true;
       s.points -= 1000;
       riichiSticks += 1;
     } else {
@@ -760,7 +765,13 @@ class Round {
       if (!closedKanTypes(seat).contains(type)) {
         throw StateError('Illegal closed kong');
       }
-      _firstGoAround = false;
+    }
+    // Any kan — including a concealed one — interrupts the first go-around,
+    // ending the double riichi / kyuushu / blessing window for everyone.
+    _firstGoAround = false;
+    // It breaks every seat's ippatsu too, the declarer's own included.
+    for (final o in seats) {
+      o.ippatsu = false;
     }
     final s = current;
     s.kongChain =
@@ -792,8 +803,10 @@ class Round {
       if (!addedKanTypes(seat).contains(type)) {
         throw StateError('Illegal added kong');
       }
-      _firstGoAround = false;
     }
+    // Any kan — including a concealed one — interrupts the first go-around,
+    // ending the double riichi / kyuushu / blessing window for everyone.
+    _firstGoAround = false;
     final s = current;
     s.kongChain =
         s.replacementDraw && s.drawn?.type == type ? s.kongChain + 1 : 1;
@@ -839,6 +852,11 @@ class Round {
     // flipping a dora indicator that no kan had earned.
     _pendingPung = null;
     _chankanPending = false;
+    // The kan went through, so it breaks every seat's ippatsu. Not cleared in
+    // [addKan] itself: a chankan ron on the added tile can still be ippatsu.
+    for (final o in seats) {
+      o.ippatsu = false;
+    }
     pendingDiscard = null;
     pendingDiscardSeat = -1;
     callOptions = const [];
@@ -1071,7 +1089,8 @@ class Round {
 
   void _advanceTurn() {
     // Ippatsu itself is cleared where it actually ends: any call (see
-    // `_applyChi`/`_applyPonOrKan`), or the declarer's own next discard
+    // `_applyChi`/`_applyPonOrKan`), any kan (`closedKan` /
+    // `_completeAddedKan`), or the declarer's own next discard
     // (`discard`'s `else { s.ippatsu = false; }`) — never here. It must
     // still be set when the go-around comes back around to the declarer's
     // own draw below, so a tsumo right on that draw still counts.
