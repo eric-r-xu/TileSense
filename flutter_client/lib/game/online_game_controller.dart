@@ -1024,12 +1024,17 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       final bigHand =
           wi < res.scores.length && ruleset.isBigHand(res.scores[wi]);
       final winner = characterForSeat(seat);
+      // A win off a kong's replacement tile gets its own line where the
+      // character has one (Saeko's "Tsumo. Rinshan kaihou.").
+      final line = winLine == VoiceKind.tsumo && wi < res.scores.length
+          ? tsumoLineFor(res.scores[wi].yaku.map((y) => y.name))
+          : winLine;
       if (!bigHand) {
-        Sfx.i.voice(winLine, character: winner);
+        Sfx.i.voice(line, character: winner);
         continue;
       }
       final steps = <(Character, VoiceKind)>[
-        (winner, winLine),
+        (winner, line),
         (winner, VoiceKind.yeah),
       ];
       if (res.kind == RoundEndKind.ron && res.loser != null) {

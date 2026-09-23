@@ -9,7 +9,38 @@ enum SfxKind { riichi, chi, pon, kan, ron, tsumo, discard }
 
 /// A spoken line. Each seat's character has its own recording of every kind
 /// (falling back to silence where a character is missing that line).
-enum VoiceKind { chi, pon, kan, riichi, ron, tsumo, yeah, acquiescement, win }
+///
+/// [rinshan] is a tsumo on a kong's replacement tile (see [tsumoLineFor]).
+/// Only characters with a signature line for it record one; everyone else
+/// falls back to their plain [tsumo].
+enum VoiceKind {
+  chi,
+  pon,
+  kan,
+  riichi,
+  ron,
+  tsumo,
+  rinshan,
+  yeah,
+  acquiescement,
+  win
+}
+
+/// The yaku that mark a win on a kong's replacement tile, riichi and
+/// Hong Kong spellings.
+const Set<String> _kongReplacementYaku = {
+  'Rinshan Kaihou',
+  'Win by Kong Replacement',
+  'Double Kong Replacement',
+};
+
+/// The self-draw line for a tsumo whose hand scored [yakuNames]:
+/// [VoiceKind.rinshan] when it won on a kong's replacement tile, otherwise
+/// the plain [VoiceKind.tsumo].
+VoiceKind tsumoLineFor(Iterable<String> yakuNames) =>
+    yakuNames.any(_kongReplacementYaku.contains)
+        ? VoiceKind.rinshan
+        : VoiceKind.tsumo;
 
 /// The table personalities. Offline, every seat's persona is
 /// customisable (`kSeatCharacters` in game_controller.dart is the default,
@@ -27,7 +58,8 @@ enum Character {
   erika,
   melissa,
   matityahu,
-  sherman
+  sherman,
+  saeko
 }
 
 /// The personas a human can pick from online. `resolveCharacter`
@@ -44,6 +76,7 @@ const List<Character> kSelectableCharacters = [
   Character.melissa,
   Character.matityahu,
   Character.sherman,
+  Character.saeko,
 ];
 
 const Map<Character, String> kCharacterName = {
@@ -56,6 +89,7 @@ const Map<Character, String> kCharacterName = {
   Character.melissa: 'Melissa',
   Character.matityahu: 'Matityahu',
   Character.sherman: 'Sherman',
+  Character.saeko: 'Saeko',
 };
 
 const Map<Character, String> kCharacterPortrait = {
@@ -68,6 +102,7 @@ const Map<Character, String> kCharacterPortrait = {
   Character.melissa: 'assets/melissa/melissa.png',
   Character.matityahu: 'assets/matityahu/matityahu.png',
   Character.sherman: 'assets/sherman/sherman.png',
+  Character.saeko: 'assets/saeko/saeko.png',
 };
 
 /// Fire-and-forget sound player.
@@ -98,7 +133,15 @@ class Sfx {
   /// Test seam: the clip a character uses for a line, or null if it has none.
   @visibleForTesting
   static String? debugAssetFor(Character character, VoiceKind kind) =>
-      _voiceAsset[character]?[kind];
+      _voicePath(character, kind);
+
+  static String? _voicePath(Character character, VoiceKind kind) {
+    final lines = _voiceAsset[character];
+    if (kind == VoiceKind.rinshan) {
+      return lines?[VoiceKind.rinshan] ?? lines?[VoiceKind.tsumo];
+    }
+    return lines?[kind];
+  }
 
   static const Map<SfxKind, String> _asset = {
     SfxKind.riichi: 'sfx/hint.wav',
@@ -218,6 +261,21 @@ class Sfx {
       VoiceKind.acquiescement: 'astaroth/Astaroth_Acquiescement.wav',
       VoiceKind.win: 'astaroth/Astaroth_Win.wav',
     },
+    // Saeko is modelled on Saki Miyanaga; her lines from the anime, in
+    // Japanese (tools/mksaeko.py): her signature "Tsumo. Rinshan kaihou." only on an actual win off a
+    // kong's replacement tile, and "Mahjong is fun!" for a match win.
+    Character.saeko: {
+      VoiceKind.chi: 'saeko/Saeko_Chi.wav',
+      VoiceKind.pon: 'saeko/Saeko_Pon.wav',
+      VoiceKind.kan: 'saeko/Saeko_Kan.wav',
+      VoiceKind.riichi: 'saeko/Saeko_Riichi.wav',
+      VoiceKind.ron: 'saeko/Saeko_ron.wav',
+      VoiceKind.tsumo: 'saeko/Saeko_Tsumo.wav',
+      VoiceKind.rinshan: 'saeko/Saeko_Rinshan.wav',
+      VoiceKind.yeah: 'saeko/Saeko_Yeah.wav',
+      VoiceKind.acquiescement: 'saeko/Saeko_Acquiescement.wav',
+      VoiceKind.win: 'saeko/Saeko_Win.wav',
+    },
   };
 
   // --- autoplay unlock ---------------------------------------------------
@@ -281,7 +339,7 @@ class Sfx {
 
   void voice(VoiceKind kind, {Character character = Character.orderic}) {
     debugVoiceLog?.add((character, kind));
-    final path = _voiceAsset[character]?[kind];
+    final path = _voicePath(character, kind);
     if (path != null) _enqueueVoice([path]);
   }
 
@@ -293,7 +351,7 @@ class Sfx {
     debugVoiceLog?.addAll(steps);
     final paths = [
       for (final (character, k) in steps)
-        if (_voiceAsset[character]?[k] != null) _voiceAsset[character]![k]!,
+        if (_voicePath(character, k) case final path?) path,
     ];
     if (paths.isNotEmpty) _enqueueVoice(paths);
   }
