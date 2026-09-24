@@ -13,8 +13,7 @@ void main() {
   });
 
   test('a room defaults to 30s and reports its choice in room_state', () {
-    final def =
-        Room(code: 'AAAA', ruleset: Ruleset.riichi, hanchan: true);
+    final def = Room(code: 'AAAA', ruleset: Ruleset.riichi, hanchan: true);
     expect(def.timerSeconds, 30);
     final long = Room(
         code: 'BBBB', ruleset: Ruleset.riichi, hanchan: true, timerSeconds: 60);
@@ -26,5 +25,25 @@ void main() {
         code: 'CCCC', ruleset: Ruleset.riichi, hanchan: true, timerSeconds: 60);
     // Constructing must not throw and must accept the room's clock.
     expect(() => TableLoop(room), returnsNormally);
+  });
+
+  test('a Hong Kong room carries its minimum faan to room_state', () {
+    final def = Room(code: 'DDDD', ruleset: Ruleset.hongKong, hanchan: true);
+    expect(def.roomStateJson()['minimumFaan'], 0);
+    final manager = RoomManager();
+    final room = manager.createRoom(
+        hostGuestId: 'g',
+        hostName: 'Host',
+        ruleset: Ruleset.hongKong,
+        hanchan: true,
+        minimumFaan: 3);
+    expect(room.roomStateJson()['minimumFaan'], 3);
+    final bad = manager.createRoom(
+        hostGuestId: 'h',
+        hostName: 'Host',
+        ruleset: Ruleset.hongKong,
+        hanchan: true,
+        minimumFaan: 9);
+    expect(bad.minimumFaan, 0, reason: 'out-of-range falls back to 0');
   });
 }

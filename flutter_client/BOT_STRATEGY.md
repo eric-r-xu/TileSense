@@ -177,7 +177,9 @@ which makes the opponents a little slower than real players would be.
 ## Under Hong Kong rules
 
 The same `SimpleBot` plays Hong Kong, with one branch: because any complete
-hand wins there (0-faan minimum, no yaku needed), it **calls far more freely**.
+hand wins there (0-faan minimum by default, no yaku needed), it **calls far more freely**.
+It calls the same way at a 1–3 faan minimum, which it does not plan around —
+it just can't declare a hand that falls short.
 It always takes a kong, and takes a pung or a chow whenever it lowers the
 hand's shanten. It always declares a win, including a seventh- or eighth-flower
 win. It still never defends.
@@ -233,6 +235,12 @@ Aggressive / Speed is one of the six pairings that beat the bot; the recorded
 runs do not rank those six against each other.
 
 ### Hong Kong — the guide beats the bots
+
+> **Superseded in part.** Rounds 6-8 (2026-09-24) added two speed rules and
+> re-measured: the guide is now **0.270** of a placement ahead of the bot on
+> held-out seeds, not 0.062 — see
+> [Round 6-8](#round-6-8-the-bots-speed-the-guides-judgement). The section
+> below is left as it was recorded.
 
 **Result.** The shipped guide was measured on three sets of seeds that no
 tuning round used — East-only games, Aggressive / Speed, `SimpleBot`
@@ -342,6 +350,86 @@ shipped guide over 6000 paired games on fresh seeds (`HK_TUNE_ROUND=5`):
 shipped model stays; the call counter, the calibration harness and the fitter
 remain for the next attempt, which should fit the model to *decisions* (which
 discard leads to more wins) rather than to outcomes.
+
+### Round 6-8: the bot's speed, the guide's judgement
+
+**Result.** Measured 2026-09-24 on 6000 held-out East-only games (seeds
+300000+, Aggressive / Speed, common random numbers), and at a 3-faan minimum
+on 3000 more (seeds 400000+):
+
+| Held-out run | Previous guide vs bot | **Guide now vs bot** | Guide now vs previous |
+|---|---|---|---|
+| 0-faan minimum, 6000 games | −0.106 ± 0.037 | **−0.270 ± 0.036** | −0.163 ± 0.030, p < 1e-6 |
+| 3-faan minimum, 3000 games | −0.164 ± 0.053 | **−0.492 ± 0.052** | −0.328 ± 0.047, p < 1e-6 |
+
+**What the diagnostic showed first.** Re-run on seeds 2000+ with new
+counters (`HK_DIAG=2000`):
+
+- A deal-in cost the guide **7.3 chips** on average, not the 16 it charged.
+- **83% of its deal-ins came while nobody counted as a threat.** Opponents
+  with zero to two exposed sets make ~92% of all discard wins; the three-set
+  threat the defence watches makes 8%.
+- A threat whose exposed sets were all one suit won **off-suit 53 times in
+  75** — the bots never aim for a flush, so the flush read is noise.
+- A threat won on a tile it had discarded itself **4.4%** of the time, where
+  chance gives 29% — a real read, but one that rarely matters (above).
+
+**Round 6 — the planned ideas, all null** (6000 games per arm, seeds 20000+,
+Δ placement vs the previous guide):
+
+| Arm | Δ vs previous | p |
+|---|---|---|
+| read a threat's own discards as safer | −0.005 ± 0.007 | 0.18 |
+| read a flush from a threat's exposed sets | +0.002 ± 0.004 | 0.41 |
+| deal-in cost 7.3 (measured) | −0.001 ± 0.003 | 0.72 |
+| deal-in cost from the threat's visible faan | −0.001 ± 0.004 | 0.77 |
+| narrow penalty 0.25 | −0.003 ± 0.027 | 0.86 |
+| credit value pairs and near-flushes before ready | +0.009 ± 0.015 | 0.23 |
+| threat at two sets + discard read + cost 7.3 | +0.013 ± 0.023 | 0.28 |
+| the same without the call gate | −0.005 ± 0.021 | 0.63 |
+| discard read + cost + narrow + potential | −0.007 ± 0.028 | 0.61 |
+
+Defence and pricing barely change a decision when the guide defends on half
+a turn per hand. All of these stay in `HongKongGuideTuning`, off.
+
+**Round 7 — offence** (same seeds). The logged decisions showed the guide
+breaking up a 3-away hand for a wider 4-away one, and an open hand one step
+from ready declining the pung that makes it ready. Two rules, both only while
+no opponent is a threat:
+
+| Arm | Δ vs previous | Δ vs bot | Wins / hand |
+|---|---|---|---|
+| `neverStepBack` | −0.106 ± 0.028 | −0.239 | 0.274 |
+| `takeShantenCalls` | −0.059 ± 0.020 | −0.192 | 0.278 |
+| **both** | **−0.150 ± 0.030** | **−0.283** | **0.301** |
+| both, no call gate | −0.156 ± 0.030 | −0.289 | 0.303 |
+
+Holm p < 1e-6 for all four. Dropping the call gate adds nothing measurable,
+so it stays. Round 8 is the held-out confirmation above; both rules ship on.
+
+**How it plays now** (per hand, 2000 East-only games each, seeds 2000+):
+
+| | Previous guide | **Guide now** | SimpleBot |
+|---|---|---|---|
+| Steps away from ready | 0.78 | **0.04** | 0.38 |
+| Hands that reach ready | 50% | **58%** | 55% |
+| Chows / pungs / kongs taken | 0.50 / 0.43 / 0.05 | **0.59 / 0.48 / 0.04** | 0.67 / 0.52 / 0.06 |
+| Turns spent defending | 0.56 | **0.53** | 0.51 |
+| Wins | 0.254 | **0.314** | 0.258 |
+| Deal-ins | 0.176 | **0.168** | 0.200 |
+| Chips won | 2.99 | **3.42** | 2.58 |
+
+It now reaches ready and wins more often than the bot, while still dealing in
+less — the bot's speed with the guide's defence.
+
+Re-run with:
+
+```sh
+HK_DIAG=2000 flutter test test/hong_kong/hk_guide_diag_test.dart
+HK_TUNE_ROUND=7 HK_TUNE_SEED=20000 HK_TUNE_GAMES=6000 flutter test test/hong_kong/hk_tuning_sweep_test.dart
+HK_TUNE_ROUND=8 HK_TUNE_SEED=300000 HK_TUNE_GAMES=6000 flutter test test/hong_kong/hk_tuning_sweep_test.dart
+HK_TUNE_ROUND=8 HK_TUNE_SEED=400000 HK_TUNE_GAMES=3000 HK_TUNE_MIN=3 flutter test test/hong_kong/hk_tuning_sweep_test.dart
+```
 
 ### Taiwanese — the guide beats the bots
 

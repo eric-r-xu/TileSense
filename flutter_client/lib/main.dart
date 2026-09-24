@@ -12,6 +12,7 @@ import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/character_select_page.dart';
@@ -22,6 +23,7 @@ import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
 import 'ui/table_view.dart';
+import 'ui/tilesensor.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,21 +55,6 @@ Color playStyleColor(PlayStyle style) => switch (style) {
       PlayStyle.aggressive => const Color(0xffff8a65),
     };
 
-/// The guide dials sit in an app bar that was already full, so they are
-/// drawn tight: no minimum size, no tap-target padding of their own, and
-/// just enough room around the value to keep it off its neighbours — [_barDial]
-/// stacks a caption above this, and both have to clear a 50px toolbar.
-ButtonStyle _dialButtonStyle(Color colour) => TextButton.styleFrom(
-      visualDensity: VisualDensity.compact,
-      foregroundColor: colour,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-      minimumSize: Size.zero,
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-
-const TextStyle _dialLabelStyle =
-    TextStyle(fontSize: 11, fontWeight: FontWeight.w700);
-
 /// Why the hand counts either game length advertises are a floor rather than
 /// a promise. Standard riichi replays the hand whenever the dealership holds,
 /// so both numbers are what you get only if it passes every single time.
@@ -83,11 +70,57 @@ const String _handCountCaveatChineseStyle =
     'any exhaustive draw, keeps it and the hand is replayed — so either '
     'length can run longer.';
 
-/// One captioned dial in the app bar: a dim fixed caption on top and the
-/// current value, in the dial's own colour, on the bottom — tapped to cycle.
-/// Stacked rather than side by side so every dial reads the same way at a
-/// glance regardless of how many are showing at once, and so several dials
-/// fit across the bar instead of only stacking two deep.
+/// The caption every top-bar tile carries above its value.
+const TextStyle _barCaptionStyle = TextStyle(
+    color: Colors.white38,
+    fontSize: 8,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.6);
+
+/// One tile in the app bar: a dim fixed caption on top and the current value
+/// (text in the control's own colour, or an icon) underneath, so every
+/// control up there reads the same way at a glance.
+///
+/// The whole tile is the tap target, not just its value. The app is drawn on
+/// the fixed [kDesignSize] canvas and scaled down to fit, to about half size
+/// on a phone held sideways, so a target only as big as its label would end
+/// up a few points tall under a thumb.
+Widget _barTile({
+  required String caption,
+  required String tooltip,
+  required VoidCallback onTap,
+  required Widget value,
+  Key? tapKey,
+  double width = 84,
+}) =>
+    Tooltip(
+      message: tooltip,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: tapKey,
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          // 44px tall: clears the 50px toolbar with the group's border.
+          child: SizedBox(
+            width: width,
+            height: 44,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(caption,
+                    maxLines: 1, softWrap: false, style: _barCaptionStyle),
+                const SizedBox(height: 3),
+                value,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// A guide dial in the app bar — tapped to cycle. [buttonKey] marks the value
+/// text, which sits inside the tile's tap area.
 Widget _barDial({
   required String caption,
   required Key buttonKey,
@@ -96,34 +129,92 @@ Widget _barDial({
   required String tooltip,
   required VoidCallback onTap,
 }) =>
-    Tooltip(
-      message: tooltip,
-      // Fixed column height: caption line plus a shrink-wrapped button, 44px
-      // total, fits a 50px toolbar with a few pixels to spare.
-      child: SizedBox(
-        width: 74,
-        height: 44,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(caption,
-                style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6)),
-            TextButton(
-              key: buttonKey,
-              onPressed: onTap,
-              style: _dialButtonStyle(colour),
-              child: Text(label, style: _dialLabelStyle),
-            ),
-          ],
-        ),
+    _barTile(
+      caption: caption,
+      tooltip: tooltip,
+      onTap: onTap,
+      value: KeyedSubtree(
+        key: buttonKey,
+        child: Text(label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.fade,
+            style: TextStyle(
+                color: colour, fontSize: 12, fontWeight: FontWeight.w700)),
       ),
     );
+
+/// A thin rule between tiles in the same app-bar group.
+Widget _barDivider() =>
+    Container(width: 1, height: 28, color: const Color(0x22ffffff));
+
+/// Gold for Auto-Play being on — the border its group lights up with.
+const Color _autoPlayGold = Color(0xffcaa24e);
+
+/// TileSensor with a small play badge: the mascot that is the guide, now
+/// playing your seat. Greyed and dimmed when Auto-Play is off, the same way
+/// the guide toggle dims, and in full colour with a soft glow when on.
+class _AutoPlayBadge extends StatelessWidget {
+  const _AutoPlayBadge({required this.on, this.size = 24});
+  final bool on;
+  final double size;
+
+  static const ColorFilter _greyscale = ColorFilter.matrix([
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0, 0, 0, 1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = size * 0.46;
+    Widget mascot = Image.asset(
+      kTileSensorAsset,
+      width: size,
+      height: size,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (_, __, ___) => Icon(Icons.school, size: size),
+    );
+    if (!on) {
+      mascot = Opacity(
+          opacity: 0.45,
+          child: ColorFiltered(colorFilter: _greyscale, child: mascot));
+    }
+    return SizedBox(
+      width: size + badge * 0.35,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          mascot,
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: badge,
+              height: badge,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: on ? _autoPlayGold : const Color(0xff1c3534),
+                border: Border.all(
+                    color: on ? _autoPlayGold : Colors.white38, width: 1),
+                boxShadow: on
+                    ? const [
+                        BoxShadow(color: Color(0x88caa24e), blurRadius: 6)
+                      ]
+                    : null,
+              ),
+              child: Icon(Icons.play_arrow,
+                  size: badge * 0.8,
+                  color: on ? Colors.black : Colors.white54),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Colour for a hand focus, on a deliberately different axis from
 /// [playStyleColor] so the two dials never read as one setting: this one runs
@@ -749,11 +840,12 @@ class _GamePageState extends State<GamePage> {
   final List<Character> _characters = List.of(kSeatCharacters);
   int _startingDealer = 0;
   bool _hanchan = true;
+  int _minimumFaan = HongKongRules.defaultMinimumFaan;
   bool _startingGame = false;
   bool _startFailed = false;
   int _startRequest = 0;
-  // Off by default so a new player sees the plain table first; the clefairy
-  // buttons in the AppBar and bottom hand bar turn it on.
+  // Off by default so a new player sees the plain table first; the TileSensor
+  // button beside the hand turns it on.
   bool _showGuide = false;
   // Shown once per app load, ahead of the table; the Start button hides it
   // for the rest of the session.
@@ -813,19 +905,58 @@ class _GamePageState extends State<GamePage> {
     super.dispose();
   }
 
-  // Esc toggles pause (works on web where widget shortcuts miss the canvas).
+  // Esc toggles pause and Ctrl/Cmd+Z takes back your last move (handled here
+  // because on web widget shortcuts miss the canvas).
   bool _onKey(KeyEvent e) {
-    if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.escape) {
-      if (_showWelcome || _showBuilder || _showOnline || _startingGame) {
-        return false;
-      }
+    if (e is! KeyDownEvent) return false;
+    if (_showWelcome || _showBuilder || _showOnline || _startingGame) {
+      return false;
+    }
+    if (e.logicalKey == LogicalKeyboardKey.escape) {
       _controller?.togglePause();
+      return true;
+    }
+    final keys = HardwareKeyboard.instance;
+    if (e.logicalKey == LogicalKeyboardKey.keyZ &&
+        (keys.isControlPressed || keys.isMetaPressed) &&
+        (_controller?.canUndo ?? false)) {
+      _controller!.undo();
       return true;
     }
     return false;
   }
 
   void _toggleGuide() => setState(() => _showGuide = !_showGuide);
+
+  /// New game sits beside pause, an easy mis-tap on a phone, and throws away
+  /// the game in progress — so a game that is still being played asks first.
+  /// One that has already ended starts straight away.
+  Future<void> _confirmNewGame() async {
+    if (_game.phase == GamePhase.gameEnd) {
+      _game.newGame();
+      return;
+    }
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Start a new game?'),
+        content: const Text('The game in progress will be lost.'),
+        actions: [
+          TextButton(
+            key: const Key('newGameCancel'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep playing'),
+          ),
+          FilledButton(
+            key: const Key('newGameConfirm'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('New game'),
+          ),
+        ],
+      ),
+    );
+    if (go ?? false) _game.newGame();
+  }
 
   // Leaving a game in progress for the welcome screen — the only way there to
   // reach the Custom Hand & Context Builder — pauses it so bots and autoplay
@@ -837,6 +968,7 @@ class _GamePageState extends State<GamePage> {
       _characters.setAll(0, _game.seatCharacters);
       _startingDealer = _game.startingDealer;
       _hanchan = _game.hanchan;
+      _minimumFaan = _game.minimumFaan;
       _showWelcome = true;
     });
   }
@@ -860,10 +992,13 @@ class _GamePageState extends State<GamePage> {
               seatCharacters: _characters,
               startingDealer: _startingDealer,
               hanchan: _hanchan,
+              minimumFaan: _minimumFaan,
             );
+        _game.setMinimumFaan(_minimumFaan);
       } else {
         _game.setRuleset(_selectedRuleset);
         _game.setHanchan(_hanchan);
+        _game.setMinimumFaan(_minimumFaan);
         _game.setStartingDealer(_startingDealer);
         for (var seat = 0; seat < _characters.length; seat++) {
           _game.setSeatCharacter(seat, _characters[seat]);
@@ -945,6 +1080,8 @@ class _GamePageState extends State<GamePage> {
           }),
           hanchan: _hanchan,
           onHanchan: (h) => setState(() => _hanchan = h),
+          minimumFaan: _minimumFaan,
+          onMinimumFaan: (n) => setState(() => _minimumFaan = n),
           onBack: () => setState(() => _choosingCharacters = false),
           onAdvance: _startOffline,
         );
@@ -975,30 +1112,10 @@ class _GamePageState extends State<GamePage> {
           onPressed: _backToMenu,
         ),
         title: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // The clefairy mascot doubles as the guide toggle — tap to show
-            // or hide the efficiency panel, dimmed while it's off.
-            IconButton(
-              key: const Key('guideToggle'),
-              tooltip: _showGuide
-                  ? 'TileSense — hide guide'
-                  : 'TileSense — show guide',
-              iconSize: 32,
-              padding: EdgeInsets.zero,
-              onPressed: _toggleGuide,
-              icon: Opacity(
-                opacity: _showGuide ? 1.0 : 0.4,
-                child: Image.asset(
-                  'assets/clefairy.png',
-                  height: 32,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.school, size: 32),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
+            // No TileSensor up here: the guide toggle is the big one beside
+            // your hand, and the TileSensor in this bar is Auto-Play's — one
+            // mascot button per bar, so neither reads as the other.
             const Text('TileSense'),
             const SizedBox(width: 16),
             // Which rules the table plays — a label, not a switch: the style
@@ -1007,14 +1124,19 @@ class _GamePageState extends State<GamePage> {
             AnimatedBuilder(
               animation: _game,
               builder: (context, _) => Tooltip(
-                message: 'Playing ${_game.ruleset.label} rules.\n'
+                message: 'Playing ${_game.ruleset.label} rules'
+                    '${_game.ruleset.isHongKong ? ', ${_game.minimumFaan}-faan '
+                        'minimum' : ''}.\n'
                     'To play another style, go back to the main menu.',
                 child: Padding(
                   key: const Key('ruleset'),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: Text(
-                    _game.ruleset.flagLabel,
+                    _game.ruleset.isHongKong && _game.minimumFaan > 0
+                        ? '${_game.ruleset.flagLabel} · '
+                            '${_game.minimumFaan} faan min'
+                        : _game.ruleset.flagLabel,
                     style: const TextStyle(
                       color: Color(0xffffdf76),
                       fontSize: 12,
@@ -1103,34 +1225,44 @@ class _GamePageState extends State<GamePage> {
                 ),
               ),
             ),
+            // Round, wall and honba/riichi (or dealer repeat) on one line,
+            // centred in whatever the controls either side leave free. The
+            // style is already named just left of here, so not again.
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _game,
+                    builder: (context, _) => TableStatusLine(game: _game),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
         actions: [
-          // All three guide dials — and so every Auto-Play dial, since
-          // Auto-Play plays from the guide's own scores — kept beside the
-          // switch they steer. The guide panel carries a synced copy of each.
+          // Auto-Play and the three guide dials in one panel: Auto-Play
+          // plays from the guide's own scores, so these dials are what it
+          // plays by. The panel's border lights up gold while it is on, which
+          // is the cue that the dials are now steering your seat, not just
+          // the advice. The guide panel carries a synced copy of each dial.
           //
-          // Side by side, each one a compact caption-over-value stack (see
-          // [_barDial]): three of those clear a 50px toolbar with room to
-          // spare, where three full single-line buttons would not, and a
-          // stack reads as clearly as a row while costing far less width.
-          //
-          // All three are kept rather than pruned to the ones that move the
-          // numbers most: a decision-level sweep (self-play, live-riichi
-          // threat included for Style, since its whole effect is gated
-          // behind one) found every dial changes the top recommendation on a
-          // comparable, non-trivial share of decisions — Style 0.6-1.3% of
-          // discards and dozens of riichi/damaten calls under a live threat,
-          // Focus 0.6% of discards and a ~50% median swing in the EV number
-          // itself, Strategy 0.2% of discards and over a hundred riichi/
-          // damaten calls in a placement-sensitive sample. None of the three
-          // is a null next to the others.
+          // All three dials are kept rather than pruned to the ones that
+          // move the numbers most: a decision-level sweep (self-play,
+          // live-riichi threat included for Style, since its whole effect is
+          // gated behind one) found every dial changes the top
+          // recommendation on a comparable, non-trivial share of decisions —
+          // Style 0.6-1.3% of discards and dozens of riichi/damaten calls
+          // under a live threat, Focus 0.6% of discards and a ~50% median
+          // swing in the EV number itself, Strategy 0.2% of discards and over
+          // a hundred riichi/damaten calls in a placement-sensitive sample.
+          // None of the three is a null next to the others.
           AnimatedBuilder(
             animation: _game,
-            builder: (context, _) => Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
+            builder: (context, _) {
+              final on = _game.autoplay;
+              final dials = <Widget>[
                 // Style has nothing left to weigh under Hong Kong or
                 // Taiwanese rules — no riichi, no damaten, and the sweep in
                 // policy_sweep_test.dart found no placement effect from it
@@ -1169,34 +1301,108 @@ class _GamePageState extends State<GamePage> {
                         'placement given the scores on the table right now',
                     onTap: () => _game.setStrategy(_game.strategy.next),
                   ),
-              ],
-            ),
+              ];
+              return AnimatedContainer(
+                key: const Key('autoplayGroup'),
+                duration: const Duration(milliseconds: 200),
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0x14ffffff),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: on ? _autoPlayGold : const Color(0x33ffffff),
+                    width: on ? 1.5 : 1,
+                  ),
+                  boxShadow: on
+                      ? const [
+                          BoxShadow(color: Color(0x44caa24e), blurRadius: 8)
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _barTile(
+                      caption: 'AUTO-PLAY',
+                      tapKey: const Key('autoplay'),
+                      width: 92,
+                      tooltip: on
+                          ? 'Auto-Play is on — TileSensor plays your seat by '
+                              'the guide, using the dials beside it.\n'
+                              'Tap to take your seat back.'
+                          : 'Auto-Play is off — you play your seat.\n'
+                              'Tap to let TileSensor play it by the guide, '
+                              'using the dials beside it.',
+                      onTap: () => _game.setAutoplay(!on),
+                      value: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _AutoPlayBadge(on: on, size: 22),
+                          const SizedBox(width: 5),
+                          Text(on ? 'On' : 'Off',
+                              style: TextStyle(
+                                  color: on ? _autoPlayGold : Colors.white54,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    for (final dial in dials) ...[_barDivider(), dial],
+                  ],
+                ),
+              );
+            },
           ),
+          const SizedBox(width: 20),
+          // The game's own controls, together at the edge: sound, pause and
+          // a new game. Plus-in-a-circle for the new game rather than a
+          // circular arrow, which reads as "go back" — and would be mistaken
+          // for the take-back button over your hand.
           AnimatedBuilder(
             animation: _game,
             builder: (context, _) => Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('\u{1F916} Auto-Play',
-                    style: TextStyle(fontSize: 12)),
-                Switch(
-                  value: _game.autoplay,
-                  onChanged: _game.setAutoplay,
+                _barTile(
+                  caption: 'SOUND',
+                  tapKey: const Key('soundToggle'),
+                  width: 56,
+                  tooltip: _game.soundOn
+                      ? 'Sound on — tap to mute'
+                      : 'Sound off — tap to unmute',
+                  onTap: () => _game.setSoundOn(!_game.soundOn),
+                  value: Icon(
+                    _game.soundOn ? Icons.volume_up : Icons.volume_off,
+                    size: 22,
+                    color: _game.soundOn
+                        ? const Color(0xffe9d58f)
+                        : Colors.white38,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _barTile(
+                  caption: _game.paused ? 'RESUME' : 'PAUSE',
+                  width: 56,
+                  tooltip: _game.paused ? 'Resume' : 'Pause',
+                  onTap: _game.togglePause,
+                  value: Icon(
+                      _game.paused ? Icons.play_arrow : Icons.pause,
+                      size: 22,
+                      color: const Color(0xffe9d58f)),
+                ),
+                const SizedBox(width: 8),
+                _barTile(
+                  caption: 'NEW',
+                  tapKey: const Key('newGame'),
+                  width: 56,
+                  tooltip: 'New game',
+                  onTap: _confirmNewGame,
+                  value: const Icon(Icons.add_circle_outline,
+                      size: 22, color: Color(0xffe9d58f)),
                 ),
               ],
             ),
-          ),
-          AnimatedBuilder(
-            animation: _game,
-            builder: (context, _) => IconButton(
-              tooltip: _game.paused ? 'Resume' : 'Pause',
-              icon: Icon(_game.paused ? Icons.play_arrow : Icons.pause),
-              onPressed: _game.togglePause,
-            ),
-          ),
-          IconButton(
-            tooltip: 'New game',
-            icon: const Icon(Icons.refresh),
-            onPressed: _game.newGame,
           ),
           // Keep the actions off the very edge.
           const SizedBox(width: 10),
@@ -1210,7 +1416,9 @@ class _GamePageState extends State<GamePage> {
               children: [
                 Column(
                   children: [
-                    Expanded(child: TableView(game: _game)),
+                    Expanded(
+                        child: TableView(
+                            game: _game, autoplaying: _game.autoplay)),
                     HandView(
                       game: _game,
                       showGuide: _showGuide,
@@ -1218,11 +1426,10 @@ class _GamePageState extends State<GamePage> {
                     ),
                   ],
                 ),
-                // The guide runs from just below the table's top-left status
-                // panel down to just above the hand's tile row — so it grows
-                // with the window instead of stopping at a fixed cut-off,
-                // while never covering the status panel or a tile you might
-                // want to discard.
+                // The guide runs from the table's top-left corner down to just
+                // above the hand's tile row — so it grows with the window
+                // instead of stopping at a fixed cut-off, while never covering
+                // a tile you might want to discard.
                 if (_showGuide)
                   Positioned.fill(
                     child: LayoutBuilder(
@@ -1230,12 +1437,12 @@ class _GamePageState extends State<GamePage> {
                         children: [
                           Positioned(
                             left: 8,
-                            top: TableView.statusPanelClearance,
+                            top: TableView.guidePanelTop,
                             child: EfficiencyOverlay(
                               game: _game,
                               report: _game.report,
                               maxHeight: c.maxHeight -
-                                  TableView.statusPanelClearance -
+                                  TableView.guidePanelTop -
                                   HandView.tileRowBandHeight -
                                   8,
                             ),
@@ -1275,7 +1482,7 @@ class _GamePageState extends State<GamePage> {
   }
 }
 
-/// First thing shown on app load: the clefairy mark, the app name, a short
+/// First thing shown on app load: the TileSensor mascot, the app name, a short
 /// explanation of what TileSense does, and a Start button into the table.
 class _WelcomeScreen extends StatelessWidget {
   const _WelcomeScreen({
@@ -1354,7 +1561,7 @@ class _WelcomeScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         option(Ruleset.riichi, 'yaku, dora, riichi'),
-        option(Ruleset.hongKong, 'faan, flowers, 0-faan minimum'),
+        option(Ruleset.hongKong, 'faan, flowers, 0–3 faan minimum'),
         option(Ruleset.taiwanese, '17 tiles, flowers, 5-point minimum'),
       ],
     );
@@ -1376,11 +1583,14 @@ class _WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  'assets/clefairy.png',
-                  height: 140,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                Tooltip(
+                  message: kTileSensorIntro,
+                  child: Image.asset(
+                    kTileSensorAsset,
+                    height: 140,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -1452,7 +1662,7 @@ class _WelcomeScreen extends StatelessWidget {
                             // as the button's icon: the guide comes with
                             // offline play.
                             Image.asset(
-                              'assets/clefairy.png',
+                              kTileSensorAsset,
                               key: const Key('startGuideMascot'),
                               height: 36,
                               filterQuality: FilterQuality.high,
@@ -1527,10 +1737,11 @@ class _WelcomeScreen extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Tools: you build the table yourself.
-                            Text('🛠️',
-                                key: Key('openBuilderEmoji'),
-                                style: TextStyle(fontSize: 28)),
+                            // Tools: you build the table yourself. An icon,
+                            // not the 🛠️ emoji: its U+FE0F has no Noto font,
+                            // so Flutter web logs a missing-font warning.
+                            Icon(Icons.handyman,
+                                key: Key('openBuilderEmoji'), size: 28),
                             SizedBox(width: 8),
                             Column(
                               mainAxisSize: MainAxisSize.min,

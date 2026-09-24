@@ -4,6 +4,7 @@
 /// is used; only public discards and visible tiles.
 library;
 
+import 'meld.dart';
 import 'tile.dart';
 
 class SafetyRating {
@@ -32,6 +33,7 @@ class RiichiThreat {
     required this.discards,
     required this.passedAfterRiichi,
     required this.isDealer,
+    this.melds = const [],
   });
 
   /// Every discard this player has made, including those before the
@@ -43,6 +45,10 @@ class RiichiThreat {
   final List<TileType> passedAfterRiichi;
 
   final bool isDealer;
+
+  /// The sets this player has exposed. Riichi reads none of it; Hong Kong
+  /// reads what they are building from it (see `rankHongKongSafety`).
+  final List<Meld> melds;
 }
 
 /// Rank each distinct tile type in [hand] for safety against the riichi player.

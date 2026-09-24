@@ -3,10 +3,12 @@
 library;
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/bot.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/safety.dart';
@@ -20,6 +22,13 @@ import 'sfx.dart';
 export 'guide_host.dart' show GamePhase;
 
 const int kHumanSeat = 0;
+
+/// How long a riichi hand waits before its drawn tile is cut on its own: a
+/// random 0.5–1.5 s, so the discard reads like a hand putting it down rather
+/// than the tile vanishing the instant it lands. Shared by the solo and
+/// online controllers.
+Duration riichiAutoDiscardDelay(Random rng) =>
+    Duration(milliseconds: 500 + rng.nextInt(1001));
 
 /// The default personality per seat — 0 self (Orderic), 1 right (Grant),
 /// 2 across (Hubert), 3 left (Astaroth) — and what a fresh [GameController]
@@ -56,6 +65,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     this.ruleset = Ruleset.riichi,
     this.startingDealer = 0,
     this.hanchan = true,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
     List<Character>? seatCharacters,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
@@ -132,6 +142,82 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   late Round round;
   late List<SimpleBot> _bots;
+
+  /// Deals the current hand afresh, exactly as [_startRound] first dealt it.
+  late Round Function() _dealRound;
+
+  /// Every change made to [round] this hand, in order. Replaying a prefix of
+  /// it onto [_dealRound] rebuilds the table as it stood at that point.
+  final List<_Move> _log = [];
+
+  /// Your decisions this hand, newest last: where [_log] stood just before
+  /// each one, and what to call it on the take-back button.
+  final List<({int logLength, String label})> _undoStack = [];
+
+  void _apply(_Move move) {
+    _log.add(move);
+    move.applyTo(round);
+  }
+
+  void _markUndoPoint(String label) =>
+      _undoStack.add((logLength: _log.length, label: label));
+
+  @override
+  bool get canUndo =>
+      _undoStack.isNotEmpty &&
+      !paused &&
+      phase == GamePhase.playing &&
+      !round.finished;
+
+  @override
+  String? get undoLabel => _undoStack.isEmpty ? null : _undoStack.last.label;
+
+  /// Takes back your latest decision this hand — a discard, a call, a pass
+  /// or a kan — along with everything the bots did after it, and hands the
+  /// turn back to you at that point. Pressed again, it steps further back.
+  ///
+  /// The table is rebuilt rather than rewound: the hand is dealt again from
+  /// the same seed and the moves before that decision are replayed onto it.
+  /// So the wall is the same one, and you will draw the tiles you already
+  /// saw — this is for studying another line, not for fishing a new draw.
+  @override
+  void undo() {
+    if (!canUndo) return;
+    final step = _undoStack.removeLast();
+    _loopTimer?.cancel();
+    _loopTimer = null;
+    _autoDiscardTimer?.cancel();
+
+    final replay = _log.sublist(0, step.logLength);
+    _log.clear();
+    round = _dealRound();
+    for (final move in replay) {
+      _apply(move);
+    }
+
+    // The guide was playing your seat: hand it back to you, or it would
+    // make the same move again straight away.
+    if (autoplay) {
+      autoplay = false;
+      _tel?.settingChange(matchId: _matchId, setting: 'autoplay', value: false);
+    }
+    _humanCallOption = null;
+    _humanCallAdvice = null;
+    lastDiscardSeat = null;
+    lastDiscardTsumogiri = false;
+    discardSerial++;
+    _tel?.humanDecision(
+      matchId: _matchId,
+      roundId: _roundId,
+      kind: 'undo',
+      auto: false,
+      guideVisible: guideVisible,
+    );
+    _refreshReport();
+    notifyListeners();
+    // Straight back to your decision — a call offer is re-offered here.
+    _tick();
+  }
   List<int> _points = List.filled(4, 25000);
   int _dealer = 0;
   int _roundNumber = 0; // 0-based East 1..4
@@ -181,23 +267,6 @@ class GameController extends ChangeNotifier implements TableGameHost {
     notifyListeners();
   }
 
-  /// While locked into riichi, cut the drawn tile the moment your turn
-  /// starts instead of waiting for a manual tap — every later discard is
-  /// already forced to be the drawn tile ([Round.discard]'s tsumogiri
-  /// lock), so this just skips confirming a choice that was never really
-  /// yours to make. Independent of [autoplay], which already handles every
-  /// turn (riichi or not) on its own.
-  @override
-  bool autoDiscardInRiichi = true;
-  @override
-  void setAutoDiscardInRiichi(bool value) {
-    if (autoDiscardInRiichi == value) return;
-    autoDiscardInRiichi = value;
-    _tel?.settingChange(
-        matchId: _matchId, setting: 'auto_discard_in_riichi', value: value);
-    notifyListeners();
-  }
-
   /// Declare ron/tsumo automatically the moment one is legal — see
   /// [_maybeAutoTsumo] and [_resolveCallPhase]. Independent of [autoplay],
   /// which already makes its own win decisions.
@@ -219,24 +288,36 @@ class GameController extends ChangeNotifier implements TableGameHost {
     return true;
   }
 
-  /// Returns true if it fired (and so already advanced the turn/notified
-  /// listeners itself via [humanDiscard]) — false leaves the caller to do
-  /// its own normal notify. Never fires with a self-kan on offer (a real
+  /// While locked into riichi, cut the drawn tile on its own after a short
+  /// random pause ([riichiAutoDiscardDelay]) — every later discard is already
+  /// forced to be the drawn tile ([Round.discard]'s tsumogiri lock), so there
+  /// is nothing to confirm. Never fires with a self-kan on offer (a real
   /// decision, left to the player) or a tsumo/flower win on offer (a win is
-  /// never thrown away).
-  bool _maybeAutoDiscardInRiichi() {
-    if (!autoDiscardInRiichi) return false;
+  /// never thrown away). A tap on the tile during the pause still discards it
+  /// at once; the timer then finds the turn already over and does nothing.
+  void _maybeAutoDiscardInRiichi() {
     final human = round.seats[kHumanSeat];
-    if (!human.riichi) return false;
-    if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) {
-      return false;
-    }
-    if (round.closedKanTypes(kHumanSeat).isNotEmpty) return false;
+    if (!human.riichi) return;
+    if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) return;
+    if (round.closedKanTypes(kHumanSeat).isNotEmpty) return;
     final drawn = human.drawn;
-    if (drawn == null) return false;
-    humanDiscard(drawn);
-    return true;
+    if (drawn == null) return;
+    final r = round;
+    _autoDiscardTimer?.cancel();
+    _autoDiscardTimer = Timer(riichiAutoDiscardDelay(_autoDiscardRng), () {
+      // Paused meanwhile: resuming re-runs the turn step, which re-arms this.
+      if (_disposed || paused || autoplay || !identical(r, round)) return;
+      if (r.turn != kHumanSeat ||
+          r.phase != RoundPhase.discarding ||
+          r.seats[kHumanSeat].drawn?.id != drawn.id) {
+        return;
+      }
+      humanDiscard(drawn);
+    });
   }
+
+  Timer? _autoDiscardTimer;
+  final _autoDiscardRng = Random();
 
   /// How the guide weighs danger against value. Feeds every score it produces,
   /// so it steers Autoplay — which plays from those scores — as well as the
@@ -288,6 +369,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// the default.
   bool hanchan;
   int get _handsPerGame => ruleset.handsPerGame(fullGame: hanchan);
+
+  /// Hong Kong only: the fewest faan a hand needs to win — one of
+  /// [HongKongRules.minimumFaanChoices], 0 by default. Kept across a switch
+  /// to another ruleset, which ignores it.
+  int minimumFaan;
 
   @override
   EfficiencyReport report = EfficiencyReport.waiting();
@@ -389,6 +475,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
     newGame();
   }
 
+  /// Like switching rules, a new minimum abandons the game in progress —
+  /// but only a Hong Kong one, since no other ruleset reads it.
+  void setMinimumFaan(int value) {
+    value = HongKongRules.normalizeMinimumFaan(value);
+    if (minimumFaan == value) return;
+    minimumFaan = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'minimumFaan', value: '$value');
+    if (ruleset.isHongKong) newGame();
+  }
+
   // --- lifecycle -------------------------------------------------------
 
   /// The seat that deals first, and so is East, when a match starts; the human
@@ -454,17 +551,31 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   void _startRound() {
     final serial = _dealSerial++;
-    round = Round(
-      seed: ruleset.isChineseStyle
-          ? _seed + serial
-          : _seed + _roundNumber * 100 + _honba,
-      dealer: _dealer,
-      roundWind: roundWind,
-      honba: _honba,
-      riichiSticks: _riichiSticks,
-      startingPoints: List.of(_points),
-      ruleset: ruleset,
-    );
+    final seed = ruleset.isChineseStyle
+        ? _seed + serial
+        : _seed + _roundNumber * 100 + _honba;
+    final dealer = _dealer;
+    final wind = roundWind;
+    final honba = _honba;
+    final sticks = _riichiSticks;
+    final points = List.of(_points);
+    final rules = ruleset;
+    final faan = minimumFaan;
+    // Kept so [undo] can deal this exact hand again: the wall shuffles from
+    // the seed, so the same arguments give the same tiles with the same ids.
+    _dealRound = () => Round(
+          seed: seed,
+          dealer: dealer,
+          roundWind: wind,
+          honba: honba,
+          riichiSticks: sticks,
+          startingPoints: points,
+          ruleset: rules,
+          minimumFaan: faan,
+        );
+    round = _dealRound();
+    _log.clear();
+    _undoStack.clear();
     _bots = [
       for (var i = 0; i < 4; i++) _botFactory(_seed + i * 7 + _roundNumber)
     ];
@@ -609,6 +720,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void dispose() {
     _disposed = true;
     _loopTimer?.cancel();
+    _autoDiscardTimer?.cancel();
     if (_matchId.isNotEmpty && phase != GamePhase.gameEnd) {
       _tel?.matchEnd(
         matchId: _matchId,
@@ -656,7 +768,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       case RoundPhase.discarding:
         if (round.turn == kHumanSeat && !autoplay) {
           _refreshReport();
-          if (!_maybeAutoTsumo() && !_maybeAutoDiscardInRiichi()) {
+          if (!_maybeAutoTsumo()) {
+            _maybeAutoDiscardInRiichi();
             notifyListeners();
           }
         } else {
@@ -678,17 +791,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
         ? _guidedTurnDecision()
         : _bots[seat].decideTurn(round, seat);
     if (decision.tsumo) {
-      round.declareTsumo(seat);
+      _apply(_Tsumo(seat));
     } else if (decision.closedKan != null) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
       CallCallout.i.show(seat, 'KAN');
-      round.closedKan(seat, decision.closedKan!);
+      _apply(_ClosedKan(seat, decision.closedKan!));
     } else if (decision.addedKan != null) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
       CallCallout.i.show(seat, 'KAN');
-      round.addKan(seat, decision.addedKan!);
+      _apply(_AddKan(seat, decision.addedKan!));
     } else {
       // Riichi has its own declaration sound; a plain discard gets the tile
       // clink, same as a manual one from [humanDiscard] — covers bots and
@@ -702,7 +815,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       }
       final tile = decision.discard ?? round.legalDiscards(seat).first;
       _noteDiscard(seat, tile);
-      round.discard(seat, tile, declareRiichi: decision.riichi);
+      _apply(_Discard(seat, tile.id, riichi: decision.riichi));
     }
     _refreshReport();
     notifyListeners();
@@ -740,7 +853,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices);
-    round.resolveCalls(choices, chiLow: chiLow);
+    _apply(_ResolveCalls(choices, chiLow));
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
@@ -854,6 +967,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         opponentDiscards: riichiOpp != null
             ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
+        opponentMelds: riichiOpp?.melds ?? const [],
         passedDiscardsAfterRiichi:
             riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
@@ -904,6 +1018,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       opponentDiscards: riichiOpp != null
           ? riichiOpp.allDiscards.map((t) => t.type).toList()
           : const [],
+      opponentMelds: riichiOpp?.melds ?? const [],
       passedDiscardsAfterRiichi:
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
@@ -976,8 +1091,15 @@ class GameController extends ChangeNotifier implements TableGameHost {
         followedGuide: recos.isEmpty ? null : recos.contains(tile.type),
       );
     }
+    // A riichi hand's cut is forced — the drawn tile, every time — so there is
+    // nothing to take back; undo steps past it to a real choice.
+    if (!round.seats[kHumanSeat].riichi) {
+      _markUndoPoint(declareRiichi
+          ? 'Riichi ${tile.type.displayName}'
+          : tile.type.displayName);
+    }
     _noteDiscard(kHumanSeat, tile);
-    round.discard(kHumanSeat, tile, declareRiichi: declareRiichi);
+    _apply(_Discard(kHumanSeat, tile.id, riichi: declareRiichi));
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
@@ -986,7 +1108,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   void humanTsumo() {
     if (round.canTsumo(kHumanSeat) && round.turn == kHumanSeat) {
-      round.declareTsumo(kHumanSeat);
+      _apply(const _Tsumo(kHumanSeat));
       phase = GamePhase.roundEnd;
       _playRoundEndSfx();
       notifyListeners();
@@ -997,7 +1119,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   void humanPassFlowerWin() {
     if (!round.canFlowerWin(kHumanSeat)) return;
-    round.passFlowerWin(kHumanSeat);
+    _markUndoPoint('Continue drawing');
+    _apply(const _PassFlowerWin(kHumanSeat));
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
@@ -1008,7 +1131,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   void humanDeclareKyuushu() {
     if (!round.canDeclareKyuushu(kHumanSeat)) return;
-    round.declareKyuushu(kHumanSeat);
+    _apply(const _Kyuushu(kHumanSeat));
     phase = GamePhase.roundEnd;
     _playRoundEndSfx();
     notifyListeners();
@@ -1020,7 +1143,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'KAN');
-      round.closedKan(kHumanSeat, type);
+      _markUndoPoint('${ruleset.kanLabel} ${type.displayName}');
+      _apply(_ClosedKan(kHumanSeat, type));
       _refreshReport();
       notifyListeners();
       _scheduleLoop();
@@ -1033,7 +1157,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'KAN');
-      round.addKan(kHumanSeat, type);
+      _markUndoPoint('${ruleset.kanLabel} ${type.displayName}');
+      _apply(_AddKan(kHumanSeat, type));
       _refreshReport();
       notifyListeners();
       _scheduleLoop();
@@ -1087,10 +1212,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
         followedGuide: advised == null ? null : _callTypeFor(advised) == choice,
       );
     }
+    _markUndoPoint(switch (choice) {
+      CallType.none => 'Pass',
+      CallType.chi => ruleset.chiLabel,
+      CallType.pon => ruleset.ponLabel,
+      CallType.kan => ruleset.kanLabel,
+      CallType.ron => ruleset.ronLabel,
+    });
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices); // voices every calling seat, human included
-    round.resolveCalls(choices, chiLow: chiLows);
+    _apply(_ResolveCalls(choices, chiLows));
     _refreshReport();
     notifyListeners();
     _scheduleLoop();
@@ -1125,6 +1257,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
           valueContext: _efficiencyValueContext(human),
           defenseHand: human.hand,
           opponentDiscards: riichiOpp.allDiscards.map((t) => t.type).toList(),
+          opponentMelds: riichiOpp.melds,
           passedDiscardsAfterRiichi:
               riichiOpp.passedDiscardsAfterRiichi.toList(),
           opponentRiichi: true,
@@ -1147,6 +1280,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       opponentDiscards: riichiOpp != null
           ? riichiOpp.allDiscards.map((t) => t.type).toList()
           : const [],
+      opponentMelds: riichiOpp?.melds ?? const [],
       passedDiscardsAfterRiichi:
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
@@ -1178,6 +1312,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         handsRemaining: (_handsPerGame - _roundNumber).clamp(1, 99),
         ruleset: ruleset,
         flowers: seat.flowers.map((t) => t.type).toList(),
+        minimumFaan: round.minimumFaan,
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong
@@ -1213,6 +1348,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
             discards: s.allDiscards.map((t) => t.type).toList(),
             passedAfterRiichi: s.passedDiscardsAfterRiichi.toList(),
             isDealer: s.isDealer,
+            melds: s.melds,
           ),
       ];
 
@@ -1305,6 +1441,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         opponentDiscards: riichiOpp != null
             ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
+        opponentMelds: riichiOpp?.melds ?? const [],
         passedDiscardsAfterRiichi:
             riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
@@ -1341,4 +1478,80 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// Autoplay follows the guide, so this is simply its recommended discard.
   TileType? get autoplayDiscardType =>
       isHumanTurn ? _recommendedLine()?.discard : null;
+}
+
+/// One change [GameController] made to its [Round], recorded so
+/// [GameController.undo] can replay the hand up to an earlier point. Tiles are
+/// held by id and looked up again in the round being replayed onto, since a
+/// fresh deal hands out fresh [Tile] objects.
+sealed class _Move {
+  const _Move();
+  void applyTo(Round round);
+}
+
+final class _Discard extends _Move {
+  const _Discard(this.seat, this.tileId, {required this.riichi});
+  final int seat;
+  final int tileId;
+  final bool riichi;
+
+  @override
+  void applyTo(Round round) => round.discard(
+        seat,
+        round.seats[seat].hand.firstWhere((t) => t.id == tileId),
+        declareRiichi: riichi,
+      );
+}
+
+final class _ResolveCalls extends _Move {
+  _ResolveCalls(Map<int, CallType> choices, Map<int, TileType> chiLow)
+      : choices = Map.unmodifiable(choices),
+        chiLow = Map.unmodifiable(chiLow);
+  final Map<int, CallType> choices;
+  final Map<int, TileType> chiLow;
+
+  @override
+  void applyTo(Round round) => round.resolveCalls(choices, chiLow: chiLow);
+}
+
+final class _Tsumo extends _Move {
+  const _Tsumo(this.seat);
+  final int seat;
+
+  @override
+  void applyTo(Round round) => round.declareTsumo(seat);
+}
+
+final class _ClosedKan extends _Move {
+  const _ClosedKan(this.seat, this.type);
+  final int seat;
+  final TileType type;
+
+  @override
+  void applyTo(Round round) => round.closedKan(seat, type);
+}
+
+final class _AddKan extends _Move {
+  const _AddKan(this.seat, this.type);
+  final int seat;
+  final TileType type;
+
+  @override
+  void applyTo(Round round) => round.addKan(seat, type);
+}
+
+final class _PassFlowerWin extends _Move {
+  const _PassFlowerWin(this.seat);
+  final int seat;
+
+  @override
+  void applyTo(Round round) => round.passFlowerWin(seat);
+}
+
+final class _Kyuushu extends _Move {
+  const _Kyuushu(this.seat);
+  final int seat;
+
+  @override
+  void applyTo(Round round) => round.declareKyuushu(seat);
 }

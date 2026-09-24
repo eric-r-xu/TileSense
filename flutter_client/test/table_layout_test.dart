@@ -7,18 +7,14 @@ import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
-/// The status panel (round / wall / honba / riichi) sits in the table's
-/// top-left corner, clear of every tile and of the guide panel below it. That
-/// leaves the middle of the table to the ponds: your pond and the one across
-/// from you render the same size as the turned side ponds and meet across the
-/// middle with just a sliver of felt between them.
+/// The status (round / wall / honba / riichi, or dealer repeat) is one line in
+/// the centre of the app bar, clear of the bar's other controls, so the
+/// table's top-left corner is left to the guide panel. The middle of the table
+/// belongs to the ponds: your pond and the one across from you render the same
+/// size as the turned side ponds and meet across the middle with just a sliver
+/// of felt between them.
 void main() {
   preloadDeferredPages();
-
-  Rect statusPanel(WidgetTester tester) => tester.getRect(find
-      .ancestor(
-          of: find.textContaining('East 1'), matching: find.byType(Container))
-      .first);
 
   /// Every tile on the table, as (rect, TileFace).
   List<(Rect, TileFace)> tableTiles(WidgetTester tester) => [
@@ -29,11 +25,15 @@ void main() {
           (tester.getRect(find.byWidget(e.widget)), e.widget as TileFace),
       ];
 
-  Future<void> startGame(WidgetTester tester) async {
+  Future<void> startGame(WidgetTester tester, {String? ruleset}) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
+    if (ruleset != null) {
+      await tester.tap(find.byKey(Key('ruleset_$ruleset')));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
@@ -57,26 +57,53 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets('the status panel sits top-left, clear of every tile',
-      (tester) async {
-    await startGame(tester);
-    final table = tester.getRect(find.byType(TableView));
-    final panel = statusPanel(tester);
+  for (final (ruleset, tail) in [
+    ('riichi', 'Riichi 0'),
+    ('hongKong', 'Dealer repeat 0'),
+    ('taiwanese', 'Dealer repeat 0'),
+  ]) {
+    testWidgets(
+        '$ruleset: the status is one line centred in the app bar, clear of '
+        'its other controls', (tester) async {
+      await startGame(tester, ruleset: ruleset);
+      final line = find.byKey(const Key('tableStatus'));
+      expect(line, findsOneWidget);
+      expect(
+          find.descendant(
+              of: line, matching: find.textContaining(RegExp('East 1.*$tail'))),
+          findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(TableView),
+              matching: find.textContaining('East 1')),
+          findsNothing,
+          reason: 'the old status box is gone from the table');
 
-    expect(panel.left - table.left, lessThan(12),
-        reason: 'the panel hugs the left edge');
-    expect(panel.top - table.top, lessThan(12), reason: 'and the top edge');
-    for (final (r, _) in tableTiles(tester)) {
-      expect(r.overlaps(panel), isFalse,
-          reason: 'a tile at $r is under the status panel at $panel');
-    }
-    expect(tester.takeException(), isNull);
+      final bar = tester.getRect(find.byType(AppBar));
+      final status = tester.getRect(line);
+      expect(bar.contains(status.topLeft) && bar.contains(status.bottomRight),
+          isTrue,
+          reason: 'the status line sits inside the app bar');
+      expect(status.height, lessThan(24), reason: 'on a single line');
+      expect((status.center.dx - bar.center.dx).abs(), lessThan(bar.width / 4),
+          reason: 'towards the middle of the bar');
+      for (final other in [
+        find.byKey(const Key('ruleset')),
+        find.byKey(const Key('fastMode')),
+        find.byKey(const Key('handFocus')),
+        find.byKey(const Key('autoplay')),
+      ]) {
+        expect(tester.getRect(other).overlaps(status), isFalse,
+            reason: 'the status line covers $other');
+      }
+      expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump();
-  });
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  }
 
-  testWidgets('the guide panel starts below the status panel', (tester) async {
+  testWidgets('the guide panel starts at the top of the table', (tester) async {
     await startGame(tester);
     // Resume first: the pause veil would otherwise sit over everything.
     await tester.tap(find.byTooltip('Resume'));
@@ -85,17 +112,16 @@ void main() {
     await tester.pump();
 
     final guide = tester.getRect(find.byType(EfficiencyOverlay));
-    final panel = statusPanel(tester);
-    expect(guide.top, greaterThan(panel.bottom),
-        reason: 'the guide panel is covering the status panel');
-    expect(guide.top - panel.bottom, lessThan(20),
-        reason: 'and sits right under it, not far down the screen');
+    final table = tester.getRect(find.byType(TableView));
+    expect(guide.top, greaterThanOrEqualTo(table.top));
+    expect(guide.top - table.top, lessThan(20),
+        reason: 'nothing sits in the top-left corner above it any more');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });
 
-  testWidgets('the builder keeps its guide panel below the status panel too',
+  testWidgets('the builder\'s guide panel starts at the top of the table too',
       (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -105,7 +131,9 @@ void main() {
     await pumpLoadedPage(tester);
 
     final guide = tester.getRect(find.byType(EfficiencyOverlay));
-    expect(guide.top, greaterThan(statusPanel(tester).bottom));
+    final table = tester.getRect(find.byType(TableView));
+    expect(guide.top, greaterThanOrEqualTo(table.top));
+    expect(guide.top - table.top, lessThan(20));
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox());

@@ -39,6 +39,7 @@ class Room {
     required this.ruleset,
     required this.hanchan,
     this.timerSeconds = defaultTimerSeconds,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
   });
 
   /// The per-action clock (a turn's discard, or an offered call) a room may
@@ -57,6 +58,9 @@ class Room {
 
   /// Seconds each human gets per discard and per call offer.
   final int timerSeconds;
+
+  /// Hong Kong only: the fewest faan a hand needs to win, picked by the host.
+  final int minimumFaan;
   RoomPhase phase = RoomPhase.lobby;
   int hostSeat = 0;
   final List<Seat?> seats = List<Seat?>.filled(4, null);
@@ -152,6 +156,7 @@ class Room {
         'ruleset': ruleset.name,
         'hanchan': hanchan,
         'timerSeconds': timerSeconds,
+        'minimumFaan': minimumFaan,
         'phase': phase.name,
         if (yourSeat != null) 'yourSeat': yourSeat,
         'seats': [
@@ -184,6 +189,7 @@ class RoomManager {
     required Ruleset ruleset,
     required bool hanchan,
     int timerSeconds = Room.defaultTimerSeconds,
+    int minimumFaan = HongKongRules.defaultMinimumFaan,
     String? hostCharacter,
   }) {
     final code = _freshCode();
@@ -191,7 +197,8 @@ class RoomManager {
         code: code,
         ruleset: ruleset,
         hanchan: hanchan,
-        timerSeconds: Room.normalizeTimerSeconds(timerSeconds));
+        timerSeconds: Room.normalizeTimerSeconds(timerSeconds),
+        minimumFaan: HongKongRules.normalizeMinimumFaan(minimumFaan));
     room.seats[0] = Seat(
       guestId: hostGuestId,
       name: hostName,

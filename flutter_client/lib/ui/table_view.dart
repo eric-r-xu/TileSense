@@ -9,12 +9,14 @@ import '../game/sfx.dart' show kCharacterPortrait;
 import 'package:mahjong_core/round.dart';
 import 'meld_row.dart';
 import 'tile_face.dart';
+import 'tilesensor.dart';
 
 /// The flat 2D table. Each seat's placard hugs its own edge with the concealed
 /// hand just inside it (the freshly drawn tile split out so its position reads);
 /// the four discard ponds bracket the centre on a fixed six-column grid whose
-/// origin never moves as it fills; the round/wall status sits in the top-left
-/// corner and the dead wall in the top-right one.
+/// origin never moves as it fills; the dead wall sits in the top-right corner.
+/// The round/wall status is not on the table at all but on one line in the app
+/// bar — see [TableStatusLine].
 /// Which part of the table the scenario builder is currently pointing at.
 enum TableArea { pond, melds, dora }
 
@@ -47,8 +49,17 @@ class TableEdits {
 }
 
 class TableView extends StatelessWidget {
-  const TableView({super.key, required this.game, this.edits});
+  const TableView({
+    super.key,
+    required this.game,
+    this.edits,
+    this.autoplaying = false,
+  });
   final GuideHost game;
+
+  /// Auto-Play is playing your seat: your placard carries a small TileSensor,
+  /// the same mascot as the Auto-Play switch, while it does.
+  final bool autoplaying;
 
   /// Non-null only in the scenario builder; see [TableEdits].
   final TableEdits? edits;
@@ -58,20 +69,15 @@ class TableView extends StatelessWidget {
   // all four ponds alike.
   static const double _pondScale = 1.25;
 
-  /// The gap between your pond and the one across from you. With the status
-  /// panel up in the corner, nothing sits between them any more, so they meet
-  /// in the middle of the table with just this much felt showing.
+  /// The gap between your pond and the one across from you. Nothing sits
+  /// between them, so they meet in the middle of the table with just this
+  /// much felt showing.
   static const double _centrePondGap = 10;
 
-  /// The status panel's fixed height and its inset from the table's top edge.
-  static const double _statusPanelHeight = 60;
-  static const double _statusPanelTop = 6;
-
-  /// How far down from the top of the table the top-left status panel
-  /// reaches, plus a little clearance — where anything else pinned to that
-  /// corner (the guide panel) should start so the two never overlap.
-  static const double statusPanelClearance =
-      _statusPanelTop + _statusPanelHeight + 8;
+  /// How far down from the top of the table anything pinned to its top-left
+  /// corner (the guide panel) starts. The corner is otherwise empty — the
+  /// round/wall status lives in the app bar ([TableStatusLine]).
+  static const double guidePanelTop = 8;
 
   // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
   static double _pondTileW(double scale) => 32 * scale + 1;
@@ -145,14 +151,6 @@ class TableView extends StatelessWidget {
             child: _pond(round, 1, quarterTurns: 3),
           ),
 
-          // Round / honba / riichi / wall — the top-left corner, above the
-          // left seat and clear of the across seat's row, which is centred.
-          Positioned(
-            top: _statusPanelTop,
-            left: 0,
-            child: _statusBox(round),
-          ),
-
           // Dead wall — top-right. Hong Kong and Taiwanese have no dora to
           // show here; their flowers sit beside each seat's own placard
           // instead.
@@ -193,60 +191,6 @@ class TableView extends StatelessWidget {
         ],
       );
     });
-  }
-
-  /// The top-left status panel: one stat per line, expansive green box. The
-  /// round (with kanji) is largest, the wall counter second largest.
-  Widget _statusBox(Round round) {
-    Widget line(String t, double size, FontWeight weight) => Text(
-          t,
-          maxLines: 1,
-          softWrap: false,
-          style: TextStyle(
-            color: const Color(0xffe9d58f),
-            fontSize: size,
-            fontWeight: weight,
-            height: 1.15,
-          ),
-        );
-    return Container(
-      // Fixed width so the panel reads as a panel, not a tight label — ~30%
-      // wider than the widest line ("Honba 0 · Riichi 0") needs.
-      width: 250,
-      // Fixed height (content centred in it) so [statusPanelClearance] can
-      // say exactly where the panel ends.
-      height: _statusPanelHeight,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xe61f3a1c),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x66e9d58f), width: 1.5),
-      ),
-      // Shrinks to fit rather than overflowing if a line runs long (a wide
-      // font, a long ruleset label), since the height above is fixed.
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            line(
-                '${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
-                15,
-                FontWeight.w800),
-            const SizedBox(height: 2),
-            line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
-            const SizedBox(height: 1),
-            line(
-                round.ruleset.isChineseStyle
-                    ? '${round.ruleset.label}  ·  Dealer repeat ${game.dealerRepeat}'
-                    : 'Honba ${game.honba}  ·  Riichi ${round.riichiSticks}',
-                10,
-                FontWeight.w600),
-          ],
-        ),
-      ),
-    );
   }
 
   /// The 1000-point riichi declaration stick shown at the head of a pond.
@@ -492,34 +436,34 @@ class TableView extends StatelessWidget {
   /// two turned seats — without this animation needing to know which seat it
   /// is. (Verified by hand for all four `quarterTurns` values: a positive
   /// local y always rotates to point away from the centre status block.)
-  static const Offset _pondArrivalFrom = Offset(0, 40);
+  static const Offset _pondArrivalFrom = Offset(0, 56);
 
   /// A one-shot "it just landed here" transition for a freshly discarded
-  /// tile: it glides in from [_pondArrivalFrom] while fading and growing
-  /// slightly, so it reads as having travelled from the hand rather than
-  /// having appeared. The slide, fade and scale run on their own curves —
-  /// a long, soft deceleration for the slide, a quick fade so the tile is
-  /// solid before it lands, and a gentle scale that settles with it — so no
-  /// single property snaps into place. Kept under a single turn's step delay
-  /// (see `GameController._stepDelay`, 552ms in fast mode) to within a whisker,
-  /// so it never really laps the next action.
-  Widget _travelIn(Key key, {required Widget child}) {
-    return TweenAnimationBuilder<double>(
+  /// tile: it glides in from [_pondArrivalFrom], fading in over the first
+  /// part of the trip and growing very slightly, so it reads as having
+  /// travelled from the hand rather than having appeared.
+  ///
+  /// One long, soft deceleration and no overshoot: an earlier version rode
+  /// past the slot and bounced back, which read as jumpy at the table's pace.
+  /// 480ms keeps it inside a single fast-mode turn (see
+  /// `GameController._stepDelay`, 552ms), so it never laps the next action.
+  Widget _travelIn(Key key, {required Widget child}) => Builder(
       key: key,
+      builder: (context) => _still(context) ? child : _travel(child));
+
+  Widget _travel(Widget child) {
+    return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 576),
+      duration: const Duration(milliseconds: 480),
       curve: Curves.linear,
       builder: (_, t, c) {
-        // Three keyframes rather than two: glide in, ride a hair past the
-        // slot, then settle back into it.
-        final slide = _pondSlide.transform(t);
-        final fade = Curves.easeOut.transform((t / 0.45).clamp(0.0, 1.0));
-        final scale = _pondScale3.transform(t);
+        final slide = Curves.easeOutCubic.transform(t);
+        final fade = Curves.easeOut.transform((t / 0.35).clamp(0.0, 1.0));
         return Opacity(
           opacity: fade,
           child: Transform.translate(
             offset: _pondArrivalFrom * (1 - slide),
-            child: Transform.scale(scale: scale, child: c),
+            child: Transform.scale(scale: 0.94 + 0.06 * slide, child: c),
           ),
         );
       },
@@ -527,66 +471,36 @@ class TableView extends StatelessWidget {
     );
   }
 
-  /// 1 = at rest in the slot; the middle keyframe overshoots to 1.06 (a few
-  /// pixels past it) before the last one settles back. Applied as
-  /// `_pondArrivalFrom * (1 - slide)`, so an overshoot slides the tile briefly
-  /// *past* its slot, away from where it came from.
-  static final TweenSequence<double> _pondSlide = TweenSequence<double>([
-    TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.06)
-            .chain(CurveTween(curve: Curves.easeOutQuart)),
-        weight: 70),
-    TweenSequenceItem(
-        tween: Tween(begin: 1.06, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOutSine)),
-        weight: 30),
-  ]);
-
-  static final TweenSequence<double> _pondScale3 = TweenSequence<double>([
-    TweenSequenceItem(
-        tween: Tween(begin: 0.85, end: 1.04)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 65),
-    TweenSequenceItem(
-        tween: Tween(begin: 1.04, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOutSine)),
-        weight: 35),
-  ]);
-
   /// A one-shot pop-in for a newly formed meld (chi/pon/kan) or a riichi
-  /// stick, so a call reads as the set assembling rather than appearing whole.
-  /// Three keyframes: rise and grow in, swell just past full size, settle.
-  Widget _popIn(Key key, Widget child) {
-    return TweenAnimationBuilder<double>(
+  /// stick, so a call reads as the set assembling rather than appearing
+  /// whole: it rises a little and grows into place, settling without a
+  /// bounce.
+  Widget _popIn(Key key, Widget child) => Builder(
       key: key,
+      builder: (context) => _still(context) ? child : _pop(child));
+
+  /// The system's reduce-motion setting: tiles and melds just appear.
+  static bool _still(BuildContext context) =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+  Widget _pop(Widget child) {
+    return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 312),
+      duration: const Duration(milliseconds: 280),
       curve: Curves.linear,
-      builder: (_, t, c) => Opacity(
-        opacity: Curves.easeOut.transform((t / 0.5).clamp(0.0, 1.0)),
-        child: Transform.translate(
-          offset: Offset(0, 8 * (1 - Curves.easeOutCubic.transform(t))),
-          child: Transform.scale(scale: _popScale.transform(t), child: c),
-        ),
-      ),
+      builder: (_, t, c) {
+        final settle = Curves.easeOutCubic.transform(t);
+        return Opacity(
+          opacity: Curves.easeOut.transform((t / 0.5).clamp(0.0, 1.0)),
+          child: Transform.translate(
+            offset: Offset(0, 8 * (1 - settle)),
+            child: Transform.scale(scale: 0.85 + 0.15 * settle, child: c),
+          ),
+        );
+      },
       child: child,
     );
   }
-
-  static final TweenSequence<double> _popScale = TweenSequence<double>([
-    TweenSequenceItem(
-        tween: Tween(begin: 0.55, end: 1.07)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 55),
-    TweenSequenceItem(
-        tween: Tween(begin: 1.07, end: 0.98)
-            .chain(CurveTween(curve: Curves.easeInOutSine)),
-        weight: 25),
-    TweenSequenceItem(
-        tween: Tween(begin: 0.98, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOutSine)),
-        weight: 20),
-  ]);
 
   Widget _meldGroup(SeatState s) {
     final group = Wrap(
@@ -742,7 +656,7 @@ class TableView extends StatelessWidget {
 
   /// A seat's character portrait, tucked beside its placard and sized to sit
   /// level with it. [tooltip], when given, names the player on hover — the
-  /// same mechanism as the AppBar's clefairy guide toggle.
+  /// same mechanism as the TileSensor guide toggle.
   Widget _portrait(int seat, {double size = 42, String? tooltip}) {
     final avatar = Container(
       width: size,
@@ -804,6 +718,7 @@ class TableView extends StatelessWidget {
       // but barred from ron. Only seat 0's placard renders unrotated, so
       // keep it here.
       if (seat == kHumanSeat && game.humanFuriten) _furitenBadge(),
+      if (seat == kHumanSeat && autoplaying) _autoplayBadge(),
       // Online play only — see [GuideHost.turnDeadlineMs] — a per-turn
       // countdown next to whoever's actually on the clock.
       if (active && deadline != null) CountdownBadge(deadlineMs: deadline),
@@ -817,6 +732,27 @@ class TableView extends StatelessWidget {
       ],
     );
   }
+
+  Widget _autoplayBadge() => Tooltip(
+        message: 'Auto-Play — TileSensor is playing your seat',
+        child: Container(
+          key: const Key('autoplaySeatBadge'),
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: const Color(0xff0c4747),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+          ),
+          child: Image.asset(
+            kTileSensorAsset,
+            width: 18,
+            height: 18,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (_, __, ___) => const Icon(Icons.play_arrow,
+                size: 18, color: Color(0xffcaa24e)),
+          ),
+        ),
+      );
 
   Widget _furitenBadge() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -1214,4 +1150,57 @@ class _CallBubbleAnchorState extends State<_CallBubbleAnchor> {
   @override
   Widget build(BuildContext context) =>
       CompositedTransformTarget(link: _link, child: widget.child);
+}
+
+/// The round, wall and stick/repeat counts on one line, for the centre of
+/// the app bar — the same read-out for Riichi, Hong Kong and Taiwanese
+/// tables, solo or online. Scales down rather than wrapping when the bar is
+/// tight, so it never pushes into the controls either side of it.
+class TableStatusLine extends StatelessWidget {
+  const TableStatusLine(
+      {super.key, required this.game, this.showRuleset = false});
+  final GuideHost game;
+
+  /// Name the ruleset too (Hong Kong/Taiwanese only, where the dealer-repeat
+  /// count takes the honba/riichi slot) — for a bar that doesn't already
+  /// show it elsewhere.
+  final bool showRuleset;
+
+  static const _colour = Color(0xffe9d58f);
+
+  @override
+  Widget build(BuildContext context) {
+    final round = game.round;
+    final rules = round.ruleset;
+    final rest = [
+      'Wall ${round.wall.remaining}',
+      if (rules.isChineseStyle) ...[
+        if (showRuleset) rules.label,
+        'Dealer repeat ${game.dealerRepeat}',
+      ] else ...[
+        'Honba ${game.honba}',
+        'Riichi ${round.riichiSticks}',
+      ],
+    ];
+    return FittedBox(
+      key: const Key('tableStatus'),
+      fit: BoxFit.scaleDown,
+      child: Text.rich(
+        TextSpan(
+          style: const TextStyle(
+              color: _colour, fontSize: 13, fontWeight: FontWeight.w600),
+          children: [
+            TextSpan(
+              text: '${round.roundWind.kanji} ${round.roundWind.label} '
+                  '${game.handInWind}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            ),
+            for (final r in rest) TextSpan(text: '  ·  $r'),
+          ],
+        ),
+        maxLines: 1,
+        softWrap: false,
+      ),
+    );
+  }
 }

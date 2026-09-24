@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +11,7 @@ import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
 import 'table_view.dart' show CountdownBadge;
 import 'tile_face.dart';
+import 'tilesensor.dart';
 
 /// How the concealed hand is ordered — the three settings of the Sort chip.
 enum HandSort {
@@ -80,6 +83,10 @@ class _HandViewState extends State<HandView> {
   /// apart from a rebuild mid-turn and drop a stale raise exactly once, at
   /// the turn boundary.
   int? _lastDrawnId;
+
+  /// The tile strip's row: where each tile's slot is measured from, so a
+  /// scroll or a pinch-zoom never reads as the tiles moving.
+  final GlobalKey _stripKey = GlobalKey();
 
   TableGameHost get game => widget.game;
 
@@ -303,10 +310,36 @@ class _HandViewState extends State<HandView> {
     ];
     final shown =
         _sort == HandSort.off ? _drawOrdered(inStrip) : sortByType(inStrip);
+    // Each tile keyed by its id, so a tile that moves — the gap a discard
+    // leaves closing up, the drawn tile filed into place, a re-sort — keeps
+    // its own element and can glide from its old slot to its new one. A fresh
+    // draw fades in as it drops into its slot.
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    Widget glide(Tile tile, Widget child) => KeyedSubtree(
+          key: ValueKey(tile.id),
+          child: _SlideFromPrevious(
+            anchor: () =>
+                _stripKey.currentContext?.findRenderObject() as RenderBox?,
+            enabled: !still,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(
+                  begin: drawn?.id == tile.id && !still ? 0.0 : 1.0, end: 1.0),
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              builder: (_, t, c) => Opacity(
+                opacity: t,
+                child: Transform.translate(
+                    offset: Offset(0, -14 * (1 - t)), child: c),
+              ),
+              child: child,
+            ),
+          ),
+        );
     final List<Widget> tiles = [
-      for (final t in shown) draggableTile(t, shown),
+      for (final t in shown) glide(t, draggableTile(t, shown)),
       // Held apart, it has no slot in the order yet and is not a drop target.
-      if (drawn != null && !drawnInline) tileButton(drawn, separated: true),
+      if (drawn != null && !drawnInline)
+        glide(drawn, tileButton(drawn, separated: true)),
     ];
 
     return Container(
@@ -337,21 +370,17 @@ class _HandViewState extends State<HandView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Auto-discard only matters once you're locked
-                          // into riichi, so it only appears then.
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               _sortToggle(),
-                              const SizedBox(height: 4),
+                              // Apart, so a thumb on a phone lands on the one
+                              // it meant.
+                              const SizedBox(height: 10),
                               _autoWinToggle(),
-                              if (seat.riichi) ...[
-                                const SizedBox(height: 4),
-                                _autoDiscardToggle(),
-                              ],
                             ],
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 14),
                           // A *minimum*, not a fixed width: short hands still
                           // hold the no-jitter width this was sized for, but
                           // a hand this can't fit — Taiwanese's 16/17 tiles,
@@ -364,6 +393,7 @@ class _HandViewState extends State<HandView> {
                                 BoxConstraints(minWidth: _handStripWidth),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
+                              key: _stripKey,
                               children: tiles,
                             ),
                           ),
@@ -385,23 +415,23 @@ class _HandViewState extends State<HandView> {
                     ],
                   ),
                 ),
-              // GitHub link then the Flutter credit — centred in this bottom
-              // band, never covered by melds.
+              // The credits, small and muted in the corner: they are links
+              // out of the game, not controls of it, so they stay out of a
+              // thumb's way. Sound, which is a control, lives with pause and
+              // new game in the top bar.
               const SizedBox(width: 10),
               IconButton(
                 tooltip: 'View on GitHub',
-                iconSize: 32,
-                icon: const FaIcon(FontAwesomeIcons.github, size: 32),
-                color: Colors.white70,
+                iconSize: 22,
+                visualDensity: VisualDensity.compact,
+                icon: const FaIcon(FontAwesomeIcons.github, size: 22),
+                color: Colors.white38,
                 onPressed: () => launchUrl(
                   Uri.parse('https://github.com/eric-r-xu/TileSense'),
                   mode: LaunchMode.externalApplication,
                 ),
               ),
-              const SizedBox(width: 6),
               const _FlutterAttribution(),
-              const SizedBox(width: 6),
-              _soundButton(),
             ],
           ),
         ],
@@ -409,26 +439,11 @@ class _HandViewState extends State<HandView> {
     );
   }
 
-  /// Sound toggle, the rightmost thing in the bar — bottom-right corner of the
-  /// whole app. On by default (see [GameController.setSoundOn]); toggling it is
-  /// also a fresh gesture a player can reach for to resync audio mid-game if
-  /// the browser suspended Web Audio and dropped bot/Auto-Play sfx.
-  Widget _soundButton() {
-    final on = game.soundOn;
-    return IconButton(
-      key: const Key('soundToggle'),
-      tooltip: on ? 'Sound on — tap to mute' : 'Sound off — tap to unmute',
-      iconSize: 28,
-      icon: Icon(on ? Icons.volume_up : Icons.volume_off),
-      color: on ? const Color(0xffe9d58f) : Colors.white38,
-      onPressed: () => game.setSoundOn(!on),
-    );
-  }
-
   Widget _guideButton() {
     final action = widget.showGuide ? 'Hide guide' : 'Show guide';
     return Tooltip(
-      message: 'TileSense — ${action.toLowerCase()}',
+      message: '$kTileSensorIntro\n\n'
+          '${widget.showGuide ? 'Tap to hide my guide.' : 'Tap to show my guide.'}',
       child: TextButton(
         key: const Key('bottomGuideToggle'),
         onPressed: widget.onToggleGuide,
@@ -443,7 +458,7 @@ class _HandViewState extends State<HandView> {
             Opacity(
               opacity: widget.showGuide ? 1.0 : 0.4,
               child: Image.asset(
-                'assets/clefairy.png',
+                kTileSensorAsset,
                 width: 64,
                 height: 64,
                 fit: BoxFit.contain,
@@ -465,170 +480,127 @@ class _HandViewState extends State<HandView> {
     );
   }
 
-  /// The three-way Sort chip: tap to cycle Off → Hand → Hand+draw.
+  /// The three-way Sort toggle: tap to cycle Off → Hand → Hand+draw.
   Widget _sortToggle() {
-    final (label, tooltip) = switch (_sort) {
+    final (value, icon, tooltip) = switch (_sort) {
       HandSort.off => (
-          'Sort: Off',
+          'Off',
+          Icons.drag_indicator,
           'Sort: Off — your own order.\n'
               'Long-press a tile and drag it to move it. '
               'Tap for Hand (tile order).'
         ),
       HandSort.hand => (
-          'Sort: Hand',
+          'Hand',
+          Icons.sort,
           'Sort: Hand — tiles kept in tile order, your drawn tile apart '
               'on the right.\n'
               'Tap for Hand+draw, or drag a tile to start your own order.'
         ),
       HandSort.handAndDraw => (
           'Hand+draw',
+          Icons.low_priority,
           'Sort: Hand+draw — your drawn tile is sorted straight into your '
               'hand.\n'
               'Tap to freeze this order (Off), or drag a tile to start your own.'
         ),
     };
-    final on = _sort != HandSort.off;
-    const activeColor = Color(0xff00695c);
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: on ? activeColor : const Color(0xff294342),
-        borderRadius: BorderRadius.circular(6),
-        child: InkWell(
-          key: const Key('sortHand'),
-          borderRadius: BorderRadius.circular(6),
-          onTap: _cycleSort,
-          child: Container(
-            width: 86,
-            padding: const EdgeInsets.fromLTRB(3, 2, 6, 2),
-            child: Row(
-              children: [
-                // Narrower than a checkbox slot, leaving the label room for
-                // "Sort: Hand" in the same 86px chip.
-                SizedBox(
-                  width: 15,
-                  height: 18,
-                  child: Icon(
-                    _sort == HandSort.handAndDraw
-                        ? Icons.low_priority
-                        : Icons.sort,
-                    size: 14,
-                    color: on ? Colors.white : Colors.white60,
-                  ),
-                ),
-                const SizedBox(width: 3),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: on ? Colors.white : Colors.white60,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return _handToggle(
+      key: const Key('sortHand'),
+      caption: 'SORT',
+      value: value,
+      icon: icon,
+      on: _sort != HandSort.off,
+      activeColor: const Color(0xff00695c),
+      tooltip: tooltip,
+      onTap: _cycleSort,
     );
   }
 
   /// Auto-win: declares ron/tsumo the moment one is legal.
   Widget _autoWinToggle() {
-    final game = widget.game;
     final on = game.autoWin;
-    return _miniToggle(
+    return _handToggle(
       key: const Key('autoWin'),
-      label: 'Auto-win',
-      value: on,
-      onTap: () => game.setAutoWin(!on),
+      caption: 'AUTO-WIN',
+      value: on ? 'On' : 'Off',
+      icon: Icons.emoji_events,
+      on: on,
       activeColor: const Color(0xff2e7d32),
       tooltip: on
           ? 'Auto-win: on — ron and tsumo are declared for you '
-              'as soon as you can win.\nUncheck to decide yourself.'
+              'as soon as you can win.\nTap to decide yourself.'
           : 'Auto-win: off — press the win button yourself.\n'
-              'Check to declare ron/tsumo automatically.',
+              'Tap to declare ron/tsumo automatically.',
+      onTap: () => game.setAutoWin(!on),
     );
   }
 
-  /// Riichi auto-discard: every discard after declaring is already forced to
-  /// be the drawn tile, so this just skips confirming it. Never auto-kans —
-  /// a self-kan (or a win) still waits for you.
-  Widget _autoDiscardToggle() {
-    final game = widget.game;
-    final on = game.autoDiscardInRiichi;
-    return _miniToggle(
-      key: const Key('autoDiscardInRiichi'),
-      label: 'Auto-discard',
-      value: on,
-      onTap: () => game.setAutoDiscardInRiichi(!on),
-      activeColor: const Color(0xff8a6d1f),
-      tooltip: on
-          ? 'Auto-discard: on — your drawn tile is cut right away.\n'
-              'Still pauses for a self-kan or a win. Uncheck to turn off.'
-          : 'Auto-discard: off — confirm each drawn tile yourself.\n'
-              'Check to cut it automatically (kans are never automatic).',
-    );
-  }
-
-  /// A compact one-line checkbox chip, shared by the toggles stacked left
-  /// of the hand so they line up at the same width — up to three of them fit
-  /// within the tile row's height.
-  Widget _miniToggle({
+  /// One of the two toggles stacked left of the hand, in the same
+  /// caption-over-value grammar as the top bar's tiles. 96×46 each with a
+  /// 10px gap: the pair still fits inside the tile row's height, so it
+  /// covers nothing, while each is big enough to hit on a phone — where the
+  /// whole canvas is drawn at about half size. Filled in its colour when on,
+  /// an outline when off, so the state reads without the label.
+  Widget _handToggle({
     required Key key,
-    required String label,
-    required bool value,
-    required VoidCallback onTap,
+    required String caption,
+    required String value,
+    required IconData icon,
+    required bool on,
     required Color activeColor,
     required String tooltip,
+    required VoidCallback onTap,
   }) {
+    final ink = on ? Colors.white : Colors.white60;
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: value ? activeColor : const Color(0xff294342),
-        borderRadius: BorderRadius.circular(6),
+        color: on ? activeColor : Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: on ? activeColor : Colors.white24),
+        ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(6),
+          key: key,
+          borderRadius: BorderRadius.circular(8),
           onTap: onTap,
-          child: Container(
-            width: 86,
-            padding: const EdgeInsets.fromLTRB(3, 2, 6, 2),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: Checkbox(
-                    key: key,
-                    value: value,
-                    onChanged: (_) => onTap(),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                    checkColor: activeColor,
-                    activeColor: Colors.white,
-                    side: const BorderSide(color: Colors.white60, width: 1.5),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: value ? Colors.white : Colors.white60,
+          child: SizedBox(
+            width: 96,
+            height: 46,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Icon(icon, size: 20, color: ink),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(caption,
+                            style: TextStyle(
+                                color: ink.withValues(alpha: 0.7),
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.6)),
+                        const SizedBox(height: 2),
+                        Text(
+                          value,
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                          style: TextStyle(
+                              color: ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -804,26 +776,93 @@ class _HandViewState extends State<HandView> {
       }
     }
 
+    // What the bar is offering, as one value: when it changes, the old set of
+    // buttons fades out as the new one fades in, rather than swapping in a
+    // single frame.
+    final offer = [
+      game.humanFuriten,
+      game.round.canFlowerWin(kHumanSeat),
+      game.humanCallOption?.types,
+      game.humanChiRuns,
+      game.isHumanTurn,
+      game.humanCanDeclareKyuushu,
+      game.humanCanTsumo,
+      game.humanClosedKanTypes,
+      game.humanAddedKanTypes,
+      game.humanCanRiichi,
+      showGuide && game.report.recommendRiichi,
+      showGuide ? game.recommendedChiRun : null,
+    ].join('|');
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
     // Fixed height so the tile bar below never shifts as buttons come and go.
     // Centred (rather than left-aligned) so it lines up under the seat badge
     // above it instead of hugging the left edge of the bar.
     return SizedBox(
       height: 48,
       width: double.infinity,
-      child: Align(
+      child: Stack(
         alignment: Alignment.center,
-        child: Wrap(
-          // Wide gaps so a thumb on a small screen lands on the action it
-          // meant — the bar is the full canvas width, so even a crowded turn
-          // (every chi option plus pon, kan, win and pass) stays one row.
-          spacing: 17,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: buttons,
-        ),
+        children: [
+          AnimatedSwitcher(
+            duration: still ? Duration.zero : const Duration(milliseconds: 150),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween(begin: 0.96, end: 1.0).animate(animation),
+                child: child,
+              ),
+            ),
+            child: Wrap(
+              key: ValueKey(offer),
+              // Wide gaps so a thumb on a small screen lands on the action
+              // it meant — the bar is the full canvas width, so even a
+              // crowded turn (every chi option plus pon, kan, win and pass)
+              // stays one row.
+              spacing: 17,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: buttons,
+            ),
+          ),
+          // Take back sits apart at the left end, outside the centred row,
+          // so the call buttons never shift when it comes and goes.
+          if (game.canUndo)
+            Positioned(left: 0, child: _undoButton()),
+        ],
       ),
     );
   }
+
+  /// Takes back your last decision this hand — see [TableGameHost.undo].
+  /// Named for what it undoes, so a press is never a guess.
+  Widget _undoButton() => Tooltip(
+        message: 'Take back your last move this hand, and everything after '
+            'it.\nPress again to keep stepping back. (Ctrl/Cmd+Z)',
+        child: OutlinedButton.icon(
+          key: const Key('undo'),
+          onPressed: () {
+            setState(() => _selectedTileId = null);
+            game.undo();
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xffe9d58f),
+            side: const BorderSide(color: Color(0xffcaa24e)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            minimumSize: const Size(120, 44),
+          ),
+          icon: const Icon(Icons.undo, size: 22),
+          label: Text.rich(
+            TextSpan(children: [
+              const TextSpan(text: 'Take back  '),
+              TextSpan(
+                  text: game.undoLabel ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+            ]),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+        ),
+      );
 
   /// "345m" for the run whose lowest tile is [low].
   static String _runLabel(TileType low) {
@@ -909,5 +948,149 @@ class _FlutterAttribution extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Slides its child from wherever it was last painted to wherever layout puts
+/// it now — so a tile that changes slot glides there instead of jumping.
+///
+/// The move is noticed while painting, not after the frame: by then the new
+/// slot would already have been shown for one frame, and the slide would
+/// start with a flicker back to the old one. Positions are measured against
+/// [anchor] (the strip itself), so scrolling or zooming the table moves
+/// nothing.
+class _SlideFromPrevious extends StatefulWidget {
+  const _SlideFromPrevious({
+    required this.anchor,
+    required this.enabled,
+    required this.child,
+  });
+
+  final RenderBox? Function() anchor;
+  final bool enabled;
+  final Widget child;
+
+  @override
+  State<_SlideFromPrevious> createState() => _SlideFromPreviousState();
+}
+
+class _SlideFromPreviousState extends State<_SlideFromPrevious>
+    with SingleTickerProviderStateMixin {
+  /// Quick enough to be done well inside a bot's turn, long enough to read
+  /// as the row closing up rather than snapping shut.
+  late final AnimationController _progress = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+    value: 1,
+  );
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _Slide(
+        anchor: widget.anchor,
+        enabled: widget.enabled,
+        progress: _progress,
+        child: widget.child,
+      );
+}
+
+class _Slide extends SingleChildRenderObjectWidget {
+  const _Slide({
+    required this.anchor,
+    required this.enabled,
+    required this.progress,
+    super.child,
+  });
+
+  final RenderBox? Function() anchor;
+  final bool enabled;
+  final AnimationController progress;
+
+  @override
+  _RenderSlide createRenderObject(BuildContext context) =>
+      _RenderSlide(anchor, enabled, progress);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderSlide renderObject) {
+    renderObject
+      ..anchor = anchor
+      ..enabled = enabled;
+  }
+}
+
+class _RenderSlide extends RenderProxyBox {
+  _RenderSlide(this.anchor, this.enabled, this._progress);
+
+  RenderBox? Function() anchor;
+  bool enabled;
+  final AnimationController _progress;
+
+  /// Where layout put this last time it was painted, in the anchor's space.
+  Offset? _lastSlot;
+
+  /// How far from its slot the slide starts. Eased towards zero by
+  /// [_progress].
+  Offset _from = Offset.zero;
+
+  /// A move was spotted mid-paint; [_progress] is restarted just after the
+  /// frame, and until then the tile holds at [_from].
+  bool _restartPending = false;
+
+  Offset get _shift => _restartPending
+      ? _from
+      : _from * (1 - Curves.easeOutCubic.transform(_progress.value));
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _progress.addListener(markNeedsPaint);
+  }
+
+  @override
+  void detach() {
+    _progress.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final base = anchor();
+    if (base != null && base.attached && enabled) {
+      final slot = localToGlobal(Offset.zero, ancestor: base);
+      final last = _lastSlot;
+      if (last != null && (slot - last).distance > 0.5) {
+        // Start from where it is on screen right now — mid-slide included —
+        // so a second move during the first just bends the path.
+        _from = _shift + (last - slot);
+        _restartPending = true;
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (!attached) return;
+          _restartPending = false;
+          _progress.forward(from: 0);
+        });
+      }
+      _lastSlot = slot;
+    }
+    if (child != null) context.paintChild(child!, offset + _shift);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      result.addWithPaintOffset(
+        offset: _shift,
+        position: position,
+        hitTest: (result, transformed) =>
+            child?.hitTest(result, position: transformed) ?? false,
+      );
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    final s = _shift;
+    transform.translateByDouble(s.dx, s.dy, 0, 1);
   }
 }

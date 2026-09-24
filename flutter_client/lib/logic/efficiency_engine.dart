@@ -227,6 +227,43 @@ class HongKongGuideTuning {
   /// The win-probability model the Hong Kong guide runs on.
   static WinModel winModel = WinModel.hongKong;
 
+  /// Rate a tile the threat discarded itself as far less likely to be its
+  /// wait (see `rankHongKongSafety`). Off rates every tile by type alone.
+  static bool readThreatDiscards = false;
+
+  /// Read a flush from a threat's exposed sets all in one suit (see
+  /// `rankHongKongSafety`). The bots never aim for one, so against them the
+  /// read measures as noise: a flush-looking threat won off-suit 53 times in
+  /// 75.
+  static bool readThreatFlush = false;
+
+  /// What a deal-in costs, in chips, when [dealInByVisibleFaan] is off.
+  static double dealInCost = EfficiencyEngine._hongKongDealInCost;
+
+  /// Price each deal-in from the threat's visible faan — dragon and
+  /// round-wind pungs, and a one-suit spread of exposed sets — instead of
+  /// the flat [dealInCost].
+  static bool dealInByVisibleFaan = false;
+
+  /// Credit the pre-ready payout estimate with faan the hand can still
+  /// build: a dragon or seat/round-wind pair that could be punged, and a
+  /// hand nearly all one suit that could finish as a flush.
+  static bool potentialFaanInEstimate = false;
+
+  /// With no threat out, never recommend a discard that takes the hand
+  /// further from ready: the best line among the closest ones instead. The
+  /// guide stepped back on 0.78 discards a hand where the bot took 0.37, and
+  /// reached ready on 50% of hands to the bot's 55%. With
+  /// [takeShantenCalls], worth 0.163 of a placement over the guide without
+  /// either, on 6000 held-out games (seeds 300000+, 2026-09-24) — see
+  /// BOT_STRATEGY.md.
+  static bool neverStepBack = true;
+
+  /// With no threat out, take any pung or chow that brings the hand closer to
+  /// ready, as the bot does — the guide's valuation only chooses between
+  /// such calls rather than overruling them. See [neverStepBack].
+  static bool takeShantenCalls = true;
+
   /// The win-probability model the Taiwanese guide runs on.
   static WinModel taiwaneseWinModel = WinModel.taiwanese;
 }
@@ -360,6 +397,7 @@ class EfficiencyValueContext {
     this.ruleset = Ruleset.riichi,
     this.flowers = const [],
     this.flowersEnabled = true,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
   });
 
   final List<Meld> melds;
@@ -370,6 +408,10 @@ class EfficiencyValueContext {
   /// Hong Kong: flowers and seasons already exposed, which score on any win.
   final List<TileType> flowers;
   final bool flowersEnabled;
+
+  /// Hong Kong: the fewest faan a complete hand needs to be declared (see
+  /// `Round.minimumFaan`). A wait scoring less is no win at all.
+  final int minimumFaan;
 
   /// What [points] is worth on this context's [focus] dial.
   double worth(double points) => focus.worth(points, ruleset: ruleset);
@@ -455,6 +497,7 @@ class EfficiencyValueContext {
         ruleset: ruleset,
         flowers: flowers,
         flowersEnabled: flowersEnabled,
+        minimumFaan: minimumFaan,
       );
 
   /// The same context with one or more of the three guide dials swapped —
@@ -484,6 +527,7 @@ class EfficiencyValueContext {
         ruleset: ruleset,
         flowers: flowers,
         flowersEnabled: flowersEnabled,
+        minimumFaan: minimumFaan,
       );
 }
 
@@ -794,6 +838,7 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
     List<RiichiThreat> otherThreats = const [],
+    List<Meld> opponentMelds = const [],
   }) {
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
@@ -817,6 +862,7 @@ class EfficiencyEngine {
           discards: opponentDiscards,
           passedAfterRiichi: passedDiscardsAfterRiichi,
           isDealer: opponentIsDealer,
+          melds: opponentMelds,
         ),
       ...otherThreats,
     ];
@@ -851,6 +897,8 @@ class EfficiencyEngine {
           ruleset: ruleset,
           isDealer: threat.isDealer,
           honba: valueContext.honba,
+          threatMelds: threat.melds,
+          roundWind: valueContext.roundWind,
         );
         for (final r in _rankSafety(
           ruleset,
@@ -858,6 +906,7 @@ class EfficiencyEngine {
           opponentDiscards: threat.discards,
           passedDiscardsAfterRiichi: threat.passedAfterRiichi,
           visibleCounts34: visibleCounts34,
+          threatMelds: threat.melds,
         )) {
           final worst = safeByType[r.type];
           if (worst == null || r.rating < worst.rating) safeByType[r.type] = r;
@@ -1106,7 +1155,13 @@ class EfficiencyEngine {
     // low-value line it is and a push has to actually be worth it. Across the
     // random defending positions in `push_fold_sweep_test.dart` the two agreed
     // on better than 99% of decisions before the switch came out.
-    final recommended = bestValue;
+    //
+    // Under [HongKongGuideTuning.neverStepBack] a calm Hong Kong hand only
+    // weighs the discards that keep it as close to ready as it is.
+    final recommended =
+        ruleset.isHongKong && HongKongGuideTuning.neverStepBack && !defending
+            ? lines.where((l) => l.shanten == currentShanten).firstOrNull
+            : bestValue;
     recommended?.recommended = true;
     // The panel always shows the recommended line first — while defending,
     // it can be the safest discard rather than the best-EV one, which the
@@ -1175,6 +1230,7 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
     List<RiichiThreat> otherThreats = const [],
+    List<Meld> opponentMelds = const [],
   }) {
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
@@ -1197,8 +1253,11 @@ class EfficiencyEngine {
             reason: context.ruleset.isTaiwanese
                 ? '${context.ruleset.ronLabel} — $points points banked now.'
                 : context.ruleset.isHongKong
-                    ? 'Win — $points chips banked now. With a 0-faan minimum '
-                        'any complete hand is a legal win.'
+                    ? (context.minimumFaan == 0
+                        ? 'Win — $points chips banked now. With a 0-faan '
+                            'minimum any complete hand is a legal win.'
+                        : 'Win — $points chips banked now, clearing the '
+                            '${context.minimumFaan}-faan minimum.')
                     : 'Ron — $points points banked now, and passing up a '
                         'winning tile would leave you furiten.',
           ),
@@ -1256,6 +1315,7 @@ class EfficiencyEngine {
           opponentRiichi: opponentRiichi,
           opponentIsDealer: opponentIsDealer,
           otherThreats: otherThreats,
+          opponentMelds: opponentMelds,
         ));
       }
     }
@@ -1277,6 +1337,7 @@ class EfficiencyEngine {
           opponentRiichi: opponentRiichi,
           opponentIsDealer: opponentIsDealer,
           otherThreats: otherThreats,
+          opponentMelds: opponentMelds,
         );
         if (bestChi == null ||
             (advice.eligible && !bestChi.eligible) ||
@@ -1325,8 +1386,34 @@ class EfficiencyEngine {
       }
     }
 
+    // Under [HongKongGuideTuning.takeShantenCalls], any call that brings a
+    // calm hand closer to ready is taken; value only picks among them.
+    ActionAdvice? advancing;
+    if (context.ruleset.isHongKong &&
+        HongKongGuideTuning.takeShantenCalls &&
+        !opponentRiichi) {
+      for (final option in options) {
+        if (option.action != GuidedAction.pon &&
+            option.action != GuidedAction.chi) {
+          continue;
+        }
+        if (!option.eligible || option.shantenAfter >= pass.shantenAfter) {
+          continue;
+        }
+        if (advancing == null ||
+            option.shantenAfter < advancing.shantenAfter ||
+            (option.shantenAfter == advancing.shantenAfter &&
+                option.expectedValue > advancing.expectedValue)) {
+          advancing = option;
+        }
+      }
+    }
+
     var recommended = GuidedAction.pass;
-    if (bestMeld != null && bestMeld.expectedValue > pass.expectedValue) {
+    if (advancing != null) {
+      recommended = advancing.action;
+    } else if (bestMeld != null &&
+        bestMeld.expectedValue > pass.expectedValue) {
       recommended = bestMeld.action;
     } else {
       final kan = options
@@ -1414,6 +1501,7 @@ class EfficiencyEngine {
     bool opponentIsDealer = false,
     List<TileType> opponentDiscards = const [],
     List<TileType> passedDiscardsAfterRiichi = const [],
+    List<Meld> opponentMelds = const [],
   }) {
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
@@ -1455,6 +1543,7 @@ class EfficiencyEngine {
         opponentDiscards: opponentDiscards,
         passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
         visibleCounts34: visibleCounts34,
+        threatMelds: opponentMelds,
       ).firstOrNull;
       if (rating != null && rating.rating < 8) {
         return ActionAdvice(
@@ -1529,6 +1618,7 @@ class EfficiencyEngine {
     required bool opponentRiichi,
     required bool opponentIsDealer,
     required List<RiichiThreat> otherThreats,
+    List<Meld> opponentMelds = const [],
   }) {
     final concealedAfter = _handWithout(hand, consumed);
     final contextAfter = _contextWithMeld(context, meld);
@@ -1547,6 +1637,7 @@ class EfficiencyEngine {
       opponentRiichi: opponentRiichi,
       opponentIsDealer: opponentIsDealer,
       otherThreats: otherThreats,
+      opponentMelds: opponentMelds,
     );
     if (report.lines.isEmpty) {
       return ActionAdvice(
@@ -1820,9 +1911,19 @@ class EfficiencyEngine {
     required List<TileType> opponentDiscards,
     required List<TileType> passedDiscardsAfterRiichi,
     required List<int> visibleCounts34,
+    List<Meld> threatMelds = const [],
   }) =>
       ruleset.isChineseStyle
-          ? rankHongKongSafety(hand, visibleCounts34: visibleCounts34)
+          ? rankHongKongSafety(hand,
+              visibleCounts34: visibleCounts34,
+              threatMelds:
+                  ruleset.isHongKong && HongKongGuideTuning.readThreatFlush
+                      ? threatMelds
+                      : const [],
+              threatDiscards:
+                  ruleset.isHongKong && HongKongGuideTuning.readThreatDiscards
+                      ? opponentDiscards
+                      : const [])
           : rankSafety(
               hand,
               opponentDiscards: opponentDiscards,
@@ -2460,9 +2561,52 @@ class EfficiencyEngine {
         faan += 2;
       }
     }
-    return 0.65 * HongKongRules.basePoints(faan) * 2 +
-        0.35 * HongKongRules.basePoints(faan + 1) * 3;
+    // Floored at the table's minimum, as the Taiwanese estimate is: a hand
+    // that wins at all has reached it.
+    double payout(int faan) {
+      final discard = math.max(context.minimumFaan, faan);
+      final selfDraw = math.max(context.minimumFaan, faan + 1);
+      return 0.65 * HongKongRules.basePoints(discard) * 2 +
+          0.35 * HongKongRules.basePoints(selfDraw) * 3;
+    }
+
+    final base = payout(faan);
+    if (!HongKongGuideTuning.potentialFaanInEstimate) return base;
+    // Faan the hand can still build, each at a rough chance of getting there,
+    // added as the payout it would lift the hand to rather than as faan: the
+    // table doubles, so a flush a hand might finish is worth far more than
+    // the same chance at a single faan.
+    var potential = 0.0;
+    for (var i = 27; i < 34; i++) {
+      final t = typeFrom34(i);
+      if (types.where((x) => x == t).length != 2) continue;
+      final gain = (t.isDragon ? 1 : 0) +
+          (t == context.seatWind.tile ? 1 : 0) +
+          (t == context.roundWind.tile ? 1 : 0);
+      if (gain > 0) {
+        potential += _pairPungChance * (payout(faan + gain) - base);
+      }
+    }
+    if (suits.length == 2) {
+      final meldSuits = {
+        for (final m in context.melds)
+          if (m.low.isSuit) m.low.suit
+      };
+      for (final minority in suits) {
+        if (meldSuits.contains(minority)) continue;
+        final stray = types.where((t) => t.isSuit && t.suit == minority).length;
+        if (stray > 2) continue;
+        final mixed = types.any((t) => t.isHonor);
+        final chance = (stray == 1 ? 0.4 : 0.25) * (mixed ? 1 : 0.5);
+        potential += chance * (payout(faan + (mixed ? 3 : 7)) - base);
+      }
+    }
+    return base + potential;
   }
+
+  /// How often a dragon or value-wind pair goes on to be punged, for
+  /// [HongKongGuideTuning.potentialFaanInEstimate].
+  static const double _pairPungChance = 0.35;
 
   /// Dora and red fives this hand is holding, melds included.
   static int _doraKept(
@@ -2533,13 +2677,39 @@ class EfficiencyEngine {
     required Ruleset ruleset,
     required bool isDealer,
     required int honba,
+    List<Meld> threatMelds = const [],
+    Wind roundWind = Wind.east,
   }) =>
       ruleset.isTaiwanese
           ? _taiwaneseDealInCost
           : ruleset.isHongKong
-              ? _hongKongDealInCost
+              ? (HongKongGuideTuning.dealInByVisibleFaan
+                  ? _hongKongVisibleDealInCost(threatMelds, roundWind)
+                  : HongKongGuideTuning.dealInCost)
               // Honba rides on their win too — you pay it.
               : (isDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
+
+  /// A Hong Kong deal-in priced from what the threat has on show: a faan for
+  /// each dragon or round-wind set, and a mixed flush's three when every
+  /// exposed suited set shares a suit — plus one more for what their
+  /// concealed tiles usually add. Their seat wind isn't known here, so it is
+  /// left out. Discard wins pay twice the table value.
+  static double _hongKongVisibleDealInCost(List<Meld> melds, Wind roundWind) {
+    final open = melds.where((m) => !m.concealed).toList();
+    var faan = 0;
+    for (final m in open) {
+      if (m.kind == MeldKind.sequence) continue;
+      if (m.low.isDragon || m.low == roundWind.tile) faan++;
+    }
+    final suits = {
+      for (final m in open)
+        if (m.low.isSuit) m.low.suit
+    };
+    if (suits.length == 1 && open.where((m) => m.low.isSuit).length >= 2) {
+      faan += 3;
+    }
+    return 2.0 * HongKongRules.basePoints(faan + 1);
+  }
 
   _ValueAssessment _assessTenpaiValue({
     required List<TileType> waits,
@@ -2886,9 +3056,9 @@ class EfficiencyEngine {
   }
 
   /// A ready Hong Kong hand, scored exactly on every live wait. There is no
-  /// riichi or damaten to choose between: any complete hand can win, on a
-  /// discard or a self-pick, so the value is the average payout times the
-  /// chance of hitting the wait.
+  /// riichi or damaten to choose between: any complete hand that reaches the
+  /// table's minimum can win, on a discard or a self-pick, so the value is
+  /// the average payout times the chance of hitting the wait.
   _ValueAssessment _assessHongKongTenpaiValue({
     required List<TileType> waits,
     required List<int> remaining,
@@ -2905,18 +3075,18 @@ class EfficiencyEngine {
           isTsumo: false, assumeRiichi: false, context: context);
       final self = _scoreWait(concealed, tile,
           isTsumo: true, assumeRiichi: false, context: context);
-      if (context.ruleset.isTaiwanese && !discard.valid && self.valid) {
-        // Under the 5-point minimum on a discard but not on a self-draw
-        // (Self-Drawn, and Fully Concealed in place of Concealed): still a
-        // live wait, but one only the wall can complete — half the chances a
-        // turn, the same discount a riichi tsumo-only wait takes.
+      if (!discard.valid && self.valid) {
+        // Under the minimum on a discard but not on a self-draw — Taiwanese
+        // adds Self-Drawn (and Fully Concealed in place of Concealed), Hong
+        // Kong a self-pick faan: still a live wait, but one only the wall
+        // can complete — half the chances a turn, the same discount a
+        // riichi tsumo-only wait takes.
         const share = _tsumoOnlyChancesPerTurn / _winChancesPerTurn;
         liveWaits += copies * share;
         points += copies * share * _selfDrawTotal(self, context);
         continue;
       }
       if (!discard.valid || !self.valid) continue;
-      if (discard.faan < HongKongRules.minimumFaan) continue;
       liveWaits += copies;
       points += copies *
           (0.65 * discard.points + 0.35 * _selfDrawTotal(self, context));
@@ -2951,8 +3121,11 @@ class EfficiencyEngine {
         reason: context.ruleset.isTaiwanese
             ? 'Ready — any wait scored above needs at least '
                 '${TaiwaneseRules.minimumPoints} points to declare hu.'
-            : 'Any complete hand can win, including a zero-faan chicken '
-                'hand.');
+            : context.minimumFaan == 0
+                ? 'Any complete hand can win, including a zero-faan chicken '
+                    'hand.'
+                : 'Ready — any wait scored above needs at least '
+                    '${context.minimumFaan} faan to win.');
   }
 
   /// What this tenpai is worth if it never declares — the alternative every
@@ -3044,7 +3217,7 @@ class EfficiencyEngine {
       );
     }
     if (context.ruleset.isHongKong) {
-      return scoreHongKongHand(
+      final score = scoreHongKongHand(
         concealed,
         winTile,
         context.melds,
@@ -3058,6 +3231,9 @@ class EfficiencyEngine {
         ),
         isDealer: context.isDealer,
       );
+      // Under the table's minimum the hand cannot be declared, so it is no
+      // win at all — the same as a Taiwanese hand under its 5 points.
+      return score.faan < context.minimumFaan ? HandScore.invalid() : score;
     }
     final akaCount = [...concealed, winTile].where((tile) => tile.aka).length +
         context.melds
@@ -3205,7 +3381,7 @@ abstract final class GuideConstants {
   /// chips. Honba adds 300 each on top in riichi.
   static double get dealInCost => EfficiencyEngine._dealInCost;
   static double get dealerDealInCost => EfficiencyEngine._dealerDealInCost;
-  static double get hongKongDealInCost => EfficiencyEngine._hongKongDealInCost;
+  static double get hongKongDealInCost => HongKongGuideTuning.dealInCost;
   static double get taiwaneseDealInCost =>
       EfficiencyEngine._taiwaneseDealInCost;
 

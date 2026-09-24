@@ -291,7 +291,7 @@ void main() {
     // The table is created after a loading frame.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('guideToggle')));
+    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byKey(const Key('guideStrategy_placement')));

@@ -15,6 +15,7 @@
 /// the real game and is always sent in full.
 library;
 
+import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_wall.dart';
 import 'meld.dart';
 import 'round.dart';
@@ -154,6 +155,7 @@ Map<String, dynamic> roundSnapshotToJson(
 }) {
   return {
     'ruleset': round.ruleset.name,
+    'minimumFaan': round.minimumFaan,
     'dealer': round.dealer,
     'roundWind': round.roundWind.name,
     'honba': round.honba,
@@ -259,6 +261,7 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     wall: wall,
     startingPoints: startingPoints,
     ruleset: ruleset,
+    minimumFaan: HongKongRules.normalizeMinimumFaan(json['minimumFaan']),
   );
 
   var nextPlaceholderId = -900000;

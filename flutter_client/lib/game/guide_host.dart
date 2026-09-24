@@ -137,12 +137,6 @@ abstract class TableGameHost implements GuideHost {
   bool get soundOn;
   void setSoundOn(bool value);
 
-  /// While locked into riichi, cut each drawn tile automatically — still
-  /// pauses for a self-kan or a win. Toggled from the hand bar, and only
-  /// shown there once the human has declared riichi.
-  bool get autoDiscardInRiichi;
-  void setAutoDiscardInRiichi(bool value);
-
   /// Declare ron/tsumo on your own the moment one is legal, instead of
   /// waiting for the button. On by default; toggled from the hand bar.
   bool get autoWin;
@@ -160,4 +154,12 @@ abstract class TableGameHost implements GuideHost {
   /// use for this — leaving is "leave room" instead — so `OnlineGameController`
   /// implements it as a no-op.
   void newGame();
+
+  /// Whether [undo] would take back one of your decisions this hand, and a
+  /// short name for that decision ("5 Man", "Pon", "Pass") for the button.
+  /// Solo play only: the online table belongs to everyone at it, so
+  /// `OnlineGameController` never offers one.
+  bool get canUndo;
+  String? get undoLabel;
+  void undo();
 }

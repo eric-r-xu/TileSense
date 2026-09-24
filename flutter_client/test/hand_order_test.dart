@@ -10,6 +10,10 @@ import 'package:tilesense/ui/tile_face.dart';
 /// discards it, and the strip still scrolls — which is exactly why lifting a
 /// tile to reorder it takes a long press and not a drag.
 void main() {
+  /// The Sort toggle's current value, under its SORT caption.
+  Finder sortShows(String value) => find.descendant(
+      of: find.byKey(const Key('sortHand')), matching: find.text(value));
+
   final handTiles = find.descendant(
     of: find.byType(HandView),
     matching: find.byType(TileFace),
@@ -50,6 +54,13 @@ void main() {
   }
 
   /// Long-press the tile at [from] and drop it on the one at [to].
+  /// Tiles that change slot glide there over 180ms, starting the frame after
+  /// the move — wait that out before measuring where they sit.
+  Future<void> settleGlide(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+  }
+
   Future<void> dragTile(WidgetTester tester, int from, int to) async {
     final start = tester.getCenter(handTiles.at(from));
     final end = tester.getCenter(handTiles.at(to));
@@ -59,12 +70,14 @@ void main() {
     await tester.pump();
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 100));
+    await settleGlide(tester);
   }
 
   /// Tap the Sort chip once: Off → Hand → Hand+draw → Off.
   Future<void> cycleSort(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('sortHand')));
     await tester.pump(const Duration(milliseconds: 100));
+    await settleGlide(tester);
   }
 
   /// Sort starts on Hand, so tests that just want a stable, non-resorting
@@ -73,7 +86,7 @@ void main() {
   Future<void> uncheckAutoSort(WidgetTester tester) async {
     await cycleSort(tester);
     await cycleSort(tester);
-    expect(find.text('Sort: Off'), findsOneWidget);
+    expect(sortShows('Off'), findsOneWidget);
   }
 
   testWidgets('a tile dragged right lands after the one it was dropped on',
@@ -193,7 +206,7 @@ void main() {
   testWidgets('Sort: Hand+draw files the drawn tile in among the rest',
       (tester) async {
     await startGame(tester);
-    expect(find.text('Sort: Hand'), findsOneWidget,
+    expect(sortShows('Hand'), findsOneWidget,
         reason: 'Sort starts on Hand');
     final hand = strip(tester);
     final drawn = hand.last;
@@ -231,12 +244,12 @@ void main() {
 
     await cycleSort(tester); // Hand+draw
     await cycleSort(tester); // Off
-    expect(find.text('Sort: Off'), findsOneWidget);
+    expect(sortShows('Off'), findsOneWidget);
     expect(strip(tester).last, drawn);
     expect(resting(tester), sortedResting);
 
     await cycleSort(tester); // back to Hand
-    expect(find.text('Sort: Hand'), findsOneWidget);
+    expect(sortShows('Hand'), findsOneWidget);
     expect(inTileOrder(resting(tester)), isTrue);
     expect(strip(tester).last, drawn);
 
@@ -254,7 +267,7 @@ void main() {
         reason: 'need two different tiles for the move to be visible');
 
     await dragTile(tester, 0, 5);
-    expect(find.text('Sort: Off'), findsOneWidget);
+    expect(sortShows('Off'), findsOneWidget);
     final after = strip(tester);
     expect(after.length, before.length,
         reason: 'the drawn tile stays placed in the strip, not moved apart');

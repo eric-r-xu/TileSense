@@ -8,6 +8,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -17,7 +18,7 @@ import '../logic/efficiency_engine.dart';
 import '../net/guest_identity.dart';
 import '../net/mp_client.dart';
 import 'call_callout.dart';
-import 'game_controller.dart' show kHumanSeat;
+import 'game_controller.dart' show kHumanSeat, riichiAutoDiscardDelay;
 import 'guide_host.dart';
 import 'sfx.dart';
 
@@ -118,6 +119,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   Ruleset ruleset = Ruleset.riichi;
   bool hanchan = true;
 
+  /// Hong Kong only: the fewest faan a hand needs to win, chosen by the host
+  /// when the room is created and echoed back by the server.
+  int minimumFaan = HongKongRules.defaultMinimumFaan;
+
+  /// "3-faan min · ", for the room card's settings line.
+  String get minimumFaanLabel => '$minimumFaan-faan min · ';
+
   /// Seconds each player gets per discard and per call offer, chosen by the
   /// host when the room is created (30 or 60) and echoed back by the server.
   static const List<int> timerChoices = [30, 60];
@@ -136,10 +144,12 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     required Ruleset ruleset,
     required bool hanchan,
     int timerSeconds = 30,
+    int minimumFaan = HongKongRules.defaultMinimumFaan,
   }) {
     this.ruleset = ruleset;
     this.hanchan = hanchan;
     this.timerSeconds = timerSeconds;
+    this.minimumFaan = minimumFaan;
     _client.send({
       'type': 'create_room',
       'guestId': _identity.guestId,
@@ -148,6 +158,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       'ruleset': ruleset.name,
       'hanchan': hanchan,
       'timerSeconds': timerSeconds,
+      'minimumFaan': minimumFaan,
     });
   }
 
@@ -192,22 +203,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   GamePhase phase = GamePhase.playing;
 
-  /// While locked into riichi, cut the drawn tile the moment it arrives
-  /// instead of waiting for a manual tap — purely a local/client-side
-  /// convenience (never sent to the server): every later discard is already
-  /// forced to be the drawn tile, so this just skips confirming a choice
-  /// that was never really yours to make. See [_maybeAutoDiscardInRiichi].
-  @override
-  bool autoDiscardInRiichi = true;
-  @override
-  void setAutoDiscardInRiichi(bool value) {
-    if (autoDiscardInRiichi == value) return;
-    autoDiscardInRiichi = value;
-    notifyListeners();
-  }
-
   /// Declare ron/tsumo automatically the moment one is legal — purely
-  /// client-side, same as [autoDiscardInRiichi]: it just sends the action the
+  /// client-side, same as the riichi auto-discard: it just sends the action the
   /// button would have. See [_maybeAutoWin].
   @override
   bool autoWin = true;
@@ -245,15 +242,21 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     return false;
   }
 
-  /// The drawn tile [_maybeAutoDiscardInRiichi] last cut, so a repeat
+  /// The drawn tile [_maybeAutoDiscardInRiichi] last armed for, so a repeat
   /// `state` broadcast for the same turn (e.g. after a reconnect) doesn't
-  /// send the discard twice.
+  /// restart the pause or send the discard twice.
   int? _autoDiscardedTileId;
+  Timer? _autoDiscardTimer;
+  final _autoDiscardRng = Random();
 
-  /// Never fires with a self-kan on offer (a real decision, left to the
-  /// player) or a tsumo/flower win on offer (a win is never thrown away).
+  /// While locked into riichi, cut the drawn tile after a short random pause
+  /// ([riichiAutoDiscardDelay]) — purely a client-side convenience: every
+  /// later discard is already forced to be the drawn tile, so this just sends
+  /// the discard the player had no choice over. Never fires with a self-kan
+  /// on offer (a real decision, left to the player) or a tsumo/flower win on
+  /// offer (a win is never thrown away).
   void _maybeAutoDiscardInRiichi() {
-    if (!autoDiscardInRiichi || !isHumanTurn) return;
+    if (!isHumanTurn) return;
     final human = round.seats[kHumanSeat];
     if (!human.riichi) return;
     if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) return;
@@ -261,7 +264,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     final drawn = human.drawn;
     if (drawn == null || drawn.id == _autoDiscardedTileId) return;
     _autoDiscardedTileId = drawn.id;
-    humanDiscard(drawn);
+    _autoDiscardTimer?.cancel();
+    _autoDiscardTimer = Timer(riichiAutoDiscardDelay(_autoDiscardRng), () {
+      // A newer snapshot may have ended the turn meanwhile (a manual tap, a
+      // server timeout): only discard if it is still this tile's turn.
+      if (!isHumanTurn || round.seats[kHumanSeat].drawn?.id != drawn.id) {
+        return;
+      }
+      humanDiscard(drawn);
+    });
   }
 
   List<int> _tablePoints = List.filled(4, 0);
@@ -416,6 +427,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     ruleset = Ruleset.values.byName(msg['ruleset'] as String);
     hanchan = msg['hanchan'] as bool;
     timerSeconds = msg['timerSeconds'] as int? ?? 30;
+    minimumFaan = HongKongRules.normalizeMinimumFaan(msg['minimumFaan']);
     roomPhase = RoomLifecycle.values.byName(msg['phase'] as String);
     final yourSeat = msg['yourSeat'] as int?;
     if (yourSeat != null) mySeat = yourSeat;
@@ -667,6 +679,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   void newGame() {}
 
+  /// Nothing to take back online: the server's table is shared by everyone
+  /// at it.
+  @override
+  bool get canUndo => false;
+  @override
+  String? get undoLabel => null;
+  @override
+  void undo() {}
+
   // --- convenience getters, identical formulas to GameController's --------
 
   @override
@@ -756,6 +777,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         opponentDiscards: riichiOpp != null
             ? riichiOpp.allDiscards.map((t) => t.type).toList()
             : const [],
+        opponentMelds: riichiOpp?.melds ?? const [],
         passedDiscardsAfterRiichi:
             riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       );
@@ -849,6 +871,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
           valueContext: _efficiencyValueContext(human),
           defenseHand: human.hand,
           opponentDiscards: riichiOpp.allDiscards.map((t) => t.type).toList(),
+          opponentMelds: riichiOpp.melds,
           passedDiscardsAfterRiichi:
               riichiOpp.passedDiscardsAfterRiichi.toList(),
           opponentRiichi: true,
@@ -870,6 +893,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       opponentDiscards: riichiOpp != null
           ? riichiOpp.allDiscards.map((t) => t.type).toList()
           : const [],
+      opponentMelds: riichiOpp?.melds ?? const [],
       passedDiscardsAfterRiichi:
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
@@ -891,6 +915,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       opponentDiscards: riichiOpp != null
           ? riichiOpp.allDiscards.map((t) => t.type).toList()
           : const [],
+      opponentMelds: riichiOpp?.melds ?? const [],
       passedDiscardsAfterRiichi:
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
@@ -941,6 +966,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         strategy: strategy,
         ruleset: ruleset,
         flowers: seat.flowers.map((t) => t.type).toList(),
+        minimumFaan: round.minimumFaan,
       );
 
   SeatState? _threatOpponent() {
@@ -1057,6 +1083,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   @override
   void dispose() {
+    _autoDiscardTimer?.cancel();
     _sub?.cancel();
     _client.close();
     super.dispose();

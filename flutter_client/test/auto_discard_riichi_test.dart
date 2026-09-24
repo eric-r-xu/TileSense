@@ -6,11 +6,11 @@ import 'package:tilesense/game/sfx.dart';
 
 import 'helpers.dart';
 
-/// The "Riichi Auto" toggle: once locked into riichi, every later discard is
-/// already forced to be the drawn tile ([Round.discard]'s tsumogiri lock), so
-/// turning this on skips the manual tap. It must still pause for a real
-/// decision — a self-kan on offer, or a win — rather than throwing either
-/// away.
+/// Riichi auto-discard (always on): once locked into riichi, every later
+/// discard is already forced to be the drawn tile ([Round.discard]'s tsumogiri
+/// lock), so it is cut on its own after a short 0.5–1.5 s pause. It must still
+/// wait for a real decision — a self-kan on offer, or a win — rather than
+/// throwing either away.
 void main() {
   testWidgets('cuts the drawn tile on its own once locked into riichi',
       (tester) async {
@@ -28,8 +28,7 @@ void main() {
       round.phase = RoundPhase.discarding;
       expect(round.seats[kHumanSeat].pond, isEmpty);
 
-      game.setAutoDiscardInRiichi(true);
-      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 3));
 
       expect(round.seats[kHumanSeat].pond, isNotEmpty);
       expect(round.seats[kHumanSeat].pond.first.id, drawn.id,
@@ -40,7 +39,7 @@ void main() {
     }
   });
 
-  testWidgets('stays off unless the toggle is on', (tester) async {
+  testWidgets('waits at least half a second before cutting', (tester) async {
     Sfx.i.enabled = false;
     final game = GameController(seed: 5);
     final round = game.round;
@@ -54,11 +53,14 @@ void main() {
       round.turn = kHumanSeat;
       round.phase = RoundPhase.discarding;
 
-      game.setAutoDiscardInRiichi(false);
-      await tester.pump(const Duration(seconds: 2));
-
+      // The first turn step lands after ~1.1 s; the discard then waits
+      // another 0.5–1.5 s on top.
+      await tester.pump(const Duration(milliseconds: 1500));
       expect(round.seats[kHumanSeat].pond, isEmpty,
-          reason: 'must wait for a manual discard when the toggle is off');
+          reason: 'the drawn tile must stay visible for the pause first');
+
+      await tester.pump(const Duration(milliseconds: 1500));
+      expect(round.seats[kHumanSeat].pond.single.id, drawn.id);
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
@@ -84,8 +86,7 @@ void main() {
       expect(round.closedKanTypes(kHumanSeat), [TileType.sou5],
           reason: 'sanity: the kan must actually be on offer for this test');
 
-      game.setAutoDiscardInRiichi(true);
-      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 3));
 
       expect(round.seats[kHumanSeat].pond, isEmpty,
           reason: 'a self-kan decision must be left to the player, not '

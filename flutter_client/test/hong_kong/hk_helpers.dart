@@ -11,7 +11,8 @@ EfficiencyValueContext hkContext(
         PlayStyle style = PlayStyle.balanced,
         HandFocus focus = HandFocus.balanced,
         bool legacy = false,
-        Wind seat = Wind.south}) =>
+        Wind seat = Wind.south,
+        int minimumFaan = 0}) =>
     EfficiencyValueContext(ruleset: Ruleset.hongKong, 
         melds: melds,
         roundWind: Wind.east,
@@ -24,7 +25,8 @@ EfficiencyValueContext hkContext(
         riichiSticks: legacy ? 4 : 0,
         flowers: flowers,
         style: style,
-        focus: focus);
+        focus: focus,
+        minimumFaan: minimumFaan);
 
 EfficiencyReport hkReport(String spec,
     {int wall = 60,
@@ -34,7 +36,8 @@ EfficiencyReport hkReport(String spec,
     HandFocus focus = HandFocus.balanced,
     List<Meld> melds = const [],
     List<TileType> flowers = const [],
-    Wind seat = Wind.south}) {
+    Wind seat = Wind.south,
+    int minimumFaan = 0}) {
   final hand = parseTiles(spec);
   final visible = toCounts34(hand);
   for (final m in melds) {
@@ -56,5 +59,6 @@ EfficiencyReport hkReport(String spec,
           focus: focus,
           melds: melds,
           flowers: flowers,
-          seat: seat));
+          seat: seat,
+          minimumFaan: minimumFaan));
 }

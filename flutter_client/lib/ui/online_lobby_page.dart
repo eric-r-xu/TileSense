@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 
 import '../game/online_game_controller.dart';
@@ -46,6 +47,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   late Ruleset _ruleset = widget.initialRuleset;
   bool _hanchan = true;
   int _timerSeconds = OnlineGameController.timerChoices.first;
+  int _minimumFaan = HongKongRules.defaultMinimumFaan;
   late Character _character = widget.controller.myCharacter;
   String? _shownError;
 
@@ -72,7 +74,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     _saveName();
     game.setMyCharacter(_character);
     game.createRoom(
-        ruleset: _ruleset, hanchan: _hanchan, timerSeconds: _timerSeconds);
+        ruleset: _ruleset,
+        hanchan: _hanchan,
+        timerSeconds: _timerSeconds,
+        minimumFaan: _minimumFaan);
   }
 
   void _join() {
@@ -218,7 +223,18 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                           onChanged: (v) => setState(() => _hanchan = v),
                         ),
                         const SizedBox(height: 10),
-                        _timerPicker(),
+                        // Side by side rather than stacked, so Hong Kong's
+                        // extra picker costs no height on this screen.
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _timerPicker()),
+                            if (_ruleset.isHongKong) ...[
+                              const SizedBox(width: 16),
+                              Expanded(child: _minimumFaanPicker()),
+                            ],
+                          ],
+                        ),
                         const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
@@ -354,6 +370,45 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     );
   }
 
+  /// Hong Kong's minimum faan to win, 0 to 3, for the room you create.
+  Widget _minimumFaanPicker() {
+    Widget option(int faan) {
+      final selected = _minimumFaan == faan;
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: OutlinedButton(
+            key: Key('onlineMinimumFaan_$faan'),
+            onPressed: () => setState(() => _minimumFaan = faan),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: selected ? const Color(0x33caa24e) : null,
+              foregroundColor:
+                  selected ? const Color(0xffffdf76) : Colors.white54,
+              side: BorderSide(
+                color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                width: selected ? 2 : 1,
+              ),
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+            child: Text('$faan'),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        const Text('Minimum faan to win',
+            style: TextStyle(color: Colors.white60, fontSize: 12)),
+        const SizedBox(height: 6),
+        Row(children: [
+          for (final n in HongKongRules.minimumFaanChoices) option(n)
+        ]),
+      ],
+    );
+  }
+
   Widget _rulesetPicker() {
     Widget option(Ruleset value) {
       final selected = _ruleset == value;
@@ -423,6 +478,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         const SizedBox(height: 16),
         _card(
           title: '${game.ruleset.flagLabel} · '
+              '${game.ruleset.isHongKong ? game.minimumFaanLabel : ''}'
               '${game.hanchan ? "full game" : "East-only"} · '
               '${game.timerSeconds}s timer',
           child: Column(

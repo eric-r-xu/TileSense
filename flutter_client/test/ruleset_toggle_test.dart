@@ -107,7 +107,7 @@ void main() {
         reason: 'every seat starts on 1000 chips');
 
     // The guide panel speaks Hong Kong too.
-    await tester.tap(find.byKey(const Key('guideToggle')));
+    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
     await pumpUntilReported(tester);
@@ -332,7 +332,7 @@ void main() {
         reason: 'every seat starts on 1000 points');
 
     // The guide panel speaks Taiwanese too.
-    await tester.tap(find.byKey(const Key('guideToggle')));
+    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
     await pumpUntilReported(tester);

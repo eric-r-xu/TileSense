@@ -5,6 +5,7 @@ library;
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 
@@ -52,6 +53,8 @@ class CharacterSelectPage extends StatelessWidget {
     required this.advanceLabel,
     this.ruleset,
     this.onRuleset,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
+    this.onMinimumFaan,
   });
 
   /// The style to play, pre-selected from the welcome screen's choice and
@@ -82,6 +85,11 @@ class CharacterSelectPage extends StatelessWidget {
   /// when false. Hanchan is the default.
   final bool hanchan;
   final ValueChanged<bool> onHanchan;
+
+  /// Hong Kong's minimum faan to win, 0 to 3. The picker only shows while
+  /// [ruleset] is Hong Kong and [onMinimumFaan] is set.
+  final int minimumFaan;
+  final ValueChanged<int>? onMinimumFaan;
 
   /// Leaves for wherever the player was headed (the table or the builder).
   final VoidCallback onAdvance;
@@ -288,6 +296,46 @@ class CharacterSelectPage extends StatelessWidget {
     );
   }
 
+  /// "Min faan: 0 · 1 · 2 · 3" — Hong Kong only; 0 (any chicken hand wins)
+  /// is the default.
+  Widget _minimumFaanChoice(ValueChanged<int> onChange) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Tooltip(
+          message: 'The fewest faan a hand needs to win.\n'
+              '0 lets any complete hand, even a chicken hand, win.',
+          child: Text('Min faan',
+              style: TextStyle(color: Colors.white54, fontSize: 14)),
+        ),
+        const SizedBox(width: 10),
+        for (final n in HongKongRules.minimumFaanChoices)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: OutlinedButton(
+              key: Key('minimumFaan_$n'),
+              onPressed: () => onChange(n),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(44, 36),
+                backgroundColor:
+                    n == minimumFaan ? const Color(0x33caa24e) : null,
+                foregroundColor:
+                    n == minimumFaan ? const Color(0xffffdf76) : Colors.white54,
+                side: BorderSide(
+                    color: n == minimumFaan ? _gold : Colors.white24,
+                    width: n == minimumFaan ? 2 : 1),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              child: Text('$n',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Material ancestor: without one, Text on web can render with a stray
@@ -324,7 +372,19 @@ class CharacterSelectPage extends StatelessWidget {
                           const TextStyle(color: Colors.white54, fontSize: 14),
                     ),
                     const SizedBox(height: 12),
-                    _windChoice(),
+                    // Hong Kong's minimum shares the wind row: the style
+                    // row below has no width to spare.
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _windChoice(),
+                        if ((ruleset?.isHongKong ?? false, onMinimumFaan)
+                            case (true, final setMin?)) ...[
+                          const SizedBox(width: 28),
+                          _minimumFaanChoice(setMin),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     // Style shares the length row: the screen is already
                     // tight against the design canvas's height.
