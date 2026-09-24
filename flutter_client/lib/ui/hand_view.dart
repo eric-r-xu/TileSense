@@ -10,9 +10,22 @@ import 'meld_row.dart';
 import 'table_view.dart' show CountdownBadge;
 import 'tile_face.dart';
 
-/// The human seat's concealed hand plus turn actions. An auto-sort toggle keeps
-/// the hand in tile order; the freshly drawn tile always carries a yellow
-/// highlight (guide on or off) so it stays identifiable.
+/// How the concealed hand is ordered — the three settings of the Sort chip.
+enum HandSort {
+  /// Your own order: tiles stay where you put them.
+  off,
+
+  /// Resting tiles in tile order; the drawn tile held apart on the right.
+  hand,
+
+  /// Every tile in tile order, the drawn tile filed in among the rest.
+  handAndDraw,
+}
+
+/// The human seat's concealed hand plus turn actions. A three-way Sort chip
+/// keeps the hand in tile order, with or without the drawn tile; the freshly
+/// drawn tile always carries a yellow highlight (guide on or off) so it stays
+/// identifiable wherever it sits.
 class HandView extends StatefulWidget {
   const HandView({
     super.key,
@@ -43,11 +56,14 @@ class HandView extends StatefulWidget {
 }
 
 class _HandViewState extends State<HandView> {
-  // On by default: tiles stay in tile order. Unchecking freezes whatever
-  // order is on screen at that moment rather than reverting to draw order.
-  bool _autoSort = true;
+  // Hand by default: resting tiles stay in tile order, the drawn tile apart.
+  // Turning sorting off freezes whatever order is on screen at that moment
+  // rather than reverting to draw order.
+  HandSort _sort = HandSort.hand;
 
-  /// Tile ids in draw order, kept stable so "auto-sort off" leaves tiles put.
+  /// Tile ids in draw order, kept stable so "sort off" leaves tiles put. It
+  /// only holds the drawn tile once you have dragged it somewhere in the
+  /// strip; otherwise the drawn tile keeps its own slot on the right.
   final List<int> _order = [];
 
   /// The tile currently under the mouse pointer, so it can pick up a slight
@@ -108,9 +124,9 @@ class _HandViewState extends State<HandView> {
   void _reorder(int id, int targetId, List<Tile> shown) {
     if (id == targetId) return;
     setState(() {
-      // Adopt what is on screen and drop out of auto-sort, or the next
+      // Adopt what is on screen and drop out of sorting, or the next
       // rebuild would sort the move straight back out again.
-      if (_autoSort) _freezeOrder(shown);
+      if (_sort != HandSort.off) _freezeOrder(shown);
       final from = _order.indexOf(id);
       final to = _order.indexOf(targetId);
       if (from < 0 || to < 0) return;
@@ -120,23 +136,32 @@ class _HandViewState extends State<HandView> {
   }
 
   /// Snapshots [shown] (whatever order is currently on screen) into [_order]
-  /// and turns auto-sort off, so leaving auto-sort never reverts to draw
-  /// order.
+  /// and turns sorting off, so leaving a sort never reverts to draw order.
   void _freezeOrder(List<Tile> shown) {
     _order
       ..clear()
       ..addAll(shown.map((t) => t.id));
-    _autoSort = false;
+    _sort = HandSort.off;
   }
 
-  /// Auto-sort checkbox handler. Turning it off freezes the tile-order view
-  /// that's currently on screen; turning it back on just resumes sorting.
-  void _toggleAutoSort() {
+  /// Sort chip handler: cycles Off → Hand → Hand+draw → Off. Arriving at Off
+  /// freezes the resting tiles in the tile order just on screen, and sends
+  /// the drawn tile back to its own slot on the right, as Off always keeps
+  /// it until you place it yourself.
+  void _cycleSort() {
     setState(() {
-      if (_autoSort) {
-        _freezeOrder(sortByType(game.round.seats[kHumanSeat].hand));
-      } else {
-        _autoSort = true;
+      switch (_sort) {
+        case HandSort.off:
+          _sort = HandSort.hand;
+        case HandSort.hand:
+          _sort = HandSort.handAndDraw;
+        case HandSort.handAndDraw:
+          final seat = game.round.seats[kHumanSeat];
+          final drawnId = seat.drawn?.id;
+          _freezeOrder(sortByType([
+            for (final t in seat.hand)
+              if (t.id != drawnId) t
+          ]));
       }
     });
   }
@@ -263,20 +288,25 @@ class _HandViewState extends State<HandView> {
       );
     }
 
-    // The resting tiles are in tile order (auto-sort on) or in the order you
-    // have put them in (off); either way the drawn tile is held apart on the
-    // right, slightly spaced from the rest, until you keep or discard it — so
-    // sorting never files it away among the others. Tiles can be dragged into
-    // a different order; doing it while sorted just turns auto-sort off.
-    final resting = [
+    // Sort Hand: the resting tiles are in tile order and the drawn tile is
+    // held apart on the right, slightly spaced from the rest, until you keep
+    // or discard it. Sort Hand+draw: it is filed in among them instead.
+    // Sort Off: the order you have put them in, the drawn tile apart on the
+    // right unless you have dragged it into place. Tiles can be dragged into
+    // a different order; doing it while sorted just turns sorting off.
+    final drawnInline = drawn != null &&
+        (_sort == HandSort.handAndDraw ||
+            (_sort == HandSort.off && _order.contains(drawn.id)));
+    final inStrip = [
       for (final t in seat.hand)
-        if (drawn == null || t.id != drawn.id) t,
+        if (drawnInline || drawn == null || t.id != drawn.id) t,
     ];
-    final shown = _autoSort ? sortByType(resting) : _drawOrdered(resting);
+    final shown =
+        _sort == HandSort.off ? _drawOrdered(inStrip) : sortByType(inStrip);
     final List<Widget> tiles = [
       for (final t in shown) draggableTile(t, shown),
-      // It has no slot in the order yet and is not a drop target.
-      if (drawn != null) tileButton(drawn, separated: true),
+      // Held apart, it has no slot in the order yet and is not a drop target.
+      if (drawn != null && !drawnInline) tileButton(drawn, separated: true),
     ];
 
     return Container(
@@ -435,18 +465,76 @@ class _HandViewState extends State<HandView> {
     );
   }
 
+  /// The three-way Sort chip: tap to cycle Off → Hand → Hand+draw.
   Widget _sortToggle() {
-    return _miniToggle(
-      key: const Key('sortHand'),
-      label: 'Auto-sort',
-      value: _autoSort,
-      onTap: _toggleAutoSort,
-      activeColor: const Color(0xff00695c),
-      tooltip: _autoSort
-          ? 'Auto-sort: on — tiles kept in tile order.\n'
-              'Uncheck to freeze this order, or drag a tile to start your own.'
-          : 'Auto-sort: off — your own order.\n'
-              'Long-press a tile and drag it to move it. Check to resume auto-sort.',
+    final (label, tooltip) = switch (_sort) {
+      HandSort.off => (
+          'Sort: Off',
+          'Sort: Off — your own order.\n'
+              'Long-press a tile and drag it to move it. '
+              'Tap for Hand (tile order).'
+        ),
+      HandSort.hand => (
+          'Sort: Hand',
+          'Sort: Hand — tiles kept in tile order, your drawn tile apart '
+              'on the right.\n'
+              'Tap for Hand+draw, or drag a tile to start your own order.'
+        ),
+      HandSort.handAndDraw => (
+          'Hand+draw',
+          'Sort: Hand+draw — your drawn tile is sorted straight into your '
+              'hand.\n'
+              'Tap to freeze this order (Off), or drag a tile to start your own.'
+        ),
+    };
+    final on = _sort != HandSort.off;
+    const activeColor = Color(0xff00695c);
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: on ? activeColor : const Color(0xff294342),
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          key: const Key('sortHand'),
+          borderRadius: BorderRadius.circular(6),
+          onTap: _cycleSort,
+          child: Container(
+            width: 86,
+            padding: const EdgeInsets.fromLTRB(3, 2, 6, 2),
+            child: Row(
+              children: [
+                // Narrower than a checkbox slot, leaving the label room for
+                // "Sort: Hand" in the same 86px chip.
+                SizedBox(
+                  width: 15,
+                  height: 18,
+                  child: Icon(
+                    _sort == HandSort.handAndDraw
+                        ? Icons.low_priority
+                        : Icons.sort,
+                    size: 14,
+                    color: on ? Colors.white : Colors.white60,
+                  ),
+                ),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: on ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

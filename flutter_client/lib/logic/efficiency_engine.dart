@@ -228,7 +228,7 @@ class HongKongGuideTuning {
   static WinModel winModel = WinModel.hongKong;
 
   /// The win-probability model the Taiwanese guide runs on.
-  static WinModel taiwaneseWinModel = WinModel.hongKong;
+  static WinModel taiwaneseWinModel = WinModel.taiwanese;
 }
 
 /// The constants the win-probability model runs on: how wide a typical hand
@@ -306,6 +306,23 @@ class WinModel {
   /// far better but played no measurably better — 0.014 of a placement ahead
   /// over 6000 paired games, p = 0.40 — so it was not adopted.
   static const hongKong = hongKongDrawsOnly;
+
+  /// What the Taiwanese guide plays: the call-aware model fitted to Hong Kong
+  /// guide decisions, which Hong Kong itself did not adopt. A five-set hand
+  /// leans on calls far more than a four-set one, and here it pays: 0.36 of
+  /// a placement ahead of SimpleBot over 800 paired games (p = 2e-12), where
+  /// the draws-only model and every other arm of
+  /// `taiwanese_tuning_sweep_test.dart` stayed level with it.
+  static const taiwanese = WinModel(
+    typicalWidth: [5, 31.39, 53.3, 83.47, 100.96, 107.08, 119.2],
+    stepWidth: [3.33, 22.39, 40.62, 41.01, 41.45, 44.05, 47.98],
+    survivesTurn: 0.999,
+    waitInheritance: 1.0,
+    winChancesPerTurn: 0.790,
+    narrowPenalty: 0.484,
+    pungRate: 1.030,
+    chowRate: 1.609,
+  );
 }
 
 /// The dials a new game or builder table starts on, under either ruleset.

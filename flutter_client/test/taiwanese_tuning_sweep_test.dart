@@ -52,12 +52,13 @@ void main() {
       ];
       final p = _ms(dPlace);
       final q = _ms(dPts);
+      final delta = '${p.mean >= 0 ? '+' : ''}${p.mean.toStringAsFixed(3)} '
+          '± ${(1.96 * p.se).toStringAsFixed(3)}';
       print('${e.key.padRight(20)}  ${_mean(place).toStringAsFixed(3).padLeft(9)}'
-          '   ${p.mean >= 0 ? '+' : ''}${p.mean.toStringAsFixed(3)} '
-          '± ${(1.96 * p.se).toStringAsFixed(3)}'.padRight(33) +
+          '   ${delta.padRight(30)}'
           '  ${_p(p).toStringAsExponential(1).padRight(8)}'
-              '  ${q.mean.toStringAsFixed(2).padLeft(7)}'
-              '  ${_p(q).toStringAsExponential(1)}');
+          '  ${q.mean.toStringAsFixed(2).padLeft(7)}'
+          '  ${_p(q).toStringAsExponential(1)}');
     }
   }, skip: games == 0 ? 'set TW_TUNE_GAMES to run' : false,
       timeout: Timeout.none);
@@ -65,7 +66,7 @@ void main() {
 
 class _Arm {
   const _Arm(this.name,
-      {this.guide = true, this.threat = 4, this.model = WinModel.hongKong});
+      {this.guide = true, this.threat = 4, this.model = WinModel.taiwanese});
   final String name;
   final bool guide;
   final int threat;
@@ -80,10 +81,9 @@ class _Arm {
 const _arms = [
   _Arm('control', guide: false),
   _Arm('shipped'),
+  _Arm('draws-only', model: WinModel.hongKong),
   _Arm('threat-5', threat: 5),
   _Arm('calls', model: _calls),
-  _Arm('calls+threat-5', threat: 5, model: _calls),
-  _Arm('calls-calibrated', model: _callsCalibrated),
 ];
 
 /// Hong Kong's shipped model with pung and chow acceptance counted toward a
@@ -100,17 +100,6 @@ const _calls = WinModel(
   chowRate: 1.609,
 );
 
-/// The fully fitted Hong Kong call-aware model.
-const _callsCalibrated = WinModel(
-  typicalWidth: [5, 31.39, 53.3, 83.47, 100.96, 107.08, 119.2],
-  stepWidth: [3.33, 22.39, 40.62, 41.01, 41.45, 44.05, 47.98],
-  survivesTurn: 0.999,
-  waitInheritance: 1.0,
-  winChancesPerTurn: 0.790,
-  narrowPenalty: 0.484,
-  pungRate: 1.030,
-  chowRate: 1.609,
-);
 
 /// (seed, seat 0 placement, seat 0 final points) for one shard's games.
 List<(int, double, int)> _shard(int base, int games, int shard, _Arm arm) {

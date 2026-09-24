@@ -59,12 +59,19 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  /// Auto-sort is checked by default now, so tests that just want a stable,
-  /// non-resorting order to drag within uncheck it first — exactly what a
-  /// player would do before rearranging their hand by hand.
-  Future<void> uncheckAutoSort(WidgetTester tester) async {
+  /// Tap the Sort chip once: Off → Hand → Hand+draw → Off.
+  Future<void> cycleSort(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('sortHand')));
     await tester.pump(const Duration(milliseconds: 100));
+  }
+
+  /// Sort starts on Hand, so tests that just want a stable, non-resorting
+  /// order to drag within turn it off first (Hand → Hand+draw → Off) —
+  /// exactly what a player would do before rearranging their hand by hand.
+  Future<void> uncheckAutoSort(WidgetTester tester) async {
+    await cycleSort(tester);
+    await cycleSort(tester);
+    expect(find.text('Sort: Off'), findsOneWidget);
   }
 
   testWidgets('a tile dragged right lands after the one it was dropped on',
@@ -176,6 +183,84 @@ void main() {
     expect(drawn.left - beforeDrawn.right, greaterThan(restingGap),
         reason: 'and is spaced a little further from them than they are '
             'from each other');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('Sort: Hand+draw files the drawn tile in among the rest',
+      (tester) async {
+    await startGame(tester);
+    expect(find.text('Sort: Hand'), findsOneWidget,
+        reason: 'Sort starts on Hand');
+    final hand = strip(tester);
+    final drawn = hand.last;
+    final restingRects = [
+      for (var i = 0; i < hand.length; i++) tester.getRect(handTiles.at(i)),
+    ];
+    final restingGap = restingRects[1].left - restingRects[0].right;
+
+    await cycleSort(tester);
+    expect(find.text('Hand+draw'), findsOneWidget);
+
+    // Same tiles, now all in tile order with no separated slot.
+    final all = strip(tester);
+    expect(inTileOrder(all), isTrue);
+    expect([...all]..sort((a, b) => a.index.compareTo(b.index)),
+        [...hand]..sort((a, b) => a.index.compareTo(b.index)));
+    expect(all.contains(drawn), isTrue);
+    for (var i = 1; i < all.length; i++) {
+      final gap = tester.getRect(handTiles.at(i)).left -
+          tester.getRect(handTiles.at(i - 1)).right;
+      expect(gap, closeTo(restingGap, 0.5),
+          reason: 'no tile is held apart in Hand+draw');
+    }
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets(
+      'Hand+draw → Off freezes the sorted hand and puts the drawn tile back '
+      'on the right', (tester) async {
+    await startGame(tester);
+    final sortedResting = resting(tester);
+    final drawn = strip(tester).last;
+
+    await cycleSort(tester); // Hand+draw
+    await cycleSort(tester); // Off
+    expect(find.text('Sort: Off'), findsOneWidget);
+    expect(strip(tester).last, drawn);
+    expect(resting(tester), sortedResting);
+
+    await cycleSort(tester); // back to Hand
+    expect(find.text('Sort: Hand'), findsOneWidget);
+    expect(inTileOrder(resting(tester)), isTrue);
+    expect(strip(tester).last, drawn);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets(
+      'dragging while Hand+draw keeps the move, drawn tile included, and '
+      'leaves sorting', (tester) async {
+    await startGame(tester);
+    await cycleSort(tester); // Hand+draw
+    final before = strip(tester);
+    expect(before[0], isNot(before[5]),
+        reason: 'need two different tiles for the move to be visible');
+
+    await dragTile(tester, 0, 5);
+    expect(find.text('Sort: Off'), findsOneWidget);
+    final after = strip(tester);
+    expect(after.length, before.length,
+        reason: 'the drawn tile stays placed in the strip, not moved apart');
+    expect(after[5], before[0]);
+    expect(after.sublist(0, 5), before.sublist(1, 6));
+
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(strip(tester), after);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
