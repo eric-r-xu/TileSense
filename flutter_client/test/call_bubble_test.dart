@@ -5,7 +5,7 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/ui/table_view.dart';
 
 void main() {
-  testWidgets('a call flashes an all-caps bubble for 0.86s then clears',
+  testWidgets('a call flashes an all-caps bubble for 1.29s then clears',
       (tester) async {
     final game = GameController();
     await tester.pumpWidget(MaterialApp(
@@ -27,6 +27,8 @@ void main() {
         findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('PON'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('PON'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('PON'), findsNothing);
