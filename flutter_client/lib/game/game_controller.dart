@@ -97,14 +97,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
       playStyle = PlayStyle.balanced;
       strategy = Strategy.points;
     } else {
-      if (_preHongKongStyle != null) {
-        playStyle = _preHongKongStyle!;
-        _preHongKongStyle = null;
-      }
-      if (_preHongKongStrategy != null) {
-        strategy = _preHongKongStrategy!;
-        _preHongKongStrategy = null;
-      }
+      // A game created directly in Hong Kong/Taiwanese has no saved riichi
+      // preferences. Start riichi on its measured defaults in that case.
+      playStyle = _preHongKongStyle ?? kDefaultPlayStyle;
+      strategy = _preHongKongStrategy ?? kDefaultStrategy;
+      _preHongKongStyle = null;
+      _preHongKongStrategy = null;
     }
     ruleset = value;
     _tel?.settingChange(

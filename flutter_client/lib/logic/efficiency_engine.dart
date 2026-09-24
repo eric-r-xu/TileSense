@@ -324,12 +324,16 @@ class WinModel {
   );
 }
 
-/// The dials a new game or builder table starts on, under either ruleset.
+/// The dials a new riichi game or builder table starts on.
 ///
 /// Measured with `policy_sweep_test.dart` (see BOT_STRATEGY.md): in riichi it
-/// is one of the six Speed and Balanced pairings that beat the control bot;
-/// in Hong Kong it placed best of the six. [EfficiencyValueContext] itself
-/// still defaults to Balanced / Balanced, the unweighted reference model.
+/// is one of the six Speed and Balanced pairings that beat the control bot.
+/// Hong Kong and Taiwanese pin Style to Balanced and Strategy to Points,
+/// keeping Speed focus. Hong Kong's measured focus sweep favours Speed;
+/// Taiwanese's held-out validation uses these dials with [WinModel.taiwanese].
+/// These are validated defaults, not proof of a globally optimal policy.
+/// [EfficiencyValueContext] itself still defaults to Balanced / Balanced,
+/// the unweighted reference model.
 const PlayStyle kDefaultPlayStyle = PlayStyle.aggressive;
 const HandFocus kDefaultHandFocus = HandFocus.speed;
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mahjong_core/game_timing.dart';
 
 import '../game/call_callout.dart';
 import '../game/guide_host.dart';
@@ -25,7 +26,7 @@ class ScoringView extends StatefulWidget {
 }
 
 class _ScoringViewState extends State<ScoringView> {
-  static const int _autoContinueSeconds = 10;
+  static final int _autoContinueSeconds = kScorePageDelay.inSeconds;
 
   /// Every tile in this panel renders 8% larger than its shared [TileSize]
   /// step (within the 5–10% the panel can afford — see the `FittedBox`/`Wrap`
@@ -59,10 +60,13 @@ class _ScoringViewState extends State<ScoringView> {
     if (wait > Duration.zero) {
       _revealed = false;
       _revealTimer = Timer(wait, () {
-        if (mounted) setState(() => _revealed = true);
+        if (!mounted) return;
+        setState(() => _revealed = true);
+        _startCountdown();
       });
+    } else {
+      _startCountdown();
     }
-    _startCountdown();
   }
 
   @override

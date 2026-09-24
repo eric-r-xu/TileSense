@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:mahjong_core/mahjong_core.dart';
+import 'package:mahjong_core/game_timing.dart';
 
 import 'room.dart';
 import 'telemetry.dart';
@@ -33,7 +34,7 @@ class TableLoop {
     Duration? turnTimeout,
     Duration? callTimeout,
     Duration disconnectGrace = const Duration(seconds: 30),
-    Duration continueTimeout = const Duration(seconds: 20),
+    Duration? continueTimeout,
     Duration botTurnPace = const Duration(milliseconds: 900),
     MpTelemetry? telemetry,
   })  : _turnTimeout = turnTimeout ?? Duration(seconds: room.timerSeconds),
@@ -72,7 +73,8 @@ class TableLoop {
   /// How long the table waits for any player to click "next hand" at a round
   /// end before dealing it automatically (covers a room with no connected
   /// humans left, or everyone simply forgetting to click).
-  final Duration _continueTimeout;
+  /// Defaults to 25 seconds per score page, plus the winning call's bubble.
+  final Duration? _continueTimeout;
 
   /// How long to sit on a bot's automatic discard before broadcasting it —
   /// with no delay here, a stretch of consecutive bot turns (nobody left to
@@ -523,7 +525,11 @@ class TableLoop {
   Future<void> _awaitAnyContinue() async {
     final completer = Completer<void>();
     _continueWaiter = completer;
-    final timer = Timer(_continueTimeout, () {
+    final winners = round.result!.winners;
+    final timeout = _continueTimeout ??
+        kScorePageDelay * max(1, winners.length) +
+            (winners.isEmpty ? Duration.zero : kCallPause);
+    final timer = Timer(timeout, () {
       if (!completer.isCompleted) completer.complete();
     });
     await completer.future;

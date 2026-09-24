@@ -20,10 +20,11 @@ do — and how that compares to how your own seat plays. Based on
   idea what a hand is worth, they can't see dora, and they discard exactly the
   same way whether the table is calm or a riichi is bearing down on them.
 
-- **Autoplay starts on Speed** in both rulesets, and on Aggressive under
+- **Autoplay starts on Speed** in all three rulesets, and on Aggressive under
   riichi — chosen from measured sweeps (see
   [How the guide measures up](#how-the-guide-measures-up)). The guide beats
-  the bots at a statistically significant level in both rulesets.
+  the bots at a statistically significant level in all three rulesets.
+
 - **Style is a riichi-only dial.** Hong Kong has no riichi or damaten for it
   to weigh, and a full sweep found no placement effect from it either, so the
   toggle is hidden and pinned to Balanced under Hong Kong rules.
@@ -36,6 +37,19 @@ do — and how that compares to how your own seat plays. Based on
   nothing left for it to weigh. It starts on **Points**; Placement is opt-in
   and has not been through a measured sweep against the bots the way Style
   and Focus's defaults have.
+
+The validated starting presets are:
+
+| Rules | Style | Focus | Strategy |
+|---|---|---|---|
+| Riichi | Aggressive | Speed | Points |
+| Hong Kong | Balanced (pinned) | Speed | Points (pinned) |
+| Taiwanese | Balanced (pinned) | Speed | Points (pinned) |
+
+Taiwanese uses its own call-aware win model; its held-out measurement below
+validates that model with these dials. These are evidence-backed defaults,
+not a claim that every alternative has been beaten. Switching into riichi
+restores the player's previous dials, or its default preset if none existed.
 
 ## Same brain, three costumes
 
