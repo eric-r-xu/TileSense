@@ -52,16 +52,35 @@ doctl databases firewalls replace "$DB_ID" --rule "droplet:$DROPLET_ID"   # drop
 ## 2. Web client
 
 ```sh
+BUILD_ID=$(date -u +%Y%m%d%H%M%S)
+
 cd flutter_client
 flutter build web --release \
   --base-href "$BASE_HREF" \
+  --dart-define=BUILD_ID="$BUILD_ID" \
   --dart-define=APP_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+printf '{"build_id":"%s"}' "$BUILD_ID" > build/web/build_id.json
+python3 tools/precompress_web.py build/web     # .gz sidecars for gzip_static
 cd ..
 
 ssh root@$DROPLET_IP "nginx -T | grep -A6 'location /tilesense/'"   # first time only, to find SERVED_DIR
+ssh root@$DROPLET_IP 'python3 -' < server/deploy/install-web-compression.py   # first time only
 rsync -avz --delete flutter_client/build/web/ root@$DROPLET_IP:/SERVED_DIR/
 curl -sI https://$HOST/tilesense/     # 200, ETag changed from before
+curl -sI -H 'Accept-Encoding: gzip' https://$HOST/tilesense/main.dart.js | grep -i content-encoding
 ```
+
+`BUILD_ID` has to reach the bundle *and* `build_id.json`, or the in-app Update
+button can never fire — see
+[`flutter_client/DEPLOYMENT.md`](flutter_client/DEPLOYMENT.md). Order matters:
+`build_id.json` is written before `precompress_web.py`, which skips anything
+under 1 KB, so the id itself is never served from a stale sidecar.
+
+`precompress_web.py` writes a `.gz` next to every `.js`, `.wasm`, `.json`,
+`.css`, `.html` and `.svg` over 1 KB; `install-web-compression.py` turns on
+`gzip_static` for `location /tilesense/` so Nginx serves them. It is idempotent,
+validates with `nginx -t`, and restores its backup if that fails, so re-running
+it is safe. `main.dart.js` ships at about 0.8 MB instead of 2.7 MB.
 
 ## 3. Ingest service (telemetry)
 

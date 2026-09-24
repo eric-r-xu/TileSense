@@ -7,7 +7,11 @@ import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
+import 'loading_helpers.dart';
+
 void main() {
+  preloadDeferredPages();
+
   testWidgets('app boots to the table with the efficiency guide off by default',
       (tester) async {
     await tester.pumpWidget(const TileSenseApp());
@@ -18,6 +22,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('TileSense'), findsWidgets);
@@ -42,6 +49,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.textContaining('PAUSED'), findsNothing);
@@ -73,6 +83,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(TableView), findsOneWidget);
@@ -85,12 +98,16 @@ void main() {
 
     expect(find.byType(TableView), findsNothing);
     expect(find.byKey(const Key('openBuilder')), findsOneWidget);
+    await pumpLoadedPage(tester);
 
     // Start un-pauses and returns to the same game rather than dealing a new
     // one.
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(TableView), findsOneWidget);
@@ -107,6 +124,8 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    // The table is created after a loading frame.
+    await tester.pump();
     for (var i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }

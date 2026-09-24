@@ -23,7 +23,7 @@ import 'helpers.dart';
 void main() {
   Future<void> withScores(
       WidgetTester tester, Future<void> Function(_ScoreGame) check,
-      {List<int> winners = const []}) async {
+      {List<int> winners = const [], bool call = true}) async {
     Sfx.i.enabled = false;
     final game = _ScoreGame();
     game.round
@@ -37,7 +37,11 @@ void main() {
     game.phase = GamePhase.roundEnd;
     await tester.binding.setSurfaceSize(kDesignSize);
     try {
-      CallCallout.i.show(0, 'RON');
+      if (call) {
+        CallCallout.i.show(0, 'RON');
+      } else {
+        CallCallout.i.clear();
+      }
       await tester.pumpWidget(
           MaterialApp(home: Scaffold(body: ScoringView(game: game))));
       await check(game);
@@ -49,13 +53,26 @@ void main() {
     }
   }
 
-  testWidgets('scores get 25 visible seconds after the winning call clears',
+  // Split in two on purpose. `CallCallout.remaining` reads the wall clock,
+  // but the reveal timer it schedules runs on the test's fake clock, so the
+  // exact fake-clock instant the panel appears depends on how long the real
+  // machine took to build the widget. Neither test below asserts on that
+  // instant: the first only needs the panel to still be hidden well inside
+  // the flash, the second starts with no call at all and so is exact.
+  testWidgets('the score panel stays hidden while the call is still up',
       (tester) async {
     await withScores(tester, (game) async {
       expect(find.text('Round result'), findsNothing);
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(milliseconds: 200));
       expect(find.text('Round result'), findsNothing);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(CallCallout.flash);
+      expect(find.text('Round result'), findsOneWidget);
+    });
+  });
+
+  testWidgets('scores get 25 visible seconds, then continue on their own',
+      (tester) async {
+    await withScores(tester, call: false, (game) async {
       expect(find.textContaining('Auto Continue in 25s'), findsOneWidget);
       await tester.pump(const Duration(seconds: 24));
       expect(game.continues, 0);

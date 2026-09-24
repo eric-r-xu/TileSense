@@ -6,11 +6,15 @@ import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 
+import 'loading_helpers.dart';
+
 /// The Riichi / Hong Kong / Taiwanese choice: it is made on the welcome screen,
 /// carried into the character and online-lobby screens (still changeable
 /// there), fixed once a game is under way, and the game it deals lays out as
 /// cleanly as the one it left.
 void main() {
+  preloadDeferredPages();
+
   String labelOf(WidgetTester tester, Key key) => tester
       .widget<Text>(find
           .descendant(of: find.byKey(key), matching: find.byType(Text))
@@ -54,6 +58,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
@@ -82,6 +88,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
@@ -130,6 +138,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
   }
 
   testWidgets('the in-game style label cannot switch rules mid-game',
@@ -139,6 +149,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(
@@ -164,6 +176,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
 
     // Style is a riichi-only dial; pick a non-default value so the
     // Chinese-style-and-back round trip below can prove it survives.
@@ -222,6 +236,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
     expect(labelOf(tester, const Key('ruleset')), Ruleset.taiwanese.flagLabel);
 
     // And the menu remembers it: back out and the home screen shows
@@ -241,6 +257,7 @@ void main() {
     await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('playOnline')));
+    await pumpLoadedPage(tester);
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(picked(tester, const Key('onlineRuleset_taiwanese')), isTrue);
@@ -262,8 +279,7 @@ void main() {
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await pumpUntilFound(tester, find.text('🇭🇰 HK'));
 
     expect(find.text('🇭🇰 HK'), findsOneWidget);
     expect(find.text('Honba '), findsNothing);
@@ -300,6 +316,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.taiwanese.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');

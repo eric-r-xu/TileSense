@@ -23,8 +23,10 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
   worth, only what danger costs, and it steers Autoplay through the same
   scores. A second dial, **focus** (Speed or Balanced), tilts the trade between
   the chance of finishing and the payout. Both start on **Aggressive / Speed**
-  under riichi; under Hong Kong, style has nothing left to weigh, so it's
-  hidden and pinned to Balanced, leaving only focus (**Speed**).
+  under riichi; under Hong Kong and Taiwanese, style has nothing left to weigh
+  and measured no effect, so it's hidden and pinned to Balanced, leaving only
+  focus (**Speed**) — see
+  [`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
 - A third dial, **strategy** (Points or Placement, riichi only, starting on
   **Points**), changes what "worth" means rather than how danger is priced:
   Points is everything above; Placement runs every points-flavoured number

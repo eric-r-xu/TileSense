@@ -1,3 +1,4 @@
+import 'loading_helpers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,8 @@ import 'package:tilesense/ui/table_view.dart';
 /// The whole UI is one fixed canvas scaled to fit, so everything about how it
 /// meets the device — display cutouts, pinch zoom — is decided in one place.
 void main() {
+  preloadDeferredPages();
+
   group('display cutouts', () {
     // iPhone 15 Pro in landscape: 852x393 CSS px, ~59px inset on the notch
     // side and ~21px for the home indicator.
@@ -27,8 +30,7 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
 
       // The guide panel hugs the canvas's left edge, so a notch eats it first.
       // Fitted to the window instead of the safe area it lands at 46px, inside
@@ -56,8 +58,7 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
 
       // With no insets the canvas should use the full width it can.
       final table = tester.getRect(find.byType(TableView));
@@ -81,6 +82,9 @@ void main() {
         await tester.tap(find.text('Single Player'));
         await tester.pump();
         await tester.tap(find.byKey(const Key('charactersContinue')));
+        await tester.pump(); // Render the startup/loading frame.
+        // The table is created after a loading frame.
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
         final viewer = find.byType(InteractiveViewer);
@@ -124,6 +128,9 @@ void main() {
         await tester.tap(find.text('Single Player'));
         await tester.pump();
         await tester.tap(find.byKey(const Key('charactersContinue')));
+        await tester.pump(); // Render the startup/loading frame.
+        // The table is created after a loading frame.
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
         final viewer = find.byType(InteractiveViewer);
@@ -203,8 +210,8 @@ void main() {
         expect(find.text(id), findsNothing);
 
         await tester.tap(find.byKey(const Key('playOnline')));
-        await tester.pump(const Duration(milliseconds: 100));
         final text = find.byKey(const Key('clientId'));
+        await pumpUntilFound(tester, text);
         expect(text, findsOneWidget);
         expect(find.text(id), findsOneWidget);
         expect(tester.widget<SelectableText>(text).style?.color, Colors.white);

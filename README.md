@@ -227,11 +227,9 @@ made it refuse every call. Interestingly, the call-aware win model Hong Kong
 measured and rejected is the one Taiwanese ships — a five-set hand leans on
 calls far more than a four-set one.
 
-*Play style, measured and dropped:* Hong Kong has no riichi or damaten for
-play style to weigh, and a 14,000-game sweep isolating each dial found no
-placement effect from it either (every pairwise style comparison, Holm
-p = 1.0) while Speed still beat Balanced focus at every style (p ≤ 4e-5) — so
-the dial is hidden under Hong Kong and pinned to Balanced. Details:
+*Play style, measured and dropped:* a 14,000-game sweep found style has no
+placement effect under Hong Kong, so the dial is hidden and pinned to Balanced
+there — focus still matters. Numbers and method:
 [`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
 
 Scoring covers the common yaku, the standard fu table and the full yakuman set;

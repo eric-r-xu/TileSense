@@ -1,3 +1,4 @@
+import '../loading_helpers.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -32,6 +33,8 @@ Future<void> capture(WidgetTester tester, String name) async {
 }
 
 void main() {
+  preloadDeferredPages();
+
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     final font = Platform.environment['HK_SCREENSHOT_FONT'];
@@ -69,8 +72,7 @@ void main() {
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await pumpLoadedPage(tester);
     await tester.tap(find.text('Random'));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Your flowers (0)'));

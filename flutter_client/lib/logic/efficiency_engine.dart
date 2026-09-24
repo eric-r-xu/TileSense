@@ -201,7 +201,8 @@ const Strategy kDefaultStrategy = Strategy.points;
 /// The defaults are measured. Against SimpleBot, riichi's own settings (narrow
 /// penalty 1, threat at two sets) placed behind the bot; these place 0.062 of
 /// a placement ahead of it, pooled over three held-out runs totalling 10,000
-/// East-only games (95% CI ±0.029, p = 2.6e-5) — see BOT_STRATEGY.md.
+/// East-only games (95% CI ±0.029, p = 2.6e-5). Measured at `91b989a`,
+/// 2026-09-15 — see BOT_STRATEGY.md.
 class HongKongGuideTuning {
   /// Refuse a call or kong that is not yet ready while a threat is out.
   /// Turning it off measured no better once the threat itself was narrowed.
@@ -327,7 +328,9 @@ class WinModel {
 /// The dials a new riichi game or builder table starts on.
 ///
 /// Measured with `policy_sweep_test.dart` (see BOT_STRATEGY.md): in riichi it
-/// is one of the six Speed and Balanced pairings that beat the control bot.
+/// is one of the six Speed and Balanced pairings that beat the control bot
+/// (measured at `e850241`, 2026-09-12; the riichi margin was re-measured at
+/// `ca4d8ee`, 2026-09-24, after multi-riichi pricing landed).
 /// Hong Kong and Taiwanese pin Style to Balanced and Strategy to Points,
 /// keeping Speed focus. Hong Kong's measured focus sweep favours Speed;
 /// Taiwanese's held-out validation uses these dials with [WinModel.taiwanese].

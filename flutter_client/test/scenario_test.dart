@@ -1,3 +1,4 @@
+import 'loading_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart' show kHumanSeat;
@@ -20,6 +21,8 @@ void fill(Scenario s, List<Tile> into, String spec) {
 }
 
 void main() {
+  preloadDeferredPages();
+
   group('scenario validity', () {
     test('nothing may appear more than four times across the whole table', () {
       final c = ScenarioController();
@@ -52,8 +55,8 @@ void main() {
       expect(s.remainingCopies(TileType.sou4), 2);
       fill(s, s.seats[1].pond, '4s');
       expect(s.remainingCopies(TileType.sou4), 1);
-      s.seats[2].melds.add(Meld(
-          kind: MeldKind.triplet, low: TileType.sou4, concealed: false));
+      s.seats[2].melds.add(
+          Meld(kind: MeldKind.triplet, low: TileType.sou4, concealed: false));
       expect(s.remainingCopies(TileType.sou4), -2);
       expect(s.problems().first, contains('4s'));
     });
@@ -74,8 +77,8 @@ void main() {
       expect(s.isDiscardRead, isTrue);
 
       // One pon eats three concealed tiles.
-      s.seats[0].melds.add(Meld(
-          kind: MeldKind.triplet, low: TileType.pei, concealed: false));
+      s.seats[0].melds.add(
+          Meld(kind: MeldKind.triplet, low: TileType.pei, concealed: false));
       expect(s.concealedTarget(withDraw: true), 11);
       expect(s.problems().first, contains('it needs 10'));
     });
@@ -90,8 +93,8 @@ void main() {
       s.seats[1].riichiPondIndex = 0;
       expect(s.problems(), isEmpty);
 
-      s.seats[1].melds.add(Meld(
-          kind: MeldKind.triplet, low: TileType.chun, concealed: false));
+      s.seats[1].melds.add(
+          Meld(kind: MeldKind.triplet, low: TileType.chun, concealed: false));
       expect(s.problems().any((p) => p.contains('open call')), isTrue);
     });
   });
@@ -237,13 +240,13 @@ void main() {
       await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
 
       // The starting wind is random; tap round to East, which deals.
       final seat = find.byKey(const Key('seatWind'));
-      String label() => tester.widget<Text>(find.descendant(
-          of: seat, matching: find.byType(Text))).data!;
+      String label() => tester
+          .widget<Text>(find.descendant(of: seat, matching: find.byType(Text)))
+          .data!;
       for (var i = 0; i < 4 && label() != 'Seat 東 ★'; i++) {
         await tester.tap(seat);
         await tester.pump(const Duration(milliseconds: 100));
@@ -268,8 +271,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
       expect(find.byType(ScenarioPage), findsOneWidget);
       // The guide is always on here, and the table is the real one.
       expect(find.byType(EfficiencyOverlay), findsOneWidget);
@@ -302,13 +304,11 @@ void main() {
       await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
       await tester.tap(find.text('Random'));
       await tester.pump(const Duration(milliseconds: 100));
 
-      final page =
-          tester.widget<TableView>(find.byType(TableView)).game;
+      final page = tester.widget<TableView>(find.byType(TableView)).game;
       final posed = [
         for (final seat in page.round.seats) [for (final t in seat.pond) t.code]
       ];

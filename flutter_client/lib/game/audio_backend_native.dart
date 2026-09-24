@@ -6,16 +6,17 @@ import 'package:audioplayers/audioplayers.dart';
 ///
 /// This deliberately keeps TileSense's established two-channel
 /// `audioplayers` setup on Android, iOS, macOS, Windows, and Linux. Only the
-/// browser implementation is replaced by Web Audio.
 class AudioBackend {
-  AudioBackend()
-      : _effects = AudioPlayer(playerId: 'tilesense-sfx')
-          ..setReleaseMode(ReleaseMode.stop),
-        _voice = AudioPlayer(playerId: 'tilesense-voice')
-          ..setReleaseMode(ReleaseMode.stop);
+  AudioBackend();
 
-  final AudioPlayer _effects;
-  final AudioPlayer _voice;
+  AudioPlayer? _effectsPlayer;
+  AudioPlayer? _voicePlayer;
+  AudioPlayer get _effects =>
+      _effectsPlayer ??= AudioPlayer(playerId: 'tilesense-sfx')
+        ..setReleaseMode(ReleaseMode.stop);
+  AudioPlayer get _voice =>
+      _voicePlayer ??= AudioPlayer(playerId: 'tilesense-voice')
+        ..setReleaseMode(ReleaseMode.stop);
   StreamSubscription<void>? _voiceCompleteSub;
 
   /// Browser-only cache warming; packaged native assets need no preparation.
@@ -48,6 +49,9 @@ class AudioBackend {
 
   Future<void> dispose() async {
     await _voiceCompleteSub?.cancel();
-    await Future.wait([_effects.dispose(), _voice.dispose()]);
+    await Future.wait([
+      if (_effectsPlayer != null) _effectsPlayer!.dispose(),
+      if (_voicePlayer != null) _voicePlayer!.dispose(),
+    ]);
   }
 }

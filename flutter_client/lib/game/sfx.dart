@@ -290,19 +290,22 @@ class Sfx {
 
   // --- preloading --------------------------------------------------------
 
-  /// Every clip the game can actually play, blips first.
-  static Iterable<String> get _allClips sync* {
+  /// Effects first, then only the characters needed at the current table.
+  @visibleForTesting
+  static Iterable<String> preloadPaths(Iterable<Character> characters) sync* {
     yield* {..._asset.values};
-    for (final lines in _voiceAsset.values) {
+    for (final character in characters.toSet()) {
+      final lines = _voiceAsset[character] ?? const {};
       for (final path in lines.values) {
         if (path != null) yield path;
       }
     }
   }
 
-  /// Start fetching and decoding every browser clip. Native assets are already
-  /// local, so the native backend returns immediately.
-  Future<void> preload() => _audio.preload(_allClips);
+  /// With no characters, warm only the four shared effects. Further calls
+  /// add selected voices; playback can still fetch any uncached clip on demand.
+  Future<void> preload({Iterable<Character> characters = const []}) =>
+      _audio.preload(preloadPaths(characters));
 
   // --- blips -----------------------------------------------------------
 

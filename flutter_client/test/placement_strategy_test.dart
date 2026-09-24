@@ -262,6 +262,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(labelOf(const Key('strategy')), 'Points');
@@ -284,6 +287,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('guideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -312,6 +318,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
   }
 
@@ -324,6 +333,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     await tester.tap(find.byKey(const Key('strategy')));

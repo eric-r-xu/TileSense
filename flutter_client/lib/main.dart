@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +17,9 @@ import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
-import 'ui/online_page.dart';
-import 'ui/scenario_page.dart';
+import 'ui/online_page.dart' deferred as online;
+import 'ui/feature_loader.dart';
+import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
 import 'ui/table_view.dart';
 
@@ -31,9 +34,15 @@ void main() {
   ]);
   // Arm a native (pre-Flutter) listener whose synchronous AudioContext.resume
   // call satisfies mobile browser autoplay policy. Its web implementation also
-  // begins decoding clips; the native stub remains a true no-op.
+  // keeps the native stub a true no-op.
   armFirstGestureUnlock();
   runApp(const TileSenseApp());
+  // Paint the menu before warming shared effects. Voices wait for a table.
+  if (kIsWeb) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(Sfx.i.preload());
+    });
+  }
 }
 
 /// Colour for a play style, so the setting reads at a glance wherever it is
@@ -723,14 +732,26 @@ class _RotatePrompt extends StatelessWidget {
 }
 
 class GamePage extends StatefulWidget {
-  const GamePage({super.key});
+  const GamePage({super.key, this.createGame});
+
+  /// Allows startup tests to observe when the first real game is created.
+  final GameController Function(Ruleset, List<Character>, int, bool)?
+      createGame;
 
   @override
   State<GamePage> createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> {
-  late final GameController _game = GameController();
+  GameController? _controller;
+  GameController get _game => _controller!;
+  Ruleset _selectedRuleset = Ruleset.riichi;
+  final List<Character> _characters = List.of(kSeatCharacters);
+  int _startingDealer = 0;
+  bool _hanchan = true;
+  bool _startingGame = false;
+  bool _startFailed = false;
+  int _startRequest = 0;
   // Off by default so a new player sees the plain table first; the clefairy
   // buttons in the AppBar and bottom hand bar turn it on.
   bool _showGuide = false;
@@ -765,8 +786,8 @@ class _GamePageState extends State<GamePage> {
   // completed rounds aren't stranded. No-op unless the app was built with
   // --dart-define=TELEMETRY=true.
   late final AppLifecycleListener _lifecycle = AppLifecycleListener(
-    onHide: _game.flushTelemetry,
-    onDetach: _game.flushTelemetry,
+    onHide: () => _controller?.flushTelemetry(),
+    onDetach: () => _controller?.flushTelemetry(),
   );
 
   @override
@@ -788,14 +809,17 @@ class _GamePageState extends State<GamePage> {
   void dispose() {
     _lifecycle.dispose();
     HardwareKeyboard.instance.removeHandler(_onKey);
-    _game.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   // Esc toggles pause (works on web where widget shortcuts miss the canvas).
   bool _onKey(KeyEvent e) {
     if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.escape) {
-      _game.togglePause();
+      if (_showWelcome || _showBuilder || _showOnline || _startingGame) {
+        return false;
+      }
+      _controller?.togglePause();
       return true;
     }
     return false;
@@ -808,64 +832,126 @@ class _GamePageState extends State<GamePage> {
   // don't keep running unattended; Start un-pauses it again on the way back.
   void _backToMenu() {
     if (!_game.paused) _game.togglePause();
-    setState(() => _showWelcome = true);
+    setState(() {
+      _selectedRuleset = _game.ruleset;
+      _characters.setAll(0, _game.seatCharacters);
+      _startingDealer = _game.startingDealer;
+      _hanchan = _game.hanchan;
+      _showWelcome = true;
+    });
+  }
+
+  Future<void> _startOffline() async {
+    final request = ++_startRequest;
+    setState(() {
+      _startingGame = true;
+      _startFailed = false;
+    });
+    if (Sfx.i.enabled) unawaited(Sfx.i.preload(characters: _characters));
+    // Give the loading screen a frame before dealing and analysing a hand.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || request != _startRequest) return;
+    try {
+      if (_controller == null) {
+        _controller = widget.createGame?.call(
+                _selectedRuleset, _characters, _startingDealer, _hanchan) ??
+            GameController(
+              ruleset: _selectedRuleset,
+              seatCharacters: _characters,
+              startingDealer: _startingDealer,
+              hanchan: _hanchan,
+            );
+      } else {
+        _game.setRuleset(_selectedRuleset);
+        _game.setHanchan(_hanchan);
+        _game.setStartingDealer(_startingDealer);
+        for (var seat = 0; seat < _characters.length; seat++) {
+          _game.setSeatCharacter(seat, _characters[seat]);
+        }
+        if (_game.paused) _game.togglePause();
+      }
+      setState(() {
+        _startingGame = false;
+        _choosingCharacters = false;
+        _showWelcome = false;
+      });
+    } catch (_) {
+      setState(() => _startFailed = true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_startingGame) {
+      return StartupScreen(
+        label: 'Preparing your table…',
+        onRetry: _startFailed ? _startOffline : null,
+        onBack: () => setState(() {
+          _startRequest++;
+          _startingGame = false;
+        }),
+      );
+    }
     if (_showBuilder) {
-      return ScenarioPage(
-        initialRuleset: _game.ruleset,
-        seatCharacters: _builderCharacters,
-        seatWind: _builderWind,
-        onExit: () => setState(() => _showBuilder = false),
+      return FeatureLoader(
+        key: const Key('builderLoader'),
+        load: scenario.loadLibrary,
+        label: 'Loading hand builder…',
+        onBack: () => setState(() => _showBuilder = false),
+        builder: (_) => scenario.ScenarioPage(
+          initialRuleset: _selectedRuleset,
+          seatCharacters: _builderCharacters,
+          seatWind: _builderWind,
+          onExit: () => setState(() => _showBuilder = false),
+        ),
       );
     }
     if (_showOnline) {
-      return OnlinePage(
-        initialRuleset: _game.ruleset,
-        initialJoinCode: _joinCode,
-        onExit: () => setState(() {
-          _showOnline = false;
-          _joinCode = null;
-          _showWelcome = true;
-        }),
+      void exitOnline() => setState(() {
+            _showOnline = false;
+            _joinCode = null;
+            _showWelcome = true;
+          });
+      return FeatureLoader(
+        key: const Key('onlineLoader'),
+        load: online.loadLibrary,
+        label: 'Loading multiplayer…',
+        onBack: exitOnline,
+        builder: (_) => online.OnlinePage(
+          initialRuleset: _selectedRuleset,
+          initialJoinCode: _joinCode,
+          onExit: exitOnline,
+        ),
       );
     }
     if (_showWelcome) {
       if (_choosingCharacters) {
         return CharacterSelectPage(
-          seatCharacters: _game.seatCharacters,
-          onSeatCharacter: (seat, c) =>
-              setState(() => _game.setSeatCharacter(seat, c)),
-          startingDealer: _game.startingDealer,
-          onStartingDealer: (seat) =>
-              setState(() => _game.setStartingDealer(seat)),
+          seatCharacters: _characters,
+          onSeatCharacter: (seat, c) => setState(() => _characters[seat] = c),
+          startingDealer: _startingDealer,
+          onStartingDealer: (seat) => setState(() => _startingDealer = seat),
           onRandomize: () => setState(() {
-            final picks = randomSeatCharacters();
-            for (var seat = 0; seat < picks.length; seat++) {
-              _game.setSeatCharacter(seat, picks[seat]);
-            }
-            _game.setStartingDealer(randomStartingDealer());
+            _characters.setAll(0, randomSeatCharacters());
+            _startingDealer = randomStartingDealer();
           }),
           advanceLabel: 'Start',
-          ruleset: _game.ruleset,
-          onRuleset: (r) => setState(() => _game.setRuleset(r)),
-          soundOn: _game.soundOn,
-          onSoundOn: (on) => setState(() => _game.setSoundOn(on)),
-          hanchan: _game.hanchan,
-          onHanchan: (h) => setState(() => _game.setHanchan(h)),
-          onBack: () => setState(() => _choosingCharacters = false),
-          onAdvance: () => setState(() {
-            _choosingCharacters = false;
-            if (_game.paused) _game.togglePause();
-            _showWelcome = false;
+          ruleset: _selectedRuleset,
+          onRuleset: (r) => setState(() => _selectedRuleset = r),
+          soundOn: Sfx.i.enabled,
+          onSoundOn: (on) => setState(() {
+            Sfx.i.enabled = on;
+            if (on) Sfx.i.unlock();
           }),
+          hanchan: _hanchan,
+          onHanchan: (h) => setState(() => _hanchan = h),
+          onBack: () => setState(() => _choosingCharacters = false),
+          onAdvance: _startOffline,
         );
       }
       return _WelcomeScreen(
-        ruleset: _game.ruleset,
-        onRuleset: (r) => setState(() => _game.setRuleset(r)),
+        ruleset: _selectedRuleset,
+        onRuleset: (r) => setState(() => _selectedRuleset = r),
         onStart: () => setState(() => _choosingCharacters = true),
         onBuild: () => setState(() {
           _builderCharacters = randomSeatCharacters();

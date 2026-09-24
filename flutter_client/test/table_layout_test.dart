@@ -1,3 +1,4 @@
+import 'loading_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/tile.dart';
@@ -12,6 +13,8 @@ import 'package:tilesense/ui/tile_face.dart';
 /// from you render the same size as the turned side ponds and meet across the
 /// middle with just a sliver of felt between them.
 void main() {
+  preloadDeferredPages();
+
   Rect statusPanel(WidgetTester tester) => tester.getRect(find
       .ancestor(
           of: find.textContaining('East 1'), matching: find.byType(Container))
@@ -34,6 +37,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     // An empty pond renders nothing, so give every pond three full rows —
@@ -96,8 +102,7 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await pumpLoadedPage(tester);
 
     final guide = tester.getRect(find.byType(EfficiencyOverlay));
     expect(guide.top, greaterThan(statusPanel(tester).bottom));

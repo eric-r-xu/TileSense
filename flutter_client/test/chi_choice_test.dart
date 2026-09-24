@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
+import 'package:tilesense/game/call_callout.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/ui/hand_view.dart';
@@ -12,6 +13,12 @@ import 'helpers.dart';
 /// guide's choice used to be made for you — and a riichi-capable hand says so
 /// whether or not the guide would declare it.
 void main() {
+  // `CallCallout` is a process-wide singleton and its `remaining` reads the
+  // wall clock, which a widget test's fake clock never advances. The game loop
+  // adds that remainder to its step timer, so a bubble left over from the
+  // previous test in this file would silently delay this one's.
+  setUp(CallCallout.i.clear);
+
   /// Seat 3 cuts [fed]; seat 0 is its kamicha, so seat 0 is offered the call.
   GameController awaitingCall(Tile fed, {required String seat0Hand}) {
     final game = GameController(seed: 4);
@@ -37,7 +44,7 @@ void main() {
     Sfx.i.enabled = false; // no audio plugin under a test binding
     addTearDown(() => Sfx.i.enabled = true);
     final game = awaitingCall(Tile(900, TileType.man5), seat0Hand: hand);
-    await tester.pump(const Duration(seconds: 2));
+    await pumpUntil(tester, () => game.awaitingHumanCall);
     expect(game.awaitingHumanCall, isTrue);
     return game;
   }
@@ -102,7 +109,7 @@ void main() {
     final game = awaitingCall(Tile(901, TileType.pin5),
         seat0Hand: '46p 123m 456m 789m 99s');
     try {
-      await tester.pump(const Duration(seconds: 2));
+      await pumpUntil(tester, () => game.awaitingHumanCall);
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(body: HandView(game: game, onToggleGuide: () {})),
       ));

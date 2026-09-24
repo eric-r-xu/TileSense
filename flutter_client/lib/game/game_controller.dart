@@ -54,7 +54,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
     int? seed,
     SimpleBot Function(int seed)? botFactory,
     this.ruleset = Ruleset.riichi,
+    this.startingDealer = 0,
+    this.hanchan = true,
+    List<Character>? seatCharacters,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
+        seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
         _botFactory = botFactory ?? SimpleBot.new {
     if (ruleset.isChineseStyle) {
       playStyle = PlayStyle.balanced;
@@ -157,6 +161,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (Sfx.i.enabled == value) return;
     Sfx.i.enabled = value;
     if (value) Sfx.i.unlock();
+    if (value) unawaited(Sfx.i.preload(characters: seatCharacters));
     _tel?.settingChange(matchId: _matchId, setting: 'sound', value: value);
     notifyListeners();
   }
@@ -281,7 +286,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// The full game when true — hanchan (East + South, 8 hands), same for
   /// both rulesets — and East-only (4 hands) when false. The full game is
   /// the default.
-  bool hanchan = true;
+  bool hanchan;
   int get _handsPerGame => ruleset.handsPerGame(fullGame: hanchan);
 
   @override
@@ -354,7 +359,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   /// Which persona each seat renders and voices as, human seat included.
   /// Starts at [kSeatCharacters]; change it with [setSeatCharacter].
-  List<Character> seatCharacters = List.of(kSeatCharacters);
+  List<Character> seatCharacters;
 
   Character _characterForSeat(int seat) => seatCharacters[seat];
 
@@ -369,6 +374,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void setSeatCharacter(int seat, Character c) {
     if (seatCharacters[seat] == c) return;
     seatCharacters[seat] = c;
+    if (soundOn) unawaited(Sfx.i.preload(characters: [c]));
     notifyListeners();
   }
 
@@ -388,7 +394,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// The seat that deals first, and so is East, when a match starts; the human
   /// is [kHumanSeat], so this is what decides which wind you begin on
   /// (`(4 - startingDealer) % 4`). Change it with [setStartingDealer].
-  int startingDealer = 0;
+  int startingDealer;
 
   /// Which wind the human seat begins on.
   Wind get humanStartingWind => Wind.values[(4 - startingDealer) % 4];
