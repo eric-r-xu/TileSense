@@ -212,11 +212,23 @@ class HongKongGuideTuning {
   /// refusing calls — far more often than any real danger warranted.
   static int threatExposedSets = 3;
 
+  /// [threatExposedSets] for Taiwanese, whose hand is five sets, not four:
+  /// three exposed is still two short, and the bots get there most hands.
+  static int taiwaneseThreatExposedSets = 4;
+
+  /// The exposed sets that make an opponent a threat under [ruleset].
+  static int threatSetsFor(Ruleset ruleset) => ruleset.isTaiwanese
+      ? taiwaneseThreatExposedSets
+      : threatExposedSets;
+
   /// Count the Concealed Hand faan in the pre-ready payout estimate.
   static bool concealedFaanInEstimate = true;
 
   /// The win-probability model the Hong Kong guide runs on.
   static WinModel winModel = WinModel.hongKong;
+
+  /// The win-probability model the Taiwanese guide runs on.
+  static WinModel taiwaneseWinModel = WinModel.hongKong;
 }
 
 /// The constants the win-probability model runs on: how wide a typical hand
@@ -1795,7 +1807,11 @@ class EfficiencyEngine {
             ).win;
 
   static WinModel _winModelFor(Ruleset ruleset) =>
-      ruleset.isChineseStyle ? HongKongGuideTuning.winModel : WinModel.riichi;
+      ruleset.isTaiwanese
+          ? HongKongGuideTuning.taiwaneseWinModel
+          : ruleset.isHongKong
+              ? HongKongGuideTuning.winModel
+              : WinModel.riichi;
 
   /// [_typicalUkeire], for `ev_calibration_test.dart` to hold against what
   /// simulated play actually produces.
@@ -2071,11 +2087,12 @@ class EfficiencyEngine {
     double? projectedDoraReference,
     ({double win, double reached, List<WinTurn> series})? tenpaiLookahead,
   }) {
-    // A normal discard analysis starts with 14 tiles including open melds.
-    // Off-turn defensive reads can have only 13, so avoid pretending those
+    // A normal discard analysis starts with 14 tiles including open melds (17
+    // for Taiwanese), leaving 13 (16) once this line's discard is made.
+    // Off-turn defensive reads are a tile short, so avoid pretending those
     // incomplete states can be scored as winning hands.
-    final completeTurnTileCount =
-        concealed.length + context.melds.length * 3 == 13;
+    final completeTurnTileCount = concealed.length + context.melds.length * 3 ==
+        context.ruleset.concealedHandSize;
     if (!completeTurnTileCount) {
       return const _ValueAssessment(plan: 'DEFENSE');
     }
@@ -2152,7 +2169,9 @@ class EfficiencyEngine {
     // [_assessHongKongTenpaiValue] and [_scoreWait]).
     if (context.ruleset.isChineseStyle) {
       final projectedPoints = projectedPointsOverride ??
-          _hongKongProjectedPoints(concealed, context);
+          (context.ruleset.isTaiwanese
+              ? _taiwaneseProjectedPoints(concealed, context)
+              : _hongKongProjectedPoints(concealed, context));
       final tilted = context.focus.chanceWorth(completionProbability) *
           context.worth(projectedPoints);
       return _ValueAssessment(
@@ -2297,6 +2316,45 @@ class EfficiencyEngine {
   /// already shows: dragon and wind pungs, a flush, staying concealed and its
   /// flowers. Priced as the mix of discard wins and self-picks the ready-hand
   /// scoring uses, with a self-pick adding its own faan.
+  /// What a self-drawn win collects in all. A Taiwanese score is what each
+  /// of the other three pays, so a self-draw takes it three times over; a
+  /// Hong Kong score is already the total.
+  static double _selfDrawTotal(HandScore self, EfficiencyValueContext context) =>
+      context.ruleset.isTaiwanese ? 3.0 * self.points : self.points.toDouble();
+
+  /// [_hongKongProjectedPoints] in Taiwanese points: what the hand's visible
+  /// patterns would pay once it wins, off the Taiwanese chart rather than the
+  /// Hong Kong faan table, so a hand one step from ready is priced on the
+  /// same scale the exact score takes over with once it is ready. Floored at
+  /// the 5-point minimum a hand must reach to win at all; a self-draw adds
+  /// Self-Drawn, turns Concealed into Fully Concealed, and is paid by all
+  /// three other seats.
+  static double _taiwaneseProjectedPoints(
+      List<Tile> concealed, EfficiencyValueContext context) {
+    final types = [
+      ...concealed.map((t) => t.type),
+      ...context.melds.expand((m) => m.types)
+    ];
+    var points = 0;
+    for (var i = 27; i < 34; i++) {
+      final t = typeFrom34(i);
+      if (types.where((x) => x == t).length < 3) continue;
+      if (t.isDragon || t == context.seatWind.tile) points++;
+    }
+    final suits = types.where((t) => t.isSuit).map((t) => t.suit).toSet();
+    final hasHonor = types.any((t) => t.isHonor);
+    if (suits.length == 1) points += hasHonor ? 10 : 40;
+    if (!hasHonor) points++;
+    if (context.flowersEnabled) {
+      points += context.flowers.isEmpty ? 1 : context.flowers.length;
+    }
+    if (context.closed) points++;
+    final discard = math.max(TaiwaneseRules.minimumPoints, points);
+    final selfDraw =
+        math.max(TaiwaneseRules.minimumPoints, points + 1 + (context.closed ? 2 : 0));
+    return 0.65 * discard + 0.35 * 3 * selfDraw;
+  }
+
   static double _hongKongProjectedPoints(
       List<Tile> concealed, EfficiencyValueContext context) {
     final types = [
@@ -2370,12 +2428,30 @@ class EfficiencyEngine {
   static const double _dealInCost = 5800;
   static const double _dealerDealInCost = 8700;
 
+  /// Taiwanese's live wall once the 16-tile hands are dealt.
+  static const int _taiwaneseWallAfterDeal = 144 - 4 * 16;
+
+  /// Discards on the table so far, for Taiwanese's "Win Within N Discards"
+  /// patterns: every discard follows a draw off the live wall, so this is the
+  /// wall already drawn. Flower replacements come off it too, so it leans
+  /// high — the safe side, since those patterns only pay for being early.
+  /// Left at 0, every wait scored as an early win (+10), and cleared the
+  /// 5-point minimum it often could not.
+  static int _taiwaneseDiscardsSoFar(EfficiencyValueContext context) =>
+      math.max(0, _taiwaneseWallAfterDeal - context.wallTilesRemaining);
+
   /// The same for Hong Kong, in chips: a 3-faan hand won off your discard.
   /// There is no dealer premium. Reused as the Taiwanese estimate too — a
   /// mid-size discard-won hand is in the same ballpark, and Taiwanese has no
   /// dealer premium on a hand's own value either (its dealer-streak bonus is
   /// a separate, un-modelled addition — see Round._applyRon).
   static const double _hongKongDealInCost = 16;
+
+  /// The same for Taiwanese, in points: what a discard win costs the seat
+  /// that dealt in — the hand's own value, which averaged 6.9 points over
+  /// simulated guide-vs-bot play. Hong Kong's 16 chips overpriced every risky
+  /// cut and slowed the guide down.
+  static const double _taiwaneseDealInCost = 7;
 
   /// The points a discard is expected to cost, given how safe it is. Zero
   /// without a live riichi to deal into, and zero on genbutsu.
@@ -2389,9 +2465,12 @@ class EfficiencyEngine {
     final rate = _dealInRateByRating[
         safety.rating.clamp(0, _dealInRateByRating.length - 1)];
     // Honba rides on their win too — you pay it.
-    final cost = ruleset.isChineseStyle
-        ? _hongKongDealInCost
-        : (opponentIsDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
+    final cost = ruleset.isTaiwanese
+        ? _taiwaneseDealInCost
+        : ruleset.isHongKong
+            ? _hongKongDealInCost
+            : (opponentIsDealer ? _dealerDealInCost : _dealInCost) +
+                honba * 300;
     return rate * cost;
   }
 
@@ -2752,7 +2831,7 @@ class EfficiencyEngine {
     required List<Tile> concealed,
     required EfficiencyValueContext context,
   }) {
-    var liveWaits = 0;
+    var liveWaits = 0.0;
     var points = 0.0;
     for (final wait in waits) {
       final copies = remaining[trainerIndexOf(wait)];
@@ -2762,19 +2841,30 @@ class EfficiencyEngine {
           isTsumo: false, assumeRiichi: false, context: context);
       final self = _scoreWait(concealed, tile,
           isTsumo: true, assumeRiichi: false, context: context);
+      if (context.ruleset.isTaiwanese && !discard.valid && self.valid) {
+        // Under the 5-point minimum on a discard but not on a self-draw
+        // (Self-Drawn, and Fully Concealed in place of Concealed): still a
+        // live wait, but one only the wall can complete — half the chances a
+        // turn, the same discount a riichi tsumo-only wait takes.
+        const share = _tsumoOnlyChancesPerTurn / _winChancesPerTurn;
+        liveWaits += copies * share;
+        points += copies * share * _selfDrawTotal(self, context);
+        continue;
+      }
       if (!discard.valid || !self.valid) continue;
       if (discard.faan < HongKongRules.minimumFaan) continue;
       liveWaits += copies;
-      points += copies * (0.65 * discard.points + 0.35 * self.points);
+      points += copies *
+          (0.65 * discard.points + 0.35 * _selfDrawTotal(self, context));
     }
     if (liveWaits == 0) return const _ValueAssessment(plan: 'NO LIVE WAIT');
     points /= liveWaits;
     final outlook = _winChanceOverTurns(
-        waitWidth: liveWaits.toDouble(),
+        waitWidth: liveWaits,
         unseen: _countRemaining(remaining),
         draws: math.max(0, (context.wallTilesRemaining + 3) ~/ 4),
-        chancesPerTurn: HongKongGuideTuning.winModel.winChancesPerTurn,
-        survivesTurn: HongKongGuideTuning.winModel.survivesTurn);
+        chancesPerTurn: _winModelFor(context.ruleset).winChancesPerTurn,
+        survivesTurn: _winModelFor(context.ruleset).survivesTurn);
     final expected =
         context.focus.chanceWorth(outlook.win) * context.worth(points);
     return _ValueAssessment(
@@ -2786,11 +2876,11 @@ class EfficiencyEngine {
         winBreakdown: WinBreakdown(
           estimator: WinEstimator.tenpai,
           turns: outlook.series,
-          width: liveWaits.toDouble(),
+          width: liveWaits,
           unseen: _countRemaining(remaining),
           draws: math.max(0, (context.wallTilesRemaining + 3) ~/ 4),
-          chancesPerTurn: HongKongGuideTuning.winModel.winChancesPerTurn,
-          survivesTurn: HongKongGuideTuning.winModel.survivesTurn,
+          chancesPerTurn: _winModelFor(context.ruleset).winChancesPerTurn,
+          survivesTurn: _winModelFor(context.ruleset).survivesTurn,
         ),
         turnsExposed: outlook.turns,
         plan: 'READY',
@@ -2884,6 +2974,7 @@ class EfficiencyEngine {
           closed: context.closed,
           flowers: context.flowers,
           flowersEnabled: context.flowersEnabled,
+          discardCount: _taiwaneseDiscardsSoFar(context),
         ),
         isDealer: context.isDealer,
       );
@@ -3051,6 +3142,8 @@ abstract final class GuideConstants {
   static double get dealInCost => EfficiencyEngine._dealInCost;
   static double get dealerDealInCost => EfficiencyEngine._dealerDealInCost;
   static double get hongKongDealInCost => EfficiencyEngine._hongKongDealInCost;
+  static double get taiwaneseDealInCost =>
+      EfficiencyEngine._taiwaneseDealInCost;
 
   /// How much of each later turn a pushing cut is charged for, and how many of
   /// your discards a live riichi lasts.

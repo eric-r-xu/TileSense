@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:mahjong_core/bot.dart';
+import 'package:mahjong_core/ruleset.dart';
 
 import 'folding_bot.dart';
 
@@ -23,6 +24,7 @@ import 'folding_bot.dart';
 ///
 /// Skipped unless SIM_GAMES is set:
 ///   SIM_GAMES=400 flutter test test/guide_vs_bots_sim_test.dart
+/// SIM_RULESET=hongKong or taiwanese plays those rules instead of riichi.
 void main() {
   final env = Platform.environment;
   final games = int.tryParse(env['SIM_GAMES'] ?? '') ?? 0;
@@ -36,12 +38,14 @@ void main() {
     // board against them, and 45% once they defend. Off by default so earlier
     // numbers stay reproducible.
     final fold = env['SIM_FOLD'] == '1';
+    final ruleset = Ruleset.values.byName(env['SIM_RULESET'] ?? 'riichi');
     final sw = Stopwatch()..start();
+    print('Rules: ${ruleset.label}');
     print(fold ? 'Opponents: FoldingBot' : 'Opponents: SimpleBot (never fold)');
 
     final arms = await Future.wait([
-      _runArm(base, games, shards, guide: true, fold: fold),
-      _runArm(base, games, shards, guide: false, fold: fold),
+      _runArm(base, games, shards, ruleset, guide: true, fold: fold),
+      _runArm(base, games, shards, ruleset, guide: false, fold: fold),
     ]);
     print('Simulated ${games * 2} hanchan in ${sw.elapsed.inSeconds}s');
 
@@ -53,7 +57,7 @@ void main() {
           for (final r in arm) r.join(','),
       ].join('\n'));
     }
-    _report(arms[0], arms[1]);
+    _report(arms[0], arms[1], ruleset);
   }, skip: games == 0 ? 'set SIM_GAMES to run' : false, timeout: Timeout.none);
 }
 
@@ -67,29 +71,32 @@ const _cols = [
 ];
 const _pts = 3, _win = 7, _dealIn = 11, _winGain = 15, _riichi = 19;
 
-Future<List<List<num>>> _runArm(int base, int games, int shards,
+Future<List<List<num>>> _runArm(
+    int base, int games, int shards, Ruleset ruleset,
     {required bool guide, required bool fold}) async {
   final parts = await Future.wait([
     for (var s = 0; s < shards; s++)
-      Isolate.run(() => _shard(base, games, s, shards, guide, fold)),
+      Isolate.run(() => _shard(base, games, s, shards, ruleset, guide, fold)),
   ]);
   return [for (final p in parts) ...p]..sort((a, b) => a[0].compareTo(b[0]));
 }
 
-List<List<num>> _shard(
-    int base, int games, int shard, int shards, bool guide, bool fold) {
+List<List<num>> _shard(int base, int games, int shard, int shards,
+    Ruleset ruleset, bool guide, bool fold) {
   Sfx.i.enabled = false;
   return [
     for (var g = shard; g < games; g += shards)
-      _playGame(base + g, guide, fold),
+      _playGame(base + g, ruleset, guide, fold),
   ];
 }
 
-List<num> _playGame(int seed, bool guide, bool fold) {
+List<num> _playGame(int seed, Ruleset ruleset, bool guide, bool fold) {
   late List<num> row;
   fakeAsync((fa) {
     final game = GameController(
-        seed: seed, botFactory: fold ? FoldingBot.new : SimpleBot.new);
+        seed: seed,
+        botFactory: fold ? FoldingBot.new : SimpleBot.new,
+        ruleset: ruleset);
     if (guide) game.setAutoplay(true);
     final seat0Bot =
         fold ? FoldingBot(seed * 31 + 3) : SimpleBot(seed * 31 + 3);
@@ -234,7 +241,8 @@ void _seatTable(String name, List<List<num>> rows) {
   }
 }
 
-void _report(List<List<num>> guide, List<List<num>> control) {
+void _report(
+    List<List<num>> guide, List<List<num>> control, Ruleset ruleset) {
   _seatTable('GUIDE at seat 0', guide);
   _seatTable('CONTROL: SimpleBot at seat 0', control);
 
@@ -249,7 +257,8 @@ void _report(List<List<num>> guide, List<List<num>> control) {
   for (final (name, rows) in [('guide', guide), ('control', control)]) {
     print(' $name');
     print(_test('avg placement     ', place0(rows), 2.5));
-    print(_test('final points      ', pts0(rows), 25000));
+    print(_test('final points      ', pts0(rows),
+        ruleset.startingPoints.toDouble()));
     print(_test('1st-place rate    ', first0(rows), 0.25));
     print(_test('4th-place rate    ', last0(rows), 0.25));
   }

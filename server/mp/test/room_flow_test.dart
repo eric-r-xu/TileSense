@@ -101,6 +101,7 @@ StreamSubscription<void> _autoplay(TestClient client) {
 }
 
 void main() {
+  taiwaneseRoomMain();
   test('two humans + two bots play a full hand with no hand leakage, then continue',
       () async {
     final manager = RoomManager();
@@ -292,4 +293,42 @@ void main() {
       expect(bCharacter, isNotEmpty);
     });
   }
+}
+
+/// A Taiwanese room must deal Taiwanese hands: 16 tiles a seat, 17 for the
+/// seat on turn, both over the wire and in the client's rebuilt [Round].
+void taiwaneseRoomMain() {
+  test('a Taiwanese room deals 16-tile hands (17 on turn) to every seat',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'taiwanese',
+      'hanchan': false,
+    });
+    final created = await a.waitFor((m) => m['type'] == 'room_state');
+    expect(created['ruleset'], 'taiwanese');
+
+    a.send({'type': 'start_game'});
+    final state = await a.waitFor((m) => m['type'] == 'state',
+        timeout: const Duration(seconds: 10));
+    final roundJson = state['round'] as Map<String, dynamic>;
+    expect(roundJson['ruleset'], 'taiwanese');
+
+    final mySeat = state['yourSeat'] as int;
+    final round = buildRoundFromSnapshot(roundJson, mySeat: mySeat);
+    expect(round.ruleset, Ruleset.taiwanese);
+    for (final s in round.seats) {
+      final size = s.hand.length + s.melds.length * 3;
+      expect(size, s.seat == round.turn ? 17 : 16,
+          reason: 'seat ${s.seat} (turn ${round.turn})');
+    }
+  });
 }
