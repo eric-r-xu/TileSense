@@ -8,8 +8,7 @@ import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
 void main() {
-  testWidgets(
-      'app boots to the table with the efficiency guide off by default',
+  testWidgets('app boots to the table with the efficiency guide off by default',
       (tester) async {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
@@ -132,6 +131,29 @@ void main() {
     // Still a live table, no exception thrown by the turn loop.
     expect(find.byType(TableView), findsOneWidget);
     expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('Play Online and the builder each carry an emoji on the left',
+      (tester) async {
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+
+    for (final (emojiKey, title) in [
+      ('playOnlineEmoji', 'Play Online'),
+      ('openBuilderEmoji', 'Custom Hand & Context Builder'),
+    ]) {
+      final emoji = tester.getRect(find.byKey(Key(emojiKey)));
+      final label = tester.getRect(find.text(title));
+      expect(emoji.right, lessThanOrEqualTo(label.left),
+          reason: '$title\'s emoji should sit to its left');
+    }
+    expect(tester.takeException(), isNull,
+        reason: 'the button row still fits the welcome screen');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

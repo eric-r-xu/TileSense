@@ -4,7 +4,7 @@
 /// app bar is deliberately smaller than the offline one: no ruleset/hanchan/
 /// fast-mode toggle and no pause, all single-player-only concepts — just the
 /// room code and Leave Room. The personal (client-side only) riichi
-/// auto-discard toggle lives in [HandView], beside Auto-sort.
+/// auto-discard toggle lives in [HandView], beside the Sort chip.
 library;
 
 import 'package:flutter/material.dart';

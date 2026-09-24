@@ -13,8 +13,8 @@ import 'tile_face.dart';
 /// The flat 2D table. Each seat's placard hugs its own edge with the concealed
 /// hand just inside it (the freshly drawn tile split out so its position reads);
 /// the four discard ponds bracket the centre on a fixed six-column grid whose
-/// origin never moves as it fills; the round/wall status sits dead centre and
-/// the dead wall in the top-right corner.
+/// origin never moves as it fills; the round/wall status sits in the top-left
+/// corner and the dead wall in the top-right one.
 /// Which part of the table the scenario builder is currently pointing at.
 enum TableArea { pond, melds, dora }
 
@@ -54,39 +54,24 @@ class TableView extends StatelessWidget {
   final TableEdits? edits;
 
   static const int _pondCols = 6;
-  // Discard tiles render 25% larger than the authored `TileSize.normal` step.
+  // Discard tiles render 25% larger than the authored `TileSize.normal` step —
+  // all four ponds alike.
   static const double _pondScale = 1.25;
 
-  /// Your pond and the one across from you are the only two whose *height*
-  /// stacks against the centre status box — the left and right ponds are
-  /// turned, so their rows run sideways. Those two render a step smaller so
-  /// all four of their rows clear the box, on the short table the scenario
-  /// builder lays out as well as the taller one the game does.
-  static const double _verticalPondScale = 1.0;
+  /// The gap between your pond and the one across from you. With the status
+  /// panel up in the corner, nothing sits between them any more, so they meet
+  /// in the middle of the table with just this much felt showing.
+  static const double _centrePondGap = 10;
 
-  static double _pondScaleFor(int seat) =>
-      (seat == 0 || seat == 2) ? _verticalPondScale : _pondScale;
+  /// The status panel's fixed height and its inset from the table's top edge.
+  static const double _statusPanelHeight = 60;
+  static const double _statusPanelTop = 6;
 
-  /// Half the centre status block, plus the breathing room to leave around it.
-  /// Your pond and the one across from you are placed this far from the middle
-  /// of the table, measured in pixels rather than as a fraction of its height —
-  /// so they sit as close in as they can on a tall table and still clear the
-  /// block on a short one. As a fraction they drifted out to a 300px gap on the
-  /// game's table while nearly touching on the builder's shorter one.
-  static const double _centreBlockHalfHeight = 30;
-  static const double _centreBlockClearance = 16;
-
-  /// Where to put the pond above (or below) the centre block so its inner edge
-  /// lands exactly that clearance away.
-  static double _verticalPondAlign(double tableHeight, {required bool above}) {
-    final boxHeight = _pondBoxH(_verticalPondScale);
-    final free = tableHeight - boxHeight;
-    if (free <= 0) return above ? -1 : 1;
-    const offset = _centreBlockHalfHeight + _centreBlockClearance;
-    final top =
-        above ? tableHeight / 2 - offset - boxHeight : tableHeight / 2 + offset;
-    return (2 * top / free - 1).clamp(-1.0, 1.0);
-  }
+  /// How far down from the top of the table the top-left status panel
+  /// reaches, plus a little clearance — where anything else pinned to that
+  /// corner (the guide panel) should start so the two never overlap.
+  static const double statusPanelClearance =
+      _statusPanelTop + _statusPanelHeight + 8;
 
   // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
   static double _pondTileW(double scale) => 32 * scale + 1;
@@ -104,96 +89,119 @@ class TableView extends StatelessWidget {
     return Container(
       color: const Color(0xff063a3a),
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
-      child: LayoutBuilder(builder: (context, constraints) {
-        // The two ponds stacked against the centre block are placed off the
-        // table's real height, not a fraction of it — see [_verticalPondAlign].
-        final height = constraints.maxHeight;
-        return Stack(
-          children: [
-            Column(
-              children: [
-                _opponentRow(round, 2),
-                const SizedBox(height: 2),
-                Expanded(
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              _opponentRow(round, 2),
+              const SizedBox(height: 2),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _sideOpponent(round, 3, isLeft: true),
+                    // The band between the across seat's hand and your own
+                    // placard — exactly the room your pond and the one
+                    // across from you have — so they are placed off it.
+                    Expanded(child: _centrePonds(round)),
+                    _sideOpponent(round, 1, isLeft: false),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Center(
+                // A full eight-flower Taiwanese tray is wider than a
+                // typical Hong Kong hand's, and this Row has no width of
+                // its own to wrap within — scale the whole thing down
+                // instead of letting it overflow the table, same as
+                // FittedBox already does for hands and melds below.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _sideOpponent(round, 3, isLeft: true),
-                      const Expanded(child: SizedBox()),
-                      _sideOpponent(round, 1, isLeft: false),
+                      _portrait(0, size: 55),
+                      const SizedBox(width: 8),
+                      _placard(round, 0),
+                      if (round.ruleset.isChineseStyle) ...[
+                        const SizedBox(width: 8),
+                        _seatFlowers(round, 0),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Center(
-                  // A full eight-flower Taiwanese tray is wider than a
-                  // typical Hong Kong hand's, and this Row has no width of
-                  // its own to wrap within — scale the whole thing down
-                  // instead of letting it overflow the table, same as
-                  // FittedBox already does for hands and melds below.
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _portrait(0, size: 55),
-                        const SizedBox(width: 8),
-                        _placard(round, 0),
-                        if (round.ruleset.isChineseStyle) ...[
-                          const SizedBox(width: 8),
-                          _seatFlowers(round, 0),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // The four discard ponds, bracketing the centre so they form a
-            // square. The turned side ponds run out horizontally and keep their
-            // fractional placement; the two stacked against the centre block are
-            // pinned a fixed distance from it.
-            Align(
-              alignment: Alignment(0, _verticalPondAlign(height, above: true)),
-              child: _pond(round, 2, quarterTurns: 2),
-            ),
-            Align(
-              alignment: const Alignment(-0.52, -0.04),
-              child: _pond(round, 3, quarterTurns: 1),
-            ),
-            Align(
-              alignment: const Alignment(0.52, -0.04),
-              child: _pond(round, 1, quarterTurns: 3),
-            ),
-            Align(
-              alignment: Alignment(0, _verticalPondAlign(height, above: false)),
-              child: _pond(round, 0, quarterTurns: 0),
-            ),
-
-            // Round / honba / riichi / wall — dead centre of the pond square.
-            Align(alignment: Alignment.center, child: _statusBox(round)),
-
-            // Dead wall — top-right. Hong Kong and Taiwanese have no dora to
-            // show here; their flowers sit beside each seat's own placard
-            // instead.
-            if (!round.ruleset.isChineseStyle)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: _deadWall(round),
               ),
-          ],
-        );
-      }),
+            ],
+          ),
+
+          // The turned side ponds run out horizontally beside the centre
+          // pair (see [_centrePonds]), so the four form a square.
+          Align(
+            alignment: const Alignment(-0.52, -0.04),
+            child: _pond(round, 3, quarterTurns: 1),
+          ),
+          Align(
+            alignment: const Alignment(0.52, -0.04),
+            child: _pond(round, 1, quarterTurns: 3),
+          ),
+
+          // Round / honba / riichi / wall — the top-left corner, above the
+          // left seat and clear of the across seat's row, which is centred.
+          Positioned(
+            top: _statusPanelTop,
+            left: 0,
+            child: _statusBox(round),
+          ),
+
+          // Dead wall — top-right. Hong Kong and Taiwanese have no dora to
+          // show here; their flowers sit beside each seat's own placard
+          // instead.
+          if (!round.ruleset.isChineseStyle)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: _deadWall(round),
+            ),
+        ],
+      ),
     );
   }
 
-  /// The central status block: one stat per line, expansive green box. The round
-  /// (with kanji) is largest, the wall counter second largest.
+  /// Your pond and the one across from you, meeting in the middle of the
+  /// band between the across seat's hand and your own placard. Each grows
+  /// away from the middle as it fills; a long game's fourth row can run past
+  /// the band's edge, which paints over rather than pushing anything aside.
+  Widget _centrePonds(Round round) {
+    return LayoutBuilder(builder: (context, c) {
+      final mid = c.maxHeight / 2;
+      return Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: mid + _centrePondGap / 2,
+            child: Center(child: _pond(round, 2, quarterTurns: 2)),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: mid + _centrePondGap / 2,
+            child: Center(child: _pond(round, 0, quarterTurns: 0)),
+          ),
+        ],
+      );
+    });
+  }
+
+  /// The top-left status panel: one stat per line, expansive green box. The
+  /// round (with kanji) is largest, the wall counter second largest.
   Widget _statusBox(Round round) {
     Widget line(String t, double size, FontWeight weight) => Text(
           t,
+          maxLines: 1,
+          softWrap: false,
           style: TextStyle(
             color: const Color(0xffe9d58f),
             fontSize: size,
@@ -205,29 +213,38 @@ class TableView extends StatelessWidget {
       // Fixed width so the panel reads as a panel, not a tight label — ~30%
       // wider than the widest line ("Honba 0 · Riichi 0") needs.
       width: 250,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      // Fixed height (content centred in it) so [statusPanelClearance] can
+      // say exactly where the panel ends.
+      height: _statusPanelHeight,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: const Color(0xe61f3a1c),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0x66e9d58f), width: 1.5),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          line(
-              '${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
-              15,
-              FontWeight.w800),
-          const SizedBox(height: 2),
-          line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
-          const SizedBox(height: 1),
-          line(
-              round.ruleset.isChineseStyle
-                  ? '${round.ruleset.label}  ·  Dealer repeat ${game.dealerRepeat}'
-                  : 'Honba ${game.honba}  ·  Riichi ${round.riichiSticks}',
-              10,
-              FontWeight.w600),
-        ],
+      // Shrinks to fit rather than overflowing if a line runs long (a wide
+      // font, a long ruleset label), since the height above is fixed.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            line(
+                '${round.roundWind.kanji}  ${round.roundWind.label} ${game.handInWind}',
+                15,
+                FontWeight.w800),
+            const SizedBox(height: 2),
+            line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
+            const SizedBox(height: 1),
+            line(
+                round.ruleset.isChineseStyle
+                    ? '${round.ruleset.label}  ·  Dealer repeat ${game.dealerRepeat}'
+                    : 'Honba ${game.honba}  ·  Riichi ${round.riichiSticks}',
+                10,
+                FontWeight.w600),
+          ],
+        ),
       ),
     );
   }
@@ -365,7 +382,7 @@ class TableView extends StatelessWidget {
   /// The newest tile pops in so you can see it land.
   Widget _pond(Round round, int seat, {required int quarterTurns}) {
     final s = round.seats[seat];
-    final scale = _pondScaleFor(seat);
+    const scale = _pondScale;
     if (s.pond.isEmpty && !s.riichi) return const SizedBox.shrink();
     final last = s.pond.length - 1;
     // Pulse the just-cut tile while the human is being offered a call on it.
@@ -431,8 +448,7 @@ class TableView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (s.riichi)
-              _popIn(ValueKey('riichi-$seat'), _riichiStick()),
+            if (s.riichi) _popIn(ValueKey('riichi-$seat'), _riichiStick()),
             ...rows,
           ],
         ),
@@ -707,7 +723,11 @@ class TableView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: isLeft
-                  ? [flexPlacard, const SizedBox(width: 6), Flexible(child: inside)]
+                  ? [
+                      flexPlacard,
+                      const SizedBox(width: 6),
+                      Flexible(child: inside)
+                    ]
                   : [
                       Flexible(child: inside),
                       const SizedBox(width: 6),
@@ -754,7 +774,8 @@ class TableView extends StatelessWidget {
     // `seatLabel` already carries "(you)"/"(bot)" where relevant — the real
     // guest nickname online, the fixed persona name offline.
     // The number follows the current wind, not the fixed character position.
-    final seatNumber = round.ruleset.isChineseStyle ? '${s.wind.index + 1} ' : '';
+    final seatNumber =
+        round.ruleset.isChineseStyle ? '${s.wind.index + 1} ' : '';
     // The Custom Hand & Context Builder (`edits` set) shows just the wind: who
     // sits where is not part of a posed table.
     final name = edits == null ? '${game.seatLabel(seat)}  ' : ' ';
@@ -856,7 +877,8 @@ class _CountdownBadgeState extends State<CountdownBadge> {
 
   @override
   Widget build(BuildContext context) {
-    final remainingMs = widget.deadlineMs - DateTime.now().millisecondsSinceEpoch;
+    final remainingMs =
+        widget.deadlineMs - DateTime.now().millisecondsSinceEpoch;
     final seconds = (remainingMs / 1000).ceil().clamp(0, 999);
     final urgent = seconds <= 10;
     return Container(

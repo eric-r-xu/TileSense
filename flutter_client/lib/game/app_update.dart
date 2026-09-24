@@ -11,8 +11,8 @@
 /// inconclusive and the button simply refreshes.
 library;
 
-import 'app_update_stub.dart'
-    if (dart.library.js_interop) 'app_update_web.dart' as platform;
+import 'app_update_stub.dart' if (dart.library.js_interop) 'app_update_web.dart'
+    as platform;
 
 /// The id this bundle was built with; empty for dev builds and deploys that
 /// don't stamp one.

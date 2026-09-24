@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/mahjong_core.dart';
+import 'package:tilesense/game/game_controller.dart';
+import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:tilesense/scenario/scenario.dart';
 import 'package:tilesense/ui/meld_row.dart';
 import 'package:tilesense/ui/tile_face.dart';
@@ -167,5 +170,34 @@ void main() {
       expect(await faceDownCount(faceDown: false), 2);
       expect(await faceDownCount(faceDown: true), 4);
     });
+  });
+
+  testWidgets(
+      'the guide values a Taiwanese turn instead of writing every line off',
+      (tester) async {
+    // It once checked for a 13-tile hand, so every 16-tile line fell into
+    // the off-turn DEFENSE read and was worth nothing.
+    Sfx.i.enabled = false;
+    final game = GameController(seed: 1003, ruleset: Ruleset.taiwanese);
+    try {
+      for (var i = 0; i < 200 && !game.isHumanTurn; i++) {
+        await tester.pump(const Duration(milliseconds: 1104));
+      }
+      expect(game.isHumanTurn, isTrue);
+      final lines = game.report.lines;
+      expect(lines, isNotEmpty);
+      expect(lines.every((l) => l.valuePlan == 'DEFENSE'), isFalse);
+      expect(lines.any((l) => l.winProbability > 0), isTrue);
+    } finally {
+      game.dispose();
+      Sfx.i.enabled = true;
+    }
+  });
+
+  test('the guide plays the call-aware win model, and only for Taiwanese', () {
+    expect(HongKongGuideTuning.taiwaneseWinModel.countsCalls, isTrue);
+    expect(HongKongGuideTuning.winModel.countsCalls, isFalse);
+    expect(HongKongGuideTuning.threatSetsFor(Ruleset.taiwanese), 4);
+    expect(HongKongGuideTuning.threatSetsFor(Ruleset.hongKong), 3);
   });
 }

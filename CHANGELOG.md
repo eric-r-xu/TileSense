@@ -28,6 +28,19 @@ All notable changes to this project will be documented in this file.
     the hand ends, the guide doesn't count its tiles as seen, and the
     multiplayer snapshot sends them to other players as blanks. Riichi and
     Hong Kong still show the middle two tiles.
+  - **The guide now beats the bots under Taiwanese rules** — 0.146 of a
+    placement ahead of `SimpleBot` in your seat over 800 held-out paired
+    hanchan (p = 0.008), where it had been 0.26 behind (p = 0.001). It had
+    been valuing every Taiwanese line at 0 (`_assessValue` checked for a
+    13-tile hand), mixed Hong Kong chips with Taiwanese points, counted a
+    self-draw's payment once, and scored every wait as an early win. It now
+    prices everything in Taiwanese points, runs a call-aware win model
+    (`WinModel.taiwanese`, chosen by `test/taiwanese_tuning_sweep_test.dart`),
+    treats 4 exposed sets as a threat and charges a 7-point deal-in. Riichi
+    and Hong Kong simulations reproduce their previous results exactly.
+    Details in `flutter_client/BOT_STRATEGY.md`.
+  - `guide_vs_bots_sim_test.dart` takes `SIM_RULESET` (riichi, hongKong or
+    taiwanese).
   - Kyuushu kyuuhai is now gated on `isRiichi` rather than `!isHongKong`, so
     Taiwanese doesn't inherit it.
   - Unselected rulesets in the builder's chip row show just their flag (named

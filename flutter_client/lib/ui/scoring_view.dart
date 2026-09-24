@@ -341,8 +341,8 @@ class _ScoringViewState extends State<ScoringView> {
         ),
         const SizedBox(height: 8),
         if (hk)
-          _indicatorRow('Flowers / seasons',
-              w.flowers.map((t) => t.type).toList(),
+          _indicatorRow(
+              'Flowers / seasons', w.flowers.map((t) => t.type).toList(),
               indicators: false)
         else ...[
           _indicatorRow('Dora', doraInd),
@@ -373,13 +373,13 @@ class _ScoringViewState extends State<ScoringView> {
           taiwanese
               ? '${score.points} point${score.points == 1 ? '' : 's'}'
               : hk
-              ? '${score.faan} faan — ${score.points} chips'
-                  '${score.limitName.isEmpty ? '' : '  (${score.limitName})'}'
-              : score.yakuman > 0
-              ? '${score.limitName} — ${score.points}'
-              : '${score.han} han ${score.fu} fu'
-                  '${score.limitName.isNotEmpty ? '  (${score.limitName})' : ''}'
-                  ' — ${score.points}',
+                  ? '${score.faan} faan — ${score.points} chips'
+                      '${score.limitName.isEmpty ? '' : '  (${score.limitName})'}'
+                  : score.yakuman > 0
+                      ? '${score.limitName} — ${score.points}'
+                      : '${score.han} han ${score.fu} fu'
+                          '${score.limitName.isNotEmpty ? '  (${score.limitName})' : ''}'
+                          ' — ${score.points}',
           style: const TextStyle(
               color: Color(0xffffdf76), fontWeight: FontWeight.bold),
         ),

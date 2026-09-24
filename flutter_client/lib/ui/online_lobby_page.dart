@@ -130,8 +130,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                 // fits in kDesignSize's 820px height without scrolling; the
                 // waiting-room screen is a single narrow column, unchanged.
                 child: ConstrainedBox(
-                  constraints:
-                      BoxConstraints(maxWidth: game.roomCode.isEmpty ? 1100 : 520),
+                  constraints: BoxConstraints(
+                      maxWidth: game.roomCode.isEmpty ? 1100 : 520),
                   child: game.roomCode.isEmpty ? _setupCard() : _roomCard(),
                 ),
               ),
@@ -228,8 +228,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xffcaa24e),
                               foregroundColor: Colors.black,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             child: const Text('Create Room'),
                           ),
@@ -362,6 +361,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: OutlinedButton(
+            key: Key('onlineRuleset_${value.name}'),
             onPressed: () => setState(() => _ruleset = value),
             style: OutlinedButton.styleFrom(
               backgroundColor: selected ? const Color(0x33caa24e) : null,

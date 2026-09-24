@@ -5,6 +5,7 @@ library;
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 
 import '../game/sfx.dart'
@@ -49,7 +50,16 @@ class CharacterSelectPage extends StatelessWidget {
     required this.onAdvance,
     required this.onBack,
     required this.advanceLabel,
+    this.ruleset,
+    this.onRuleset,
   });
+
+  /// The style to play, pre-selected from the welcome screen's choice and
+  /// still changeable here. Null [onRuleset] hides the picker. Once the game
+  /// is under way the style is fixed — going back to the menu is the only way
+  /// to change it.
+  final Ruleset? ruleset;
+  final ValueChanged<Ruleset>? onRuleset;
 
   /// Every seat's persona, index 0 being the human seat.
   final List<Character> seatCharacters;
@@ -209,6 +219,40 @@ class CharacterSelectPage extends StatelessWidget {
     );
   }
 
+  /// "Style: 🇯🇵 Riichi · 🇭🇰 Hong Kong · 🇹🇼 Taiwanese", starting on whatever
+  /// the welcome screen had selected.
+  Widget _rulesetChoice(Ruleset current, ValueChanged<Ruleset> onChange) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Style',
+            style: TextStyle(color: Colors.white54, fontSize: 14)),
+        const SizedBox(width: 10),
+        for (final r in Ruleset.values)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: OutlinedButton(
+              key: Key('startRuleset_${r.name}'),
+              onPressed: () => onChange(r),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: r == current ? const Color(0x33caa24e) : null,
+                foregroundColor:
+                    r == current ? const Color(0xffffdf76) : Colors.white54,
+                side: BorderSide(
+                    color: r == current ? _gold : Colors.white24,
+                    width: r == current ? 2 : 1),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+              child: Text(r.flagLabel,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+          ),
+      ],
+    );
+  }
+
   /// "Game length: 半庄 Hanchan · 东风战 East only" — hanchan is the default.
   Widget _lengthChoice() {
     Widget option(Key key, String label, bool value) {
@@ -282,7 +326,19 @@ class CharacterSelectPage extends StatelessWidget {
                     const SizedBox(height: 12),
                     _windChoice(),
                     const SizedBox(height: 8),
-                    _lengthChoice(),
+                    // Style shares the length row: the screen is already
+                    // tight against the design canvas's height.
+                    if ((ruleset, onRuleset) case (final r?, final set?))
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _rulesetChoice(r, set),
+                          const SizedBox(width: 28),
+                          _lengthChoice(),
+                        ],
+                      )
+                    else
+                      _lengthChoice(),
                     const SizedBox(height: 14),
                     Wrap(
                       alignment: WrapAlignment.center,

@@ -87,9 +87,9 @@ Future<List<String>> _mediaUrls() async {
     final res = await _fetch('assets/AssetManifest.bin.json', 'reload');
     final b64 = jsonDecode((await res.text().toDart).toDart) as String;
     final blob = latin1.decode(base64Decode(b64), allowInvalid: true);
-    return {
-      for (final m in _mediaKey.allMatches(blob)) 'assets/${m.group(0)}'
-    }.map(Uri.encodeFull).toList();
+    return {for (final m in _mediaKey.allMatches(blob)) 'assets/${m.group(0)}'}
+        .map(Uri.encodeFull)
+        .toList();
   } catch (_) {
     return const [];
   }

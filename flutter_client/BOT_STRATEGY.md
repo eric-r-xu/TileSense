@@ -314,6 +314,50 @@ shipped model stays; the call counter, the calibration harness and the fitter
 remain for the next attempt, which should fit the model to *decisions* (which
 discard leads to more wins) rather than to outcomes.
 
+### Taiwanese — the guide beats the bots
+
+**Result.** Held out on seeds 20000+, which no tuning run used: 800 paired
+hanchan, `SimpleBot` opponents, the default dials
+(`SIM_GAMES=800 SIM_SEED=20000 SIM_RULESET=taiwanese flutter test test/guide_vs_bots_sim_test.dart`).
+
+| Measurement | Result |
+|---|---|
+| Guide vs. control bot in your seat, placement | **−0.146 ± 0.108**, p = 0.008 |
+| Guide vs. control bot, final points | **+4.3 ± 2.9**, p = 0.004 |
+| Guide vs. the table (2.5 = even) | 2.313, p = 2e-6; 1st 31.1%, 4th 20.3% |
+
+**What was wrong.** Before any of this the guide was 0.26 of a placement
+*behind* the bot (p = 0.001), winning 0.13 hands a hand to the bots' 0.22. A
+decision diagnostic found why, one layer at a time:
+
+1. **It never valued a hand.** `_assessValue` only priced a line whose tiles
+   came to 13 — riichi and Hong Kong's hand — so every 16-tile Taiwanese line
+   fell into the off-turn `DEFENSE` read, worth 0. With every line tied at
+   zero it refused every call and discarded by tile order. Fixing it brought
+   the guide level with the bot.
+2. **Its two payouts were on different scales.** Before ready it estimated in
+   Hong Kong chips (a plain closed hand ≈ 14); once ready it scored exact
+   Taiwanese points, counting a self-draw's payment once instead of from all
+   three payers (≈ 7). A hand one step out looked worth more than a ready
+   one. Both ends are now Taiwanese points (`_taiwaneseProjectedPoints`,
+   `_selfDrawTotal`), and a wait under the 5-point minimum on a discard but
+   not on a self-draw counts as a self-draw-only wait instead of being
+   dropped.
+3. **Smaller corrections.** "Win Within N Discards" was scored as if no one
+   had discarded yet (+10 on every wait); a threat is now 4 exposed sets, not
+   Hong Kong's 3 (`taiwaneseThreatExposedSets`); a deal-in costs 7 points,
+   not 16 chips.
+4. **The win model.** `test/taiwanese_tuning_sweep_test.dart` then compared
+   win models on 800 paired games. Hong Kong's fitted call-aware model — which
+   Hong Kong itself did not adopt — was the one clear winner, 0.358 of a
+   placement ahead of the bot (p = 2e-12) where every other arm stayed level:
+   a five-set hand leans on calls far more than a four-set one. It ships as
+   `WinModel.taiwanese`; the held-out run above is the honest size of the
+   effect.
+
+Riichi and Hong Kong run none of this: rerun on their original seeds after
+the change, both reproduce their earlier results exactly.
+
 ### Style does nothing under Hong Kong
 
 Two of Style's three effects are already dead code under Hong Kong: it has no
