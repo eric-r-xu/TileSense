@@ -1233,7 +1233,12 @@ class Round {
       riichi: s.riichi && !s.doubleRiichi,
       doubleRiichi: s.doubleRiichi,
       ippatsu: s.ippatsu,
-      haitei: isTsumo && wall.isEmpty,
+      // A win on a kan's replacement tile. Without it a hand whose only yaku
+      // is rinshan kaihou could not win at all ([_winsWith] needs a yaku).
+      rinshan: isTsumo && s.replacementDraw,
+      // The replacement comes off the dead wall, so it is never the last tile
+      // of the live wall — even when the kan drew the live wall down to empty.
+      haitei: isTsumo && wall.isEmpty && !s.replacementDraw,
       houtei: !isTsumo && wall.isEmpty,
       chankan: chankan,
       doraIndicators: wall.doraIndicators(),
