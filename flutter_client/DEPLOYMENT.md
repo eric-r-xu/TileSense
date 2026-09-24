@@ -56,7 +56,7 @@ flutter pub get
 Both come from `pubspec.yaml`:
 
 ```yaml
-version: 0.2.0+2
+version: 0.2.1+4
 #        ^^^^^  ^-- build number  (Android versionCode / iOS CFBundleVersion)
 #        └------- version name    (Android versionName  / iOS CFBundleShortVersionString)
 ```
@@ -64,34 +64,6 @@ version: 0.2.0+2
 Bump the build number (`+N`) on **every** upload to a store; bump the version
 name for user-visible releases. `flutter build` reads these automatically;
 override at build time with `--build-name=X.Y.Z --build-number=N` if needed.
-
-### Launcher icon and splash (optional but recommended)
-
-Add dev dependencies and a source icon (`assets/icon/icon.png`, 1024×1024, no
-transparency for iOS):
-
-```yaml
-dev_dependencies:
-  flutter_launcher_icons: ^0.14.1
-  flutter_native_splash: ^2.4.1
-
-flutter_launcher_icons:
-  image_path: "assets/icon/icon.png"
-  android: true
-  ios: true
-  web: { generate: true }
-  remove_alpha_ios: true
-
-flutter_native_splash:
-  color: "#063a3a"
-```
-
-```sh
-dart run flutter_launcher_icons
-dart run flutter_native_splash:create
-```
-
----
 
 ## Web
 
@@ -176,10 +148,18 @@ workers and caches, re-downloads the app shell and every bundled media file
 with `cache: 'reload'` (so the one-day media cache can't hold back a changed
 `.wav`), and reloads.
 
-- Deploys must pass `--dart-define=BUILD_ID=<id>` **and** publish the same id
-  as `build_id.json` in `build/web/` (the snippets in the DigitalOcean section
-  do both). `build_id.json` must not be long-cached; the blanket
-  `Cache-Control: no-cache` covers it.
+> **Known broken in production.** For this to work a deploy must pass
+> `--dart-define=BUILD_ID=<id>` **and** publish the same id as `build_id.json`
+> next to `index.html`. `deploy.sh` — the script that actually ships the web
+> client — does neither; it passes only `--dart-define=APP_VERSION=…`. So
+> `kBuildId` compiles to `""`, `app_update.dart` short-circuits, and the check
+> is permanently inconclusive: no error, the button simply never reports an
+> update. The two diverged on 2026-09-22 (`05ed3a1`), when `deploy.sh` replaced
+> the hand-written procedure this file used to describe. Fixing it means adding
+> those two lines to `deploy.sh`.
+
+- `build_id.json` must not be long-cached; the blanket `Cache-Control: no-cache`
+  covers it.
 - Without a build id (a dev build, or a deploy that doesn't stamp one) the
   check is inconclusive and the button just offers a refresh.
 - Build ids are compared for equality only, so any unique string works.
@@ -188,154 +168,26 @@ with `cache: 'reload'` (so the one-day media cache can't hold back a changed
 
 ## DigitalOcean (web)
 
-Two explicit paths. **Option A (Droplet + Nginx)** is the one to reach for if
-"deploy to DigitalOcean" means a VM you control — it gives you the atomic,
-`rsync --delete`-based release swap below, which is the most reliable way to
-guarantee every asset (audio included) is exactly what you just built, never a
-mix of old and new files. **Option B (App Platform)** is less hands-on but
-needs a Dockerfile, because App Platform's static-site buildpacks don't have
-the Flutter SDK — a plain "static site" build command can't run
-`flutter build web`.
+The web client is served from a Droplet behind Nginx, and the deploy is
+scripted. An App Platform (container) route was documented here once; it needed
+a `flutter_client/Dockerfile` that was never written, so it has been removed.
+If you want it back, `server/DEPLOYMENT.md` §4 still covers App Platform for
+the ingest service.
 
-### Option A — Droplet + Nginx (recommended)
+### Droplet + Nginx
 
-**One-time setup:**
+**This is scripted — don't follow a procedure by hand.** `deploy.sh` at the
+repo root builds and ships the web client, and the runbook for it is
+[`DEPLOYMENT_CHEATSHEET.md`](../DEPLOYMENT_CHEATSHEET.md) §2. First-time
+server setup (droplet, Nginx, TLS, the `deploy.env` this all reads) is in
+[`server/DEPLOYMENT.md`](../server/DEPLOYMENT.md) §2.
 
-1. Create a Droplet (Ubuntu 24.04 LTS, the cheapest "Basic" tier is plenty for
-   a static bundle) in the DigitalOcean control panel, or:
-   ```sh
-   doctl compute droplet create tilesense-web \
-     --region nyc3 --size s-1vcpu-1gb --image ubuntu-24-04-x64 \
-     --ssh-keys <your-ssh-key-fingerprint>
-   ```
-2. SSH in and install Nginx:
-   ```sh
-   ssh root@<droplet-ip>
-   apt update && apt install -y nginx
-   ```
-3. Point a domain at it (A record → the Droplet's IP), then get a certificate:
-   ```sh
-   apt install -y certbot python3-certbot-nginx
-   certbot --nginx -d tilesense.example.com
-   ```
-4. Nginx site config (`/etc/nginx/sites-available/tilesense`, symlinked into
-   `sites-enabled/`) — serves from a `current` symlink so a deploy is one atomic
-   pointer swap, and disables long-lived caching since nothing here is
-   fingerprinted (see the note above):
-   ```nginx
-   server {
-       listen 443 ssl http2;
-       server_name tilesense.example.com;
-       root /var/www/tilesense/current;
-       index index.html;
-
-       # Nothing in this build is content-hashed, so the app shell must be
-       # revalidated every time or a deploy never reaches anyone.
-       add_header Cache-Control "no-cache";
-
-       # Media is the exception. Every voice line is a separate file that
-       # `audioplayers` fetches at the moment it is needed, so making the
-       # browser revalidate each one first is audible as lag before a call.
-       # These change far less often than the shell, so let them be reused
-       # outright. See "Audio latency" below for the trade-off.
-       location ~* \.(wav|png|ttf|otf|jpe?g|webp)$ {
-           expires 1d;
-           add_header Cache-Control "public, max-age=86400";
-           access_log off;
-       }
-
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
-   }
-   ```
-   ```sh
-   mkdir -p /var/www/tilesense
-   nginx -t && systemctl reload nginx
-   ```
-
-**Every deploy**, from your machine (or CI):
-
-```sh
-cd flutter_client
-RELEASE=$(date +%Y%m%d%H%M%S)
-flutter build web --release --dart-define=BUILD_ID=$RELEASE
-# The welcome screen's Update button compares this file to the id baked into
-# the running bundle. See "Update button" below.
-printf '{"build_id":"%s"}' "$RELEASE" > build/web/build_id.json
-
-ssh root@<droplet-ip> "mkdir -p /var/www/tilesense/releases/$RELEASE"
-# --delete matters: it removes files from the new release dir that no longer
-# exist in build/web, so a renamed/removed .wav can't linger.
-rsync -avz --delete build/web/ root@<droplet-ip>:/var/www/tilesense/releases/$RELEASE/
-ssh root@<droplet-ip> \
-  "ln -sfn /var/www/tilesense/releases/$RELEASE /var/www/tilesense/current && \
-   nginx -s reload && \
-   ls -dt /var/www/tilesense/releases/*/ | tail -n +6 | xargs rm -rf"
-```
-
-That last `ls | tail | xargs rm -rf` keeps only the 5 most recent releases so
-old ones don't accumulate. The symlink swap means there is never a moment where
-Nginx serves a half-uploaded release, and because it's a full fresh copy of
-`build/web/` every time (not an in-place overwrite), a changed `.wav` file is
-guaranteed to be the one served — verify with:
-
-```sh
-curl -sI https://tilesense.example.com/assets/assets/orderic/Orderic_Chi.wav | grep -i etag
-# run again after a deploy that touched that file — the ETag must differ.
-```
-
-### Option B — App Platform (Docker service)
-
-App Platform's "Static Site" component can't build this app (no Flutter SDK in
-its buildpacks), so run it as a **Service** built from a Dockerfile that builds
-the app and serves the result with Nginx:
-
-```dockerfile
-# flutter_client/Dockerfile
-FROM ghcr.io/cirruslabs/flutter:stable AS build
-WORKDIR /app
-COPY . .
-RUN BUILD_ID=$(date +%Y%m%d%H%M%S) \
- && flutter build web --release --dart-define=BUILD_ID=$BUILD_ID \
- && printf '{"build_id":"%s"}' "$BUILD_ID" > build/web/build_id.json
-
-FROM nginx:alpine
-COPY --from=build /app/build/web /usr/share/nginx/html
-# Same reasoning as the Droplet config: nothing here is content-hashed.
-RUN printf 'server { listen 8080; root /usr/share/nginx/html; \
-    add_header Cache-Control "no-cache"; \
-    location / { try_files $uri $uri/ /index.html; } }' \
-    > /etc/nginx/conf.d/default.conf
-EXPOSE 8080
-```
-
-Then either through the control panel (**Create App → GitHub repo → Dockerfile
-detected automatically**, source directory `flutter_client`) or:
-
-```sh
-doctl apps create --spec - <<'EOF'
-name: tilesense-web
-services:
-  - name: web
-    dockerfile_path: flutter_client/Dockerfile
-    source_dir: flutter_client
-    github:
-      repo: eric-r-xu/TileSense
-      branch: ericrxu_dev
-      deploy_on_push: true
-    http_port: 8080
-    instance_size_slug: basic-xxs
-    instance_count: 1
-EOF
-```
-
-`deploy_on_push: true` means every push rebuilds the Docker image from
-scratch, so an updated `.wav` is always baked into the new image — there's no
-stale-file risk at the container level, only the same browser-cache
-consideration the Nginx config above already handles.
-
----
+An earlier version of this file documented a `releases/$RELEASE` +
+`ln -sfn current` symlink swap. `deploy.sh` does not do that — it rsyncs
+straight into the served directory — so that procedure has been removed
+rather than left here to mislead. The one thing the script does *not* yet do
+that this file used to prescribe is publish a build id; see the Update
+button section above.
 
 ## Audio latency
 
@@ -377,7 +229,7 @@ network. No `Cache-Control` line at all means every play pays a round trip.
 
 ## Android
 
-### Configure `android/app/build.gradle` (or `build.gradle.kts`)
+### Configure `android/app/build.gradle.kts`
 
 ```gradle
 android {
@@ -401,49 +253,9 @@ you do not want; `INTERNET` is harmless and often kept for debugging.
 
 ### Signing (release)
 
-1. Create a keystore (keep it and the passwords safe and out of git):
-
-   ```sh
-   keytool -genkey -v -keystore ~/tilesense-upload.jks \
-     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-   ```
-
-2. `android/key.properties` (git-ignored):
-
-   ```properties
-   storePassword=…
-   keyPassword=…
-   keyAlias=upload
-storeFile=/absolute/path/tilesense-upload.jks
-   ```
-
-3. Wire it into `android/app/build.gradle` above `buildTypes`:
-
-   ```gradle
-   def keystoreProperties = new Properties()
-   def keystorePropertiesFile = rootProject.file("key.properties")
-   if (keystorePropertiesFile.exists()) {
-       keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-   }
-
-   android {
-       signingConfigs {
-           release {
-               keyAlias keystoreProperties["keyAlias"]
-               keyPassword keystoreProperties["keyPassword"]
-               storeFile keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null
-               storePassword keystoreProperties["storePassword"]
-           }
-       }
-       buildTypes {
-           release {
-               signingConfig signingConfigs.release
-               minifyEnabled true
-               shrinkResources true
-           }
-       }
-   }
-   ```
+**Not set up.** The release buildType still uses the debug signing config
+(`android/app/build.gradle.kts`), and there is no `android/key.properties`.
+A Play Store build would need both; nothing here is wired for it yet.
 
 ### Build
 
@@ -542,44 +354,6 @@ Xcode's **Organizer** (`Window ▸ Organizer`) and use **Distribute App** →
 
 ---
 
-## Continuous integration
-
-Minimal GitHub Actions workflow that gates every push on analyze + tests and
-publishes the web build:
-
-```yaml
-# .github/workflows/flutter.yml
-name: flutter
-on:
-  push: { paths: ["flutter_client/**", ".github/workflows/flutter.yml"] }
-  pull_request: { paths: ["flutter_client/**"] }
-
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    defaults: { run: { working-directory: flutter_client } }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: { channel: stable }
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
-      - run: flutter build web --release --base-href /TileSenseFlutter/
-      - uses: peaceiris/actions-gh-pages@v4
-        if: github.ref == 'refs/heads/master'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: flutter_client/build/web
-```
-
-Store releases (Android `.aab`, iOS `.ipa`) are usually a separate,
-manually-triggered workflow because they need secrets (keystore, App Store
-Connect API key). `fastlane` (`supply` for Play, `deliver`/`pilot` for App
-Store) is the standard tool if you want them automated.
-
----
-
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -587,11 +361,11 @@ Store) is the standard tool if you want them automated.
 | Web: blank page under a sub-path | rebuild with `--base-href /<path>/` (leading and trailing slash) |
 | Web: deep-link reload 404s | add the SPA fallback redirect to `index.html` (see host notes) |
 | Web: tile glyphs look different across browsers | you are on the HTML renderer; drop `--web-renderer html` to use CanvasKit |
-| Web: tiles render blank | a tile's PNG under `assets/tiles/` failed to load — confirm `assets/tiles/*.png` (34 files) is in the build and listed in `AssetManifest.bin`/`.json`; regenerate with `python3 tools/render_tiles.py` if missing |
+| Web: tiles render blank | a tile's PNG under `assets/tiles/` failed to load — confirm `assets/tiles/*.png` (73 files) is in the build and listed in `AssetManifest.bin`/`.json`; regenerate with `python3 tools/render_tiles.py` if missing |
 | Web: spoken lines / sfx don't play on mobile | audio unlocks per player from a native gesture listener (`lib/game/gesture_unlock_web.dart` → `Sfx.unlock`), retried on every tap/key — if it's still silent after several real interactions, check the browser console for `Sfx(...) failed:` messages (`kDebugMode` only) |
 | Web: updated `.wav` files still play the old recording after a redeploy | media is deliberately cached for a day (see [Audio latency](#audio-latency)) and nothing in `build/web/` is content-hashed, so the old file is served by URL until it expires; rename the clip to bust it, or shorten the `max-age` |
 | Web: audible lag before a call sound | the media `Cache-Control` block is missing, so every play makes a `304` round trip first — check with `curl -sI <clip-url> \| grep -i cache-control` and see [Audio latency](#audio-latency) |
-| Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
+| Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle.kts` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
 | Android: `keystore not found` on release build | check `storeFile` in `key.properties` is an absolute path and the file exists |
 | Android: Play rejects "debuggable" APK | you built `apk` without `--release`, or `key.properties` was absent so it fell back to the debug signing config |
 | iOS: `No profiles for 'com.…' were found` | open `ios/Runner.xcworkspace`, enable *Automatically manage signing*, pick your Team |

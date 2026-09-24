@@ -2,8 +2,9 @@
 
 A plain-language breakdown of how Grant, Hubert, and Astaroth decide what to
 do — and how that compares to how your own seat plays. Based on
-`lib/logic/bot.dart` (the opponents' brain) and `lib/logic/efficiency_engine.dart`
-+ `safety.dart` (your guide).
+`packages/mahjong_core/lib/bot.dart` (the opponents' brain) and
+`flutter_client/lib/logic/efficiency_engine.dart` +
+`packages/mahjong_core/lib/safety.dart` (your guide).
 
 ## The short version
 
@@ -43,8 +44,14 @@ random-number seed differing so their tie-breaking coin flips don't all land
 the same way:
 
 ```dart
-_bots = [for (var i = 0; i < 4; i++) SimpleBot(_seed + i * 7 + _roundNumber)];
+_bots = [
+  for (var i = 0; i < 4; i++) _botFactory(_seed + i * 7 + _roundNumber)
+];
 ```
+
+`_botFactory` defaults to `SimpleBot.new`, so an ordinary game is unchanged.
+It exists so a measurement harness can seat different opponents — that is how
+the riichi figures below were taken against `FoldingBot`.
 
 (Seat 0 gets an instance too, but nothing asks it for a decision — your seat
 routes to the guide instead.)
@@ -192,13 +199,20 @@ established that Style does nothing under Hong Kong (see below).
 ### Riichi — the guide beats the bots
 
 Recorded in commit `e850241` ("Stop paying width a premium it never earned,
-and drop the Value focus"), measured against opponents that fold (`FoldingBot`):
+and drop the Value focus"), **measured 2026-09-12** against opponents that fold
+(`FoldingBot`, i.e. `SIM_FOLD=1`).
+
+> **Superseded in part.** `ca4d8ee` (2026-09-24) taught the guide to price
+> every live riichi rather than only the first, and re-measuring the same
+> configuration put it at **0.279** of a placement ahead rather than 0.211,
+> with deal-ins down 0.0515 per hanchan (p = 5e-13). The table below is left as
+> it was recorded; treat 0.211 as the figure for `e850241`, not for today.
 
 | Measurement | Result |
 |---|---|
 | Guide vs. control bot, 3000 paired hanchan, after capping the width premium | **0.211 of a placement better** (was 0.247 worse), p = 4e-16 |
 | Same change, guide against itself before the fix | −0.457 placement, p = 3e-96; deal-ins −0.080 per hanchan |
-| All nine Style × Focus pairings, 2000 East games and again 800 hanchan, Holm-corrected | **Every Speed and Balanced pairing beat the bot by 0.11–0.26 of a placement** in both runs |
+| All nine Style × Focus pairings *as they then were*, 2000 East games and again 800 hanchan, Holm-corrected | **Every Speed and Balanced pairing beat the bot by 0.11–0.26 of a placement** in both runs |
 | The three Value pairings (since removed) | On or behind the bot in both runs (hanchan: Aggressive/Value −0.001, Balanced/Value +0.034, Defensive/Value +0.064) |
 
 Aggressive / Speed is one of the six pairings that beat the bot; the recorded
@@ -208,7 +222,8 @@ runs do not rank those six against each other.
 
 **Result.** The shipped guide was measured on three sets of seeds that no
 tuning round used — East-only games, Aggressive / Speed, `SimpleBot`
-opponents, common random numbers. Δ is placement vs the control (`SimpleBot`
+opponents, common random numbers. **Measured 2026-09-15** (`df2627a` for the
+tuning, `91b989a` for the pooled figure). Δ is placement vs the control (`SimpleBot`
 in your seat); negative means the guide finishes higher.
 
 | Held-out run | Games | Guide place | Bot place | Δ vs bot (95% CI) | p |
@@ -317,7 +332,8 @@ discard leads to more wins) rather than to outcomes.
 ### Taiwanese — the guide beats the bots
 
 **Result.** Held out on seeds 20000+, which no tuning run used: 800 paired
-hanchan, `SimpleBot` opponents, the default dials
+hanchan, `SimpleBot` opponents, the default dials. **Measured 2026-09-23**
+(`9f04de9`) — the newest figure in this document
 (`SIM_GAMES=800 SIM_SEED=20000 SIM_RULESET=taiwanese flutter test test/guide_vs_bots_sim_test.dart`).
 
 | Measurement | Result |

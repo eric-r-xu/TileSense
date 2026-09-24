@@ -1,109 +1,34 @@
-# TileSense — Flutter Mahjong efficiency trainer (Riichi & Hong Kong)
+# TileSense — Flutter client
 
-## What it does
+The app itself: build, run, test, and the device-specific behaviour that lives
+here. **What the game does and how well the guide plays are in the
+[root README](../README.md)** — including the rulesets, the guide and defensive
+panels, the dials, and the measured results against the bots.
 
-- A locally shuffled 136-tile wall, four dealt hands, and a full offline round
-  loop vs three bots: draws, discards, **chi**, **pon** and **closed kan**,
-  riichi, tsumo, ron, and exhaustive draw with tenpai payments. Chi is offered
-  only to the seat after the discarder, and loses to pon/kan/ron; the guide
-  picks which run to take when more than one is possible.
-- A **live efficiency guide** (bottom-left panel): for every discard from your
-  hand it shows the resulting shanten, ukeire, accepted tile types, and
-  probability-weighted point value. Tenpai EV uses yaku/han/fu scoring, visible
-  dora, dealer status, live wait counts, estimated ron/tsumo opportunities, and
-  the riichi deposit; earlier shapes use projected completion probability and
-  hand value. Honba (300 a stick to the winner) and the riichi deposits
-  already on the table (1000 each) ride on the win, so they are added to the
-  payout before it is weighted by win probability — never to the hand's own
-  value, so they cannot change which shape is worth chasing. Best-efficiency,
-  best-EV, and recommended discards are marked, together with a riichi/damaten
-  plan.
-- A **defensive panel** when an opponent declares riichi: each of your tiles is
-  ranked 0–15 (genbutsu / suji / one-chance / honor-by-copies) with a short
-  explanation, and the recommendation switches to the safest discard. Scores
-  refer only to the named riichi opponent: genbutsu includes their own discards
-  (even before riichi) and other players' discards they passed after riichi.
-  Every discard is also priced: its deal-in chance (from that 0–15 rating)
-  times what a riichi hand pays, plus the turns that choosing it commits you
-  to — subtracted from its expected value and shown in a Risk column. Push and
-  fold then fall out of the numbers, with no separate rule: the recommendation
-  is always simply the best expected value.
-- **Call advice** on every pon / kan / ron offer: each option is scored through
-  the same expected-value model as the discard table (the state it leaves you
-  in, once melds are counted), then filtered by three hard rules — a call must
-  advance the hand, leave a yaku to finish on, and not commit you while a
-  riichi is out and you are still behind. The panel shows the verdict and why.
-- Hand scoring at the end of a round: yaku list, han/fu, dora/ura/aka, limit
-  hands and yakuman, and the point transfers.
-- A **Custom Hand & Context Builder**, reached from the start screen and
-  isolated from the game: it poses a
-  [`Round`](../packages/mahjong_core/lib/round.dart) by hand
-  rather than playing one, then feeds the same `EfficiencyEngine` the live
-  guide uses. You set your concealed tiles and calls, every seat's pond and
-  melds, the dora indicators, wall count, round wind, your own seat wind (East
-  makes you the dealer, worth half again on a win), honba/sticks, the play
-  style, and each seat's riichi (and which discard declared it). The tile palette enforces four
-  copies of anything across the whole table. Genbutsu on a posed table is
-  derived from discard order — a seat's own pond, plus other seats' discards
-  that fall later in turn order than the declaration.
-- An **Autoplay** toggle that plays your seat from that same guide — the
-  recommended discard, its riichi/damaten verdict, its call advice and its
-  concealed-kan verdict. It never falls back to the opponents' heuristic. Its
-  Style and Focus dials start on **Aggressive / Speed** under riichi; Hong
-  Kong has no riichi or damaten for Style to weigh and a measured sweep found
-  no placement effect from it either, so that dial is hidden there and pinned
-  to Balanced, leaving only Focus (**Speed**). The guide beats the bots at a
-  statistically significant level in both rulesets — see
-  [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up).
-- **🇯🇵 Riichi or 🇭🇰 Hong Kong rules**, switched from the welcome screen, the
-  app bar or the builder, with rules PDFs
-  ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
-  [Hong Kong](https://app.ericrxu.com/static/HK.pdf)). Hong Kong has a
-  **0-faan minimum**, real flower and season tiles, and the New Style
-  discarder-pays-all table — see
-  [`docs/HONG_KONG_RULES.md`](../docs/HONG_KONG_RULES.md).
-- **Play Online**: a private room for up to four humans, bots filling any
-  seat left empty. It reuses the offline game's table and hand UI, but with
-  no guide — nobody gets an assist the other seats lack.
+## Run
 
-### Rules coverage
+Install the [Flutter SDK](https://docs.flutter.dev/get-started/install), then:
 
-`packages/mahjong_core/lib/efficiency_calc.dart` implements the Riichi-Trainer
-shanten/ukeire algorithm, and `lib/logic/efficiency_engine.dart` adds the
-scoring-aware expected-value model (walked through in
-[`EXPECTED_VALUE.md`](EXPECTED_VALUE.md)). `bot.dart` drives seats 1–3 only;
-your own seat is always played by the guide offline, or by whoever's in that
-seat online. The bots never call chi, though the round offers it and the guide
-advises on it. Scoring covers the common yaku, the standard fu table, and the
-yakuman set; rare fu corner cases and some double-yakuman rules are
-approximated. Hong Kong scoring lives in `packages/mahjong_core/lib/hong_kong/`.
-No replays yet.
-
-## Project layout
-
+```sh
+cd flutter_client
+flutter pub get
+flutter run -d chrome      # or an Android device, an iOS simulator…
 ```
-packages/mahjong_core/lib/   pure Dart core, no Flutter imports, shared by
-                              the app and the multiplayer server
-  tile.dart              TileType, Tile, Wind helpers
-  wall.dart              136-tile wall, dead wall, dora reveal
-  efficiency_calc.dart   shanten + ukeire (38-slot Riichi-Trainer port)
-  hand_parse.dart        agari / decomposition / waits / furiten
-  scoring.dart           yaku + han/fu -> points
-  safety.dart            defensive tile ranking vs a riichi opponent
-  bot.dart               SimpleBot opponent heuristic
-  round.dart             the round state machine
-  ruleset.dart           Ruleset.riichi / Ruleset.hongKong
-  hong_kong/             Hong Kong-only scoring, wall, and safety rules
 
-flutter_client/lib/
-  logic/    efficiency_engine.dart — scoring-aware discard EV + typed UI report
-  game/     game_controller.dart (offline) and online_game_controller.dart
-  net/      multiplayer client (WebSocket)
-  scenario/ the Custom Hand & Context Builder's state
-  ui/       table_view.dart, hand_view.dart, efficiency_overlay.dart,
-            scoring_view.dart, tile_face.dart
-  test/     shanten / ukeire / EV / scoring / round / widget tests
+The `android/`, `ios/` and `web/` folders are generated by `flutter create`;
+re-run `flutter create .` here if they are ever missing.
+
+## Test / analyze
+
+```sh
+flutter analyze
+flutter test
 ```
+
+Riichi tests sit in `test/`, Hong Kong's in `test/hong_kong/`, and the shared
+core has its own suite in `packages/mahjong_core/test/`. Several simulation
+harnesses are opt-in and skipped unless an environment variable is set — see
+[`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up) for the commands.
 
 ## Web and mobile
 
@@ -127,34 +52,37 @@ which also means every device-specific concern is settled in `_FixedCanvas`.
 
 `test/canvas_fit_test.dart` covers all of it.
 
-## Run
+## Layout of this package
 
-Install the [Flutter SDK](https://docs.flutter.dev/get-started/install), then:
+The pure-Dart core the app shares with the multiplayer server lives outside it,
+in `packages/mahjong_core/` — see the [root README](../README.md#three-rulesets-one-engine).
 
-```sh
-cd flutter_client
-flutter pub get
-flutter run -d chrome      # or an Android device, an iOS simulator…
 ```
-
-The `android/`, `ios/`, and `web/` folders are generated by `flutter create`;
-re-run `flutter create .` here if they are ever missing.
-
-## Test / analyze
-
-```sh
-flutter analyze
-flutter test
+flutter_client/
+  lib/
+    logic/    efficiency_engine.dart — scoring-aware discard EV + typed UI report
+              placement_utility.dart — the model behind Strategy: Placement
+    game/     game_controller.dart (offline) and online_game_controller.dart
+    net/      multiplayer client (WebSocket)
+    scenario/ the Custom Hand & Context Builder's state
+    ui/       table_view.dart, hand_view.dart, efficiency_overlay.dart,
+              scoring_view.dart, tile_face.dart
+  test/       shanten / ukeire / EV / scoring / round / widget tests,
+              plus the opt-in simulation harnesses
+  tools/      offline asset generation (tile art, voice clips) — not shipped
 ```
 
 ## Ship it
 
-See [`DEPLOYMENT.md`](DEPLOYMENT.md) for web, Android, and iOS build and release
-instructions.
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the web, Android and iOS build and
+release notes. The production web deploy is scripted — `deploy.sh` at the repo
+root, with the runbook in
+[`DEPLOYMENT_CHEATSHEET.md`](../DEPLOYMENT_CHEATSHEET.md).
 
 ## How the guide and bots decide
 
 - [`EXPECTED_VALUE.md`](EXPECTED_VALUE.md) — how the guide turns a discard into
   the Expected Value number, the recommended tile, and Autoplay's moves.
 - [`BOT_STRATEGY.md`](BOT_STRATEGY.md) — a plain-language comparison of the
-  opponents' `SimpleBot` heuristic against that guide.
+  opponents' `SimpleBot` heuristic against that guide, and every measured
+  result behind the defaults.

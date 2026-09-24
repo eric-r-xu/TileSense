@@ -50,10 +50,10 @@ Details, emulator/simulator launch, and release/store builds are in
 
 ---
 
-## Two rulesets, one engine
+## Three rulesets, one engine
 
-`packages/mahjong_core/lib/ruleset.dart` defines `Ruleset.riichi` and
-`Ruleset.hongKong`. The round, guide, bots, scenario builder and UI are shared
+`packages/mahjong_core/lib/ruleset.dart` defines `Ruleset.riichi`,
+`Ruleset.hongKong` and `Ruleset.taiwanese`. The round, guide, bots, scenario builder and UI are shared
 — offline and online alike — and branch on the ruleset only where the games
 differ. Hong Kong-only logic lives in `packages/mahjong_core/lib/hong_kong/`:
 
@@ -64,10 +64,23 @@ differ. Hong Kong-only logic lives in `packages/mahjong_core/lib/hong_kong/`:
 | `hong_kong_wall.dart` | The 144-tile wall with flowers and tail replacements |
 | `hong_kong_safety.dart` | Risk estimates with no discard immunity |
 
+Taiwanese-only logic sits alongside it in
+`packages/mahjong_core/lib/taiwanese/`:
+
+| File | What it holds |
+|---|---|
+| `taiwanese_rules.dart` | Minimum points, the dealer win-streak bonus, starting points |
+| `taiwanese_scoring.dart` | Point patterns and payments (`scoreTaiwaneseHand`) |
+| `taiwanese_wall.dart` | The 144-tile wall, dealt 16 to a seat |
+| `taiwanese_hand_parse.dart` | Five-set hand parsing (`totalMelds` 5) |
+
 Everything else — shanten and acceptance, win-probability modelling, call
 mechanics, the table and hand widgets — is the same code for both. Riichi tests
-live in `test/`, Hong Kong tests in `test/hong_kong/`, and
-`test/ruleset_toggle_test.dart` covers the switch itself.
+live in `flutter_client/test/`, Hong Kong tests in
+`flutter_client/test/hong_kong/`, Taiwanese coverage in
+`flutter_client/test/taiwanese_tuning_sweep_test.dart` and the shared
+ruleset tests in `packages/mahjong_core/test/`;
+`flutter_client/test/ruleset_toggle_test.dart` covers the switch itself.
 
 ---
 
@@ -75,7 +88,8 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
 
 ### What it does
 
-- A shuffled 136-tile wall and a full offline round vs three bots: draws,
+- A shuffled wall — 136 tiles under riichi, 144 with flowers under Hong Kong
+  and Taiwanese — and a full offline round vs three bots: draws,
   discards, **chi**, **pon** and **closed kan**, riichi, tsumo, ron, and
   exhaustive draw with tenpai payments.
 - A **live efficiency guide**: for every tile in your hand — resulting shanten,
@@ -114,7 +128,8 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   **Aggressive / Speed** under riichi, chosen from the sweeps below. Hong Kong
   has no riichi or damaten for play style to weigh, and a sweep found no
   placement effect from it either, so that dial is hidden and pinned to
-  Balanced there — only focus (**Speed**) is exposed.
+  Balanced under **both** Hong Kong and Taiwanese — only focus (**Speed**) is
+  exposed there.
 - A third dial, **strategy** — Points or Placement, riichi only, starting on
   Points — that changes what "worth" means rather than how danger is priced:
   Placement runs every points-flavoured number through a heuristic model of
@@ -122,7 +137,7 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   scores on the table right now, and can take a damaten a hand would riichi
   for the points, or the reverse. Opt-in and not yet swept against the bots
   the way style and focus's defaults were; hidden and pinned to Points under
-  Hong Kong, same as style. Details:
+  Hong Kong and Taiwanese alike, same as style. Details:
   [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
 - **🇯🇵 Riichi, 🇭🇰 Hong Kong and 🇹🇼 Taiwanese rules**, chosen on the welcome
   screen or from the app bar, each with a one-page rules PDF
@@ -149,8 +164,11 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
 ### How the guide does against the bots
 
 Every figure below is Autoplay (the guide on Aggressive / Speed) sitting in
-your seat against three `SimpleBot` opponents, compared game-by-game with a
-**control** — `SimpleBot` itself in your seat — on identical seeds. Placement
+your seat, compared game-by-game with a **control** — `SimpleBot` itself in
+your seat — on identical seeds. The Hong Kong and Taiwanese runs use three
+`SimpleBot` opponents; the riichi runs use `FoldingBot`, which gets out of the
+way of a riichi instead of feeding it (`SIM_FOLD=1`), so the two are not
+directly comparable. Placement
 is 1–4, lower is better; "better" below means the guide finishes that much
 higher, on average, than the bot would have. Method, tables and re-run commands:
 [`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up).
@@ -162,8 +180,14 @@ higher, on average, than the bot would have. Method, tables and re-run commands:
 | 3000 paired hanchan | **0.211 of a placement better**, p = 4e-16 |
 | Style × Focus sweep, 2000 East games and 800 hanchan, Holm-corrected | Every Speed and Balanced pairing **0.11–0.26 better** |
 
+Measured at `e850241`, 2026-09-12. Since then `ca4d8ee` (2026-09-24) taught the
+guide to price every live riichi rather than only the first; re-measuring the
+same configuration put it at **0.279** of a placement ahead, with deal-ins down
+0.0515 per hanchan (p = 5e-13).
+
 **🇭🇰 Hong Kong — the guide wins too**, on three independent sets of seeds
-that no tuning round used (East-only games, 0-faan minimum):
+that no tuning round used (East-only games, 0-faan minimum). Measured at
+`df2627a` / `91b989a`, 2026-09-15:
 
 | Held-out run | Guide avg place | Bot avg place | Guide vs. bot | Wins / hand (guide · bot) |
 |---|---|---|---|---|
@@ -185,6 +209,23 @@ acceptance, with its constants fitted to 159k guide decisions. It predicts
 outcomes far better, but in a 6000-game head-to-head it finished only 0.014
 of a placement ahead of the shipped guide (± 0.033, p = 0.40) — no measurable
 gain — so the shipped model stays.
+
+**🇹🇼 Taiwanese — the guide wins**, held out on seeds no tuning run used
+(800 paired hanchan, `SimpleBot` opponents). Measured at `9f04de9`, 2026-09-23:
+
+| Measurement | Guide vs. bot |
+|---|---|
+| Placement | **0.146 better**, ± 0.108, p = 0.008 |
+| Final points | **+4.3**, ± 2.9, p = 0.004 |
+| Against the table (2.5 = even) | 2.313, p = 2e-6; 1st 31.1%, 4th 20.3% |
+
+The confidence interval is nearly as wide as the effect — 800 games is a
+thinner base than the other two rulesets rest on. Before the Taiwanese fixes
+the guide was 0.26 of a placement *behind* the bot: `_assessValue` only priced
+13-tile hands, so every 16-tile line scored zero, which tied every discard and
+made it refuse every call. Interestingly, the call-aware win model Hong Kong
+measured and rejected is the one Taiwanese ships — a five-set hand leans on
+calls far more than a four-set one.
 
 *Play style, measured and dropped:* Hong Kong has no riichi or damaten for
 play style to weigh, and a 14,000-game sweep isolating each dial found no
@@ -259,6 +300,7 @@ packages/mahjong_core/lib/   pure Dart core, unit-tested, shared by the app
 
 flutter_client/lib/
   logic/    efficiency_engine.dart — the guide's scoring-aware discard EV
+            placement_utility.dart — the model behind Strategy: Placement
   game/     game_controller.dart (offline) / online_game_controller.dart
   net/      multiplayer client (WebSocket)
   scenario/ the Custom Hand & Context Builder's state
@@ -280,7 +322,7 @@ offline tooling, not hand-maintained app code:
 | Swift | `ios/Runner/` | Thin iOS host shim, generated by `flutter create` |
 | Java | `android/.../GeneratedPluginRegistrant.java` | Auto-generated Android plugin registration |
 | HTML | `web/index.html` | Static shell the Flutter web build mounts into |
-| Python | `tools/mkastaroth.py`, `tools/render_tiles.py` | Offline asset generation (voice clips, tile art) — not part of the running app |
+| Python | `flutter_client/tools/mkastaroth.py`, `flutter_client/tools/render_tiles.py` | Offline asset generation (voice clips, tile art) — not part of the running app |
 | Shell | `ios/Flutter/flutter_export_environment.sh` | Flutter-generated iOS build env script |
 
 ---
@@ -309,9 +351,11 @@ flutter build appbundle --release           # -> build/app/outputs/bundle/releas
 flutter build apk --release --split-per-abi  # -> per-ABI APKs for sideloading
 ```
 
-Needs a release keystore referenced from `android/key.properties` and a
-`signingConfigs.release` block in `android/app/build.gradle` (set `applicationId`
-and `minSdk` there too). The app requests no permissions and collects no data.
+**Not set up yet.** A release build would need a keystore referenced from
+`android/key.properties` and a `signingConfigs.release` block in
+`android/app/build.gradle.kts`; neither exists, and the release buildType still
+uses the debug signing config. The app requests no permissions and collects no
+data.
 
 ### iOS / iPhone
 

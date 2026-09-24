@@ -94,7 +94,7 @@ cd server && docker compose down          # add -v to also wipe the data volume
 
 ---
 
-## 2. DigitalOcean — Droplet + Nginx (matches `flutter_client/DEPLOYMENT.md` Option A)
+## 2. DigitalOcean — Droplet + Nginx (matches `DEPLOYMENT_CHEATSHEET.md` §2, which `deploy.sh` runs)
 
 The site is served at `https://app.ericrxu.com/tilesense/` by nginx on the one
 Droplet. This adds a sidecar ingest service on that Droplet and a managed
@@ -522,7 +522,7 @@ always-on, behind the existing nginx + Certbot). Config lives in
 `server/deploy/metabase/`. All commands are on the Droplet as `root` unless
 noted.
 
-### 5.1 Docker (skip if `docker compose version` already works)
+### 6.1 Docker (skip if `docker compose version` already works)
 
 ```sh
 apt-get update && apt-get install -y ca-certificates curl
@@ -538,7 +538,7 @@ systemctl enable --now docker
 docker compose version
 ```
 
-### 5.2 Memory — add swap if under 2 GB
+### 6.2 Memory — add swap if under 2 GB
 
 ```sh
 free -m                                   # look at "Mem: total"
@@ -549,7 +549,7 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 printf 'vm.swappiness=10\n' > /etc/sysctl.d/99-swap.conf && sysctl --system
 ```
 
-### 5.3 Read-only DB user (for querying telemetry)
+### 6.3 Read-only DB user (for querying telemetry)
 
 As `doadmin` (`psql "$DATABASE_URL"` — the value from
 `/etc/tilesense-ingest.env`):
@@ -562,7 +562,7 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO metabase_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO metabase_ro;
 ```
 
-### 5.4 DNS
+### 6.4 DNS
 
 Add an `A` record: `analytics.app.ericrxu.com` -> the same IP the apex uses
 (`143.198.245.111`). Confirm before continuing:
@@ -571,7 +571,7 @@ Add an `A` record: `analytics.app.ericrxu.com` -> the same IP the apex uses
 dig +short analytics.app.ericrxu.com      # must return that IP
 ```
 
-### 5.5 Bring up Metabase
+### 6.5 Bring up Metabase
 
 ```sh
 mkdir -p /opt/metabase
@@ -593,7 +593,7 @@ docker compose logs -f metabase           # wait for "Metabase Initialization CO
 curl -fsS http://127.0.0.1:3000/api/health   # {"status":"ok"}
 ```
 
-### 5.6 nginx + TLS
+### 6.6 nginx + TLS
 
 ```sh
 cp server/deploy/metabase/nginx-analytics.conf \
@@ -604,7 +604,7 @@ certbot --nginx -d analytics.app.ericrxu.com                     # pick "redirec
 curl -sI https://analytics.app.ericrxu.com/                      # 200 or 302 to /setup
 ```
 
-### 5.7 First-run + connect the telemetry DB
+### 6.7 First-run + connect the telemetry DB
 
 Open `https://analytics.app.ericrxu.com`:
 
@@ -617,13 +617,13 @@ Open `https://analytics.app.ericrxu.com`:
    - **Use a secure connection (SSL): ON**, SSL Mode `require`
 3. Finish. Metabase syncs the schema in ~30 s.
 
-### 5.8 Build the dashboard
+### 6.8 Build the dashboard
 
 **+ New -> SQL query -> (the telemetry DB) ->** paste e.g. the queries in §4 ->
 Run -> Visualization -> Save -> add to a new dashboard. Add a date filter bound
 to `matches.started_at`; set the dashboard to auto-refresh from its menu.
 
-### 5.9 Backups + updates
+### 6.9 Backups + updates
 
 ```sh
 cp server/deploy/metabase/backup.sh /usr/local/bin/metabase-backup.sh
@@ -636,7 +636,7 @@ sed -i "s|^MB_VERSION=.*|MB_VERSION=vX.Y.Z|" .env      # a released tag
 docker compose pull && docker compose up -d            # app DB (and dashboards) persist
 ```
 
-### 5.10 Rollback
+### 6.10 Rollback
 
 ```sh
 cd /opt/metabase && docker compose down                # stop; volume + data kept

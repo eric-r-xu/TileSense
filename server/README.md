@@ -1,8 +1,18 @@
-# TileSense telemetry ingest
+# TileSense server
 
-A single Dart service (`bin/server.dart`) that accepts gameplay batches from the
-client and writes them to Postgres. It is **entirely additive** infrastructure —
-it does not touch how the game is built or served.
+Two Dart services live here:
+
+- **Telemetry ingest** (`bin/server.dart`) — accepts gameplay batches from the
+  client and writes them to Postgres. Described below.
+- **Multiplayer game server** (`mp/`) — runs the online tables. It imports the
+  shared core (`packages/mahjong_core/`), so a change there needs it
+  redeployed too. Its runbook is
+  [`DEPLOYMENT.md`](DEPLOYMENT.md) §3.
+
+## Telemetry ingest
+
+The ingest service is **entirely additive** infrastructure — it does not touch
+how the game is built or served.
 
 - **On by default in release web builds** — `flutter build web --release`
   ships it, pointed at `https://app.ericrxu.com/ingest`. Debug builds,
@@ -26,6 +36,7 @@ it does not touch how the game is built or served.
 | `Dockerfile` | build a self-contained binary (App Platform / any container host) |
 | `.env.example` | required environment variables |
 | `deploy/` | systemd unit, Nginx snippet, retention timer, App Platform spec |
+| `mp/` | the multiplayer game server — `bin/mp_server.dart`, `lib/table_loop.dart`, its own `deploy/` unit and Nginx snippet |
 
 ## Endpoints
 

@@ -2,8 +2,9 @@
 
 A plain-language walkthrough of the number in the guide panel's **Expected
 Value** column, and how it picks the recommended discard and drives Autoplay.
-Based on `lib/logic/efficiency_engine.dart`, `lib/logic/efficiency_calc.dart`
-(shanten / ukeire), and `lib/logic/scoring.dart` (hand value). The opponents
+Based on `flutter_client/lib/logic/efficiency_engine.dart`,
+`packages/mahjong_core/lib/efficiency_calc.dart` (shanten / ukeire), and
+`packages/mahjong_core/lib/scoring.dart` (hand value). The opponents
 use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
 
 ## The short version
@@ -90,28 +91,43 @@ tracking the chance it is still alive and still `s` steps from a win:
 
 ```
 draws  = max(1, (wallTilesRemaining + 3) / 4)     // your remaining draws
-scale  = ukeire / typicalUkeire[shanten]          // how wide this hand is
+scale  = width / typicalWidth[shanten]            // how wide this hand is
                                                   // for its distance out
 
-// width of the step that leaves the hand at `to` shanten
+// width of the step that leaves the hand at `to` shanten.
+// Two different tables: typicalWidth is only the divisor above; the step
+// itself is sized from stepWidth.
 exponent  = waitInheritance + (1 − waitInheritance) × (to / shanten)
-width(to) = typicalUkeire[to] × scale ^ exponent
+mult(to)  = scale ^ (scale < 1 ? exponent × narrowPenalty : exponent)
+mult(to)  = min(1, mult(to))                      // never wider than typical
+width(to) = stepWidth[to] × mult(to)
 rate(to)  = min(1, width(to) / unseenTiles)
-step(to)  = 1 − (1 − rate(to)) ^ (to == 0 ? 2 : 1)   // the win can be ronned
+step(to)  = 1 − (1 − rate(to)) ^ (to == 0 ? winChancesPerTurn : stepTries)
 
 // each turn: take a step or don't, then see whether the hand is still running
 repeat `draws` times:
     mass moves s → s−1 with probability step(s−1);  reaching 0 is the win
-    everything not yet won ×= handSurvivesTurn
+    everything not yet won ×= survivesTurn
 
 EV = won × (projectedPoints + winBonus)
 ```
 
-| constant | value | what it is |
-|---|---|---|
-| `typicalUkeire` | `[8, 20, 28, 35, 40, 44, 48]` by shanten | typical acceptance at each distance; index 0 is a finished hand's wait |
-| `handSurvivesTurn` | `0.955` | chance the hand is still running after one more of your turns |
-| `waitInheritance` | `0.5` | how much of a hand's width carries through to the wait it finishes on |
+These constants are not global: each ruleset picks a `WinModel`
+(`efficiency_engine.dart`), and Taiwanese refits every one of them.
+
+| constant | riichi | Hong Kong | Taiwanese | what it is |
+|---|---|---|---|---|
+| `typicalWidth` | `[5, 14, 25, 43, 63, 73, 80]` | same | `[5, 31.39, 53.3, 83.47, 100.96, 107.08, 119.2]` | what a typical hand's width is at each distance — the divisor for `scale` only |
+| `stepWidth` | `[8, 20, 28, 35, 40, 44, 48]` | same | `[3.33, 22.39, 40.62, 41.01, 41.45, 44.05, 47.98]` | the width an ordinary hand behaves as if it had at each remaining step |
+| `survivesTurn` | `0.955` | same | `0.999` | chance the hand is still running after one more of your turns |
+| `waitInheritance` | `0.5` | same | `1.0` | how much of a hand's width carries through to the wait it finishes on |
+| `winChancesPerTurn` | `1.0` | same | `0.790` | effective chances to win per turn once ready |
+| `narrowPenalty` | `1.0` | `0.5` | `0.484` | scales the exponent on a hand *narrower* than typical, so being short of acceptance hurts less |
+| `pungRate` / `chowRate` | `0` / `0` | `0` / `0` | `1.030` / `1.609` | call acceptance added to drawn acceptance; zero counts draws only |
+
+Earlier versions of this document called `stepWidth` "`typicalUkeire`" and used
+it for both jobs. They are two tables and always have been since the width cap
+landed.
 
 Three things this gets right that the previous estimator did not:
 
@@ -129,7 +145,7 @@ Three things this gets right that the previous estimator did not:
 `handSurvivesTurn` is calibrated on the tenpai end, where the real numbers are
 firmest: an early riichi on a ryanmen wins a little over half the time. Off a
 full wall the pre-tenpai walk then gives roughly 35% from 1-shanten, 24% from 2,
-16% from 3 and 11% from 4 — each rung comfortably below tenpai's ~53%, which is
+16% from 3 and 10% from 4 — each rung comfortably below tenpai's ~53%, which is
 the ordering that matters when the panel is ranking one discard against
 another.
 
@@ -245,7 +261,10 @@ riichi:
   ```
 
   `turnsExposed` is how many turns the hand is expected to last, which
-  `winChanceOverTurns` already accumulates. This is the same arithmetic a single
+  `winChanceOverTurns` already accumulates — but it is capped first at
+  `_riichiLockHorizon = 1.7`, because you are only locked in for as long as the
+  riichi you are racing stays live, not for as long as your own hand might run.
+  Self-play put that at about 1.7 more of your discards. This is the same arithmetic a single
   dangerous discard is charged, repeated for every turn you can no longer fold —
   which is exactly what declaring costs. It used to be a tuned
   `(1 − winProb) × danger × 4000`, whose scale was implicitly calibrated against
@@ -312,8 +331,10 @@ being overruled. The test bounds both the rate and the worst safety gap.
 the best expected value everywhere. `push_fold_sweep_test.dart` holds the
 resulting behaviour to account over 600 random defending positions: where a
 genbutsu existed the guide took it in **513 of 513**, and it picked the safest
-available tile in **595 of 600** — the five exceptions being hands with nothing
-safe in them at all, where it chose between tiles of near-identical danger.
+available tile in **589 of 600** — the eleven exceptions being hands with
+nothing safe in them at all, where it chose between tiles of near-identical
+danger. (Re-measured at `7f3b77a`, 2026-09-11, when the push and lock horizons
+landed; the earlier 595/600 figure is superseded.)
 
 ## Play style  (`PlayStyle`)
 
@@ -375,9 +396,9 @@ The third, independent dial (`Strategy`): not how much danger costs (Style) or w
 chase (Focus), but what "worth" means in the first place — the points a line
 pays, or how it moves final placement. **Riichi only.** The math behind it
 isn't riichi-specific, but it hasn't been wired up for Hong Kong yet, so the
-dial is hidden and pinned to Points there — the same treatment Style gets,
-for a different reason (see
-[`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-is-a-riichi-only-dial)).
+dial is hidden and pinned to Points under both Chinese-style rulesets — the
+same treatment Style gets, for a different reason (see
+[`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-does-nothing-under-hong-kong)).
 
 The engine already separates *estimating* a line (shanten, ukeire, win
 probability, what it pays, what a deal-in costs) from *valuing* it (Style's
@@ -395,7 +416,7 @@ whichever strategy isn't driving stays visible.
 
 ### `PlacementUtility` — the model behind `placementValue`
 
-Lives in `lib/logic/placement_utility.dart`, deliberately apart from the main
+Lives in `flutter_client/lib/logic/placement_utility.dart`, deliberately apart from the main
 engine file: no Monte Carlo, no rest-of-hand or rest-of-game simulation, no
 opponent modelling beyond the scores already on the table. It is a closed-form
 heuristic, tagged as one everywhere it is surfaced.
@@ -444,8 +465,8 @@ bypassed: both the riichi path and the damaten/stand-pat path are assessed in
 full (`_finishTenpaiAssessment`, pulled out of `_assessTenpaiValue` so it can
 run twice) and whichever scores higher on `placementExpectedValue` wins. That
 is what lets the guide take damaten to protect a lead on a hand it would
-riichi for the points, and the reverse from behind — see the worked example
-in [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
+riichi for the points, and the reverse from behind. The regression tests that
+pin this behaviour are in `test/placement_strategy_test.dart`.
 
 ### Known simplifications
 
@@ -504,18 +525,28 @@ seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
 `EfficiencyValueContext.ruleset` switches only what differs; shanten, ukeire,
 the win-probability walk, the lookahead and the push/fold arithmetic are shared.
 
-| | Riichi | Hong Kong |
-|---|---|---|
-| Ready hand | yaku/fu/han/dora, riichi vs damaten, deposit | every live wait scored with `scoreHongKongHand`; no riichi or damaten |
-| Minimum to win | one yaku | **0 faan** — any complete hand, chicken hands included |
-| Before ready | 3900/5800 (closed) or 2000/2900 (open) × dora | faan from visible dragon/wind pungs, flush, concealment and flowers, priced on the New Style table |
-| Payout mix | 0.65 ron / 0.35 tsumo | 0.65 discard win (discarder pays 2×) / 0.35 self-pick (all three pay, +1 faan) |
-| Deal-in cost | 5800 / 8700 + honba | 16 chips (a 3-faan discard win) |
-| Threat | an opponent in riichi | an opponent with **three** or more exposed sets |
-| Safety | genbutsu / suji / one-chance | honour copies and tile class only; nothing is certified safe |
-| Push horizon | capped at 3.8 turns (the riichi ends the hand) | the hand's own expected length |
-| Narrow hand before ready | width ratio `scale^exponent` | `scale^(exponent × 0.5)` — a narrow hand can pung or chow its way forward |
-| Focus pivot | 5,000 points | 32 chips |
+| | Riichi | Hong Kong | Taiwanese |
+|---|---|---|---|
+| Hand shape | 4 sets + a pair (`totalMelds` 4) | 4 sets + a pair | **5 sets + a pair** (`totalMelds` 5), dealt 16 |
+| Ready hand | yaku/fu/han/dora, riichi vs damaten, deposit | every live wait scored with `scoreHongKongHand`; no riichi or damaten | `scoreTaiwaneseHand`; no riichi or damaten |
+| Minimum to win | one yaku | **0 faan** — any complete hand, chicken hands included | **5 points** |
+| Before ready | 3900/5800 (closed) or 2000/2900 (open) × dora | faan from visible dragon/wind pungs, flush, concealment and flowers, priced on the New Style table | `_taiwaneseProjectedPoints` — the same idea in Taiwanese points |
+| Payout mix | 0.65 ron / 0.35 tsumo | 0.65 discard win (discarder pays 2×) / 0.35 self-pick (all three pay, +1 faan) | as Hong Kong, with the self-draw collected from all three seats (`_selfDrawTotal`) |
+| Deal-in cost | 5800 / 8700 + honba | 16 chips (a 3-faan discard win) | **7 points** (measured: deal-ins averaged 6.9 in self-play) |
+| Threat | an opponent in riichi | an opponent with **three** or more exposed sets | **four** or more exposed sets |
+| Safety | genbutsu / suji / one-chance | honour copies and tile class only; nothing is certified safe | reuses Hong Kong's (`rankHongKongSafety`) |
+| Push horizon | capped at 3.8 turns (the riichi ends the hand) | the hand's own expected length | the hand's own expected length |
+| Narrow hand before ready | width ratio `scale^exponent` | `scale^(exponent × 0.5)` — a narrow hand can pung or chow its way forward | `scale^(exponent × 0.484)`, and calls are counted directly (see `WinModel.taiwanese`) |
+| Focus pivot | 5,000 points | 32 chips | 32 — *the Hong Kong chip constant* (see below) |
+
+**The Taiwanese Focus pivot looks wrong.** `worth()` picks the pivot with
+`ruleset.isChineseStyle ? _hongKongPointsPivot : _pointsPivot`, so Taiwanese
+pivots at 32 even though it scores in points and a deal-in there averages 7.
+Hong Kong's pivot sits at 2.0x its own typical hand; Taiwanese lands at 4.6x.
+It was introduced with `isChineseStyle` in `07c157e` as part of a broad sweep,
+so it may never have been chosen for Focus specifically. Not changed here —
+moving it changes Taiwanese recommendations and needs re-measuring against the
+recorded −0.146 baseline first.
 
 The two Hong Kong-only settings live in `HongKongGuideTuning` and were measured,
 not assumed: riichi's own values (narrow exponent × 1, threat at two sets)
@@ -523,8 +554,11 @@ placed behind `SimpleBot`; the shipped ones place 0.062 ahead of it, pooled
 over three held-out runs of 10,000 games (p = 2.6e-5). A model that also
 counts calls, with constants fitted to Hong Kong self-play, was built and
 measured but played no better (0.014 ahead of the shipped model over 6000
-paired games, p = 0.40), so it is not used. Method and tables:
-[`BOT_STRATEGY.md`](BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots).
+paired games, p = 0.40), so it is not used under Hong Kong. Taiwanese *does*
+use it — `WinModel.taiwanese` is that fitted call-aware model, which measured
+0.36 of a placement ahead of `SimpleBot` there (p = 2e-12). Method and tables:
+[`BOT_STRATEGY.md`](BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots) and
+[Taiwanese](BOT_STRATEGY.md#taiwanese--the-guide-beats-the-bots).
 
 ## Calls, kan, ron, tsumo  (`adviseCall`)
 
@@ -619,30 +653,38 @@ the pre-tenpai payout placeholders.
 - No ura-dora, no kan-dora upside, no ippatsu / haitei / houtei / rinshan /
   chankan.
 - One exchange of lookahead — no deep search.
-- The `0.65 / 0.35` ron/tsumo split, the projected-point tables, the `1000` and
-  `4000` penalty scales, the `5200 / 7700` damaten thresholds, and the deal-in
-  rate table with its `5800 / 8700` base costs are tuned constants, not derived.
-- Neither estimator credits **calling**. Advancing steps are drawn-only, so an
-  open hand that pons its way home is undersold. A call-aware width
-  (`WinModel.pungRate` / `chowRate`) exists and was measured for Hong Kong; it
-  did not improve play, so both rulesets still count draws only. This is the main reason the
-  absolute pre-tenpai numbers sit below the ~21% a hand wins on average, even
-  though the ordering between hands is right.
+- The `0.65 / 0.35` ron/tsumo split, the projected-point tables, the `1000`
+  deposit scale, the `5200 / 7700` damaten thresholds, and the deal-in rate
+  table with its `5800 / 8700` base costs are tuned constants, not derived.
+  (The old `4000` riichi-lock scale is gone — see the lock section above.)
+- **Riichi and Hong Kong** do not credit **calling**: advancing steps are
+  drawn-only, so an open hand that pons its way home is undersold. A call-aware
+  width (`WinModel.pungRate` / `chowRate`) was fitted and measured for Hong
+  Kong; it predicted outcomes far better but played no better (0.014 of a
+  placement, p = 0.40), so Hong Kong did not adopt it. **Taiwanese does** —
+  `WinModel.taiwanese` ships `pungRate: 1.030, chowRate: 1.609`, because a
+  five-set hand leans on calls far more than a four-set one. For the two
+  draws-only rulesets this is the main reason the absolute pre-tenpai numbers
+  sit below the ~21% a hand wins on average, even though the ordering between
+  hands is right.
 
 ## Where it lives
 
 | File | Role |
 |---|---|
-| `lib/logic/efficiency_calc.dart` | shanten + ukeire (ported from Riichi-Trainer) |
-| `lib/logic/efficiency_engine.dart` | everything above — `analyze`, `_assessValue`, `_assessTenpaiValue`, `_finishTenpaiAssessment`, `adviseCall`, `_kanAdvice`, `_riichiDangerFactor` |
-| `lib/logic/placement_utility.dart` | `PlacementUtility` — the model behind `Strategy.placement` |
-| `lib/logic/scoring.dart` | `scoreHand` — yaku / fu / han / dora → points |
-| `lib/logic/hong_kong/hong_kong_scoring.dart` | `scoreHongKongHand` — faan patterns → chips |
-| `lib/logic/hong_kong/hong_kong_safety.dart` | Hong Kong risk ratings |
+| `packages/mahjong_core/lib/efficiency_calc.dart` | shanten + ukeire (ported from Riichi-Trainer) |
+| `flutter_client/lib/logic/efficiency_engine.dart` | everything above — `analyze`, `_assessValue`, `_assessTenpaiValue`, `_finishTenpaiAssessment`, `adviseCall`, `_kanAdvice`, `_riichiDangerFactor` |
+| `flutter_client/lib/logic/placement_utility.dart` | `PlacementUtility` — the model behind `Strategy.placement` |
+| `packages/mahjong_core/lib/scoring.dart` | `scoreHand` — yaku / fu / han / dora → points |
+| `packages/mahjong_core/lib/hong_kong/hong_kong_scoring.dart` | `scoreHongKongHand` — faan patterns → chips |
+| `packages/mahjong_core/lib/hong_kong/hong_kong_safety.dart` | Hong Kong risk ratings |
+| `packages/mahjong_core/lib/taiwanese/` | Taiwanese rules, scoring, wall and hand parsing |
+| `flutter_client/lib/ui/ev_explainer_dialog.dart` | the panel's "how this number was reached" breakdown |
+| `test/taiwanese_tuning_sweep_test.dart` | win-model variants under Taiwanese, against the bots |
 | `test/policy_sweep_test.dart` | Style × Focus sweep against the bots (`SWEEP_RULESET` picks the game) |
 | `test/hong_kong/hk_tuning_sweep_test.dart` | `HongKongGuideTuning` variants against the bots and the original guide |
 | `test/hong_kong/hk_guide_diag_test.dart` | per-decision counters, guide vs bot, under Hong Kong rules |
-| `lib/logic/safety.dart` | 0–15 tile-danger rating used by the riichi discount and defensive mode |
+| `packages/mahjong_core/lib/safety.dart` | 0–15 tile-danger rating used by the riichi discount and defensive mode |
 | `lib/game/game_controller.dart` | `_refreshReport()` builds the context each turn; Autoplay reads the result |
 | `lib/ui/efficiency_overlay.dart` | renders the panel |
 | `test/efficiency_engine_test.dart` | regression tests (dora raises EV, dealer raises EV, dead waits, riichi-danger, …) |
