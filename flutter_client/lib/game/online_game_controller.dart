@@ -939,7 +939,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       if (s.seat == kHumanSeat) continue;
       if (ruleset.isChineseStyle
           ? s.melds.where((m) => !m.concealed).length >=
-              HongKongGuideTuning.threatExposedSets
+              HongKongGuideTuning.threatSetsFor(ruleset)
           : s.riichi) {
         return s;
       }

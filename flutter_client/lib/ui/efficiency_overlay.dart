@@ -789,7 +789,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     (3, 'Suit tile'),
   ];
 
-  static List<InlineSpan> _safetyTip(bool hk, String unit) {
+  static List<InlineSpan> _safetyTip(bool hk, String unit, int threatSets) {
     final ratings = hk ? _hongKongRatings : _riichiRatings;
     return [
       const TextSpan(text: 'SAFETY\n', style: _tipTitle),
@@ -809,7 +809,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               ),
               (
                 'Rated when',
-                'an opponent shows ${HongKongGuideTuning.threatExposedSets} '
+                'an opponent shows $threatSets '
                     'or more exposed sets — otherwise the column shows —'
               ),
             ]
@@ -1427,7 +1427,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'Shanten' || 'Away' => _shantenTip(_hk),
             'Ukeire' || 'Accepts' => _ukeireTip(_hk),
             'Placement' => _placementTip(),
-            'Safety' => _safetyTip(_hk, widget.game.round.ruleset.unit),
+            'Safety' => _safetyTip(
+                _hk,
+                widget.game.round.ruleset.unit,
+                HongKongGuideTuning.threatSetsFor(widget.game.round.ruleset)),
             'Risk' => _riskTip(_hk, widget.game.round.ruleset.unit),
             'Detail' => _detailTip(),
             _ => null,
