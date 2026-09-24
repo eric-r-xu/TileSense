@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mahjong_core/bot.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/safety.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import '../telemetry/telemetry.dart';
@@ -903,6 +904,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
       opponentIsDealer: riichiOpp?.isDealer ?? false,
+      otherThreats: _otherThreats(),
     );
   }
 
@@ -1122,6 +1124,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
           passedDiscardsAfterRiichi:
               riichiOpp.passedDiscardsAfterRiichi.toList(),
           opponentRiichi: true,
+          otherThreats: _otherThreats(),
         );
       } else {
         report = EfficiencyReport.waiting();
@@ -1144,6 +1147,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
           riichiOpp?.passedDiscardsAfterRiichi.toList() ?? const [],
       opponentRiichi: riichiOpp != null,
       opponentIsDealer: riichiOpp?.isDealer ?? false,
+      otherThreats: _otherThreats(),
     );
   }
 
@@ -1175,18 +1179,38 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// The opponent the guide defends against: whoever is in riichi, or in Hong
   /// Kong — which has no declaration — whoever has exposed
   /// [HongKongGuideTuning.threatExposedSets] sets or more.
+  /// Every opponent worth defending against, in seat order.
+  ///
+  /// There can be more than one, and pricing only the first understates the
+  /// danger badly: measured in self-play, a discard made with two live riichi
+  /// out deals in 5.97% of the time against 2.62% with one, and two are live
+  /// in 25.9% of hands. A tile that is genbutsu against the first of them can
+  /// be a live middle tile against the second.
+  List<SeatState> _threatOpponents() => [
+        for (final s in round.seats)
+          if (s.seat != kHumanSeat &&
+              (ruleset.isChineseStyle
+                  ? s.melds.where((m) => !m.concealed).length >=
+                      HongKongGuideTuning.threatSetsFor(ruleset)
+                  : s.riichi))
+            s,
+      ];
+
+  /// The first threat — the one the guide's safety labels are written about.
   SeatState? _threatOpponent() {
-    for (final s in round.seats) {
-      if (s.seat == kHumanSeat) continue;
-      if (ruleset.isChineseStyle
-          ? s.melds.where((m) => !m.concealed).length >=
-              HongKongGuideTuning.threatSetsFor(ruleset)
-          : s.riichi) {
-        return s;
-      }
-    }
-    return null;
+    final all = _threatOpponents();
+    return all.isEmpty ? null : all.first;
   }
+
+  /// The rest of them, priced alongside the first rather than ignored.
+  List<RiichiThreat> _otherThreats() => [
+        for (final s in _threatOpponents().skip(1))
+          RiichiThreat(
+            discards: s.allDiscards.map((t) => t.type).toList(),
+            passedAfterRiichi: s.passedDiscardsAfterRiichi.toList(),
+            isDealer: s.isDealer,
+          ),
+      ];
 
   /// The opponent the guide's safety scores refer to.
   @override

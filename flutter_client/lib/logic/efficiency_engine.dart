@@ -786,6 +786,7 @@ class EfficiencyEngine {
     List<TileType> passedDiscardsAfterRiichi = const [],
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
+    List<RiichiThreat> otherThreats = const [],
   }) {
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
@@ -793,34 +794,74 @@ class EfficiencyEngine {
     final concealed = toTrainerCounts(hand);
     final remaining = trainerCountsFromTypeCounts(remaining34);
 
-    // How dangerous your OWN riichi lock-in would be against a live opponent
-    // riichi: the weighted-average safety (the same 0..15 scale used for
-    // defensive discards) of every tile you might still draw and be forced
-    // to tsumogiri, weighted by how many copies remain. 0 = your live draws
-    // are all safe right now, 1 = they're all live danger tiles.
+    // How dangerous your OWN riichi lock-in would be against the live riichi
+    // out: the weighted-average safety (the same 0..15 scale used for
+    // defensive discards) of every tile you might still draw and be forced to
+    // tsumogiri, weighted by how many copies remain, composed across all of
+    // them. See [_riichiDangerFactor] for why it can exceed 1 when more than
+    // one riichi is live.
     final ruleset = valueContext.ruleset;
-    final riichiDangerFactor = opponentRiichi && ruleset.isRiichi
+    // Every live riichi, not only the first. The flat parameters describe the
+    // primary threat — the one whose read the panel explains — and any others
+    // arrive in [otherThreats].
+    final threats = <RiichiThreat>[
+      if (opponentRiichi)
+        RiichiThreat(
+          discards: opponentDiscards,
+          passedAfterRiichi: passedDiscardsAfterRiichi,
+          isDealer: opponentIsDealer,
+        ),
+      ...otherThreats,
+    ];
+    // A second riichi can be the dealer when the first is not, and it is their
+    // price you pay if theirs is the hand you feed.
+    final anyThreatIsDealer = threats.any((t) => t.isDealer);
+    final riichiDangerFactor = threats.isNotEmpty && ruleset.isRiichi
         ? _riichiDangerFactor(
+            threats: threats,
             remaining34: remaining34,
-            opponentDiscards: opponentDiscards,
-            passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
             visibleCounts34: visibleCounts34,
           )
         : 0.0;
 
     // Safety is needed before the lines are priced, not after: what a discard
     // can cost you when it deals in is part of what that discard is worth.
-    final defending = opponentRiichi && defenseHand != null;
-    final defense = defending
-        ? _rankSafety(
-            ruleset,
-            defenseHand,
-            opponentDiscards: opponentDiscards,
-            passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
-            visibleCounts34: visibleCounts34,
-          )
-        : <SafetyRating>[];
-    final safeByType = {for (final s in defense) s.type: s};
+    //
+    // Each tile is read against each threat separately, because safety does
+    // not pool: a tile sitting in one player's pond is dead against them and
+    // says nothing about anyone else, and suji comes off one pond at a time.
+    // The rating kept is the most dangerous of those reads, since that is the
+    // one that can kill you, while the price charged is the sum of what every
+    // threat is expected to cost. Reading only the first riichi called a tile
+    // safe that was genbutsu against them and a live middle tile against the
+    // player sitting behind them.
+    final defending = threats.isNotEmpty && defenseHand != null;
+    final safeByType = <TileType, SafetyRating>{};
+    final dealInByType = <TileType, double>{};
+    if (defending) {
+      for (final threat in threats) {
+        final payment = _dealInPayment(
+          ruleset: ruleset,
+          isDealer: threat.isDealer,
+          honba: valueContext.honba,
+        );
+        for (final r in _rankSafety(
+          ruleset,
+          defenseHand,
+          opponentDiscards: threat.discards,
+          passedDiscardsAfterRiichi: threat.passedAfterRiichi,
+          visibleCounts34: visibleCounts34,
+        )) {
+          final worst = safeByType[r.type];
+          if (worst == null || r.rating < worst.rating) safeByType[r.type] = r;
+          final rate = _dealInRateByRating[
+              r.rating.clamp(0, _dealInRateByRating.length - 1)];
+          dealInByType[r.type] = (dealInByType[r.type] ?? 0) + rate * payment;
+        }
+      }
+    }
+    final defense = safeByType.values.toList()
+      ..sort((a, b) => b.rating.compareTo(a.rating));
 
     final raw =
         _calc.calculate(concealed, remaining, totalMelds: ruleset.totalMelds);
@@ -848,8 +889,8 @@ class EfficiencyEngine {
         concealed: _handAfterDiscard(hand, tenpaiResult.discard),
         canRiichi: canRiichi,
         context: valueContext,
-        opponentRiichi: opponentRiichi,
-        opponentIsDealer: opponentIsDealer,
+        opponentRiichi: threats.isNotEmpty,
+        opponentIsDealer: anyThreatIsDealer,
         riichiDangerFactor: riichiDangerFactor,
       );
       if (probe.averagePoints > 0) {
@@ -953,18 +994,13 @@ class EfficiencyEngine {
         concealed: afterDiscard,
         canRiichi: canRiichi,
         context: valueContext,
-        opponentRiichi: opponentRiichi,
-        opponentIsDealer: opponentIsDealer,
+        opponentRiichi: threats.isNotEmpty,
+        opponentIsDealer: anyThreatIsDealer,
         riichiDangerFactor: riichiDangerFactor,
       );
       final safety = safeByType[r.discard];
-      final dealInCost = _dealInPenalty(
-            ruleset: ruleset,
-            safety: safety,
-            opponentIsDealer: opponentIsDealer,
-            honba: valueContext.honba,
-          ) *
-          valueContext.style.riskWeight;
+      final dealInCost =
+          (dealInByType[r.discard] ?? 0) * valueContext.style.riskWeight;
       // The tile you choose says whether you are folding or pushing, so it also
       // prices the turns that choice commits you to. A genbutsu cut commits you
       // to nothing; a live one commits you to more of the same.
@@ -1131,6 +1167,7 @@ class EfficiencyEngine {
     List<TileType> passedDiscardsAfterRiichi = const [],
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
+    List<RiichiThreat> otherThreats = const [],
   }) {
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
@@ -1211,6 +1248,7 @@ class EfficiencyEngine {
           passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
           opponentRiichi: opponentRiichi,
           opponentIsDealer: opponentIsDealer,
+          otherThreats: otherThreats,
         ));
       }
     }
@@ -1231,6 +1269,7 @@ class EfficiencyEngine {
           passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
           opponentRiichi: opponentRiichi,
           opponentIsDealer: opponentIsDealer,
+          otherThreats: otherThreats,
         );
         if (bestChi == null ||
             (advice.eligible && !bestChi.eligible) ||
@@ -1482,6 +1521,7 @@ class EfficiencyEngine {
     required List<TileType> passedDiscardsAfterRiichi,
     required bool opponentRiichi,
     required bool opponentIsDealer,
+    required List<RiichiThreat> otherThreats,
   }) {
     final concealedAfter = _handWithout(hand, consumed);
     final contextAfter = _contextWithMeld(context, meld);
@@ -1499,6 +1539,7 @@ class EfficiencyEngine {
       passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
       opponentRiichi: opponentRiichi,
       opponentIsDealer: opponentIsDealer,
+      otherThreats: otherThreats,
     );
     if (report.lines.isEmpty) {
       return ActionAdvice(
@@ -2054,38 +2095,49 @@ class EfficiencyEngine {
     );
   }
 
-  /// Weighted-average danger (0 safe .. 1 dangerous) of the tiles you might
-  /// still draw and be forced to tsumogiri under your own riichi, rated on
-  /// the same 0..15 safety scale [rankSafety] uses for defensive discards.
+  /// How dangerous the tiles you would be forced to tsumogiri under your own
+  /// riichi are, scaled so `factor * _dealInRateByRating.first` is the chance
+  /// one forced discard feeds *any* live riichi.
+  ///
+  /// Against a single threat this is the old weighted-average danger, 0 safe
+  /// to 1 dangerous, on the same 0..15 scale [rankSafety] uses. Against more
+  /// than one the hazards compose — you get through the turn only by missing
+  /// all of them — so the figure can exceed 1, which is the point: locking
+  /// yourself into tsumogiri with two riichi out is worse than with one, and
+  /// pricing the second as though it were absent understated it 2.27x.
   double _riichiDangerFactor({
+    required List<RiichiThreat> threats,
     required List<int> remaining34,
-    required List<TileType> opponentDiscards,
-    required List<TileType> passedDiscardsAfterRiichi,
     required List<int> visibleCounts34,
   }) {
     final everyType = [
       for (var i = 0; i < 34; i++) Tile(-2000 - i, typeFrom34(i)),
     ];
-    final ratingByType = {
-      for (final r in rankSafety(
-        everyType,
-        opponentDiscards: opponentDiscards,
-        passedDiscardsAfterRiichi: passedDiscardsAfterRiichi,
-        visibleCounts34: visibleCounts34,
-      ))
-        r.type: r.rating,
-    };
-    var weightedRating = 0.0;
-    var totalWeight = 0;
-    for (var i = 0; i < 34; i++) {
-      final left = remaining34[i];
-      if (left <= 0) continue;
-      weightedRating += left * (ratingByType[typeFrom34(i)] ?? 3);
-      totalWeight += left;
+    var survives = 1.0;
+    for (final threat in threats) {
+      final ratingByType = {
+        for (final r in rankSafety(
+          everyType,
+          opponentDiscards: threat.discards,
+          passedDiscardsAfterRiichi: threat.passedAfterRiichi,
+          visibleCounts34: visibleCounts34,
+        ))
+          r.type: r.rating,
+      };
+      var weightedRating = 0.0;
+      var totalWeight = 0;
+      for (var i = 0; i < 34; i++) {
+        final left = remaining34[i];
+        if (left <= 0) continue;
+        weightedRating += left * (ratingByType[typeFrom34(i)] ?? 3);
+        totalWeight += left;
+      }
+      if (totalWeight == 0) continue;
+      final avgRating = weightedRating / totalWeight;
+      final danger = ((15 - avgRating) / 15).clamp(0.0, 1.0);
+      survives *= 1 - danger * _dealInRateByRating.first;
     }
-    if (totalWeight == 0) return 0.0;
-    final avgRating = weightedRating / totalWeight;
-    return ((15 - avgRating) / 15).clamp(0.0, 1.0);
+    return (1 - survives) / _dealInRateByRating.first;
   }
 
   _ValueAssessment _assessValue({
@@ -2467,26 +2519,20 @@ class EfficiencyEngine {
   /// cut and slowed the guide down.
   static const double _taiwaneseDealInCost = 7;
 
-  /// The points a discard is expected to cost, given how safe it is. Zero
-  /// without a live riichi to deal into, and zero on genbutsu.
-  static double _dealInPenalty({
-    required SafetyRating? safety,
-    required bool opponentIsDealer,
+  /// What one deal-in pays, before the rate at which it happens. Split out
+  /// from the old `_dealInPenalty` so each live riichi can be priced at its
+  /// own seat: the dealer among them costs more than the others.
+  static double _dealInPayment({
+    required Ruleset ruleset,
+    required bool isDealer,
     required int honba,
-    Ruleset ruleset = Ruleset.riichi,
-  }) {
-    if (safety == null) return 0;
-    final rate = _dealInRateByRating[
-        safety.rating.clamp(0, _dealInRateByRating.length - 1)];
-    // Honba rides on their win too — you pay it.
-    final cost = ruleset.isTaiwanese
-        ? _taiwaneseDealInCost
-        : ruleset.isHongKong
-            ? _hongKongDealInCost
-            : (opponentIsDealer ? _dealerDealInCost : _dealInCost) +
-                honba * 300;
-    return rate * cost;
-  }
+  }) =>
+      ruleset.isTaiwanese
+          ? _taiwaneseDealInCost
+          : ruleset.isHongKong
+              ? _hongKongDealInCost
+              // Honba rides on their win too — you pay it.
+              : (isDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
 
   _ValueAssessment _assessTenpaiValue({
     required List<TileType> waits,
