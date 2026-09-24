@@ -78,12 +78,23 @@ run_migrations() {
 
 deploy_client() {
   echo "==> Building the web client..."
+  # The in-app Update button compares this id with the one it was compiled
+  # with, so the build must stamp it in two places: into the bundle, and into
+  # build_id.json next to index.html. Without both the check can never fire.
+  local build_id
+  build_id="$(date -u +%Y%m%d%H%M%S)"
   (
     cd flutter_client
     flutter build web --release \
       --base-href "$BASE_HREF" \
+      --dart-define=BUILD_ID="$build_id" \
       --dart-define=APP_VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+    printf '{"build_id":"%s"}' "$build_id" > build/web/build_id.json
+    # After the build, before the sidecars: precompress skips files under 1KB,
+    # so this one stays uncompressed and always freshly readable.
+    python3 tools/precompress_web.py build/web
   )
+  echo "    build id: $build_id"
 
   local served="${SERVED_DIR:-}"
   if [[ -z "$served" ]]; then
@@ -101,6 +112,7 @@ deploy_client() {
     echo "    add 'export SERVED_DIR=$served' to deploy.env to skip this lookup next time."
   fi
 
+  ssh "root@$DROPLET_IP" 'python3 -' < server/deploy/install-web-compression.py
   rsync -avz --delete flutter_client/build/web/ "root@$DROPLET_IP:$served/"
   echo "==> Web client deployed."
   check_site

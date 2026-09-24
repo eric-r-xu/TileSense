@@ -45,4 +45,13 @@ class CallCallout extends ChangeNotifier {
     _latest[seat] = (id: ++_nextId, text: text.toUpperCase());
     notifyListeners();
   }
+
+  /// Forget the current flash. [remaining] reads the wall clock, which a
+  /// widget test's fake clock cannot advance, so a test that wants a
+  /// no-call-in-progress start has to say so explicitly.
+  @visibleForTesting
+  void clear() {
+    _lastAt = null;
+    _latest.clear();
+  }
 }

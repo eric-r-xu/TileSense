@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
@@ -27,9 +26,6 @@ const _kFirstGestureEvents = [
 /// attached directly to `window` avoids that hop. The listener remains so it
 /// can resume again after a browser suspends audio while backgrounded.
 void armFirstGestureUnlock() {
-  // Decode early so later calls have no fetch/decode delay. This lives in the
-  // web-only implementation to keep native audio initialization unchanged.
-  unawaited(Sfx.i.preload());
   void onEvent(web.Event event) => Sfx.i.unlock();
   final handler = onEvent.toJS;
   final options = web.AddEventListenerOptions(passive: true, capture: true);

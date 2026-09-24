@@ -9,9 +9,7 @@
 /// `--dart-define=BUILD_ID=<id>` and publish the same id in `build_id.json`
 /// next to `index.html` (see `flutter_client/DEPLOYMENT.md`).
 ///
-/// NOTE: `deploy.sh` does not currently do either, so in production `kBuildId`
-/// is empty and this check always reports "unknown" — the button offers a
-/// refresh but never detects a new build. Without a build id the check is
+/// `deploy.sh` stamps both on every web deploy. Without a build id the check is
 /// inconclusive and the button simply refreshes.
 library;
 

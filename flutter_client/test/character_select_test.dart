@@ -1,3 +1,4 @@
+import 'loading_helpers.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,8 @@ String _name(WidgetTester tester, int seat) =>
     tester.widget<Text>(find.byKey(Key('seatCharacterName_$seat'))).data!;
 
 void main() {
+  preloadDeferredPages();
+
   test('randomSeatCharacters draws four distinct characters', () {
     for (var seed = 0; seed < 50; seed++) {
       final picks = randomSeatCharacters(Random(seed));
@@ -121,6 +124,9 @@ void main() {
     expect(_name(tester, 3), 'Sherman');
 
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     final table = tester.widget<TableView>(find.byType(TableView));
     expect(table.game.characterForSeat(1), Character.erika);
@@ -149,6 +155,9 @@ void main() {
         contains('across'));
 
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     final game = tester.widget<TableView>(find.byType(TableView)).game;
     expect(game.round.dealer, 2);
@@ -202,6 +211,9 @@ void main() {
 
     // The table's own toggle agrees with what was chosen here.
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(
         tester
@@ -216,7 +228,7 @@ void main() {
       (tester) async {
     await _boot(tester);
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await pumpLoadedPage(tester);
     expect(find.byType(CharacterSelectPage), findsNothing);
     expect(find.byType(ScenarioPage), findsOneWidget);
     final game = tester.widget<TableView>(find.byType(TableView)).game;

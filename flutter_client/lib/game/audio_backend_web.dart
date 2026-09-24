@@ -30,7 +30,7 @@ class AudioBackend {
   late final web.AudioContext _context;
   final Map<String, Future<web.AudioBuffer>> _buffers = {};
 
-  Future<void>? _preloadFuture;
+  Future<void> _preloadQueue = Future.value();
   web.AudioBufferSourceNode? _effectSource;
   web.AudioBufferSourceNode? _voiceSource;
   int _effectGeneration = 0;
@@ -51,14 +51,19 @@ class AudioBackend {
     }
   }
 
-  Future<void> preload(Iterable<String> paths) =>
-      _preloadFuture ??= _preloadInBatches(paths.toSet().toList());
+  Future<void> preload(Iterable<String> paths) {
+    final requested = paths.toSet().toList();
+    // One bounded queue across repeated character changes. _load also shares
+    // in-flight requests with playback and evicts failures so they can retry.
+    return _preloadQueue = _preloadQueue.then((_) => _preloadInBatches(
+        requested.where((path) => !_buffers.containsKey(path)).toList()));
+  }
 
   Future<void> _preloadInBatches(List<String> paths) async {
-    // Avoid making ~40 simultaneous requests compete with Flutter's initial
-    // download on a mobile connection.
+    // Keep selected voices from monopolising a mobile connection.
     const batchSize = 6;
     for (var i = 0; i < paths.length; i += batchSize) {
+      if (_disposed) return;
       final batch = paths.skip(i).take(batchSize);
       await Future.wait([
         for (final path in batch)

@@ -358,10 +358,19 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     if (Sfx.i.enabled == value) return;
     Sfx.i.enabled = value;
     if (value) Sfx.i.unlock();
+    if (value) _preloadTableVoices();
     notifyListeners();
   }
 
   // --- server -> client -----------------------------------------------------
+
+  void _preloadTableVoices() {
+    if (soundOn) {
+      unawaited(Sfx.i.preload(
+          characters:
+              lobbySeats.map((s) => s.character).whereType<Character>()));
+    }
+  }
 
   void _onMessage(Map<String, dynamic> msg) {
     switch (msg['type'] as String?) {
@@ -414,6 +423,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       for (final s in msg['seats'] as List)
         LobbySeat.fromJson(s as Map<String, dynamic>)
     ];
+    _preloadTableVoices();
     // `Room.resolveCharacter` silently substitutes a different persona when
     // the one requested is already taken by an earlier seat in this room
     // (e.g. two guests both defaulting to the same cached pick). Without

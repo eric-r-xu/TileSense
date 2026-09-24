@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tilesense/game/call_callout.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:mahjong_core/round.dart';
@@ -11,6 +12,12 @@ import 'helpers.dart';
 /// "acquiescement" — right after each other. A cheaper win only speaks the
 /// plain win line, and a mangan+ tsumo has no discarder to acquiesce.
 void main() {
+  // `CallCallout` is a process-wide singleton and its `remaining` reads the
+  // wall clock, which a widget test's fake clock never advances. The game loop
+  // adds that remainder to its step timer, so a bubble left over from the
+  // previous test in this file would silently delay this one's.
+  setUp(CallCallout.i.clear);
+
   /// Seat 3 discards [fed] into seat 0's hand, offering seat 0 a ron.
   GameController controllerAwaitingRon(
     Tile fed, {
@@ -46,12 +53,18 @@ void main() {
     final fed = Tile(900, TileType.chun);
     final game = controllerAwaitingRon(fed, seat0Hand: '119m 19p 19s ESWN BG');
     try {
-      await tester.pump(const Duration(seconds: 2));
+      await pumpUntil(tester, () => game.awaitingHumanCall);
       expect(game.awaitingHumanCall, isTrue);
       expect(game.humanCallOption!.types, contains(CallType.ron));
 
       game.answerCall(CallType.ron);
-      await tester.pump(const Duration(seconds: 2));
+      // The win lines are a chain — the winner's call, then their reaction,
+      // then the discarder's — and the round is marked finished at the front
+      // of it, so waiting on `finished` would stop before the rest is spoken.
+      // Walk a fixed run of slices instead and let the log assertions judge.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       expect(game.round.finished, isTrue);
       expect(
@@ -82,7 +95,7 @@ void main() {
     final game =
         controllerAwaitingRon(fed, seat0Hand: '234m 456p 789s 11s RR');
     try {
-      await tester.pump(const Duration(seconds: 2));
+      await pumpUntil(tester, () => game.awaitingHumanCall);
       // Guard the fixture rather than assert a false positive if the shape
       // isn't tenpai the way this test expects.
       if (!game.awaitingHumanCall ||
@@ -91,7 +104,13 @@ void main() {
       }
 
       game.answerCall(CallType.ron);
-      await tester.pump(const Duration(seconds: 2));
+      // The win lines are a chain — the winner's call, then their reaction,
+      // then the discarder's — and the round is marked finished at the front
+      // of it, so waiting on `finished` would stop before the rest is spoken.
+      // Walk a fixed run of slices instead and let the log assertions judge.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       expect(game.round.finished, isTrue);
       expect(log, contains((Character.orderic, VoiceKind.ron)));

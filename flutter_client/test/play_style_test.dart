@@ -1,3 +1,4 @@
+import 'loading_helpers.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,8 @@ import 'helpers.dart';
 /// hand is kept quiet, so it should move push/fold and riichi/damaten in one
 /// direction each — without changing what any hand is actually worth.
 void main() {
+  preloadDeferredPages();
+
   EfficiencyReport read(
     String spec, {
     required PlayStyle style,
@@ -252,6 +255,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     // Read off the button itself: the bar carries two dials, and a riichi game
@@ -322,7 +328,7 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await pumpLoadedPage(tester);
 
     expect(find.byKey(const Key('builderPlayStyle')), findsNothing);
 
@@ -338,6 +344,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     // The guide is off by default; the clefairy mark opens it.
     await tester.tap(find.byKey(const Key('guideToggle')));
@@ -374,6 +383,9 @@ void main() {
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(); // Render the startup/loading frame.
+    // The table is created after a loading frame.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     // Move the dial off its default so we can tell a surviving match from a

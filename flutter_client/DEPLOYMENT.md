@@ -148,15 +148,16 @@ workers and caches, re-downloads the app shell and every bundled media file
 with `cache: 'reload'` (so the one-day media cache can't hold back a changed
 `.wav`), and reloads.
 
-> **Known broken in production.** For this to work a deploy must pass
-> `--dart-define=BUILD_ID=<id>` **and** publish the same id as `build_id.json`
-> next to `index.html`. `deploy.sh` — the script that actually ships the web
-> client — does neither; it passes only `--dart-define=APP_VERSION=…`. So
-> `kBuildId` compiles to `""`, `app_update.dart` short-circuits, and the check
-> is permanently inconclusive: no error, the button simply never reports an
-> update. The two diverged on 2026-09-22 (`05ed3a1`), when `deploy.sh` replaced
-> the hand-written procedure this file used to describe. Fixing it means adding
-> those two lines to `deploy.sh`.
+For this to work a deploy must pass `--dart-define=BUILD_ID=<id>` **and**
+publish the same id as `build_id.json` next to `index.html`. `deploy.sh` does
+both: it derives a UTC timestamp once per deploy, passes it to the build, and
+writes `build_id.json` after the build but before the gzip sidecars — that
+script skips files under 1 KB, so the id stays uncompressed and freshly
+readable.
+
+> Between 2026-09-22 (`05ed3a1`) and this fix the script did neither, so
+> `kBuildId` compiled to `""` and the check reported "unknown" forever: no
+> error, the button simply never found an update.
 
 - `build_id.json` must not be long-cached; the blanket `Cache-Control: no-cache`
   covers it.

@@ -1,3 +1,4 @@
+import '../loading_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/meld.dart';
@@ -18,6 +19,8 @@ void fill(Scenario s, List<Tile> into, String spec) {
 }
 
 void main() {
+  preloadDeferredPages();
+
   test('ordinary tile counts exclude removed dora indicators', () {
     final s = (Scenario()
       ..ruleset = Ruleset.hongKong
@@ -70,8 +73,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
       expect(find.byType(ScenarioPage), findsOneWidget);
       // The guide is always on here, and the table is the real one.
       expect(find.byType(EfficiencyOverlay), findsOneWidget);
@@ -106,8 +108,7 @@ void main() {
       await tester.tap(find.byKey(const Key('ruleset_hongKong')));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpLoadedPage(tester);
       await tester.tap(find.text('Random'));
       await tester.pump(const Duration(milliseconds: 100));
 
