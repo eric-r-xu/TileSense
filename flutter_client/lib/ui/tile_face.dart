@@ -164,7 +164,8 @@ class TileFace extends StatelessWidget {
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: hovered
-              ? Color.alphaBlend(Colors.black.withValues(alpha: 0.14), baseColor)
+              ? Color.alphaBlend(
+                  Colors.black.withValues(alpha: 0.14), baseColor)
               : baseColor,
           border: Border.all(
             color: borderColorOverride ??

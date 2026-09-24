@@ -849,6 +849,8 @@ class _GamePageState extends State<GamePage> {
             _game.setStartingDealer(randomStartingDealer());
           }),
           advanceLabel: 'Start',
+          ruleset: _game.ruleset,
+          onRuleset: (r) => setState(() => _game.setRuleset(r)),
           soundOn: _game.soundOn,
           onSoundOn: (on) => setState(() => _game.setSoundOn(on)),
           hanchan: _game.hanchan,
@@ -880,8 +882,9 @@ class _GamePageState extends State<GamePage> {
         titleSpacing: 12,
         leading: IconButton(
           key: const Key('backToMenu'),
-          tooltip: 'Main menu — pauses this game; Start resumes it, or open '
-              'the Custom Hand & Context Builder',
+          tooltip: 'Main menu — pauses this game; Start resumes it. Change '
+              'the style there (a new game), or open the Custom Hand & '
+              'Context Builder',
           icon: const Icon(Icons.arrow_back),
           onPressed: _backToMenu,
         ),
@@ -912,24 +915,25 @@ class _GamePageState extends State<GamePage> {
             const SizedBox(width: 6),
             const Text('TileSense'),
             const SizedBox(width: 16),
-            // Which rules the table plays. Switching deals a new game.
+            // Which rules the table plays — a label, not a switch: the style
+            // is fixed for the game once it is under way. It is chosen on the
+            // welcome and character screens, reached with the back arrow.
             AnimatedBuilder(
               animation: _game,
               builder: (context, _) => Tooltip(
                 message: 'Playing ${_game.ruleset.label} rules.\n'
-                    'Tap for ${_game.ruleset.next.label} — this starts a new '
-                    'game.',
-                child: TextButton(
+                    'To play another style, go back to the main menu.',
+                child: Padding(
                   key: const Key('ruleset'),
-                  onPressed: () => _game.setRuleset(_game.ruleset.next),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: const Color(0xffffdf76),
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: Text(
                     _game.ruleset.flagLabel,
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w800),
+                      color: Color(0xffffdf76),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
@@ -1128,10 +1132,11 @@ class _GamePageState extends State<GamePage> {
                     ),
                   ],
                 ),
-                // The guide runs from the top of the body down to just above
-                // the hand's tile row — so it grows with the window instead of
-                // stopping at a fixed cut-off, while never covering a tile you
-                // might want to discard.
+                // The guide runs from just below the table's top-left status
+                // panel down to just above the hand's tile row — so it grows
+                // with the window instead of stopping at a fixed cut-off,
+                // while never covering the status panel or a tile you might
+                // want to discard.
                 if (_showGuide)
                   Positioned.fill(
                     child: LayoutBuilder(
@@ -1139,12 +1144,14 @@ class _GamePageState extends State<GamePage> {
                         children: [
                           Positioned(
                             left: 8,
-                            top: 8,
+                            top: TableView.statusPanelClearance,
                             child: EfficiencyOverlay(
                               game: _game,
                               report: _game.report,
-                              maxHeight:
-                                  c.maxHeight - HandView.tileRowBandHeight - 16,
+                              maxHeight: c.maxHeight -
+                                  TableView.statusPanelClearance -
+                                  HandView.tileRowBandHeight -
+                                  8,
                             ),
                           ),
                         ],
@@ -1309,19 +1316,18 @@ class _WelcomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Three balanced lines, broken by hand rather than by the
-                // wrapper. Left to itself at a snug width the first line lands
-                // within a pixel of the limit, so any browser whose default face
-                // runs a hair wider than Roboto spills it to four. The box is
-                // ~30% wider than the longest line needs, which keeps these
-                // three lines three lines. Re-balance the breaks if the text
-                // changes — the longest line here measures ~560px.
+                // Two balanced lines, broken by hand rather than by the
+                // wrapper. Left to itself at a snug width a line can land
+                // within a pixel of the limit, so any browser whose default
+                // face runs a hair wider than Roboto spills it onto a third.
+                // The box is ~20% wider than the longest line needs (~690px
+                // in Roboto, with "Taiwanese" in it), which keeps these two
+                // lines two lines. Re-balance the breaks if the text changes.
                 SizedBox(
-                  width: 720,
+                  width: 840,
                   child: Text(
-                    'TileSense is a Flutter Web App built to give you a feel for\n'
-                    'optimal ${ruleset.label} Mahjong play, with recommended actions\n'
-                    'scored by efficiency, expected value, and safety.',
+                    'TileSense builds your sense of optimal ${ruleset.label} Mahjong decisions,\n'
+                    'with a guide whose calculations are based on observable patterns.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white70,
@@ -1338,101 +1344,128 @@ class _WelcomeScreen extends StatelessWidget {
                   children: [_FullscreenButton(), _UpdateButton()],
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: onStart,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffcaa24e),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // The mascot that toggles the guide at the table,
-                          // as the button's icon: the guide comes with
-                          // offline play.
-                          Image.asset(
-                            'assets/clefairy.png',
-                            key: const Key('startGuideMascot'),
-                            height: 36,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
-                          ),
-                          const SizedBox(width: 8),
-                          const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('Single Player',
+                // Scales down rather than overflowing if a wide default font
+                // pushes the three buttons past the canvas width.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton(
+                        onPressed: onStart,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xffcaa24e),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // The mascot that toggles the guide at the table,
+                            // as the button's icon: the guide comes with
+                            // offline play.
+                            Image.asset(
+                              'assets/clefairy.png',
+                              key: const Key('startGuideMascot'),
+                              height: 36,
+                              filterQuality: FilterQuality.high,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                            const SizedBox(width: 8),
+                            const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Single Player',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Includes the guide',
                                   style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold)),
-                              SizedBox(height: 2),
-                              Text(
-                                'Includes the guide',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.black54),
-                              ),
-                            ],
-                          ),
-                        ],
+                                      fontSize: 12, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      key: const Key('playOnline'),
-                      onPressed: onPlayOnline,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xffe9d58f),
-                        side: const BorderSide(color: Color(0xffcaa24e)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 12),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        key: const Key('playOnline'),
+                        onPressed: onPlayOnline,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xffe9d58f),
+                          side: const BorderSide(color: Color(0xffcaa24e)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // A globe: play with anyone, anywhere.
+                            Text('🌐',
+                                key: Key('playOnlineEmoji'),
+                                style: TextStyle(fontSize: 28)),
+                            SizedBox(width: 8),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Play Online',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
+                                SizedBox(height: 2),
+                                Text(
+                                  'With friends — bots fill empty seats, no guide',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white60),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Play Online',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 2),
-                          Text(
-                            'With friends — bots fill empty seats, no guide',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.white60),
-                          ),
-                        ],
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        key: const Key('openBuilder'),
+                        onPressed: onBuild,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xffe9d58f),
+                          side: const BorderSide(color: Color(0xffcaa24e)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Tools: you build the table yourself.
+                            Text('🛠️',
+                                key: Key('openBuilderEmoji'),
+                                style: TextStyle(fontSize: 28)),
+                            SizedBox(width: 8),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Custom Hand & Context Builder',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Pose any table and have TileSense score it',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.white60),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      key: const Key('openBuilder'),
-                      onPressed: onBuild,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xffe9d58f),
-                        side: const BorderSide(color: Color(0xffcaa24e)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 12),
-                      ),
-                      child: const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Custom Hand & Context Builder',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 2),
-                          Text(
-                            'Pose any table and have TileSense score it',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.white60),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

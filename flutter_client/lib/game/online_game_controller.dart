@@ -528,8 +528,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       // An added kan (shouminkan) upgrades an existing pon in place, so the
       // meld count stays put — spot it by the kan count going up instead.
       int kans(Round? r) =>
-          r?.seats[seat].melds.where((m) => m.kind == MeldKind.kan).length ??
-          0;
+          r?.seats[seat].melds.where((m) => m.kind == MeldKind.kan).length ?? 0;
       return kans(round) > kans(previousRound) ? SfxKind.kan : null;
     }
     return switch (round.seats[seat].melds.last.kind) {

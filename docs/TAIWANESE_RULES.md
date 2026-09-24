@@ -168,18 +168,19 @@ The efficiency guide, safety ranking, and `SimpleBot` all speak Taiwanese:
 Style and Strategy have nothing left to weigh here (no riichi, no damaten,
 no placement wiring yet) and are hidden and pinned, the same treatment Hong
 Kong gets. Shanten and acceptance run the real 5-meld search described in
-[Hand shape](#hand-shape-and-wall); safety ranking and the win-probability
-model reuse Hong Kong's own (`HongKongGuideTuning`, `rankHongKongSafety`),
-since both are already ruleset-agnostic public-information estimates and
-Taiwanese's discard-based flow matches Hong Kong's closely enough to make
-them a reasonable stand-in — not a Taiwanese-specific calibration.
+[Hand shape](#hand-shape-and-wall). Safety ranking reuses Hong Kong's
+(`rankHongKongSafety`), with an opponent counted as a threat at 4 exposed
+sets rather than 3.
 
-Once a discard leaves a hand ready, the guide scores it exactly with the
-point chart above (`scoreTaiwaneseHand`). Before that, it estimates a line's
-payout by reusing Hong Kong's own faan-shaped pre-tenpai estimate
-(`_hongKongProjectedPoints`) rather than a from-scratch Taiwanese model — the
-two charts are close enough in shape for this to be a fair approximation,
-not an exact one.
+Every payout the guide weighs is in Taiwanese points. Once a discard leaves a
+hand ready it scores each wait exactly with the point chart above
+(`scoreTaiwaneseHand`), a self-draw collected from all three other seats;
+before that it estimates the payout from the patterns the hand already shows
+(`_taiwaneseProjectedPoints`). Its win-probability model counts pung and chow
+acceptance as well as draws (`WinModel.taiwanese`), since a five-set hand
+leans on calls. Tuned this way it beats the bots by 0.15 of a placement on
+held-out seeds — see "Taiwanese — the guide beats the bots" in
+[`BOT_STRATEGY.md`](../flutter_client/BOT_STRATEGY.md).
 
 The guide above is offline-only: multiplayer hides it entirely, so no seat
 gets an assist the others lack.

@@ -813,7 +813,10 @@ class _HandViewState extends State<HandView> {
       child: Align(
         alignment: Alignment.center,
         child: Wrap(
-          spacing: 8,
+          // Wide gaps so a thumb on a small screen lands on the action it
+          // meant — the bar is the full canvas width, so even a crowded turn
+          // (every chi option plus pon, kan, win and pass) stays one row.
+          spacing: 17,
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: buttons,

@@ -55,9 +55,8 @@ class ScenarioPage extends StatefulWidget {
 }
 
 class _ScenarioPageState extends State<ScenarioPage> {
-  late final ScenarioController _c =
-      ScenarioController(
-          seatCharacters: widget.seatCharacters, seatWind: widget.seatWind);
+  late final ScenarioController _c = ScenarioController(
+      seatCharacters: widget.seatCharacters, seatWind: widget.seatWind);
 
   _Slot _slot = _Slot.hand;
   int _slotSeat = kHumanSeat;
@@ -268,13 +267,18 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 child: LayoutBuilder(
                   builder: (context, c) => Stack(
                     children: [
+                      // Starts below the table's top-left status panel so
+                      // it never covers it.
                       Positioned(
                         left: 8,
-                        top: 8,
+                        top: TableView.statusPanelClearance,
                         child: EfficiencyOverlay(
                           game: _c,
                           report: _c.report,
-                          maxHeight: c.maxHeight - _editorHeight - 16,
+                          maxHeight: c.maxHeight -
+                              TableView.statusPanelClearance -
+                              _editorHeight -
+                              8,
                           showGameControls: false,
                         ),
                       ),
@@ -324,8 +328,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
             (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, sc.maxWall))),
         if (!_hk) ...[
           const SizedBox(width: 8),
-          _stepper('Honba', s.honba,
-              (v) => _edit((sc) => sc.honba = v.clamp(0, 9))),
+          _stepper(
+              'Honba', s.honba, (v) => _edit((sc) => sc.honba = v.clamp(0, 9))),
           const SizedBox(width: 8),
           _stepper('Sticks', s.riichiSticks,
               (v) => _edit((sc) => sc.riichiSticks = v.clamp(0, 9))),
@@ -358,8 +362,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: TextStyle(
-            fontSize: 12,
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
+            fontSize: 12, fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
       );
 
   /// Hong Kong, Taiwanese and Riichi, side by side; the active one is filled
@@ -395,7 +398,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   color: selected ? Colors.white : Colors.white60)),
         ),
       );
-      return selected ? chip : Tooltip(message: '${r.label} rules', child: chip);
+      return selected
+          ? chip
+          : Tooltip(message: '${r.label} rules', child: chip);
     }
 
     return Row(
@@ -756,8 +761,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                         _MeldKind.chi => s.ruleset.chiLabel,
                         _MeldKind.pon => s.ruleset.ponLabel,
                         _MeldKind.openKan => '${s.ruleset.kanLabel} (open)',
-                        _MeldKind.closedKan =>
-                          '${s.ruleset.kanLabel} (closed)',
+                        _MeldKind.closedKan => '${s.ruleset.kanLabel} (closed)',
                       },
                       style: const TextStyle(fontSize: 11),
                     ),
@@ -807,26 +811,28 @@ class _ScenarioPageState extends State<ScenarioPage> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!_hk)
-          Padding(
-            padding: const EdgeInsets.only(right: 8, bottom: 8),
-            child: InkWell(
-              onTap: () => setState(() => _aka = !_aka),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color:
-                      _aka ? const Color(0xffb71c1c) : const Color(0xff294342),
-                  borderRadius: BorderRadius.circular(6),
+            Padding(
+              padding: const EdgeInsets.only(right: 8, bottom: 8),
+              child: InkWell(
+                onTap: () => setState(() => _aka = !_aka),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _aka
+                        ? const Color(0xffb71c1c)
+                        : const Color(0xff294342),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('Red 5',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _aka ? Colors.white : Colors.white54)),
                 ),
-                child: Text('Red 5',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _aka ? Colors.white : Colors.white54)),
               ),
             ),
-          ),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,

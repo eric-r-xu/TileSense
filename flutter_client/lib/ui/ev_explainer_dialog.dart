@@ -230,8 +230,7 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
     final maxHit = hits.fold<double>(0, math.max);
     // Fit the axis to the data — a 30% chance on a 0–100% axis is a flat line —
     // rounded up to the next 10% so the gridlines stay readable.
-    final peak = math.max(
-        cumulative.fold<double>(0, math.max),
+    final peak = math.max(cumulative.fold<double>(0, math.max),
         (reached ?? const <double>[]).fold<double>(0, math.max));
     final maxWin = ((peak * 1.1 * 10).ceil() / 10).clamp(0.2, 1.0);
     return _section(
@@ -433,8 +432,7 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
                     : null,
               ),
               const SizedBox(width: 5),
-              Text(label,
-                  style: const TextStyle(color: _grey, fontSize: 11)),
+              Text(label, style: const TextStyle(color: _grey, fontSize: 11)),
             ]),
         ]),
       );
@@ -543,7 +541,8 @@ class _ChartPainter extends CustomPainter {
       final y = plot.bottom - plot.height * g / 2;
       canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
       _text(canvas, _pct(maxY * g / 2, digits: maxY < 0.1 ? 1 : 0),
-          Offset(plot.left - 4, y), right: true);
+          Offset(plot.left - 4, y),
+          right: true);
     }
 
     final n = values.length;
@@ -598,7 +597,8 @@ class _ChartPainter extends CustomPainter {
         }
       }
       if (selected != null && selected! < n) {
-        canvas.drawCircle(Offset(x(selected!), y(values[selected!])), 4, Paint()..color = _gold);
+        canvas.drawCircle(Offset(x(selected!), y(values[selected!])), 4,
+            Paint()..color = _gold);
       }
     }
 
@@ -666,8 +666,10 @@ class _Waterfall extends StatelessWidget {
         level += s.delta;
       }
     }
-    final lo = spans.fold<double>(0, (m, s) => math.min(m, math.min(s.$1, s.$2)));
-    final hi = spans.fold<double>(0, (m, s) => math.max(m, math.max(s.$1, s.$2)));
+    final lo =
+        spans.fold<double>(0, (m, s) => math.min(m, math.min(s.$1, s.$2)));
+    final hi =
+        spans.fold<double>(0, (m, s) => math.max(m, math.max(s.$1, s.$2)));
     final range = hi - lo <= 0 ? 1.0 : hi - lo;
 
     return Column(children: [
@@ -690,8 +692,7 @@ class _Waterfall extends StatelessWidget {
                 final a = math.min(spans[i].$1, spans[i].$2);
                 final b = math.max(spans[i].$1, spans[i].$2);
                 final left = (a - lo) / range * box.maxWidth;
-                final width =
-                    math.max(2.0, (b - a) / range * box.maxWidth);
+                final width = math.max(2.0, (b - a) / range * box.maxWidth);
                 return SizedBox(
                   height: 16,
                   child: Stack(children: [
@@ -699,7 +700,8 @@ class _Waterfall extends StatelessWidget {
                       left: (0 - lo) / range * box.maxWidth,
                       top: 0,
                       bottom: 0,
-                      child: Container(width: 1, color: const Color(0x44ffffff)),
+                      child:
+                          Container(width: 1, color: const Color(0x44ffffff)),
                     ),
                     Positioned(
                       left: left,

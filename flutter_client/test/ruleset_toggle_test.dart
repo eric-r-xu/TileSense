@@ -6,8 +6,10 @@ import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 
-/// The Riichi / Hong Kong / Taiwanese switch: where it lives, what it changes, and that
-/// the game it switches to lays out as cleanly as the one it left.
+/// The Riichi / Hong Kong / Taiwanese choice: it is made on the welcome screen,
+/// carried into the character and online-lobby screens (still changeable
+/// there), fixed once a game is under way, and the game it deals lays out as
+/// cleanly as the one it left.
 void main() {
   String labelOf(WidgetTester tester, Key key) => tester
       .widget<Text>(find
@@ -30,9 +32,8 @@ void main() {
   /// continue countdown instead of waiting it out, and rerolls a fresh game
   /// on the rare run where the whole game ends without that ever happening.
   Future<void> pumpUntilReported(WidgetTester tester) async {
-    final game =
-        (tester.widget(find.byType(TableView)) as TableView).game
-            as GameController;
+    final game = (tester.widget(find.byType(TableView)) as TableView).game
+        as GameController;
     for (var i = 0; i < 200; i++) {
       if (find.text('Away').evaluate().isNotEmpty) return;
       if (game.phase == GamePhase.roundEnd) {
@@ -47,7 +48,8 @@ void main() {
   testWidgets('riichi stays the default from the welcome screen',
       (tester) async {
     await boot(tester);
-    expect(find.textContaining('optimal Riichi Mahjong play'), findsOneWidget);
+    expect(find.textContaining('optimal Riichi Mahjong decisions'),
+        findsOneWidget);
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
@@ -69,8 +71,8 @@ void main() {
     await boot(tester);
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(
-        find.textContaining('optimal Hong Kong Mahjong play'), findsOneWidget);
+    expect(find.textContaining('optimal Hong Kong Mahjong decisions'),
+        findsOneWidget);
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
     expect(find.text('🇭🇰 Hong Kong'), findsOneWidget);
     expect(find.byKey(const Key('rulesPdf_riichi')), findsOneWidget);
@@ -110,13 +112,52 @@ void main() {
   });
 
   test('each ruleset links its own rules PDF', () {
-    expect(Ruleset.riichi.rulesUrl, 'https://app.ericrxu.com/static/Riichi.pdf');
+    expect(
+        Ruleset.riichi.rulesUrl, 'https://app.ericrxu.com/static/Riichi.pdf');
     expect(Ruleset.hongKong.rulesUrl, 'https://app.ericrxu.com/static/HK.pdf');
     expect(Ruleset.taiwanese.rulesUrl,
         'https://app.ericrxu.com/static/Taiwanese.pdf');
   });
 
-  testWidgets('the in-game switch cycles through all three rulesets and back',
+  /// Back arrow → welcome screen → [ruleset] → Single Player → Start: the
+  /// only way to change the style once a game is under way.
+  Future<void> switchViaMenu(WidgetTester tester, Ruleset ruleset) async {
+    await tester.tap(find.byKey(const Key('backToMenu')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(Key('ruleset_${ruleset.name}')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
+  testWidgets('the in-game style label cannot switch rules mid-game',
+      (tester) async {
+    await boot(tester);
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('ruleset')),
+            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)),
+        findsNothing,
+        reason: 'the label is not a button');
+    await tester.tap(find.byKey(const Key('ruleset')), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel,
+        reason: 'tapping it does nothing');
+    expect(find.text('DORA'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('going back to the menu switches through all three and back',
       (tester) async {
     await boot(tester);
     await tester.tap(find.text('Single Player'));
@@ -130,26 +171,86 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(tester, const Key('playStyle')), 'Defensive');
 
-    await tester.tap(find.byKey(const Key('ruleset')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await switchViaMenu(tester, Ruleset.hongKong);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
     expect(find.byKey(const Key('playStyle')), findsNothing,
         reason: 'Hong Kong pins style to Balanced and hides the dial');
 
-    await tester.tap(find.byKey(const Key('ruleset')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await switchViaMenu(tester, Ruleset.taiwanese);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.taiwanese.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
     expect(find.byKey(const Key('playStyle')), findsNothing,
         reason: 'Taiwanese pins style to Balanced and hides the dial too');
 
-    await tester.tap(find.byKey(const Key('ruleset')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await switchViaMenu(tester, Ruleset.riichi);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(find.text('DORA'), findsOneWidget);
     expect(labelOf(tester, const Key('playStyle')), 'Defensive',
         reason: 'the riichi style from before the trip comes back');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  /// Whether the character screen's (or lobby's) [key] button is drawn as
+  /// the selected one — the gold 2px outline.
+  bool picked(WidgetTester tester, Key key) {
+    final b = tester.widget<OutlinedButton>(find.byKey(key));
+    return b.style!.side!.resolve({})!.width == 2;
+  }
+
+  testWidgets(
+      'the character screen starts on the home screen\'s style and can '
+      'still change it', (tester) async {
+    await boot(tester);
+    await tester.tap(find.byKey(const Key('ruleset_hongKong')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+
+    expect(picked(tester, const Key('startRuleset_hongKong')), isTrue);
+    expect(picked(tester, const Key('startRuleset_riichi')), isFalse);
+    expect(picked(tester, const Key('startRuleset_taiwanese')), isFalse);
+    expect(tester.takeException(), isNull,
+        reason: 'the style row fits the character screen');
+
+    await tester.tap(find.byKey(const Key('startRuleset_taiwanese')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(picked(tester, const Key('startRuleset_taiwanese')), isTrue);
+    expect(picked(tester, const Key('startRuleset_hongKong')), isFalse);
+
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelOf(tester, const Key('ruleset')), Ruleset.taiwanese.flagLabel);
+
+    // And the menu remembers it: back out and the home screen shows
+    // Taiwanese as the current choice.
+    await tester.tap(find.byKey(const Key('backToMenu')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('optimal Taiwanese Mahjong decisions'),
+        findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('the online lobby starts on the home screen\'s style',
+      (tester) async {
+    await boot(tester);
+    await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('playOnline')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(picked(tester, const Key('onlineRuleset_taiwanese')), isTrue);
+    expect(picked(tester, const Key('onlineRuleset_riichi')), isFalse);
+
+    // Still changeable there.
+    await tester.tap(find.byKey(const Key('onlineRuleset_hongKong')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(picked(tester, const Key('onlineRuleset_hongKong')), isTrue);
+    expect(picked(tester, const Key('onlineRuleset_taiwanese')), isFalse);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -188,7 +289,7 @@ void main() {
     await boot(tester);
     await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('optimal Taiwanese Mahjong play'),
+    expect(find.textContaining('optimal Taiwanese Mahjong decisions'),
         findsOneWidget);
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
     expect(find.text('🇭🇰 Hong Kong'), findsOneWidget);

@@ -97,7 +97,8 @@ void main() {
           );
       final unset = withStrategy(null);
       final explicit = withStrategy(Strategy.points);
-      expect(explicit.lines.first.expectedValue, unset.lines.first.expectedValue);
+      expect(
+          explicit.lines.first.expectedValue, unset.lines.first.expectedValue);
       expect(explicit.lines.first.valuePlan, unset.lines.first.valuePlan);
       expect(explicit.lines.first.discard, unset.lines.first.discard);
     });
@@ -301,6 +302,19 @@ void main() {
     await tester.pump();
   });
 
+  /// The style is fixed mid-game: back to the menu, pick [rulesetKey], and
+  /// start again.
+  Future<void> switchViaMenu(WidgetTester tester, String rulesetKey) async {
+    await tester.tap(find.byKey(const Key('backToMenu')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(Key(rulesetKey)));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
   testWidgets('Hong Kong hides and pins the dial, riichi restores it',
       (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
@@ -316,18 +330,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(const Key('strategy')), 'Placement');
 
-    await tester.tap(find.byKey(const Key('ruleset')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await switchViaMenu(tester, 'ruleset_hongKong');
     expect(find.byKey(const Key('strategy')), findsNothing);
 
     // Hong Kong -> Taiwanese: still Chinese-style, so the dial stays hidden
     // and pinned rather than being restored here.
-    await tester.tap(find.byKey(const Key('ruleset')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await switchViaMenu(tester, 'ruleset_taiwanese');
     expect(find.byKey(const Key('strategy')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('ruleset')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await switchViaMenu(tester, 'ruleset_riichi');
     expect(labelOf(const Key('strategy')), 'Placement',
         reason: 'restored on the way back to riichi');
 

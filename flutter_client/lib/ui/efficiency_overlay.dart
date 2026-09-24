@@ -514,6 +514,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       const TextSpan(text: '\n', style: _tipBody),
     ]);
   }
+
   static const _tipHead = TextStyle(
       color: Color(0xff9fe0d8),
       fontSize: 10,
@@ -789,7 +790,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     (3, 'Suit tile'),
   ];
 
-  static List<InlineSpan> _safetyTip(bool hk, String unit, int threatSets) {
+  static List<InlineSpan> _safetyTip(
+      bool hk, String unit, double dealInCost, int threatSets) {
     final ratings = hk ? _hongKongRatings : _riichiRatings;
     return [
       const TextSpan(text: 'SAFETY\n', style: _tipTitle),
@@ -837,7 +839,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       TextSpan(
           text: hk
               ? '\nA deal-in is charged '
-                  '${GuideConstants.hongKongDealInCost.round()} $unit.'
+                  '${dealInCost.round()} $unit.'
               : '\nA deal-in costs ${_pts(GuideConstants.dealInCost)} '
                   '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
                   'plus 300 a honba.',
@@ -845,7 +847,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     ];
   }
 
-  static List<InlineSpan> _riskTip(bool hk, String unit) => [
+  static List<InlineSpan> _riskTip(bool hk, String unit, double dealInCost) => [
         const TextSpan(text: 'RISK\n', style: _tipTitle),
         TextSpan(
             text: '${unit[0].toUpperCase()}${unit.substring(1)} taken off EV '
@@ -858,7 +860,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           (
             'Deal-in cost',
             hk
-                ? '${GuideConstants.hongKongDealInCost.round()} $unit'
+                ? '${dealInCost.round()} $unit'
                 : '${_pts(GuideConstants.dealInCost)} points '
                     '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
                     'plus 300 a honba'
@@ -1430,8 +1432,14 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'Safety' => _safetyTip(
                 _hk,
                 widget.game.round.ruleset.unit,
+                GuideConstants.chineseStyleDealInCost(
+                    widget.game.round.ruleset),
                 HongKongGuideTuning.threatSetsFor(widget.game.round.ruleset)),
-            'Risk' => _riskTip(_hk, widget.game.round.ruleset.unit),
+            'Risk' => _riskTip(
+                _hk,
+                widget.game.round.ruleset.unit,
+                GuideConstants.chineseStyleDealInCost(
+                    widget.game.round.ruleset)),
             'Detail' => _detailTip(),
             _ => null,
           };

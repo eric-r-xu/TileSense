@@ -217,9 +217,8 @@ class HongKongGuideTuning {
   static int taiwaneseThreatExposedSets = 4;
 
   /// The exposed sets that make an opponent a threat under [ruleset].
-  static int threatSetsFor(Ruleset ruleset) => ruleset.isTaiwanese
-      ? taiwaneseThreatExposedSets
-      : threatExposedSets;
+  static int threatSetsFor(Ruleset ruleset) =>
+      ruleset.isTaiwanese ? taiwaneseThreatExposedSets : threatExposedSets;
 
   /// Count the Concealed Hand faan in the pre-ready payout estimate.
   static bool concealedFaanInEstimate = true;
@@ -823,8 +822,8 @@ class EfficiencyEngine {
         : <SafetyRating>[];
     final safeByType = {for (final s in defense) s.type: s};
 
-    final raw = _calc.calculate(concealed, remaining,
-        totalMelds: ruleset.totalMelds);
+    final raw =
+        _calc.calculate(concealed, remaining, totalMelds: ruleset.totalMelds);
 
     // Deduplicate by tile type (multiple copies of the same tile in hand).
     final byType = <TileType, TileEfficiencyResult>{};
@@ -838,8 +837,7 @@ class EfficiencyEngine {
     // yaku, fu, dora, the lot. Use its payout as the yardstick for the hand's
     // pre-tenpai lines too, so lines at different distances are quoted in the
     // same money and a cheap hand cannot appear to gain by stepping back.
-    final tenpaiResult =
-        byType.values.where((r) => r.shanten == 0).firstOrNull;
+    final tenpaiResult = byType.values.where((r) => r.shanten == 0).firstOrNull;
     double? projectedPointsOverride;
     double? projectedDamaOverride;
     double? projectedDoraReference;
@@ -1823,12 +1821,11 @@ class EfficiencyEngine {
               model: model,
             ).win;
 
-  static WinModel _winModelFor(Ruleset ruleset) =>
-      ruleset.isTaiwanese
-          ? HongKongGuideTuning.taiwaneseWinModel
-          : ruleset.isHongKong
-              ? HongKongGuideTuning.winModel
-              : WinModel.riichi;
+  static WinModel _winModelFor(Ruleset ruleset) => ruleset.isTaiwanese
+      ? HongKongGuideTuning.taiwaneseWinModel
+      : ruleset.isHongKong
+          ? HongKongGuideTuning.winModel
+          : WinModel.riichi;
 
   /// [_typicalUkeire], for `ev_calibration_test.dart` to hold against what
   /// simulated play actually produces.
@@ -1906,7 +1903,8 @@ class EfficiencyEngine {
   /// whatever has not won yet only carries on if the hand is still running —
   /// the other three seats are drawing too, and one of them winning (or the
   /// wall running out) ends yours.
-  static ({double win, double turns, List<WinTurn> series}) _winChanceOverTurns({
+  static ({double win, double turns, List<WinTurn> series})
+      _winChanceOverTurns({
     required double waitWidth,
     required int unseen,
     required int draws,
@@ -1981,8 +1979,8 @@ class EfficiencyEngine {
     /// The final step — tenpai to a win — gets two chances a turn, since a
     /// finished hand can be ronned off someone else's discard as well as drawn.
     double stepChance(int to) {
-      final exponent = model.waitInheritance +
-          (1 - model.waitInheritance) * (to / shanten);
+      final exponent =
+          model.waitInheritance + (1 - model.waitInheritance) * (to / shanten);
       // Being wide open gets you to tenpai sooner — that is what the earlier
       // steps price. It does not hand you a wider wait than an ordinary hand
       // when you get there, and it does not hand you a better draw at every
@@ -2141,9 +2139,8 @@ class EfficiencyEngine {
     final winModel = _winModelFor(context.ruleset);
     var width = result.ukeire.toDouble();
     if (winModel.countsCalls && result.shanten >= 1) {
-      final calls =
-          _calc.callAcceptance(toTrainerCounts(concealed), remaining,
-              totalMelds: context.ruleset.totalMelds);
+      final calls = _calc.callAcceptance(toTrainerCounts(concealed), remaining,
+          totalMelds: context.ruleset.totalMelds);
       width += winModel.pungRate * calls.pung + winModel.chowRate * calls.chow;
     }
     final outlook = _winProbabilityFromShanten(
@@ -2165,8 +2162,9 @@ class EfficiencyEngine {
     final reachedTenpai =
         useLookahead ? tenpaiLookahead.reached : outlook.reachedTenpai;
     final breakdown = WinBreakdown(
-      estimator:
-          useLookahead ? WinEstimator.tenpaiLookahead : WinEstimator.shantenWalk,
+      estimator: useLookahead
+          ? WinEstimator.tenpaiLookahead
+          : WinEstimator.shantenWalk,
       turns: useLookahead ? tenpaiLookahead.series : outlook.series,
       width: width,
       unseen: unseen,
@@ -2257,14 +2255,12 @@ class EfficiencyEngine {
     // is judged by the same money the line is.
     final worthOfWin = context.worth(projectedPoints);
     final worthOfChance = context.focus.chanceWorth(completionProbability);
-    final representativeUplift =
-        worthOfWin * (1 - 1 / _riichiValueMultiple);
+    final representativeUplift = worthOfWin * (1 - 1 / _riichiValueMultiple);
     final knownUplift = projectedDamaOverride == null
         ? 0.0
         : worthOfWin - context.worth(projectedDamaOverride);
-    final riichiUplift = context.closed
-        ? math.max(representativeUplift, knownUplift)
-        : 0.0;
+    final riichiUplift =
+        context.closed ? math.max(representativeUplift, knownUplift) : 0.0;
     // Priced per win: the stick lost for every hand this line wins, capped at
     // what declaring adds to each of those wins, then weighted by the same
     // tilted chance as the win itself. Charging the stick in plain points while
@@ -2277,8 +2273,7 @@ class EfficiencyEngine {
         : worthOfChance *
             math.min(deposit / completionProbability, riichiUplift);
     final tilted = worthOfChance * (worthOfWin + context.winBonus);
-    final plain =
-        completionProbability * (projectedPoints + context.winBonus);
+    final plain = completionProbability * (projectedPoints + context.winBonus);
 
     // Same shape as [expectedValue] above, but every points-flavoured term —
     // the win itself, and the deposit it may owe — runs through
@@ -2336,7 +2331,8 @@ class EfficiencyEngine {
   /// What a self-drawn win collects in all. A Taiwanese score is what each
   /// of the other three pays, so a self-draw takes it three times over; a
   /// Hong Kong score is already the total.
-  static double _selfDrawTotal(HandScore self, EfficiencyValueContext context) =>
+  static double _selfDrawTotal(
+          HandScore self, EfficiencyValueContext context) =>
       context.ruleset.isTaiwanese ? 3.0 * self.points : self.points.toDouble();
 
   /// [_hongKongProjectedPoints] in Taiwanese points: what the hand's visible
@@ -2367,8 +2363,8 @@ class EfficiencyEngine {
     }
     if (context.closed) points++;
     final discard = math.max(TaiwaneseRules.minimumPoints, points);
-    final selfDraw =
-        math.max(TaiwaneseRules.minimumPoints, points + 1 + (context.closed ? 2 : 0));
+    final selfDraw = math.max(
+        TaiwaneseRules.minimumPoints, points + 1 + (context.closed ? 2 : 0));
     return 0.65 * discard + 0.35 * 3 * selfDraw;
   }
 
@@ -2395,7 +2391,8 @@ class EfficiencyEngine {
       faan += flowers
           .where((t) => t.bonusNumber == context.seatWind.index + 1)
           .length;
-      if (flowers.where((t) => t.isBonus && t.index < TileType.spring.index)
+      if (flowers
+              .where((t) => t.isBonus && t.index < TileType.spring.index)
               .length ==
           4) {
         faan += 2;
@@ -2490,8 +2487,6 @@ class EfficiencyEngine {
                 honba * 300;
     return rate * cost;
   }
-
-
 
   _ValueAssessment _assessTenpaiValue({
     required List<TileType> waits,
@@ -2746,10 +2741,9 @@ class EfficiencyEngine {
     final worthOfWin = context.worth(selectedPoints);
     final worthOfChance = context.focus.chanceWorth(winProbability);
     var expectedValue = worthOfChance * (worthOfWin + context.winBonus);
-    var placementExpectedValue = worthOfChance *
-        context.placementValue(worthOfWin + context.winBonus);
-    final plainValue =
-        winProbability * (selectedPoints + context.winBonus);
+    var placementExpectedValue =
+        worthOfChance * context.placementValue(worthOfWin + context.winBonus);
+    final plainValue = winProbability * (selectedPoints + context.winBonus);
     var lockCost = 0.0;
     if (recommendRiichi) {
       // Your own deposit, which is not yet in [context.riichiSticks]: you get
@@ -2962,8 +2956,8 @@ class EfficiencyEngine {
     return _ValueAssessment(
       expectedValue: chance * (worth + winBonus),
       averagePoints: damaPoints,
-      valueTilt: chance * (worth + winBonus) -
-          outlook.win * (damaPoints + winBonus),
+      valueTilt:
+          chance * (worth + winBonus) - outlook.win * (damaPoints + winBonus),
       plan: plan,
       reason: reason,
       winProbability: outlook.win,
@@ -3161,6 +3155,10 @@ abstract final class GuideConstants {
   static double get hongKongDealInCost => EfficiencyEngine._hongKongDealInCost;
   static double get taiwaneseDealInCost =>
       EfficiencyEngine._taiwaneseDealInCost;
+
+  /// What a deal-in is charged under Hong Kong or Taiwanese rules.
+  static double chineseStyleDealInCost(Ruleset ruleset) =>
+      ruleset.isTaiwanese ? taiwaneseDealInCost : hongKongDealInCost;
 
   /// How much of each later turn a pushing cut is charged for, and how many of
   /// your discards a live riichi lasts.
