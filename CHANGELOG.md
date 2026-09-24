@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+No release has been cut, so nothing here has a version number. The dated
+sections below were reconstructed from git history after the fact, purely so
+this file can be navigated — they are not published releases, and a boundary is
+approximate wherever a batch of work spanned more than a day.
+
+## 2026-09-24 — Multi-riichi pricing and a rinshan fix
+
+### Fixed
+- **The guide now prices every live riichi, not just the first.**
+  `_threatOpponent()` returned the first threatening seat and stopped, so with
+  two riichi out the second was invisible: its discards never entered the
+  safety read, meaning a tile it had never seen could be ranked genbutsu off
+  the first player's pond, and the deal-in cost charged was one opponent's when
+  two were waiting. Each tile is now read against each threat separately (the
+  most dangerous rating is shown, the summed expected cost is charged, each at
+  its own seat), and the riichi lock composes the same way. Self-play measured
+  the gap it closes: a discard made with two live riichi deals in 5.97% of the
+  time against 2.62% with one — 2.27x — and two are live in 25.9% of hands.
+  Paired over 2000 hanchan on identical seeds, deal-ins fell 0.0515 per hanchan
+  (p = 5e-13) with wins unchanged. With a single threat every formula reduces
+  exactly to the old one. (`ca4d8ee`)
+- Rinshan kaihou is scored on a kan's replacement tile, and the replacement no
+  longer counts as the last tile of the live wall. (`09a46bc`)
+
+## 2026-09-23 — Taiwanese ruleset
+
 ### Added
 - **A third ruleset: 🇹🇼 Taiwanese**, ported from the TileSenseTW fork and
   following the San Diego Mahjong Club's 16-tile cheat sheet: 16 tiles a seat,
@@ -45,6 +71,8 @@ All notable changes to this project will be documented in this file.
     Taiwanese doesn't inherit it.
   - Unselected rulesets in the builder's chip row show just their flag (named
     on hover), so three options fit the tool bar two used to fill.
+
+## 2026-09-22 — Riichi rule fixes, auto-discard, deploy tooling
 
 ### Fixed
 - **Pinfu was missed on a two-sided wait that finishes on a terminal, and
@@ -182,6 +210,8 @@ All notable changes to this project will be documented in this file.
   silently behind it. `_load` now bounds the fetch/decode at 5s, turning a
   hang into an ordinary, already-handled failure that unblocks the queue.
 
+## 2026-09-21 — Chi run choice
+
 ### Added
 - Chi now lets you choose the run when a discard could make several (3456m
   offered 5m gives 345m, 456m and 567m): one button per run, with the guide's
@@ -239,6 +269,8 @@ All notable changes to this project will be documented in this file.
   `flutter_client/test/ev_explainer_test.dart` (each line's series ends on
   its table win probability, the waterfall lands on Expected Value, tap →
   dialog).
+
+## 2026-09-21 — Guide panel tooltips and tables
 
 ### Changed
 - **The STYLE, FOCUS, STRATEGY and PLACEMENT tooltips are bulleted, with real
@@ -338,6 +370,8 @@ All notable changes to this project will be documented in this file.
   each ruleset's rules PDF on the welcome screen and a rules button in the
   game's app bar.
 
+## 2026-09-14 — Hong Kong ruleset
+
 ### Added
 - **Hong Kong rules, alongside riichi.** A Riichi / Hong Kong toggle on the
   welcome screen, in the game's app bar (switching deals a new game) and in the
@@ -346,7 +380,7 @@ All notable changes to this project will be documented in this file.
   discarder-pays-all table, four-wind games, and no riichi, dora, furiten,
   honba or draw payments (`docs/HONG_KONG_RULES.md`). One shared engine
   branches on `Ruleset`; Hong Kong-only scoring, wall and safety live in
-  `lib/logic/hong_kong/`. Riichi defaults and behaviour are unchanged: the
+  `lib/logic/hong_kong/` (now `packages/mahjong_core/lib/hong_kong/`). Riichi defaults and behaviour are unchanged: the
   178 existing riichi tests give identical results, with 101 Hong Kong tests
   and 4 toggle tests added.
 - **Gameplay telemetry.** A new `server/` Dart service ingests
@@ -387,6 +421,8 @@ All notable changes to this project will be documented in this file.
   plan selection, the riichi-danger discount, and how calls are scored on the
   same scale.
 
+## 2026-09-05 — Flutter-only, and Autoplay plays from the guide
+
 ### Changed
 - The repository is Flutter-only; the retired desktop client and its build
   assets have been removed, along with stale documentation references.
@@ -419,6 +455,8 @@ All notable changes to this project will be documented in this file.
   parity with the web build's landscape gate). The web PWA manifest's
   background/theme colours now match the app's letterbox instead of the Flutter
   default blue.
+
+## 2026-09-04 — Web audio latency and kan guidance
 
 ### Fixed
 - Guided kan advice now rejects a kan that would leave an open hand without a

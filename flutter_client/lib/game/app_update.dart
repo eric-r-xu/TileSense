@@ -7,7 +7,11 @@
 /// app has no reload button, so the welcome screen offers one. To tell "you
 /// are behind" from "you are current" the build stamps itself: deploys pass
 /// `--dart-define=BUILD_ID=<id>` and publish the same id in `build_id.json`
-/// next to `index.html` (see DEPLOYMENT.md). Without a build id the check is
+/// next to `index.html` (see `flutter_client/DEPLOYMENT.md`).
+///
+/// NOTE: `deploy.sh` does not currently do either, so in production `kBuildId`
+/// is empty and this check always reports "unknown" — the button offers a
+/// refresh but never detects a new build. Without a build id the check is
 /// inconclusive and the button simply refreshes.
 library;
 

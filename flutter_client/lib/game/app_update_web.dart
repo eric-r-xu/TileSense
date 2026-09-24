@@ -6,7 +6,8 @@ import 'package:web/web.dart' as web;
 
 bool get updateSupported => true;
 
-/// Media the host lets browsers reuse for a day (see DEPLOYMENT.md). A plain
+/// Media the host lets browsers reuse for a day (see
+/// `flutter_client/DEPLOYMENT.md`). A plain
 /// reload would keep serving a changed voice line or tile from that cache.
 final _mediaKey =
     RegExp(r'assets/[\x20-\x7e]+?\.(?:wav|png|jpe?g|webp|ttf|otf)');
