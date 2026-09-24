@@ -45,4 +45,13 @@ void main() {
     expect(Ruleset.hongKong.isBigHand(hkScore(8)), isTrue);
     expect(Ruleset.hongKong.isBigHand(hkScore(13)), isTrue);
   });
+
+  test(
+      'Taiwanese treats 10+ points as big — its own 5-point minimum to win '
+      'means every legal hand already clears a 5-point bar', () {
+    expect(Ruleset.taiwanese.isBigHand(hkScore(5)), isFalse);
+    expect(Ruleset.taiwanese.isBigHand(hkScore(8)), isFalse);
+    expect(Ruleset.taiwanese.isBigHand(hkScore(10)), isTrue);
+    expect(Ruleset.taiwanese.isBigHand(hkScore(40)), isTrue);
+  });
 }

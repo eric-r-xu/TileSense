@@ -31,6 +31,7 @@ class ScoreContext {
     this.earthly = false,
     this.blessingOfMan = false,
     this.doubleKong = false,
+    this.discardCount = 0,
   });
 
   final Wind roundWind;
@@ -64,6 +65,10 @@ class ScoreContext {
   /// The win is on the replacement tile of a second kong declared off the
   /// first kong's replacement.
   final bool doubleKong;
+
+  /// Taiwanese only: total discards on the table when this hand won, for its
+  /// "Win Within N Discards" patterns.
+  final int discardCount;
 }
 
 class YakuResult {

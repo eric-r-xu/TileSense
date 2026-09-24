@@ -9,6 +9,7 @@ import 'efficiency_calc.dart';
 import 'hand_parse.dart';
 import 'round.dart';
 import 'scoring.dart';
+import 'taiwanese/taiwanese_hand_parse.dart';
 import 'tile.dart';
 
 class BotTurn {
@@ -66,7 +67,7 @@ class SimpleBot {
   CallType decideCall(
       Round round, int seat, Tile discard, Set<CallType> allowed) {
     if (allowed.contains(CallType.ron)) return CallType.ron;
-    if (round.ruleset.isHongKong) {
+    if (round.ruleset.isChineseStyle) {
       return _decideHongKongCall(round, seat, discard, allowed);
     }
     if (allowed.contains(CallType.pon)) {
@@ -85,17 +86,20 @@ class SimpleBot {
 
   // --- helpers ----------------------------------------------------------
 
-  /// Hong Kong needs no yaku to finish, so a call is worth taking whenever it
-  /// brings the hand closer: always a kong, and a pung or chow that lowers
-  /// shanten.
+  /// Hong Kong and Taiwanese need no yaku/tai path to finish, so a call is
+  /// worth taking whenever it brings the hand closer: always a kong, and a
+  /// pung or chow that lowers shanten.
   CallType _decideHongKongCall(
       Round round, int seat, Tile discard, Set<CallType> allowed) {
     final s = round.seats[seat];
+    final totalMelds = round.ruleset.totalMelds;
     final calc = TileEfficiencyCalculator();
-    final before = calc.calculateWaitingShanten(toTrainerCounts(s.hand));
+    final before = calc.calculateWaitingShanten(toTrainerCounts(s.hand),
+        totalMelds: totalMelds);
     bool improves(List<Tile> rest) {
       final remaining = List<int>.filled(38, 4);
-      final lines = calc.calculate(toTrainerCounts(rest), remaining);
+      final lines =
+          calc.calculate(toTrainerCounts(rest), remaining, totalMelds: totalMelds);
       return lines.any((line) => line.shanten < before);
     }
 
@@ -173,11 +177,15 @@ class SimpleBot {
   Tile _discardTile(Round round, int seat) {
     final s = round.seats[seat];
     var tiles = List<Tile>.of(round.legalDiscards(seat));
+    final taiwanese = round.ruleset.isTaiwanese;
 
     // (1) a discard that keeps tenpai.
     for (final tile in tiles) {
       final rest = [...s.hand]..remove(tile);
-      if (isTenpai(rest, openMelds: s.melds.length)) return tile;
+      final tenpai = taiwanese
+          ? isTenpaiTaiwanese(rest, openMelds: s.melds.length)
+          : isTenpai(rest, openMelds: s.melds.length);
+      if (tenpai) return tile;
     }
 
     int count(Tile t) => s.hand.where((x) => x.type == t.type).length;

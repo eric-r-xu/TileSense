@@ -126,17 +126,25 @@ class TableView extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _portrait(0, size: 55),
-                      const SizedBox(width: 8),
-                      _placard(round, 0),
-                      if (round.ruleset.isHongKong) ...[
+                  // A full eight-flower Taiwanese tray is wider than a
+                  // typical Hong Kong hand's, and this Row has no width of
+                  // its own to wrap within — scale the whole thing down
+                  // instead of letting it overflow the table, same as
+                  // FittedBox already does for hands and melds below.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _portrait(0, size: 55),
                         const SizedBox(width: 8),
-                        _seatFlowers(round, 0),
+                        _placard(round, 0),
+                        if (round.ruleset.isChineseStyle) ...[
+                          const SizedBox(width: 8),
+                          _seatFlowers(round, 0),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -166,9 +174,10 @@ class TableView extends StatelessWidget {
             // Round / honba / riichi / wall — dead centre of the pond square.
             Align(alignment: Alignment.center, child: _statusBox(round)),
 
-            // Dead wall — top-right. Hong Kong has no dora to show here;
-            // its flowers sit beside each seat's own placard instead.
-            if (!round.ruleset.isHongKong)
+            // Dead wall — top-right. Hong Kong and Taiwanese have no dora to
+            // show here; their flowers sit beside each seat's own placard
+            // instead.
+            if (!round.ruleset.isChineseStyle)
               Positioned(
                 top: 0,
                 right: 0,
@@ -213,8 +222,8 @@ class TableView extends StatelessWidget {
           line('Wall ${round.wall.remaining}', 12, FontWeight.w700),
           const SizedBox(height: 1),
           line(
-              round.ruleset.isHongKong
-                  ? 'Hong Kong  ·  Dealer repeat ${game.dealerRepeat}'
+              round.ruleset.isChineseStyle
+                  ? '${round.ruleset.label}  ·  Dealer repeat ${game.dealerRepeat}'
                   : 'Honba ${game.honba}  ·  Riichi ${round.riichiSticks}',
               10,
               FontWeight.w600),
@@ -248,14 +257,15 @@ class TableView extends StatelessWidget {
   /// hard to make out at that size, and this is the only place they render.
   static const double _flowerScale = 1.4;
 
-  /// Hong Kong's exposed flowers and seasons for [seat], shown as a compact
-  /// tray beside that seat's own placard rather than bundled in one corner —
-  /// so they read as belonging to that player without covering any other
-  /// tile on the table. Empty seats show nothing in the live game; the
-  /// builder keeps a small tappable placeholder so there's always something
-  /// on the table to select into flower-editing mode.
+  /// Hong Kong's and Taiwanese's exposed flowers and seasons for [seat],
+  /// shown as a compact tray beside that seat's own placard rather than
+  /// bundled in one corner — so they read as belonging to that player
+  /// without covering any other tile on the table. Empty seats show nothing
+  /// in the live game; the builder keeps a small tappable placeholder so
+  /// there's always something on the table to select into flower-editing
+  /// mode.
   Widget _seatFlowers(Round round, int seat) {
-    if (!round.ruleset.isHongKong) return const SizedBox.shrink();
+    if (!round.ruleset.isChineseStyle) return const SizedBox.shrink();
     final flowers = round.seats[seat].flowers;
     if (edits == null && flowers.isEmpty) return const SizedBox.shrink();
     final tray = flowers.isEmpty
@@ -574,7 +584,13 @@ class TableView extends StatelessWidget {
             // whenever a kan upgrades an existing pon's tiles, which is
             // itself a call worth animating in again.
             ValueKey('meld-${s.seat}-${m.tiles.map((t) => t.id).join(',')}'),
-            MeldRow(m, size: TileSize.small, scale: _pondScale),
+            MeldRow(m,
+                size: TileSize.small,
+                scale: _pondScale,
+                // The builder poses the whole table, so it shows everything.
+                faceDown: edits == null &&
+                    s.seat != kHumanSeat &&
+                    game.round.isHiddenKong(m)),
           ),
       ],
     );
@@ -600,17 +616,23 @@ class TableView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _portrait(seat, size: 49, tooltip: game.seatLabel(seat)),
-            const SizedBox(width: 6),
-            _placard(round, seat),
-            if (round.ruleset.isHongKong) ...[
+        // See the human seat's own row in build() for why this is scaled
+        // down rather than left to overflow: a full flower tray has no
+        // bounded width to wrap within inside a plain Row.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _portrait(seat, size: 49, tooltip: game.seatLabel(seat)),
               const SizedBox(width: 6),
-              _seatFlowers(round, seat),
+              _placard(round, seat),
+              if (round.ruleset.isChineseStyle) ...[
+                const SizedBox(width: 6),
+                _seatFlowers(round, seat),
+              ],
             ],
-          ],
+          ),
         ),
         const SizedBox(height: 2),
         Row(
@@ -645,7 +667,7 @@ class TableView extends StatelessWidget {
           quarterTurns: isLeft ? 3 : 1,
           child: _placard(round, seat),
         ),
-        if (round.ruleset.isHongKong) ...[
+        if (round.ruleset.isChineseStyle) ...[
           const SizedBox(height: 4),
           _seatFlowers(round, seat),
         ],
@@ -732,7 +754,7 @@ class TableView extends StatelessWidget {
     // `seatLabel` already carries "(you)"/"(bot)" where relevant — the real
     // guest nickname online, the fixed persona name offline.
     // The number follows the current wind, not the fixed character position.
-    final seatNumber = round.ruleset.isHongKong ? '${s.wind.index + 1} ' : '';
+    final seatNumber = round.ruleset.isChineseStyle ? '${s.wind.index + 1} ' : '';
     // The Custom Hand & Context Builder (`edits` set) shows just the wind: who
     // sits where is not part of a posed table.
     final name = edits == null ? '${game.seatLabel(seat)}  ' : ' ';

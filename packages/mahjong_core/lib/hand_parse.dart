@@ -29,13 +29,16 @@ class HandDecomposition {
 }
 
 /// True when [counts34] (length 34, indexed man1==0) plus [meldCount] open
-/// melds forms a complete hand.
-bool isAgari(List<int> counts34, {int meldCount = 0}) {
-  if (meldCount == 0) {
+/// melds forms a complete hand of [totalMelds] melds and a pair (4 and 14
+/// tiles for riichi/Hong Kong; Taiwanese passes 5, for its 17-tile hand —
+/// see `taiwanese_hand_parse.dart`, which also covers its "seven pairs and a
+/// pung" alternate shape that this standard check does not).
+bool isAgari(List<int> counts34, {int meldCount = 0, int totalMelds = 4}) {
+  if (meldCount == 0 && totalMelds == 4) {
     if (_isSevenPairs(counts34)) return true;
     if (_isKokushi(counts34)) return true;
   }
-  return _standardComplete(counts34, meldCount);
+  return _standardComplete(counts34, meldCount, totalMelds);
 }
 
 /// Every standard decomposition of the concealed [counts34] (which already
@@ -49,9 +52,10 @@ List<HandDecomposition> decompose(
   List<int> counts34, {
   int openMelds = 0,
   bool allArrangements = false,
+  int totalMelds = 4,
 }) {
   final results = <HandDecomposition>[];
-  final needMelds = 4 - openMelds;
+  final needMelds = totalMelds - openMelds;
 
   for (var pair = 0; pair < 34; pair++) {
     if (counts34[pair] < 2) continue;
@@ -72,7 +76,7 @@ List<HandDecomposition> decompose(
     }
   }
 
-  if (openMelds == 0 && _isSevenPairs(counts34)) {
+  if (openMelds == 0 && totalMelds == 4 && _isSevenPairs(counts34)) {
     final pairs = <Meld>[];
     for (var i = 0; i < 34; i++) {
       if (counts34[i] == 2) {
@@ -82,33 +86,39 @@ List<HandDecomposition> decompose(
     }
     results.add(HandDecomposition(melds: pairs, pair: null, sevenPairs: true));
   }
-  if (openMelds == 0 && _isKokushi(counts34)) {
+  if (openMelds == 0 && totalMelds == 4 && _isKokushi(counts34)) {
     results.add(HandDecomposition(melds: const [], pair: null, kokushi: true));
   }
 
   return results;
 }
 
-/// The tiles that complete [hand] (13 concealed tiles) given [openMelds] calls.
-List<TileType> waitTiles(List<Tile> hand, {int openMelds = 0}) {
+/// The tiles that complete [hand] (13 concealed tiles, or 16 for Taiwanese's
+/// [totalMelds] of 5) given [openMelds] calls.
+List<TileType> waitTiles(List<Tile> hand,
+    {int openMelds = 0, int totalMelds = 4}) {
   final base = toCounts34(hand);
   final waits = <TileType>[];
   for (var i = 0; i < 34; i++) {
     if (base[i] >= 4) continue;
     base[i]++;
-    if (isAgari(base, meldCount: openMelds)) waits.add(typeFrom34(i));
+    if (isAgari(base, meldCount: openMelds, totalMelds: totalMelds)) {
+      waits.add(typeFrom34(i));
+    }
     base[i]--;
   }
   return waits;
 }
 
-/// True when the hand (13 tiles) is one tile from a win.
-bool isTenpai(List<Tile> hand, {int openMelds = 0}) =>
-    waitTiles(hand, openMelds: openMelds).isNotEmpty;
+/// True when the hand (13, or 16 for Taiwanese, tiles) is one tile from a win.
+bool isTenpai(List<Tile> hand, {int openMelds = 0, int totalMelds = 4}) =>
+    waitTiles(hand, openMelds: openMelds, totalMelds: totalMelds).isNotEmpty;
 
 /// Furiten: any wait tile sits in the player's own discard pond.
-bool inFuriten(List<Tile> hand, List<Tile> pond, {int openMelds = 0}) {
-  final waits = waitTiles(hand, openMelds: openMelds).toSet();
+bool inFuriten(List<Tile> hand, List<Tile> pond,
+    {int openMelds = 0, int totalMelds = 4}) {
+  final waits =
+      waitTiles(hand, openMelds: openMelds, totalMelds: totalMelds).toSet();
   if (waits.isEmpty) return false;
   return pond.any((t) => waits.contains(t.type));
 }
@@ -142,12 +152,12 @@ bool _isKokushi(List<int> c) {
   return total == 14 && hasPair;
 }
 
-bool _standardComplete(List<int> counts34, int meldCount) {
+bool _standardComplete(List<int> counts34, int meldCount, int totalMelds) {
   for (var pair = 0; pair < 34; pair++) {
     if (counts34[pair] < 2) continue;
     final work = List<int>.of(counts34);
     work[pair] -= 2;
-    if (_meldsOnly(work, 0, 4 - meldCount)) return true;
+    if (_meldsOnly(work, 0, totalMelds - meldCount)) return true;
   }
   return false;
 }

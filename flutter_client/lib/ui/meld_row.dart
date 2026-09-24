@@ -7,12 +7,18 @@ import 'tile_face.dart';
 /// One called set, rendered with real riichi notation: the called tile is
 /// turned 90° and slotted at the end matching the seat it came from
 /// (kamicha = left, toimen = middle, shimocha = right). A concealed kan shows
-/// its two outer tiles face down.
+/// its two outer tiles face down — or all four when [faceDown], as another
+/// seat sees one under Taiwanese rules.
 class MeldRow extends StatelessWidget {
-  const MeldRow(this.meld, {super.key, this.size = TileSize.normal, this.scale = 1.0});
+  const MeldRow(this.meld,
+      {super.key,
+      this.size = TileSize.normal,
+      this.scale = 1.0,
+      this.faceDown = false});
   final Meld meld;
   final TileSize size;
   final double scale;
+  final bool faceDown;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +35,8 @@ class MeldRow extends StatelessWidget {
               type: m.types[i],
               size: size,
               scale: scale,
-              faceDown: concealedKan && (i == 0 || i == m.types.length - 1),
+              faceDown: faceDown ||
+                  concealedKan && (i == 0 || i == m.types.length - 1),
             ),
         ],
       );
@@ -44,7 +51,7 @@ class MeldRow extends StatelessWidget {
               tile: m.tiles[i],
               size: size,
               scale: scale,
-              faceDown: i == 0 || i == m.tiles.length - 1,
+              faceDown: faceDown || i == 0 || i == m.tiles.length - 1,
             ),
         ],
       );

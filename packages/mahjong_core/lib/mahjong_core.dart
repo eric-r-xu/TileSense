@@ -14,5 +14,7 @@ export 'round.dart';
 export 'ruleset.dart';
 export 'safety.dart';
 export 'scoring.dart';
+export 'taiwanese/taiwanese_rules.dart';
+export 'taiwanese/taiwanese_scoring.dart';
 export 'tile.dart';
 export 'wall.dart';

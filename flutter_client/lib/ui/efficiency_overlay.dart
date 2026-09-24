@@ -226,7 +226,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  bool get _hk => widget.game.round.ruleset.isHongKong;
+  // Named for Hong Kong, the first Chinese-style ruleset this app had, but
+  // true for Taiwanese too — see [Ruleset.isChineseStyle].
+  bool get _hk => widget.game.round.ruleset.isChineseStyle;
 
   /// The recommended line's plan ('RIICHI', 'DAMATEN', ...) once tenpai, for
   /// the header badge — null before tenpai or with nothing to recommend.
@@ -537,6 +539,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   static final List<InlineSpan> _evGeneral = _evGeneralFor(Ruleset.riichi);
   static final List<InlineSpan> _evGeneralHongKong =
       _evGeneralFor(Ruleset.hongKong);
+  static final List<InlineSpan> _evGeneralTaiwanese =
+      _evGeneralFor(Ruleset.taiwanese);
+
+  /// [_evGeneral] for the ruleset at the table.
+  List<InlineSpan> get _evGeneralCurrent => switch (widget.game.round.ruleset) {
+        Ruleset.riichi => _evGeneral,
+        Ruleset.hongKong => _evGeneralHongKong,
+        Ruleset.taiwanese => _evGeneralTaiwanese,
+      };
 
   static List<InlineSpan> _evGeneralFor(Ruleset ruleset) => [
         const TextSpan(text: 'TILESENSE EV\n', style: _tipTitle),
@@ -551,7 +562,19 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'Odds you win before the hand ends. More live tiles and more draws '
                 'left raise it.\n',
             more: 'hover Ukeire · tap the EV (HMR) number for the chart'),
-        if (ruleset.isHongKong) ...[
+        if (ruleset.isTaiwanese) ...[
+          _tipPart(
+              'WHAT THE WIN PAYS',
+              'A flat point total, the same from every payer, plus a dealer-'
+                  'streak bonus. Exact once ready; before that, estimated from '
+                  'the patterns shown.\n',
+              more: 'tap the EV (HMR) number for the working'),
+          _tipPart(
+              'WHAT THE CUT RISKS',
+              'Estimated loss to an opponent with 3+ exposed sets. No tile is '
+                  'fully safe.\n',
+              more: 'hover Risk and Safety'),
+        ] else if (ruleset.isHongKong) ...[
           _tipPart(
               'WHAT THE WIN PAYS',
               'Faan as chips. Exact once ready; before that, estimated from the '
@@ -578,7 +601,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'FOCUS',
             'Speed pays some payout for a better chance of finishing. Balanced '
                 'adds no tilt.\n',
-            more: ruleset.isHongKong
+            more: ruleset.isChineseStyle
                 ? 'hover FOCUS'
                 : 'hover FOCUS · STRATEGY and Placement for the rest'),
         const TextSpan(
@@ -766,7 +789,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     (3, 'Suit tile'),
   ];
 
-  static List<InlineSpan> _safetyTip(bool hk) {
+  static List<InlineSpan> _safetyTip(bool hk, String unit) {
     final ratings = hk ? _hongKongRatings : _riichiRatings;
     return [
       const TextSpan(text: 'SAFETY\n', style: _tipTitle),
@@ -814,7 +837,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       TextSpan(
           text: hk
               ? '\nA deal-in is charged '
-                  '${GuideConstants.hongKongDealInCost.round()} chips.'
+                  '${GuideConstants.hongKongDealInCost.round()} $unit.'
               : '\nA deal-in costs ${_pts(GuideConstants.dealInCost)} '
                   '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
                   'plus 300 a honba.',
@@ -822,10 +845,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     ];
   }
 
-  static List<InlineSpan> _riskTip(bool hk) => [
+  static List<InlineSpan> _riskTip(bool hk, String unit) => [
         const TextSpan(text: 'RISK\n', style: _tipTitle),
         TextSpan(
-            text: '${hk ? 'Chips' : 'Points'} taken off EV for the danger of '
+            text: '${unit[0].toUpperCase()}${unit.substring(1)} taken off EV '
+                'for the danger of '
                 'this cut.\n',
             style: _tipBody),
         const TextSpan(text: '\n', style: _tipBody),
@@ -834,7 +858,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           (
             'Deal-in cost',
             hk
-                ? '${GuideConstants.hongKongDealInCost.round()} chips'
+                ? '${GuideConstants.hongKongDealInCost.round()} $unit'
                 : '${_pts(GuideConstants.dealInCost)} points '
                     '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
                     'plus 300 a honba'
@@ -988,12 +1012,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   List<InlineSpan> _focusTip() {
     final hk = _hk;
     const speed = HandFocus.speed;
-    final ruleset = hk ? Ruleset.hongKong : Ruleset.riichi;
+    final ruleset = widget.game.round.ruleset;
     final pivot = hk
         ? GuideConstants.focusHongKongPointsPivot
         : GuideConstants.focusPointsPivot;
     final chance = GuideConstants.focusChancePivot;
-    final unit = hk ? 'chips' : 'points';
+    final unit = ruleset.unit;
     String n(double v) => v == v.roundToDouble() ? _pts(v) : v.toString();
     final payouts = hk
         ? const [8.0, 16.0, 32.0, 64.0]
@@ -1146,7 +1170,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// Wrap any mention of TileSense EV so hovering it explains the number.
   /// Pass [line] on a table cell to append that row's own arithmetic.
   Widget _evTooltip(Widget child, {DiscardLine? line}) => _tipBox(child, [
-        ...(_hk ? _evGeneralHongKong : _evGeneral),
+        ..._evGeneralCurrent,
         if (line != null) ..._evWorked(line, widget.game.handFocus),
       ]);
 
@@ -1398,13 +1422,13 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           // Every heading that names a concept carries its own explainer, in
           // place of a glossary underneath the table.
           final tip = switch (l) {
-            'TileSense EV' => (_hk ? _evGeneralHongKong : _evGeneral),
+            'TileSense EV' => _evGeneralCurrent,
             'EV (HMR)' => _evHmrGeneral,
             'Shanten' || 'Away' => _shantenTip(_hk),
             'Ukeire' || 'Accepts' => _ukeireTip(_hk),
             'Placement' => _placementTip(),
-            'Safety' => _safetyTip(_hk),
-            'Risk' => _riskTip(_hk),
+            'Safety' => _safetyTip(_hk, widget.game.round.ruleset.unit),
+            'Risk' => _riskTip(_hk, widget.game.round.ruleset.unit),
             'Detail' => _detailTip(),
             _ => null,
           };

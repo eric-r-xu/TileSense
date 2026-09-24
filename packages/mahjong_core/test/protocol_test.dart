@@ -4,7 +4,7 @@ import 'package:mahjong_core/mahjong_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  for (final ruleset in [Ruleset.riichi, Ruleset.hongKong]) {
+  for (final ruleset in [Ruleset.riichi, Ruleset.hongKong, Ruleset.taiwanese]) {
     test(
         '${ruleset.name}: round-trips a live snapshot through JSON for every viewer',
         () {

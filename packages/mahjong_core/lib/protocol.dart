@@ -7,10 +7,12 @@
 /// via [Round.posed] — from whatever the server sent. Keeping both directions
 /// in one file means the encode and decode side can never drift apart.
 ///
-/// The only thing ever redacted is a seat's concealed [SeatState.hand] and
-/// which tile in it is the current draw — everything else on a mahjong table
-/// (discards, melds, flowers, riichi declarations, points, dora) is public
-/// knowledge in the real game and is always sent in full.
+/// The only things ever redacted are a seat's concealed [SeatState.hand],
+/// which tile in it is the current draw, and — under Taiwanese rules, until
+/// the hand ends — what its concealed kongs are made of (see
+/// [Round.isHiddenKong]). Everything else on a mahjong table (discards, other
+/// melds, flowers, riichi declarations, points, dora) is public knowledge in
+/// the real game and is always sent in full.
 library;
 
 import 'hong_kong/hong_kong_wall.dart';
@@ -178,12 +180,14 @@ Map<String, dynamic> roundSnapshotToJson(
           'types': [for (final t in c.types) t.name],
         }
     ],
-    'seats': [for (final s in round.seats) _seatToJson(s, reveal(s.seat))],
+    'seats': [
+      for (final s in round.seats) _seatToJson(round, s, reveal(s.seat))
+    ],
     'result': round.result == null ? null : roundResultToJson(round.result!),
   };
 }
 
-Map<String, dynamic> _seatToJson(SeatState s, bool revealed) => {
+Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       'seat': s.seat,
       'points': s.points,
       'handRevealed': revealed,
@@ -192,7 +196,11 @@ Map<String, dynamic> _seatToJson(SeatState s, bool revealed) => {
       'hasDrawn': s.drawn != null,
       if (revealed && s.drawn != null) 'drawnId': s.drawn!.id,
       'pond': tilesToJson(s.pond),
-      'melds': [for (final m in s.melds) meldToJson(m)],
+      'melds': [
+        for (final m in s.melds)
+          meldToJson(
+              !revealed && round.isHiddenKong(m) ? _faceDownKong(m) : m)
+      ],
       'flowers': tilesToJson(s.flowers),
       'riichi': s.riichi,
       'doubleRiichi': s.doubleRiichi,
@@ -204,6 +212,14 @@ Map<String, dynamic> _seatToJson(SeatState s, bool revealed) => {
         for (final t in s.passedDiscardsAfterRiichi) t.name,
       ],
     };
+
+/// [m] as another seat sees it face down: four blanks, same tile ids.
+Meld _faceDownKong(Meld m) => Meld(
+      kind: MeldKind.kan,
+      low: TileType.blank,
+      concealed: true,
+      tiles: [for (final t in m.tiles) Tile(t.id, TileType.blank)],
+    );
 
 /// Rebuilds a playable [Round] from a [roundSnapshotToJson] payload, with
 /// every seat index remapped through [mySeat] so the recipient always lands
@@ -223,7 +239,7 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     for (final d in (json['uraDoraIndicators'] as List? ?? const []))
       TileType.values.byName(d as String)
   ];
-  final wall = ruleset.isHongKong
+  final wall = ruleset.isChineseStyle
       ? HongKongWall.posed(remaining: wallRemaining)
       : Wall.posed(remaining: wallRemaining, dora: dora, ura: ura);
 

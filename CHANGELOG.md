@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **A third ruleset: 🇹🇼 Taiwanese**, ported from the TileSenseTW fork and
+  following the San Diego Mahjong Club's 16-tile cheat sheet: 16 tiles a seat,
+  a 17-tile winning hand of 5 melds and a pair (or seven pairs and a pung),
+  flat additive points with a 5-point minimum to declare hu, no dealer premium
+  on the hand's own value but a separate 2/4/6 dealer win-streak bonus, and
+  temporary-only furiten. It's in the welcome-screen picker, app-bar toggle,
+  online lobby and builder, with a write-up at
+  [`docs/TAIWANESE_RULES.md`](docs/TAIWANESE_RULES.md). The Taiwanese-only
+  pieces live under `packages/mahjong_core/lib/taiwanese/`;
+  `Ruleset.isChineseStyle` covers the table flow it shares with Hong Kong
+  (flowers, no riichi, nothing callable off the last discard).
+  - `hand_parse.dart` and `efficiency_calc.dart` take a `totalMelds` (4, or 5
+    for Taiwanese, from `Ruleset.totalMelds`) instead of a hard-coded 4. The
+    guide passes it through too, so its shanten, acceptance, waits and
+    call acceptance count a Taiwanese hand against 5 melds rather than
+    reading 16 tiles as a finished 4-meld hand.
+  - The builder poses 16-tile hands (17 with the draw) under Taiwanese, and
+    lists its waits at an exhaustive draw through the new `Round.waitsFor`.
+  - A concealed kong is laid down completely face down (`Ruleset
+    .hidesConcealedKongs`, Taiwanese only): other seats see four backs until
+    the hand ends, the guide doesn't count its tiles as seen, and the
+    multiplayer snapshot sends them to other players as blanks. Riichi and
+    Hong Kong still show the middle two tiles.
+  - Kyuushu kyuuhai is now gated on `isRiichi` rather than `!isHongKong`, so
+    Taiwanese doesn't inherit it.
+  - Unselected rulesets in the builder's chip row show just their flag (named
+    on hover), so three options fit the tool bar two used to fill.
+
 ### Fixed
 - **Pinfu was missed on a two-sided wait that finishes on a terminal, and
   wrongly given to edge waits.** `_isRyanmenWait` had its terminal cases

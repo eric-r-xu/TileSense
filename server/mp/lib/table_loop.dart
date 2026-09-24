@@ -462,7 +462,7 @@ class TableLoop {
     // always repeats, whoever they are, no tenpai check involved.
     final dealerKept = r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
-            ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
+            ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
             : r.winners.contains(_dealer));
 
     _tel?.roundEnd(
@@ -544,6 +544,12 @@ class TableLoop {
     required int honba,
     required Ruleset ruleset,
   }) {
+    if (ruleset.isTaiwanese) {
+      final nextHonba = (dealerKept && !exhaustiveDraw) ? honba + 1 : 0;
+      return dealerKept
+          ? (dealer: dealer, roundNumber: roundNumber, honba: nextHonba)
+          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+    }
     if (ruleset.isHongKong) {
       return dealerKept || exhaustiveDraw
           ? (dealer: dealer, roundNumber: roundNumber, honba: 0)
