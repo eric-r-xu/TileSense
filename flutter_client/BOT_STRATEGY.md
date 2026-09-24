@@ -388,6 +388,34 @@ decision diagnostic found why, one layer at a time:
 Riichi and Hong Kong run none of this: rerun on their original seeds after
 the change, both reproduce their earlier results exactly.
 
+### Taiwanese Focus pivot: the odd constant is harmless — measured, not fixed
+
+`_assessValue` prices the Focus dial against a pivot, and Taiwanese takes Hong
+Kong's `32` because the branch is keyed on `isChineseStyle` (`07c157e`,
+2026-09-23). On magnitudes alone that looks wrong: Hong Kong's pivot is 2.0x its
+own deal-in cost of 16 chips, and the same ratio over Taiwanese's
+`_taiwaneseDealInCost = 7` would be about **14**, not 32. With curve 0.45 a
+7-point hand is then valued near 16 — more than double — and Focus stays live
+under Taiwanese, so the argument that it must bite looked strong.
+
+It does not. Two worktrees differing only in that constant, 1200 paired hanchan
+on seeds 20000+, `SimpleBot` opponents, **measured 2026-09-24**:
+
+| Paired, same seeds | pivot 14 − pivot 32 |
+|---|---|
+| avg placement | +0.0083 ± 0.0113, p = 0.15 |
+| final points | −0.02 ± 0.27, p = 0.88 |
+| deal-ins per hanchan | −0.0117 ± 0.0146, p = 0.12 |
+
+Nothing moves, and what movement there is points the wrong way — placement is
+*worse* with the "correct" pivot. Each arm's own guide-vs-control result is
+unchanged too (−0.188 ± 0.088 before, −0.180 ± 0.088 after), and both sit inside
+the held-out −0.146 ± 0.108 recorded above. So the pivot was left at 32.
+
+The lesson: a constant being *inconsistent* is not the same as it being
+*costly*. Focus shifts the ranking between lines of similar value, and at
+either pivot the same line usually still wins.
+
 ### Style does nothing under Hong Kong
 
 Two of Style's three effects are already dead code under Hong Kong: it has no
