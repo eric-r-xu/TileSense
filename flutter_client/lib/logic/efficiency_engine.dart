@@ -19,6 +19,8 @@ import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/safety.dart';
 import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_scoring.dart';
 import 'package:mahjong_core/tile.dart';
 
 import 'placement_utility.dart';
@@ -132,7 +134,7 @@ enum HandFocus {
   /// 2,400 — so the gap between them shrinks from 3.9x to 2.8x. Value pulls
   /// the same pair apart instead.
   double worth(double points, {Ruleset ruleset = Ruleset.riichi}) {
-    final pivot = ruleset.isHongKong ? _hongKongPointsPivot : _pointsPivot;
+    final pivot = ruleset.isChineseStyle ? _hongKongPointsPivot : _pointsPivot;
     return points <= 0
         ? points
         : pivot * math.pow(points / pivot, curve).toDouble();
@@ -792,7 +794,8 @@ class EfficiencyEngine {
         : <SafetyRating>[];
     final safeByType = {for (final s in defense) s.type: s};
 
-    final raw = _calc.calculate(concealed, remaining);
+    final raw = _calc.calculate(concealed, remaining,
+        totalMelds: ruleset.totalMelds);
 
     // Deduplicate by tile type (multiple copies of the same tile in hand).
     final byType = <TileType, TileEfficiencyResult>{};
@@ -859,7 +862,11 @@ class EfficiencyEngine {
         if (live <= 0) continue;
         after[draw]++;
         remaining[draw]--;
-        reachable.add((live: live, wait: _calc.bestTenpaiWait(after, remaining)));
+        reachable.add((
+          live: live,
+          wait: _calc.bestTenpaiWait(after, remaining,
+              totalMelds: ruleset.totalMelds)
+        ));
         remaining[draw]++;
         after[draw]--;
         copies += live;
@@ -940,9 +947,9 @@ class EfficiencyEngine {
       // about 3.8 more discards before the hand ends, where the hand's own
       // expected length runs to eight or more. The per-tile rate was right all
       // along; the horizon it was charged over was not.
-      // Hong Kong has no riichi to end the hand early, so the push is charged
-      // over the hand's own expected length.
-      final exposed = ruleset.isHongKong
+      // Hong Kong and Taiwanese have no riichi to end the hand early, so the
+      // push is charged over the hand's own expected length.
+      final exposed = ruleset.isChineseStyle
           ? value.turnsExposed
           : math.min(value.turnsExposed, _riichiPushHorizon);
       final laterTurns = math.max(0.0, exposed - 1);
@@ -1053,16 +1060,17 @@ class EfficiencyEngine {
       defending: defending,
       defense: defense,
       headline: defending
-          ? (ruleset.isHongKong
+          ? (ruleset.isChineseStyle
               ? 'An opponent has exposed three or more sets — estimated risk shown'
               : 'An opponent is in RIICHI — defensive ranking shown')
           : tenpai
-              ? (ruleset.isHongKong
-                  ? 'Ready — best EV ${bestValue?.expectedValue.round() ?? 0} chips'
+              ? (ruleset.isChineseStyle
+                  ? 'Ready — best EV ${bestValue?.expectedValue.round() ?? 0} '
+                      '${ruleset.unit}'
                   : valueContext.strategy == Strategy.placement
                       ? 'Tenpai — best for placement'
                       : 'Tenpai — best EV ${bestValue?.expectedValue.round() ?? 0} pts')
-              : (ruleset.isHongKong
+              : (ruleset.isChineseStyle
                   ? '$currentShanten away from ready'
                   : valueContext.strategy == Strategy.placement &&
                           ruleset.isRiichi
@@ -1115,11 +1123,13 @@ class EfficiencyEngine {
             action: GuidedAction.ron,
             expectedValue: points.toDouble(),
             shantenAfter: -1,
-            reason: context.ruleset.isHongKong
-                ? 'Win — $points chips banked now. With a 0-faan minimum any '
-                    'complete hand is a legal win.'
-                : 'Ron — $points points banked now, and passing up a winning '
-                    'tile would leave you furiten.',
+            reason: context.ruleset.isTaiwanese
+                ? '${context.ruleset.ronLabel} — $points points banked now.'
+                : context.ruleset.isHongKong
+                    ? 'Win — $points chips banked now. With a 0-faan minimum '
+                        'any complete hand is a legal win.'
+                    : 'Ron — $points points banked now, and passing up a '
+                        'winning tile would leave you furiten.',
           ),
         ],
       );
@@ -1137,12 +1147,13 @@ class EfficiencyEngine {
       action: GuidedAction.pass,
       expectedValue: passState.ev,
       shantenAfter: passState.shanten,
-      reason: context.ruleset.isHongKong
+      reason: context.ruleset.isChineseStyle
           ? (passState.shanten <= 0
               ? 'Stay as you are — already ready, worth about '
-                  '${passState.ev.round()} chips.'
+                  '${passState.ev.round()} ${context.ruleset.unit}.'
               : 'Pass and stay ${passState.shanten} away from ready, worth '
-                  'about ${passState.ev.round()} chips as things stand.')
+                  'about ${passState.ev.round()} ${context.ruleset.unit} as '
+                  'things stand.')
           : passState.shanten <= 0
               ? 'Stay as you are — already tenpai, worth about '
                   '${passState.ev.round()} points.'
@@ -1355,7 +1366,7 @@ class EfficiencyEngine {
         expectedValue: 0,
         shantenAfter: 99,
         eligible: false,
-        reason: context.ruleset.isHongKong
+        reason: context.ruleset.isChineseStyle
             ? 'No matching exposed pung and tile to add to it.'
             : 'No matching open pon and tile to add it to.',
       );
@@ -1378,7 +1389,7 @@ class EfficiencyEngine {
           expectedValue: evBefore,
           shantenAfter: shantenBefore,
           eligible: false,
-          reason: context.ruleset.isHongKong
+          reason: context.ruleset.isChineseStyle
               ? 'Robbing a kong risk — ${rating.label} against the exposed '
                   'hand, the added tile can complete an opponent’s hand.'
               : 'Chankan risk — ${rating.label} against the live riichi, '
@@ -1423,9 +1434,11 @@ class EfficiencyEngine {
       action: GuidedAction.tsumo,
       expectedValue: points.toDouble(),
       shantenAfter: -1,
-      reason: context.ruleset.isHongKong
-          ? 'Self draw — $points chips. Always take the win.'
-          : 'Tsumo — $points points. Always take the win.',
+      reason: context.ruleset.isTaiwanese
+          ? 'Self-pick — $points points. Always take the win.'
+          : context.ruleset.isHongKong
+              ? 'Self draw — $points chips. Always take the win.'
+              : 'Tsumo — $points points. Always take the win.',
     );
   }
 
@@ -1446,7 +1459,7 @@ class EfficiencyEngine {
     final concealedAfter = _handWithout(hand, consumed);
     final contextAfter = _contextWithMeld(context, meld);
     final ruleset = context.ruleset;
-    final hk = ruleset.isHongKong;
+    final hk = ruleset.isChineseStyle;
     final label = _actionLabel(action, ruleset);
 
     final report = analyze(
@@ -1545,7 +1558,7 @@ class EfficiencyEngine {
       discardSafety: safety,
       reason: hk
           ? '$label leaves you $shape, worth about '
-              '${best.expectedValue.round()} chips$safetyNote.'
+              '${best.expectedValue.round()} ${ruleset.unit}$safetyNote.'
           : '$label puts you at $shape worth about '
               '${best.expectedValue.round()} points$safetyNote.',
     );
@@ -1569,7 +1582,7 @@ class EfficiencyEngine {
       context: contextAfter,
       canRiichi: contextAfter.closed && !contextAfter.inRiichi,
     );
-    final hk = contextAfter.ruleset.isHongKong;
+    final hk = contextAfter.ruleset.isChineseStyle;
     final shape = contextAfter.ruleset.shapeLabel(after.shanten);
 
     if (after.shanten > shantenBefore) {
@@ -1633,8 +1646,11 @@ class EfficiencyEngine {
     required bool canRiichi,
   }) {
     final counts = toTrainerCounts(concealed);
-    final shanten = _calc.calculateWaitingShanten(counts);
-    final acceptance = _calc.acceptance(counts, remaining);
+    final totalMelds = context.ruleset.totalMelds;
+    final shanten =
+        _calc.calculateWaitingShanten(counts, totalMelds: totalMelds);
+    final acceptance =
+        _calc.acceptance(counts, remaining, totalMelds: totalMelds);
     final value = _assessValue(
       result: TileEfficiencyResult(
         tileIndex: 1,
@@ -1730,7 +1746,7 @@ class EfficiencyEngine {
     required List<TileType> passedDiscardsAfterRiichi,
     required List<int> visibleCounts34,
   }) =>
-      ruleset.isHongKong
+      ruleset.isChineseStyle
           ? rankHongKongSafety(hand, visibleCounts34: visibleCounts34)
           : rankSafety(
               hand,
@@ -1779,7 +1795,7 @@ class EfficiencyEngine {
             ).win;
 
   static WinModel _winModelFor(Ruleset ruleset) =>
-      ruleset.isHongKong ? HongKongGuideTuning.winModel : WinModel.riichi;
+      ruleset.isChineseStyle ? HongKongGuideTuning.winModel : WinModel.riichi;
 
   /// [_typicalUkeire], for `ev_calibration_test.dart` to hold against what
   /// simulated play actually produces.
@@ -2084,14 +2100,16 @@ class EfficiencyEngine {
     }
 
     final unseen = _countRemaining(remaining);
-    // Riichi always allows one more draw; a Hong Kong wall at zero has none.
-    final draws = math.max(context.ruleset.isHongKong ? 0 : 1,
+    // Riichi always allows one more draw; a Chinese-style wall at zero has
+    // none.
+    final draws = math.max(context.ruleset.isChineseStyle ? 0 : 1,
         (context.wallTilesRemaining + 3) ~/ 4);
     final winModel = _winModelFor(context.ruleset);
     var width = result.ukeire.toDouble();
     if (winModel.countsCalls && result.shanten >= 1) {
       final calls =
-          _calc.callAcceptance(toTrainerCounts(concealed), remaining);
+          _calc.callAcceptance(toTrainerCounts(concealed), remaining,
+              totalMelds: context.ruleset.totalMelds);
       width += winModel.pungRate * calls.pung + winModel.chowRate * calls.chow;
     }
     final outlook = _winProbabilityFromShanten(
@@ -2124,10 +2142,15 @@ class EfficiencyEngine {
       shanten: result.shanten,
     );
 
-    // Hong Kong has no deposit to bill and no dora to adjust for: the line is
-    // worth its chance times an estimate of what the hand's visible patterns
-    // pay, or the exact figure when another discard already reaches ready.
-    if (context.ruleset.isHongKong) {
+    // Hong Kong and Taiwanese have no deposit to bill and no dora to adjust
+    // for: the line is worth its chance times an estimate of what the
+    // hand's visible patterns pay, or the exact figure when another discard
+    // already reaches ready. Taiwanese reuses the Hong Kong faan-shaped
+    // estimate below — the two point charts are close enough in shape that
+    // this is a fair approximation pre-tenpai; the exact Taiwanese chart
+    // takes over once the hand is actually ready (see
+    // [_assessHongKongTenpaiValue] and [_scoreWait]).
+    if (context.ruleset.isChineseStyle) {
       final projectedPoints = projectedPointsOverride ??
           _hongKongProjectedPoints(concealed, context);
       final tilted = context.focus.chanceWorth(completionProbability) *
@@ -2348,7 +2371,10 @@ class EfficiencyEngine {
   static const double _dealerDealInCost = 8700;
 
   /// The same for Hong Kong, in chips: a 3-faan hand won off your discard.
-  /// There is no dealer premium.
+  /// There is no dealer premium. Reused as the Taiwanese estimate too — a
+  /// mid-size discard-won hand is in the same ballpark, and Taiwanese has no
+  /// dealer premium on a hand's own value either (its dealer-streak bonus is
+  /// a separate, un-modelled addition — see Round._applyRon).
   static const double _hongKongDealInCost = 16;
 
   /// The points a discard is expected to cost, given how safe it is. Zero
@@ -2363,7 +2389,7 @@ class EfficiencyEngine {
     final rate = _dealInRateByRating[
         safety.rating.clamp(0, _dealInRateByRating.length - 1)];
     // Honba rides on their win too — you pay it.
-    final cost = ruleset.isHongKong
+    final cost = ruleset.isChineseStyle
         ? _hongKongDealInCost
         : (opponentIsDealer ? _dealerDealInCost : _dealInCost) + honba * 300;
     return rate * cost;
@@ -2381,7 +2407,7 @@ class EfficiencyEngine {
     bool opponentIsDealer = false,
     double riichiDangerFactor = 0.0,
   }) {
-    if (context.ruleset.isHongKong) {
+    if (context.ruleset.isChineseStyle) {
       return _assessHongKongTenpaiValue(
         waits: waits,
         remaining: remaining,
@@ -2768,8 +2794,11 @@ class EfficiencyEngine {
         ),
         turnsExposed: outlook.turns,
         plan: 'READY',
-        reason:
-            'Any complete hand can win, including a zero-faan chicken hand.');
+        reason: context.ruleset.isTaiwanese
+            ? 'Ready — any wait scored above needs at least '
+                '${TaiwaneseRules.minimumPoints} points to declare hu.'
+            : 'Any complete hand can win, including a zero-faan chicken '
+                'hand.');
   }
 
   /// What this tenpai is worth if it never declares — the alternative every
@@ -2843,6 +2872,22 @@ class EfficiencyEngine {
     required bool assumeRiichi,
     required EfficiencyValueContext context,
   }) {
+    if (context.ruleset.isTaiwanese) {
+      return scoreTaiwaneseHand(
+        concealed,
+        winTile,
+        context.melds,
+        ScoreContext(
+          roundWind: context.roundWind,
+          seatWind: context.seatWind,
+          isTsumo: isTsumo,
+          closed: context.closed,
+          flowers: context.flowers,
+          flowersEnabled: context.flowersEnabled,
+        ),
+        isDealer: context.isDealer,
+      );
+    }
     if (context.ruleset.isHongKong) {
       return scoreHongKongHand(
         concealed,

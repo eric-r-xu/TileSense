@@ -320,6 +320,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const Key('strategy')), findsNothing);
 
+    // Hong Kong -> Taiwanese: still Chinese-style, so the dial stays hidden
+    // and pinned rather than being restored here.
+    await tester.tap(find.byKey(const Key('ruleset')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const Key('strategy')), findsNothing);
+
     await tester.tap(find.byKey(const Key('ruleset')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(const Key('strategy')), 'Placement',

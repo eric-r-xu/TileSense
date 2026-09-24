@@ -96,10 +96,14 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   /// restored on the way back to riichi.
   void setRuleset(Ruleset value) {
     if (scenario.ruleset == value) return;
-    if (value.isHongKong) {
-      _preHongKongStyle = scenario.style;
+    if (value.isChineseStyle) {
+      // Only save on the way in from riichi — see
+      // GameController.setRuleset's matching guard.
+      if (!scenario.ruleset.isChineseStyle) {
+        _preHongKongStyle = scenario.style;
+        _preHongKongStrategy = scenario.strategy;
+      }
       scenario.style = PlayStyle.balanced;
-      _preHongKongStrategy = scenario.strategy;
       scenario.strategy = Strategy.points;
     } else {
       if (_preHongKongStyle != null) {
@@ -173,7 +177,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   SeatState? _threatOpponent() {
     for (final s in round.seats) {
       if (s.seat == kHumanSeat) continue;
-      if (ruleset.isHongKong
+      if (ruleset.isChineseStyle
           ? s.melds.where((m) => !m.concealed).length >=
               HongKongGuideTuning.threatExposedSets
           : s.riichi) {
@@ -356,7 +360,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       roundWind: scenario.roundWind,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
-      wall: ruleset.isHongKong
+      wall: ruleset.isChineseStyle
           ? HongKongWall.posed(
               remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
           : Wall.posed(
@@ -381,7 +385,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     // Opponents' concealed tiles are unknown to the guide; show face-down
     // backs at the right count so the table reads correctly.
     for (var i = 1; i < 4; i++) {
-      final concealed = 13 - scenario.seats[i].melds.length * 3;
+      final concealed =
+          ruleset.concealedHandSize - scenario.seats[i].melds.length * 3;
       r.seats[i].hand = [
         for (var k = 0; k < concealed; k++)
           Tile(-1000 - i * 20 - k, TileType.blank),

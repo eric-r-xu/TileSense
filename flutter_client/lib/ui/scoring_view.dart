@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../game/call_callout.dart';
 import '../game/guide_host.dart';
-import 'package:mahjong_core/hand_parse.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/scoring.dart';
 import 'package:mahjong_core/tile.dart';
@@ -285,7 +284,8 @@ class _ScoringViewState extends State<ScoringView> {
 
   Widget _handBlock(Round round, int seat, HandScore score, Tile? winTile) {
     final w = round.seats[seat];
-    final hk = round.ruleset.isHongKong;
+    final hk = round.ruleset.isChineseStyle;
+    final taiwanese = round.ruleset.isTaiwanese;
     // The dora indicators always show; ura only counts (and only shows) for a
     // hand that won in riichi.
     final doraInd = round.wall.doraIndicators();
@@ -356,15 +356,23 @@ class _ScoringViewState extends State<ScoringView> {
           children: [
             for (final y in score.yaku)
               Text(
-                  hk
-                      ? '${y.name}  ${y.faan} faan'
-                      : '${y.name}  ${y.yakuman > 0 ? 'yakuman' : '${y.han}'}',
+                  taiwanese
+                      ? '${y.name}  ${y.faan} pt${y.faan == 1 ? '' : 's'}'
+                      : hk
+                          ? '${y.name}  ${y.faan} faan'
+                          : '${y.name}  ${y.yakuman > 0 ? 'yakuman' : '${y.han}'}',
                   style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          hk
+          // Taiwanese's pattern total and payout are the same flat number —
+          // see taiwanese_scoring.dart — so there is nothing to show twice
+          // the way "faan — chips" or "han fu — points" show two different
+          // scales.
+          taiwanese
+              ? '${score.points} point${score.points == 1 ? '' : 's'}'
+              : hk
               ? '${score.faan} faan — ${score.points} chips'
                   '${score.limitName.isEmpty ? '' : '  (${score.limitName})'}'
               : score.yakuman > 0
@@ -414,7 +422,7 @@ class _ScoringViewState extends State<ScoringView> {
     return Column(
       children: [
         Text(
-          round.ruleset.isHongKong
+          round.ruleset.isChineseStyle
               ? 'Wall exhausted — no payments'
               : seats.isEmpty
                   ? 'All players noten'
@@ -432,7 +440,7 @@ class _ScoringViewState extends State<ScoringView> {
 
   Widget _tenpaiHandRow(Round round, int seat) {
     final s = round.seats[seat];
-    final waits = waitTiles(s.hand, openMelds: s.melds.length);
+    final waits = round.waitsFor(seat);
     return Column(
       children: [
         Text(

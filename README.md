@@ -14,12 +14,15 @@ recommended tile — and ranking your hand by safety once an opponent threatens.
 Play online with friends too, bots filling any empty seat — multiplayer has no
 guide, so nobody gets an assist the others lack.
 
-Pick 🇯🇵 Riichi or 🇭🇰 Hong Kong on the welcome screen, or switch at any time
-from the game's app bar (which deals a new game) or the builder's chip row.
-Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
-**0-faan minimum**; see [Hong Kong rules](docs/HONG_KONG_RULES.md). One-page
+Pick 🇯🇵 Riichi, 🇭🇰 Hong Kong or 🇹🇼 Taiwanese on the welcome screen, or switch
+at any time from the game's app bar (which deals a new game) or the builder's
+chip row. Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
+**0-faan minimum**; see [Hong Kong rules](docs/HONG_KONG_RULES.md). Taiwanese is
+16-tile mahjong (5 melds and a pair) with flat, additive points and a
+**5-point minimum**; see [Taiwanese rules](docs/TAIWANESE_RULES.md). One-page
 references: [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf),
-[HK.pdf](https://app.ericrxu.com/static/HK.pdf).
+[HK.pdf](https://app.ericrxu.com/static/HK.pdf),
+[Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf).
 
 This repo contains the cross-platform **Flutter** app (`flutter_client/`) for
 web, Android, and iOS, its shared pure-Dart core (`packages/mahjong_core/`),
@@ -121,14 +124,17 @@ live in `test/`, Hong Kong tests in `test/hong_kong/`, and
   the way style and focus's defaults were; hidden and pinned to Points under
   Hong Kong, same as style. Details:
   [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
-- **🇯🇵 Riichi and 🇭🇰 Hong Kong rules**, chosen on the welcome screen or from
-  the app bar, each with a one-page rules PDF
+- **🇯🇵 Riichi, 🇭🇰 Hong Kong and 🇹🇼 Taiwanese rules**, chosen on the welcome
+  screen or from the app bar, each with a one-page rules PDF
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
-  [Hong Kong](https://app.ericrxu.com/static/HK.pdf)). Hong Kong plays with a
-  **0-faan minimum** — any complete hand, even a chicken hand, may be declared
-  — plus flower and season tiles and the New Style discarder-pays-all table.
-  Both rulesets play a hanchan (East and South) by default, with an
-  East-only option.
+  [Hong Kong](https://app.ericrxu.com/static/HK.pdf),
+  [Taiwanese](https://app.ericrxu.com/static/Taiwanese.pdf)). Hong Kong plays
+  with a **0-faan minimum** — any complete hand, even a chicken hand, may be
+  declared — plus flower and season tiles and the New Style discarder-pays-all
+  table. Taiwanese deals 16 tiles a seat for a 17-tile, 5-meld winning hand,
+  scores flat additive points with a **5-point minimum**, and adds a dealer
+  win-streak bonus. Every ruleset plays a hanchan (East and South) by default,
+  with an East-only option.
 - **Play Online**: a private room for up to four humans, any empty seat
   filled by a bot. There is no guide here — nobody gets an assist the other
   seats lack — so this is the offline game's own guide UI, minus the guide.

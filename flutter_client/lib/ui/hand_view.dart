@@ -75,16 +75,29 @@ class _HandViewState extends State<HandView> {
 
   /// How much bigger the human hand (and its open melds) render than the
   /// authored `TileSize.large` / `TileSize.normal` steps. 1.65 = the base
-  /// 1.5 scale bumped 10% bigger.
-  static const double _handScale = 1.65;
+  /// 1.5 scale bumped 10% bigger — sized for riichi and Hong Kong's 13
+  /// resting tiles. Taiwanese holds 16, three more, so it scales down
+  /// instead, enough that all of them (17 with the drawn tile) still fit the
+  /// same band without needing the strip's horizontal scroll to see the
+  /// last one.
+  double get _handScale =>
+      game.round.ruleset.isTaiwanese ? _taiwaneseHandScale : _defaultHandScale;
+  static const double _defaultHandScale = 1.65;
+  static const double _taiwaneseHandScale = 1.4;
 
-  /// Fixed width for the concealed-tile strip: 13 resting tiles plus the wider
-  /// slot the separated drawn tile takes, at [_handScale]. A `large` face is
-  /// 46 px wide (→ 46·1.5 ≈ 69) with 4 px of padding, and the drawn tile is
-  /// inset a further 14 px. Sizing for the full 14 keeps tiles from shifting on
-  /// every draw.
-  static const double _handStripWidth =
-      13 * (46 * _handScale + 4) + (46 * _handScale + 4 + 14);
+  /// Minimum width for the concealed-tile strip: every resting tile plus the
+  /// wider slot the separated drawn tile takes, at [_handScale] — 13 (14 with
+  /// the draw) for riichi and Hong Kong, 16 (17 with the draw) for Taiwanese.
+  /// A `large` face is 46 px wide (→ 46·1.5 ≈ 69) with 4 px of padding, and
+  /// the drawn tile is inset a further 14 px. Sizing for the full hand keeps
+  /// tiles from shifting on every draw; the strip's own horizontal scroll (see
+  /// `build`) takes over for anything still wider than the available band —
+  /// several open melds, say — rather than this ever overflowing it.
+  double get _handStripWidth {
+    final resting = game.round.ruleset.isTaiwanese ? 16 : 13;
+    final slot = 46 * _handScale + 4;
+    return resting * slot + (slot + 14);
+  }
 
   /// Move the tile [id] into the slot [targetId] currently occupies, shifting
   /// the rest along — the ordinary meaning of dropping one thing onto another.
@@ -309,8 +322,16 @@ class _HandViewState extends State<HandView> {
                             ],
                           ),
                           const SizedBox(width: 6),
-                          SizedBox(
-                            width: _handStripWidth,
+                          // A *minimum*, not a fixed width: short hands still
+                          // hold the no-jitter width this was sized for, but
+                          // a hand this can't fit — Taiwanese's 16/17 tiles,
+                          // or an ordinary hand with several open melds —
+                          // grows the Row past it instead of overflowing;
+                          // the SingleChildScrollView above already scrolls
+                          // for exactly that case.
+                          ConstrainedBox(
+                            constraints:
+                                BoxConstraints(minWidth: _handStripWidth),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: tiles,

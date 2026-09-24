@@ -67,8 +67,9 @@ const String _handCountCaveat =
     'rules a dealer who wins, or who is tenpai at an exhaustive draw, keeps '
     'it and the hand is replayed — so either length can run longer.';
 
-/// [_handCountCaveat] under Hong Kong rules, where any draw keeps the deal.
-const String _handCountCaveatHongKong =
+/// [_handCountCaveat] under Hong Kong and Taiwanese rules, where any draw
+/// keeps the deal.
+const String _handCountCaveatChineseStyle =
     'That is with the dealership passing every hand. A dealer who wins, or '
     'any exhaustive draw, keeps it and the hand is replayed — so either '
     'length can run longer.';
@@ -950,15 +951,15 @@ class _GamePageState extends State<GamePage> {
             AnimatedBuilder(
               animation: _game,
               builder: (context, _) {
-                final caveat = _game.ruleset.isHongKong
-                    ? _handCountCaveatHongKong
+                final caveat = _game.ruleset.isChineseStyle
+                    ? _handCountCaveatChineseStyle
                     : _handCountCaveat;
                 return Tooltip(
                   message: _game.hanchan
                       ? 'Hanchan — East and South (半庄) rounds, 8+ hands.\n'
                           '$caveat\n'
                           'Tap for East only (东风战), 4+ hands.'
-                      : (_game.ruleset.isHongKong
+                      : (_game.ruleset.isChineseStyle
                           ? 'East only — the East round, 4+ hands.\n'
                               '$caveat\n'
                               'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'
@@ -1040,11 +1041,12 @@ class _GamePageState extends State<GamePage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Style has nothing left to weigh under Hong Kong rules — no
-                // riichi, no damaten, and the sweep in policy_sweep_test.dart
-                // found no placement effect from it either — so it is hidden
-                // rather than shown pinned on Balanced.
-                if (!_game.ruleset.isHongKong)
+                // Style has nothing left to weigh under Hong Kong or
+                // Taiwanese rules — no riichi, no damaten, and the sweep in
+                // policy_sweep_test.dart found no placement effect from it
+                // either — so it is hidden rather than shown pinned on
+                // Balanced.
+                if (!_game.ruleset.isChineseStyle)
                   _barDial(
                     caption: 'STYLE',
                     buttonKey: const Key('playStyle'),
@@ -1063,10 +1065,10 @@ class _GamePageState extends State<GamePage> {
                       'a quicker cheaper hand, or a slower bigger one',
                   onTap: () => _game.setHandFocus(_game.handFocus.next),
                 ),
-                // Placement isn't wired up for Hong Kong yet, so the dial is
-                // hidden there rather than shown pinned on Points — same
-                // treatment as Style just above.
-                if (!_game.ruleset.isHongKong)
+                // Placement isn't wired up for Hong Kong or Taiwanese yet, so
+                // the dial is hidden there rather than shown pinned on
+                // Points — same treatment as Style just above.
+                if (!_game.ruleset.isChineseStyle)
                   _barDial(
                     caption: 'STRATEGY',
                     buttonKey: const Key('strategy'),
@@ -1204,8 +1206,8 @@ class _WelcomeScreen extends StatelessWidget {
   /// Opens the online lobby — create a private room or join one by code.
   final VoidCallback onPlayOnline;
 
-  /// Japanese Riichi or Hong Kong, chosen before Start, each with a link to
-  /// its rules PDF beneath it.
+  /// Japanese Riichi, Hong Kong, or Taiwanese, chosen before Start, each
+  /// with a link to its rules PDF beneath it.
   Widget _rulesetChoice() {
     Widget option(Ruleset value, String subtitle) {
       final selected = ruleset == value;
@@ -1260,6 +1262,7 @@ class _WelcomeScreen extends StatelessWidget {
       children: [
         option(Ruleset.riichi, 'yaku, dora, riichi'),
         option(Ruleset.hongKong, 'faan, flowers, 0-faan minimum'),
+        option(Ruleset.taiwanese, '17 tiles, flowers, 5-point minimum'),
       ],
     );
   }

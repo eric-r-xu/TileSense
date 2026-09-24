@@ -50,19 +50,28 @@ class TileEfficiencyCalculator {
   int _bestShanten = 8;
   int _minimumShanten = -1;
   bool _hasGivenMinimum = false;
+  int _targetMelds = 4;
+
+  /// Melds a complete hand needs: 4 (14 tiles) for riichi and Hong Kong, 5
+  /// (17 tiles) for Taiwanese. Every "13"/"14"/"8"/"4" below that isn't a
+  /// tile-suit constant is really `totalMelds*3+1`, `+1` or `*2`/`totalMelds`
+  /// in disguise, so this is the only thing a Taiwanese caller ever varies.
+  static int _concealedSize(int totalMelds) => totalMelds * 3 + 1;
 
   /// For each discardable tile in [concealedHand] (a 38-slot count array),
   /// the resulting shanten and ukeire given [remainingTiles] (38-slot counts
   /// of tiles still live). Ported from `calculate()`.
   List<TileEfficiencyResult> calculate(
     List<int> concealedHand,
-    List<int> remainingTiles,
-  ) {
+    List<int> remainingTiles, {
+    int totalMelds = 4,
+  }) {
+    final winSize = _concealedSize(totalMelds) + 1;
     final hand = List<int>.of(concealedHand);
-    final openHand = _countTiles(hand) < 14;
+    final openHand = _countTiles(hand) < winSize;
 
     // Riichi-Trainer pads each open meld with a completed honor triplet.
-    final shantenOffset = ((14 - _countTiles(hand)) ~/ 3) * 2;
+    final shantenOffset = ((winSize - _countTiles(hand)) ~/ 3) * 2;
     for (var i = 0; i < shantenOffset; i += 2) {
       hand[31] += 3;
     }
@@ -73,15 +82,15 @@ class TileEfficiencyCalculator {
       if (discard % 10 == 0 || concealedHand[discard] == 0) continue;
 
       hand[discard]--;
-      final resultingShanten = _shanten(hand, openHand);
+      final resultingShanten = _shanten(hand, openHand, -2, totalMelds);
       // Acceptance is measured against *this* line's shanten, not the best
       // shanten on offer. Riichi-Trainer passes `baseShanten` here because it
       // only ever ranks optimal discards; that made every shanten-worsening
       // discard report zero acceptance, since drawing back to `baseShanten` is
       // not "below" it. The guide scores those lines too — folding usually
       // means breaking your own shape — so they need a real number.
-      final ukeire =
-          _calculateUkeire(hand, remainingTiles, openHand, resultingShanten);
+      final ukeire = _calculateUkeire(
+          hand, remainingTiles, openHand, resultingShanten, totalMelds);
       hand[discard]++;
 
       results.add(TileEfficiencyResult(
@@ -95,13 +104,16 @@ class TileEfficiencyCalculator {
     return results;
   }
 
-  /// The widest live wait among the discards that leave a 14-tile (or 11/8/5)
-  /// hand tenpai, or 0 when none does. A cheap subset of `calculate()` for
-  /// lookahead: only tenpai discards pay for an acceptance count.
-  int bestTenpaiWait(List<int> concealedHand, List<int> remainingTiles) {
+  /// The widest live wait among the discards that leave a 14-tile (or 11/8/5,
+  /// or Taiwanese's 17/14/11/8/5) hand tenpai, or 0 when none does. A cheap
+  /// subset of `calculate()` for lookahead: only tenpai discards pay for an
+  /// acceptance count.
+  int bestTenpaiWait(List<int> concealedHand, List<int> remainingTiles,
+      {int totalMelds = 4}) {
+    final winSize = _concealedSize(totalMelds) + 1;
     final hand = List<int>.of(concealedHand);
-    final openHand = _countTiles(hand) < 14;
-    final shantenOffset = ((14 - _countTiles(hand)) ~/ 3) * 2;
+    final openHand = _countTiles(hand) < winSize;
+    final shantenOffset = ((winSize - _countTiles(hand)) ~/ 3) * 2;
     for (var i = 0; i < shantenOffset; i += 2) {
       hand[31] += 3;
     }
@@ -110,8 +122,10 @@ class TileEfficiencyCalculator {
     for (var discard = 1; discard < hand.length; discard++) {
       if (discard % 10 == 0 || concealedHand[discard] == 0) continue;
       hand[discard]--;
-      if (_shanten(hand, openHand, 0) == 0) {
-        final wait = _calculateUkeire(hand, remainingTiles, openHand, 0).value;
+      if (_shanten(hand, openHand, 0, totalMelds) == 0) {
+        final wait =
+            _calculateUkeire(hand, remainingTiles, openHand, 0, totalMelds)
+                .value;
         if (wait > best) best = wait;
       }
       hand[discard]++;
@@ -119,22 +133,26 @@ class TileEfficiencyCalculator {
     return best;
   }
 
-  /// The tiles that reduce the shanten of a 13-tile (or 10/7/4) hand, and how
-  /// many are live given [remainingTiles]. Convenience wrapper around the same
-  /// logic `calculate()` uses per discard.
+  /// The tiles that reduce the shanten of a 13-tile (or 10/7/4, or
+  /// Taiwanese's 16/13/10/7/4) hand, and how many are live given
+  /// [remainingTiles]. Convenience wrapper around the same logic
+  /// `calculate()` uses per discard.
   ({int count, List<int> tiles}) acceptance(
     List<int> concealedHand,
-    List<int> remainingTiles,
-  ) {
+    List<int> remainingTiles, {
+    int totalMelds = 4,
+  }) {
+    final concealedSize = _concealedSize(totalMelds);
     final hand = List<int>.of(concealedHand);
-    final open = _countTiles(hand) < 13;
-    final melds = (13 - _countTiles(hand)) ~/ 3;
+    final open = _countTiles(hand) < concealedSize;
+    final melds = (concealedSize - _countTiles(hand)) ~/ 3;
     final clamped = melds < 0 ? 0 : melds;
     for (var i = 0; i < clamped; i++) {
       hand[31] += 3;
     }
-    final base = _shanten(hand, open || clamped > 0);
-    final r = _calculateUkeire(hand, remainingTiles, open || clamped > 0, base);
+    final base = _shanten(hand, open || clamped > 0, -2, totalMelds);
+    final r = _calculateUkeire(
+        hand, remainingTiles, open || clamped > 0, base, totalMelds);
     return (count: r.value, tiles: r.tiles);
   }
 
@@ -145,11 +163,12 @@ class TileEfficiencyCalculator {
   /// counts in each. Zero for a hand that is already ready.
   ({int pung, int chow}) callAcceptance(
     List<int> concealedHand,
-    List<int> remainingTiles,
-  ) {
+    List<int> remainingTiles, {
+    int totalMelds = 4,
+  }) {
     final hand = List<int>.of(concealedHand);
     if (_countTiles(hand) < 4) return (pung: 0, chow: 0);
-    final base = calculateWaitingShanten(hand);
+    final base = calculateWaitingShanten(hand, totalMelds: totalMelds);
     if (base <= 0) return (pung: 0, chow: 0);
 
     /// Whether claiming the tile that completes a set with [a] and [b] leaves
@@ -162,7 +181,9 @@ class TileEfficiencyCalculator {
       for (var d = 1; d < hand.length && !improves; d++) {
         if (d % 10 == 0 || hand[d] == 0) continue;
         hand[d]--;
-        if (calculateWaitingShanten(hand) < base) improves = true;
+        if (calculateWaitingShanten(hand, totalMelds: totalMelds) < base) {
+          improves = true;
+        }
         hand[d]++;
       }
       hand[a]++;
@@ -191,16 +212,17 @@ class TileEfficiencyCalculator {
     return (pung: pung, chow: chow);
   }
 
-  /// Shanten of a hand between draws (13, 10, 7 or 4 concealed tiles). Ported
-  /// from `calculate_waiting_shanten()`.
-  int calculateWaitingShanten(List<int> concealedHand) {
+  /// Shanten of a hand between draws (13, 10, 7 or 4 concealed tiles, or
+  /// Taiwanese's 16, 13, 10, 7 or 4). Ported from `calculate_waiting_shanten()`.
+  int calculateWaitingShanten(List<int> concealedHand, {int totalMelds = 4}) {
+    final concealedSize = _concealedSize(totalMelds);
     final hand = List<int>.of(concealedHand);
-    final melds = (13 - _countTiles(hand)) ~/ 3;
+    final melds = (concealedSize - _countTiles(hand)) ~/ 3;
     final clamped = melds < 0 ? 0 : melds;
     for (var i = 0; i < clamped; i++) {
       hand[31] += 3;
     }
-    return _shanten(hand, clamped > 0);
+    return _shanten(hand, clamped > 0, -2, totalMelds);
   }
 
   _UkeireResult _calculateUkeire(
@@ -208,13 +230,15 @@ class TileEfficiencyCalculator {
     List<int> remainingTiles,
     bool openHand,
     int baseShanten,
+    int totalMelds,
   ) {
     final result = _UkeireResult();
     for (var added = 1; added < hand.length; added++) {
       if (added % 10 == 0 || remainingTiles[added] == 0) continue;
 
       hand[added]++;
-      if (_shanten(hand, openHand, baseShanten - 1) < baseShanten) {
+      if (_shanten(hand, openHand, baseShanten - 1, totalMelds) <
+          baseShanten) {
         result.value += remainingTiles[added];
         result.tiles.add(added);
       }
@@ -223,8 +247,17 @@ class TileEfficiencyCalculator {
     return result;
   }
 
-  int _shanten(List<int> hand, bool openHand, [int knownMinimum = -2]) {
-    if (openHand) return _standardShanten(hand, knownMinimum);
+  /// [totalMelds] other than 4 is Taiwanese's 5-meld shape, which has neither
+  /// riichi's seven-pairs nor its thirteen-orphans alternate hand (Taiwanese's
+  /// own "seven pairs and a pung" is a different shape this shanten search
+  /// does not chase — see `taiwanese_hand_parse.dart`), so only the standard
+  /// search runs for it.
+  int _shanten(List<int> hand, bool openHand,
+      [int knownMinimum = -2, int totalMelds = 4]) {
+    if (openHand || totalMelds != 4) {
+      return _standardShanten(hand,
+          knownMinimum: knownMinimum, totalMelds: totalMelds);
+    }
 
     final chiitoitsu = _chiitoitsuShanten(hand);
     if (chiitoitsu < 0) return chiitoitsu;
@@ -232,7 +265,9 @@ class TileEfficiencyCalculator {
     final kokushi = _kokushiShanten(hand);
     if (kokushi < 3) return kokushi;
 
-    final standard = _standardShanten(hand, knownMinimum);
+    final standard =
+        _standardShanten(hand,
+            knownMinimum: knownMinimum, totalMelds: totalMelds);
     return [standard, chiitoitsu, kokushi].reduce((a, b) => a < b ? a : b);
   }
 
@@ -261,12 +296,14 @@ class TileEfficiencyCalculator {
     return 13 - unique - hasPair;
   }
 
-  int _standardShanten(List<int> hand, [int knownMinimum = -2]) {
+  int _standardShanten(List<int> hand,
+      {int knownMinimum = -2, int totalMelds = 4}) {
     _copyInto(_workHand, hand);
     _completeSets = 0;
     _pair = 0;
     _partialSets = 0;
-    _bestShanten = 8;
+    _targetMelds = totalMelds;
+    _bestShanten = totalMelds * 2;
     _hasGivenMinimum = knownMinimum != -2;
     _minimumShanten = _hasGivenMinimum ? knownMinimum : -1;
 
@@ -321,7 +358,10 @@ class TileEfficiencyCalculator {
 
   void _removePotentialSets(int start) {
     if (_bestShanten <= _minimumShanten) return;
-    if (_hasGivenMinimum && _completeSets < 3 - _minimumShanten) return;
+    if (_hasGivenMinimum &&
+        _completeSets < (_targetMelds - 1) - _minimumShanten) {
+      return;
+    }
 
     var i = start;
     while (i < _workHand.length && _workHand[i] == 0) {
@@ -329,12 +369,13 @@ class TileEfficiencyCalculator {
     }
 
     if (i >= _workHand.length) {
-      final current = 8 - _completeSets * 2 - _partialSets - _pair;
+      final current =
+          _targetMelds * 2 - _completeSets * 2 - _partialSets - _pair;
       if (current < _bestShanten) _bestShanten = current;
       return;
     }
 
-    if (_completeSets + _partialSets < 4) {
+    if (_completeSets + _partialSets < _targetMelds) {
       if (_workHand[i] == 2) {
         _partialSets++;
         _workHand[i] -= 2;

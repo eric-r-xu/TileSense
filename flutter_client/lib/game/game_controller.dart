@@ -55,37 +55,45 @@ class GameController extends ChangeNotifier implements TableGameHost {
     this.ruleset = Ruleset.riichi,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         _botFactory = botFactory ?? SimpleBot.new {
-    if (ruleset.isHongKong) {
+    if (ruleset.isChineseStyle) {
       playStyle = PlayStyle.balanced;
       strategy = Strategy.points;
     }
     _startGame();
   }
 
-  /// Japanese riichi or Hong Kong rules for every hand of this game.
+  /// Japanese riichi, Hong Kong, or Taiwanese rules for every hand of this
+  /// game.
   Ruleset ruleset;
 
-  /// The style in effect when Hong Kong last pinned it, so it comes back on
-  /// switching to riichi rather than staying stuck on Balanced. See
-  /// [setRuleset].
+  /// The style in effect when Hong Kong or Taiwanese last pinned it, so it
+  /// comes back on switching to riichi rather than staying stuck on
+  /// Balanced. See [setRuleset].
   PlayStyle? _preHongKongStyle;
 
-  /// The strategy in effect when Hong Kong last pinned it — mirrors
-  /// [_preHongKongStyle]. Placement isn't wired up for Hong Kong yet (see
-  /// [Strategy]), so this is pinned to Points the same way Style is pinned to
-  /// Balanced there.
+  /// The strategy in effect when Hong Kong or Taiwanese last pinned it —
+  /// mirrors [_preHongKongStyle]. Placement isn't wired up for either yet
+  /// (see [Strategy]), so this is pinned to Points the same way Style is
+  /// pinned to Balanced there.
   Strategy? _preHongKongStrategy;
 
   /// Switching rules abandons the game in progress and deals a fresh one. The
-  /// guide's dials carry across — except Style, which Hong Kong has no use
-  /// for (see [PlayStyle]) and pins to Balanced, and Strategy, which is
-  /// riichi-only for now and pins to Points; both come back on the way out.
+  /// guide's dials carry across — except Style, which Hong Kong and
+  /// Taiwanese have no use for (see [PlayStyle]) and pin to Balanced, and
+  /// Strategy, which is riichi-only for now and pins to Points; both come
+  /// back on the way out.
   void setRuleset(Ruleset value) {
     if (ruleset == value) return;
-    if (value.isHongKong) {
-      _preHongKongStyle = playStyle;
+    if (value.isChineseStyle) {
+      // Only save on the way in from riichi — Hong Kong <-> Taiwanese is
+      // already pinned on both sides, and re-saving here would clobber the
+      // riichi style with the pinned Balanced/Points it is currently
+      // showing.
+      if (!ruleset.isChineseStyle) {
+        _preHongKongStyle = playStyle;
+        _preHongKongStrategy = strategy;
+      }
       playStyle = PlayStyle.balanced;
-      _preHongKongStrategy = strategy;
       strategy = Strategy.points;
     } else {
       if (_preHongKongStyle != null) {
@@ -442,7 +450,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void _startRound() {
     final serial = _dealSerial++;
     round = Round(
-      seed: ruleset.isHongKong
+      seed: ruleset.isChineseStyle
           ? _seed + serial
           : _seed + _roundNumber * 100 + _honba,
       dealer: _dealer,
@@ -491,6 +499,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
     required int honba,
     Ruleset ruleset = Ruleset.riichi,
   }) {
+    if (ruleset.isTaiwanese) {
+      // Taiwanese's honba isn't a payment multiplier (see Round._applyRon) —
+      // it counts the dealer's consecutive *wins* for TaiwaneseRules
+      // .dealerBonus, so a draw resets it even though the dealer keeps the
+      // seat.
+      final nextHonba = (dealerKept && !exhaustiveDraw) ? honba + 1 : 0;
+      return dealerKept
+          ? (dealer: dealer, roundNumber: roundNumber, honba: nextHonba)
+          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+    }
     if (ruleset.isHongKong) {
       return dealerKept || exhaustiveDraw
           ? (dealer: dealer, roundNumber: roundNumber, honba: 0)
@@ -517,10 +535,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
     // An abortive draw (e.g. kyuushu kyuuhai) is a void hand — the dealer
     // always repeats, whoever they are, no tenpai check involved.
-    // Hong Kong: the dealer also repeats on any (ordinary) draw, tenpai or not.
+    // Hong Kong and Taiwanese: the dealer also repeats on any (ordinary) draw,
+    // tenpai or not.
     final dealerKept = r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
-            ? (ruleset.isHongKong || r.tenpaiAtDraw.contains(_dealer))
+            ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
             : r.winners.contains(_dealer));
 
     _tel?.roundEnd(
@@ -1159,7 +1178,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   SeatState? _threatOpponent() {
     for (final s in round.seats) {
       if (s.seat == kHumanSeat) continue;
-      if (ruleset.isHongKong
+      if (ruleset.isChineseStyle
           ? s.melds.where((m) => !m.concealed).length >=
               HongKongGuideTuning.threatExposedSets
           : s.riichi) {
@@ -1180,6 +1199,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
         counts[t.type.index - 1]++;
       }
       for (final m in s.melds) {
+        // An opponent's face-down Taiwanese kong isn't something you've seen.
+        if (s.seat != kHumanSeat && round.isHiddenKong(m)) continue;
         for (final t in m.types) {
           counts[t.index - 1]++;
         }

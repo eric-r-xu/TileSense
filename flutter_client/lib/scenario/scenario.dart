@@ -164,10 +164,13 @@ class Scenario {
     return offered != null && isAka(offered!);
   }
 
-  /// Concealed tiles the hand should hold: 13 (or 14 with a draw), less three
-  /// for every call. A kan still eats only one meld slot's worth of three.
+  /// Concealed tiles the hand should hold: 13 (or 14 with a draw) — 16 (or
+  /// 17) for Taiwanese — less three for every call. A kan still eats only one
+  /// meld slot's worth of three.
   int concealedTarget({required bool withDraw}) =>
-      (withDraw ? 14 : 13) - seats[0].melds.length * 3;
+      ruleset.concealedHandSize +
+      (withDraw ? 1 : 0) -
+      seats[0].melds.length * 3;
 
   /// The turn a seat's nth discard was made on, counted from the dealer's
   /// first turn. A posed table has no global discard clock, so this is the
@@ -225,7 +228,7 @@ class Scenario {
       }
     }
 
-    if (ruleset.isHongKong) {
+    if (ruleset.isChineseStyle) {
       for (final type in TileType.values.where((t) => t.isBonus)) {
         if (used(type) > 1) out.add('Only one ${type.displayName} exists.');
       }
@@ -244,9 +247,10 @@ class Scenario {
   bool get isValid => problems().isEmpty;
 
   /// The most tiles a live wall can hold once the hands are dealt.
-  int get maxWall => ruleset.isHongKong ? 144 : 122;
+  int get maxWall => ruleset.isChineseStyle ? 144 : 122;
 
-  /// True when the hand is a full 14 (a drawn tile in hand) and the guide
+  /// True when the hand is full (a drawn tile in hand: 14, or 17 for
+  /// Taiwanese) and the guide
   /// should recommend a discard rather than a call.
   bool get isDiscardRead => hand.length == concealedTarget(withDraw: true);
 
@@ -260,7 +264,7 @@ class Scenario {
     dora.clear();
     if (ruleset.isRiichi) dora.add(TileType.man1);
     offered = null;
-    wallRemaining = ruleset.isHongKong ? 84 : 70;
+    wallRemaining = ruleset.isChineseStyle ? 84 : 70;
     honba = 0;
     riichiSticks = 0;
     // Round wind, seat wind and play style are settings, not table state —

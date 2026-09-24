@@ -90,7 +90,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
   }
 
   Scenario get s => _c.scenario;
-  bool get _hk => s.ruleset.isHongKong;
+  // Named for Hong Kong, the first Chinese-style ruleset this app had, but
+  // true for Taiwanese too — see [Ruleset.isChineseStyle].
+  bool get _hk => s.ruleset.isChineseStyle;
 
   void _edit(void Function(Scenario s) change) =>
       setState(() => _c.edit(change));
@@ -196,7 +198,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
       for (var i = 0; i < 6; i++) {
         sc.seats[0].pond.add(sc.mint(take()));
       }
-      for (var i = 0; i < 14; i++) {
+      for (var i = 0; i < sc.concealedTarget(withDraw: true); i++) {
         sc.hand.add(sc.mint(take()));
       }
       sc.hand.sort((a, b) => a.type.index.compareTo(b.type.index));
@@ -360,12 +362,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
             fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
       );
 
-  /// Hong Kong vs Riichi, side by side; the active one is filled. Switching
-  /// clears the table, since the two rule sets share no tile state.
+  /// Hong Kong, Taiwanese and Riichi, side by side; the active one is filled
+  /// and named, the others show just their flag (named on hover) so the three
+  /// fit the tool bar the two used to. Switching clears the table, since the
+  /// rule sets share no tile state.
   Widget _rulesetToggle() {
     Widget option(Ruleset r, String label) {
       final selected = s.ruleset == r;
-      return InkWell(
+      final chip = InkWell(
         key: Key('builderRuleset_${r.name}'),
         borderRadius: BorderRadius.circular(6),
         onTap: selected
@@ -384,19 +388,22 @@ class _ScenarioPageState extends State<ScenarioPage> {
             border: Border.all(
                 color: selected ? const Color(0xffe9d58f) : Colors.white24),
           ),
-          child: Text(label,
+          child: Text(selected ? label : r.flag,
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: selected ? Colors.white : Colors.white60)),
         ),
       );
+      return selected ? chip : Tooltip(message: '${r.label} rules', child: chip);
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         option(Ruleset.hongKong, '🇭🇰 HK'),
+        const SizedBox(width: 4),
+        option(Ruleset.taiwanese, '🇹🇼 TW'),
         const SizedBox(width: 4),
         option(Ruleset.riichi, '🇯🇵 Riichi'),
       ],
@@ -497,7 +504,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
       (false, _) => (problems.first, const Color(0xffef9a9a)),
       (true, final b?) => (b, const Color(0xffffcc80)),
       _ => (
-          'Scored: ${s.isDiscardRead ? "14 tiles — discard recommendation" : "13 tiles — call recommendation"}'
+          'Scored: ${s.isDiscardRead ? "${s.concealedTarget(withDraw: true)} tiles — discard recommendation" : "${s.concealedTarget(withDraw: false)} tiles — call recommendation"}'
               '${_c.safetyOpponentSeat != null ? " · safety vs ${kSeatNames[_c.safetyOpponentSeat!]}" : ""}',
           const Color(0xffa5d6a7)
         ),
@@ -691,9 +698,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
         return Row(
           children: [
             if (s.offered == null)
-              const Text(
-                  'No tile on offer. With 13 tiles, set the tile an opponent '
-                  'just discarded to get a call recommendation.',
+              Text(
+                  'No tile on offer. With ${s.concealedTarget(withDraw: false)} '
+                  'tiles, set the tile an opponent just discarded to get a '
+                  'call recommendation.',
                   style: TextStyle(color: Colors.white38, fontSize: 11))
             else ...[
               InkWell(

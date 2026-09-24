@@ -404,7 +404,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   void _applyRoomState(Map<String, dynamic> msg) {
     roomCode = msg['code'] as String;
-    ruleset = msg['ruleset'] == 'hongKong' ? Ruleset.hongKong : Ruleset.riichi;
+    ruleset = Ruleset.values.byName(msg['ruleset'] as String);
     hanchan = msg['hanchan'] as bool;
     timerSeconds = msg['timerSeconds'] as int? ?? 30;
     roomPhase = RoomLifecycle.values.byName(msg['phase'] as String);
@@ -937,7 +937,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   SeatState? _threatOpponent() {
     for (final s in round.seats) {
       if (s.seat == kHumanSeat) continue;
-      if (ruleset.isHongKong
+      if (ruleset.isChineseStyle
           ? s.melds.where((m) => !m.concealed).length >=
               HongKongGuideTuning.threatExposedSets
           : s.riichi) {
@@ -954,6 +954,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         counts[t.type.index - 1]++;
       }
       for (final m in s.melds) {
+        // An opponent's face-down Taiwanese kong isn't something you've seen.
+        if (s.seat != kHumanSeat && round.isHiddenKong(m)) continue;
         for (final t in m.types) {
           counts[t.index - 1]++;
         }

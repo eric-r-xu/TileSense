@@ -59,8 +59,11 @@ Handler buildMultiplayerHandler(
             send({'type': 'error', 'message': 'missing guestId'});
             return;
           }
-          final ruleset =
-              msg['ruleset'] == 'hongKong' ? Ruleset.hongKong : Ruleset.riichi;
+          final ruleset = msg['ruleset'] == 'hongKong'
+              ? Ruleset.hongKong
+              : msg['ruleset'] == 'taiwanese'
+                  ? Ruleset.taiwanese
+                  : Ruleset.riichi;
           final hanchan = msg['hanchan'] as bool? ?? true;
           final r = manager.createRoom(
             hostGuestId: requestedGuestId,

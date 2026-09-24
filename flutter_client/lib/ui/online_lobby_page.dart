@@ -379,7 +379,11 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       );
     }
 
-    return Row(children: [option(Ruleset.riichi), option(Ruleset.hongKong)]);
+    return Row(children: [
+      option(Ruleset.riichi),
+      option(Ruleset.hongKong),
+      option(Ruleset.taiwanese),
+    ]);
   }
 
   // --- a room exists: code + roster ----------------------------------------

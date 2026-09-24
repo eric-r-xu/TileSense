@@ -15,6 +15,10 @@ import 'hong_kong/hong_kong_wall.dart';
 import 'meld.dart';
 import 'ruleset.dart';
 import 'scoring.dart';
+import 'taiwanese/taiwanese_hand_parse.dart';
+import 'taiwanese/taiwanese_rules.dart';
+import 'taiwanese/taiwanese_scoring.dart';
+import 'taiwanese/taiwanese_wall.dart';
 import 'tile.dart';
 import 'wall.dart';
 
@@ -128,7 +132,12 @@ class Round {
     required List<int> startingPoints,
     this.ruleset = Ruleset.riichi,
     TileWall? wall,
-  })  : wall = wall ?? (ruleset.isHongKong ? HongKongWall(seed) : Wall(seed)),
+  })  : wall = wall ??
+            (ruleset.isTaiwanese
+                ? TaiwaneseWall(seed)
+                : ruleset.isHongKong
+                    ? HongKongWall(seed)
+                    : Wall(seed)),
         startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];
@@ -186,8 +195,9 @@ class Round {
       return SeatState(i, wind, i == dealer, startingPoints[i]);
     });
     turn = 0;
-    // A posed Hong Kong table is mid-hand, so no first-turn blessing applies.
-    if (ruleset.isHongKong) _firstGoAround = false;
+    // A posed Chinese-style table is mid-hand, so no first-turn blessing
+    // applies.
+    if (ruleset.isChineseStyle) _firstGoAround = false;
     phase = RoundPhase.discarding;
   }
 
@@ -238,6 +248,34 @@ class Round {
   /// rules, whatever the seat's riichi flag says.
   bool _locked(SeatState s) => ruleset.isRiichi && s.riichi;
 
+  /// Wait/tenpai/agari for [hand]: Taiwanese's 5-meld, 17-tile shape (plus
+  /// its seven-pairs-and-a-pung alternate), or the 4-meld, 14-tile shape
+  /// riichi and Hong Kong share.
+  List<TileType> _waitTiles(List<Tile> hand, {required int openMelds}) =>
+      ruleset.isTaiwanese
+          ? waitTilesTaiwanese(hand, openMelds: openMelds)
+          : waitTiles(hand, openMelds: openMelds);
+
+  /// Whether [m] is a concealed kong the other seats can't see into yet —
+  /// see [Ruleset.hidesConcealedKongs]. Every kong is shown once the hand
+  /// has a result.
+  bool isHiddenKong(Meld m) =>
+      ruleset.hidesConcealedKongs && m.isKan && m.concealed && result == null;
+
+  /// The tiles [seat]'s current hand waits on, under this round's rules.
+  List<TileType> waitsFor(int seat) =>
+      _waitTiles(seats[seat].hand, openMelds: seats[seat].melds.length);
+
+  bool _isTenpaiFor(List<Tile> hand, {required int openMelds}) =>
+      ruleset.isTaiwanese
+          ? isTenpaiTaiwanese(hand, openMelds: openMelds)
+          : isTenpai(hand, openMelds: openMelds);
+
+  bool _isAgari(List<int> counts34, {required int meldCount}) =>
+      ruleset.isTaiwanese
+          ? isAgariTaiwanese(counts34, meldCount: meldCount)
+          : isAgari(counts34, meldCount: meldCount);
+
   // --- flowers (Hong Kong) -------------------------------------------------
 
   /// The seat paused on its seventh or eighth flower, choosing whether to
@@ -257,7 +295,10 @@ class Round {
 
   void _exposeFlower(SeatState seat, Tile tile, void Function() resume) {
     seat.flowers.add(tile);
-    if (seat.flowers.length >= 7) {
+    // Hong Kong's own seventh flower is already an independent win; Taiwanese
+    // only scores "All Flowers" at the eighth (and last) one.
+    final pauseAt = ruleset.isTaiwanese ? 8 : 7;
+    if (seat.flowers.length >= pauseAt) {
       turn = seat.seat;
       seat.drawn = null;
       _flowerSeat = seat.seat;
@@ -276,7 +317,7 @@ class Round {
   /// come from a dead wall that [TileWall.canKan] has already vouched for.
   void _drawFor(SeatState seat,
       {required bool replacement, required void Function(Tile) onTile}) {
-    if ((!replacement || ruleset.isHongKong) && wall.isEmpty) {
+    if ((!replacement || ruleset.isChineseStyle) && wall.isEmpty) {
       _exhaustiveDraw();
       return;
     }
@@ -342,7 +383,7 @@ class Round {
     final s = seats[seat];
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
-    if (ruleset.isRiichi && _isFuriten(s)) return false;
+    if (!ruleset.isHongKong && _isFuriten(s)) return false;
     return _winsWith(s, s.hand, discard, isTsumo: false, chankan: chankan);
   }
 
@@ -352,12 +393,12 @@ class Round {
   bool isFuriten(int seat) {
     if (ruleset.isHongKong) return false;
     final s = seats[seat];
-    if (waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
+    if (_waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
     return _isFuriten(s);
   }
 
   bool canRiichi(int seat) {
-    if (ruleset.isHongKong) return false;
+    if (ruleset.isChineseStyle) return false;
     final s = seats[seat];
     return !s.riichi &&
         s.closed &&
@@ -371,9 +412,10 @@ class Round {
   /// nothing at the table having happened yet (no call, no kan — the same
   /// [_firstGoAround] window double riichi uses), and their 14-tile hand
   /// holding at least nine *different* terminal/honor types. Available to
-  /// any seat, not just the dealer. Riichi only; Hong Kong has no such rule.
+  /// any seat, not just the dealer. Riichi only; Hong Kong and Taiwanese have
+  /// no such rule.
   bool canDeclareKyuushu(int seat) {
-    if (ruleset.isHongKong) return false;
+    if (!ruleset.isRiichi) return false;
     if (phase != RoundPhase.discarding || turn != seat) return false;
     final s = seats[seat];
     if (!_firstGoAround || s.pond.isNotEmpty) return false;
@@ -401,8 +443,8 @@ class Round {
 
   bool canPon(int seat, Tile discard) {
     if (seat == pendingDiscardSeat) return false;
-    // Hong Kong: nothing can be called off the last discard.
-    if (ruleset.isHongKong && wall.isEmpty) return false;
+    // Chinese-style: nothing can be called off the last discard.
+    if (ruleset.isChineseStyle && wall.isEmpty) return false;
     final s = seats[seat];
     if (_locked(s)) return false;
     return s.hand.where((t) => t.type == discard.type).length >= 2;
@@ -413,7 +455,7 @@ class Round {
   bool canChi(int seat, Tile discard) {
     if (seat == pendingDiscardSeat) return false;
     if (seat != (pendingDiscardSeat + 1) % 4) return false;
-    if (ruleset.isHongKong && wall.isEmpty) return false;
+    if (ruleset.isChineseStyle && wall.isEmpty) return false;
     if (_locked(seats[seat])) return false;
     return chiSequences(seat, discard).isNotEmpty;
   }
@@ -495,12 +537,14 @@ class Round {
   bool _winsWith(SeatState s, List<Tile> concealed, Tile winTile,
       {required bool isTsumo, bool chankan = false}) {
     final counts = toCounts34([...concealed, winTile]);
-    if (!isAgari(counts, meldCount: s.melds.length)) return false;
+    if (!_isAgari(counts, meldCount: s.melds.length)) return false;
     final score = _score(s, concealed, winTile,
         isTsumo: isTsumo, dryRun: true, chankan: chankan);
     if (ruleset.isHongKong) {
       return score.valid && score.faan >= HongKongRules.minimumFaan;
     }
+    // Taiwanese's own minimum tai is already baked into `score.valid` by
+    // `scoreTaiwaneseHand` (a hand with zero tai comes back invalid).
     return score.valid;
   }
 
@@ -512,21 +556,23 @@ class Round {
   ///     draw and was not claimed.
   bool _isFuriten(SeatState s) {
     if (s.riichiFuriten) return true;
-    final waits = waitTiles(s.hand, openMelds: s.melds.length).toSet();
+    final waits = _waitTiles(s.hand, openMelds: s.melds.length).toSet();
     if (waits.isEmpty) return true;
     if (s.allDiscards.any((d) => waits.contains(d.type))) return true;
     return s.tempFuriten;
   }
 
   /// Any seat (other than the discarder) whose wait includes [discard] but did
-  /// not claim it is now furiten: temporarily until its next draw, or —
-  /// if it is in riichi — permanently for the rest of the round.
+  /// not claim it is now furiten: temporarily until its next draw — or, in
+  /// riichi, permanently for the rest of the round. Hong Kong has no furiten
+  /// at all; Taiwanese's own "Taiwanese Furiten" is temporary only, the same
+  /// as riichi's non-permanent case.
   void _registerMissedRon(Tile discard, int discarder) {
-    if (ruleset.isHongKong) return; // no furiten
+    if (ruleset.isHongKong) return;
     for (var i = 0; i < 4; i++) {
       if (i == discarder) continue;
       final s = seats[i];
-      final waits = waitTiles(s.hand, openMelds: s.melds.length);
+      final waits = _waitTiles(s.hand, openMelds: s.melds.length);
       if (!waits.contains(discard.type)) continue;
       s.tempFuriten = true;
       if (s.riichi) s.riichiFuriten = true;
@@ -578,12 +624,12 @@ class Round {
     if (_flowerSeat != null) {
       throw StateError('Choose flower win or continue first');
     }
-    if (ruleset.isHongKong) {
+    if (ruleset.isChineseStyle) {
       if (phase != RoundPhase.discarding || seat != turn) {
         throw StateError('Not this seat’s discard turn');
       }
       if (declareRiichi) {
-        throw UnsupportedError('Hong Kong mahjong has no riichi');
+        throw UnsupportedError('${ruleset.label} mahjong has no riichi');
       }
       if (!s.hand.contains(tile)) {
         throw ArgumentError('Tile is not in this hand');
@@ -675,8 +721,8 @@ class Round {
           .toList();
       _chankanPending = false;
       if (ronners.isNotEmpty) {
-        // Hong Kong: a robbed kong never happened, so the pung stands.
-        if (ruleset.isHongKong && _pendingPung != null) {
+        // Chinese-style: a robbed kong never happened, so the pung stands.
+        if (ruleset.isChineseStyle && _pendingPung != null) {
           seats[pendingDiscardSeat].melds[_pendingPungIndex] = _pendingPung!;
           _pendingPung = null;
         }
@@ -738,13 +784,15 @@ class Round {
 
   void declareTsumo(int seat) {
     assert(seat == turn);
-    if (ruleset.isHongKong &&
+    if (ruleset.isChineseStyle &&
         (seat != turn || phase != RoundPhase.discarding || !canTsumo(seat))) {
       throw StateError('No legal self draw');
     }
     final s = seats[seat];
     if (canFlowerWin(seat)) {
-      final score = scoreFlowerWin(s.flowers.length);
+      final score = ruleset.isTaiwanese
+          ? scoreTaiwaneseFlowerWin(s.flowers.length)
+          : scoreFlowerWin(s.flowers.length);
       _flowerSeat = null;
       _flowerContinuation = null;
       _finishWin([seat], score, flowerWin: true);
@@ -758,7 +806,7 @@ class Round {
 
   void closedKan(int seat, TileType type) {
     assert(seat == turn && phase == RoundPhase.discarding);
-    if (ruleset.isHongKong) {
+    if (ruleset.isChineseStyle) {
       if (seat != turn || phase != RoundPhase.discarding) {
         throw StateError('Not this seat’s kong turn');
       }
@@ -796,7 +844,7 @@ class Round {
   /// [resolveCalls]'s `_chankanPending` branch.
   void addKan(int seat, TileType type) {
     assert(seat == turn && phase == RoundPhase.discarding);
-    if (ruleset.isHongKong) {
+    if (ruleset.isChineseStyle) {
       if (seat != turn || phase != RoundPhase.discarding) {
         throw StateError('Not this seat’s kong turn');
       }
@@ -953,23 +1001,44 @@ class Round {
     // Score each winner; sum deltas. Head-bump is not modelled — all valid
     // ronners win (double/triple ron).
     //
-    // Hong Kong orders the winners by turn distance before scoring, so the
-    // first score and the result pages follow that order. Its honba and sticks
-    // are always zero, so the payments below are the sheet's discarder-pays-
-    // all rule unchanged.
-    if (ruleset.isHongKong) {
+    // Hong Kong and Taiwanese order the winners by turn distance before
+    // scoring, so the first score and the result pages follow that order.
+    // Their honba and sticks are always zero, so the payments below are
+    // unchanged from the ordinary discarder-pays rule.
+    if (ruleset.isChineseStyle) {
       ronners.sort((a, b) =>
           ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     }
     HandScore? firstScore;
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
+    // Taiwanese has its own dealer-streak bonus (below) in place of honba
+    // payments, which mean nothing there — its honba instead counts the
+    // dealer's consecutive wins. See TaiwaneseRules.dealerBonus.
+    final honbaPay = ruleset.isTaiwanese ? 0 : honba * 300;
     for (final w in ronners) {
       final s = seats[w];
       final score =
           _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
       firstScore ??= score;
-      deltas[w] = deltas[w]! + score.points + honba * 300;
-      deltas[discarder] = deltas[discarder]! - score.points - honba * 300;
+      deltas[w] = deltas[w]! + score.points + honbaPay;
+      deltas[discarder] = deltas[discarder]! - score.points - honbaPay;
+    }
+    // Taiwanese dealer-streak bonus: on a ron, paid only by the discarder —
+    // by the winner collecting it off East when East is among the ronners,
+    // or by East paying every winner when East is the one dealing in.
+    if (ruleset.isTaiwanese) {
+      final bonus = TaiwaneseRules.dealerBonus(honba);
+      if (bonus > 0) {
+        if (ronners.contains(dealer)) {
+          deltas[dealer] = deltas[dealer]! + bonus;
+          deltas[discarder] = deltas[discarder]! - bonus;
+        } else if (discarder == dealer) {
+          for (final w in ronners) {
+            deltas[w] = deltas[w]! + bonus;
+            deltas[discarder] = deltas[discarder]! - bonus;
+          }
+        }
+      }
     }
     // riichi sticks go to the first ronner (closest in turn order after discarder)
     ronners.sort(
@@ -995,7 +1064,7 @@ class Round {
       ],
       winTiles: {for (final w in ronners) w: discard},
       pointDeltas: _handDeltas(),
-      label: ruleset.isHongKong
+      label: ruleset.isChineseStyle
           ? (ronners.length > 1
               ? 'Multiple Wins'
               : (chankan ? 'Robbing a Kong' : 'Win on Discard'))
@@ -1011,13 +1080,21 @@ class Round {
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     final w = winners.first;
 
+    // Taiwanese dealer-streak bonus: on a self-draw, every other seat pays
+    // it too, same as the hand's own value — see the matching note in
+    // _applyRon.
+    final bonus = ruleset.isTaiwanese && seats[w].isDealer
+        ? TaiwaneseRules.dealerBonus(honba)
+        : 0;
+    final honbaPay = ruleset.isTaiwanese ? 0 : honba * 100;
+
     // Tsumo only (ron goes through _applyRon).
     for (var i = 0; i < 4; i++) {
       if (i == w) continue;
       final base = seats[w].isDealer
           ? score.nonDealerPays
           : (i == dealer ? score.dealerPays : score.nonDealerPays);
-      final pay = base + honba * 100;
+      final pay = base + honbaPay + bonus;
       deltas[i] = -pay;
       deltas[w] = deltas[w]! + pay;
     }
@@ -1037,7 +1114,7 @@ class Round {
       scores: [score],
       winTiles: winTile != null ? {w: winTile} : const {},
       pointDeltas: _handDeltas(),
-      label: ruleset.isHongKong
+      label: ruleset.isChineseStyle
           ? (flowerWin ? score.yaku.first.name : 'Self Draw')
           : 'Tsumo',
     );
@@ -1047,7 +1124,7 @@ class Round {
   void _exhaustiveDraw() {
     final tenpai = <int>[];
     for (var i = 0; i < 4; i++) {
-      if (isTenpai(seats[i].hand, openMelds: seats[i].melds.length)) {
+      if (_isTenpaiFor(seats[i].hand, openMelds: seats[i].melds.length)) {
         tenpai.add(i);
       }
     }
@@ -1079,7 +1156,8 @@ class Round {
       tenpaiAtDraw: tenpai,
       label: 'Exhaustive Draw',
     );
-    _postFinish(dealerRepeat: ruleset.isHongKong || tenpai.contains(dealer));
+    _postFinish(
+        dealerRepeat: ruleset.isChineseStyle || tenpai.contains(dealer));
   }
 
   void _postFinish({required bool dealerRepeat}) {
@@ -1125,6 +1203,26 @@ class Round {
         chankan: chankan,
       );
       return scoreHongKongHand(concealed, winTile, s.melds, ctx,
+          isDealer: s.isDealer);
+    }
+    if (ruleset.isTaiwanese) {
+      final ctx = ScoreContext(
+        roundWind: roundWind,
+        seatWind: s.wind,
+        isTsumo: isTsumo,
+        closed: s.closed,
+        flowers: s.flowers.map((t) => t.type).toList(),
+        rinshan: isTsumo && s.replacementDraw,
+        heavenly: _firstGoAround && _discardsThisRound == 0,
+        earthly: _firstGoAround &&
+            _discardsThisRound == 1 &&
+            pendingDiscardSeat == dealer,
+        haitei: isTsumo && wall.isEmpty,
+        houtei: !isTsumo && wall.isEmpty,
+        chankan: chankan,
+        discardCount: _discardsThisRound,
+      );
+      return scoreTaiwaneseHand(concealed, winTile, s.melds, ctx,
           isDealer: s.isDealer);
     }
     final ctx = ScoreContext(
