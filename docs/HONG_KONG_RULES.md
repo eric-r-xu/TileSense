@@ -91,11 +91,12 @@ Style has no riichi or damaten left to weigh here, and a 14,000-game sweep
 found no placement effect from it either, so it is hidden and pinned to
 Balanced rather than exposed as in riichi. Focus offers Speed and Balanced,
 starting on **Speed**; it pivots around 32 chips here instead of riichi's
-5,000 points. Two Hong Kong-only settings (`HongKongGuideTuning`) soften the
-pre-ready penalty on narrow hands and count an opponent as a threat only at
-three or more exposed sets. With them the guide places 0.062 of a placement
-better than `SimpleBot`, pooled over three held-out runs of 10,000 East-only
-games (±0.029, p = 2.6e-5); see
+5,000 points. `HongKongGuideTuning` now holds seven knobs shared with
+Taiwanese, but the two that carry Hong Kong's result soften the pre-ready
+penalty on narrow hands and count an opponent as a threat only at three or
+more exposed sets. With them the guide places 0.062 of a placement better than
+`SimpleBot`, pooled over three held-out runs of 10,000 East-only games
+(±0.029, p = 2.6e-5, measured 2026-09-15); see
 [`BOT_STRATEGY.md`](../flutter_client/BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots)
 and [style does nothing under Hong Kong](../flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
 

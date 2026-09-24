@@ -24,6 +24,7 @@ open -a Docker && docker ps >/dev/null   # needed for every compile step below
 | You touched | Redeploy |
 | --- | --- |
 | `flutter_client/lib/**` (game, UI) | §2 Web client |
+| `packages/mahjong_core/**` (shared core) | §2 Web client **and** §4 Multiplayer — the server imports it too |
 | A new file in `server/migrations/` | §1 Migration, before §3 |
 | `server/bin/server.dart` | §3 Ingest |
 | `server/mp/lib/**`, `server/mp/bin/**` | §4 Multiplayer |
