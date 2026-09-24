@@ -13,6 +13,7 @@ import '../game/guide_host.dart';
 import '../game/sfx.dart' show Character, kCharacterName;
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
+import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
@@ -210,6 +211,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     final passed = riichiOpp == null
         ? const <TileType>[]
         : scenario.passedAfterRiichi(riichiOpp.seat).toList();
+    final oppMelds = riichiOpp?.melds ?? const <Meld>[];
     final visible = scenario.visibleCounts34();
     final human = round.seats[kHumanSeat];
     final context = EfficiencyValueContext(
@@ -240,8 +242,10 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
         passedDiscardsAfterRiichi: passed,
         opponentRiichi: riichiOpp != null,
         opponentIsDealer: riichiOpp?.isDealer ?? false,
+        opponentMelds: oppMelds,
       );
-      kanAdvice = _kanAdvice(human, context, visible, oppDiscards, passed);
+      kanAdvice =
+          _kanAdvice(human, context, visible, oppDiscards, passed, oppMelds);
       notifyListeners();
       return;
     }
@@ -285,6 +289,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       passedDiscardsAfterRiichi: passed,
       opponentRiichi: riichiOpp != null,
       opponentIsDealer: riichiOpp?.isDealer ?? false,
+      opponentMelds: oppMelds,
     );
     // Keep a defensive read on screen next to the call advice.
     report = _efficiency.analyze(
@@ -297,6 +302,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       passedDiscardsAfterRiichi: passed,
       opponentRiichi: riichiOpp != null,
       opponentIsDealer: riichiOpp?.isDealer ?? false,
+      opponentMelds: oppMelds,
     );
     notifyListeners();
   }
@@ -319,6 +325,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     List<int> visible,
     List<TileType> oppDiscards,
     List<TileType> passed,
+    List<Meld> oppMelds,
   ) {
     final riichiOpp = _threatOpponent() != null;
     for (final type in round.closedKanTypes(kHumanSeat)) {
@@ -347,6 +354,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
           opponentRiichi: riichiOpp,
           opponentDiscards: oppDiscards,
           passedDiscardsAfterRiichi: passed,
+          opponentMelds: oppMelds,
         ),
       );
     }

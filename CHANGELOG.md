@@ -9,6 +9,51 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-09-24 — Hong Kong guide: the bot's speed, the guide's judgement
+
+### Changed
+- **The Hong Kong guide now beats `SimpleBot` by 0.270 of a placement, up
+  from 0.106**, on 6000 held-out East-only games (seeds 300000+; 0.163 ± 0.030
+  better than the previous guide, p < 1e-6), and by 0.492 at a 3-faan
+  minimum. Two rules, both only while no opponent is a threat
+  (`HongKongGuideTuning.neverStepBack`, `takeShantenCalls`): never break a
+  hand up to get further from ready, and take any pung or chow that brings it
+  closer. The guide's own valuation still chooses among those lines, and its
+  defence is unchanged. Wins per hand went from 0.254 to 0.314 (bot 0.258),
+  backward steps from 0.78 to 0.04 per hand (bot 0.38).
+- Measured and not adopted, each within ±0.013 of the old guide over 6000
+  paired games: reading a threat's exposed sets for a flush (against the bots
+  it's noise), rating a threat's own discards safer, pricing a deal-in at its
+  measured 7.3 chips or from the threat's visible faan, a softer narrow-hand
+  penalty, crediting value pairs and near-flushes before ready, and defending
+  against two-set opponents. All stay behind switches that default off.
+  Details: `flutter_client/BOT_STRATEGY.md`.
+
+## 2026-09-24 — Riichi auto-discard always on, status line in the app bar
+
+### Changed
+- **Riichi auto-discard is no longer a toggle.** Once locked into riichi, the
+  drawn tile is always cut on its own, now after a random 0.5–1.5 s pause
+  rather than instantly, so it reads like a hand putting it down. It still
+  stops for a self-kan or a win, and a tap during the pause still discards at
+  once. The Auto-discard chip beside the hand is gone. Solo and online.
+- **The round/wall status moved from the table's top-left box to one line in
+  the centre of the app bar**, e.g. `東 East 1 · Wall 70 · Honba 0 · Riichi 0`
+  (Hong Kong and Taiwanese show `Dealer repeat` instead; online also names the
+  style, since that bar doesn't otherwise). It scales down rather than wrapping
+  or covering the bar's controls, and the guide panel now starts at the top of
+  the table where the box used to be.
+
+## 2026-09-24 — Hong Kong minimum faan
+
+### Added
+- **Hong Kong tables can require 1, 2 or 3 faan to win**, besides the default
+  0. Single player picks it on the character screen, online hosts pick it when
+  creating a room, and the app bar and room card show it. `Round` enforces it
+  for every seat, bots included; the guide treats a wait under it as no win,
+  or as self-pick-only when Self-Pick's faan lifts it over, and floors its
+  pre-ready estimate at it.
+
 ## 2026-09-24 — Multi-riichi pricing and a rinshan fix
 
 ### Fixed

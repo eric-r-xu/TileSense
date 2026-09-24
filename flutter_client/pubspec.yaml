@@ -30,7 +30,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tilesense.png
-    - assets/clefairy.png
+    - assets/tilesensor.png
     - assets/TileClink.wav
     - assets/tiles/
     - assets/sfx/

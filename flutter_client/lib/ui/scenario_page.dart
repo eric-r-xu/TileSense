@@ -19,6 +19,7 @@ import '../scenario/scenario_controller.dart';
 import 'efficiency_overlay.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
+import 'tilesensor.dart';
 
 /// The slot the tile palette is currently filling. [dora] is the dora
 /// indicators in riichi and the selected seat's flowers in Hong Kong — the
@@ -267,16 +268,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 child: LayoutBuilder(
                   builder: (context, c) => Stack(
                     children: [
-                      // Starts below the table's top-left status panel so
-                      // it never covers it.
                       Positioned(
                         left: 8,
-                        top: TableView.statusPanelClearance,
+                        top: TableView.guidePanelTop,
                         child: EfficiencyOverlay(
                           game: _c,
                           report: _c.report,
                           maxHeight: c.maxHeight -
-                              TableView.statusPanelClearance -
+                              TableView.guidePanelTop -
                               _editorHeight -
                               8,
                           showGameControls: false,
@@ -305,10 +304,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset('assets/clefairy.png',
-              height: 30,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 30)),
+          Tooltip(
+            message: kTileSensorIntro,
+            child: Image.asset(kTileSensorAsset,
+                height: 30,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.school, size: 30)),
+          ),
           const SizedBox(width: 8),
           const Text('Custom Hand & Context Builder',
               style: TextStyle(fontSize: 14)),

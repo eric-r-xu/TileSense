@@ -48,6 +48,28 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('Hong Kong rooms pick a 0-3 minimum faan, with no overflow',
+      (tester) async {
+    final game = OnlineGameController();
+    await pump(tester, game);
+
+    expect(find.byKey(const Key('onlineMinimumFaan_0')), findsNothing,
+        reason: 'riichi has no faan minimum to pick');
+    await tester.tap(find.byKey(const Key('onlineRuleset_hongKong')));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('onlineMinimumFaan_3')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('createRoom')));
+    await tester.pump();
+    expect(game.ruleset, Ruleset.hongKong);
+    expect(game.minimumFaan, 3);
+
+    game.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   testWidgets('the name field defaults to the selected character',
       (tester) async {
     final game = OnlineGameController();

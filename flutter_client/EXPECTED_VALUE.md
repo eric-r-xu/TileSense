@@ -34,7 +34,7 @@ use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
   each other seat, given the scores on the table right now — see
   [Strategy](#strategy--points-or-placement-riichi-only).
 - Under **Hong Kong** rules the same machinery runs on faan converted to chips,
-  with a 0-faan minimum — see [Under Hong Kong rules](#under-hong-kong-rules).
+  with the table's faan minimum (0 by default) — see [Under Hong Kong rules](#under-hong-kong-rules).
 - Two different estimators depending on where the hand sits:
   - **Not yet tenpai:** a turn-by-turn walk of the hand towards a win — each
     turn it may take a step, each step is narrower than the last, and each turn
@@ -514,9 +514,10 @@ seeds against a `SimpleBot` control in `test/policy_sweep_test.dart`. In brief
   (p = 4e-16).
 - **Hong Kong:** Aggressive / Speed placed best of the six Style × Focus
   pairings (e.g. 0.108 ahead of Balanced / Balanced, p = 1.7e-5). With the
-  Hong Kong tuning below, it beats the control bot by 0.062 of a placement,
-  pooled over 10,000 held-out East-only games (±0.029, p = 2.6e-5); before
-  that tuning it trailed the bot. A later sweep isolating each dial
+  Hong Kong tuning below and the speed rules added on 2026-09-24, it beats the
+  control bot by 0.270 of a placement over 6000 held-out East-only games
+  (±0.036, p < 1e-6; it was 0.062 before the speed rules, and before that
+  tuning it trailed the bot). A later sweep isolating each dial
   (`_dialEffects`, 14,000 games) found Style itself does nothing there —
   every pairwise style comparison came back Holm p = 1.0 — while Speed still
   beat Balanced focus at every style (p ≤ 4e-5); see
@@ -531,7 +532,7 @@ the win-probability walk, the lookahead and the push/fold arithmetic are shared.
 |---|---|---|---|
 | Hand shape | 4 sets + a pair (`totalMelds` 4) | 4 sets + a pair | **5 sets + a pair** (`totalMelds` 5), dealt 16 |
 | Ready hand | yaku/fu/han/dora, riichi vs damaten, deposit | every live wait scored with `scoreHongKongHand`; no riichi or damaten | `scoreTaiwaneseHand`; no riichi or damaten |
-| Minimum to win | one yaku | **0 faan** — any complete hand, chicken hands included | **5 points** |
+| Minimum to win | one yaku | **0 faan** by default — any complete hand, chicken hands included; or 1–3 faan, where `_scoreWait` treats a short hand as no win | **5 points** |
 | Before ready | 3900/5800 (closed) or 2000/2900 (open) × dora | faan from visible dragon/wind pungs, flush, concealment and flowers, priced on the New Style table | `_taiwaneseProjectedPoints` — the same idea in Taiwanese points |
 | Payout mix | 0.65 ron / 0.35 tsumo | 0.65 discard win (discarder pays 2×) / 0.35 self-pick (all three pay, +1 faan) | as Hong Kong, with the self-draw collected from all three seats (`_selfDrawTotal`) |
 | Deal-in cost | 5800 / 8700 + honba | 16 chips (a 3-faan discard win) | **7 points** (measured: deal-ins averaged 6.9 in self-play) |
@@ -550,10 +551,15 @@ so it may never have been chosen for Focus specifically. Not changed here —
 moving it changes Taiwanese recommendations and needs re-measuring against the
 recorded −0.146 baseline first.
 
-The two Hong Kong-only settings live in `HongKongGuideTuning` and were measured,
+The Hong Kong-only settings live in `HongKongGuideTuning` and were measured,
 not assumed: riichi's own values (narrow exponent × 1, threat at two sets)
-placed behind `SimpleBot`; the shipped ones place 0.062 ahead of it, pooled
-over three held-out runs of 10,000 games (p = 2.6e-5). A model that also
+placed behind `SimpleBot`; the tuned ones placed 0.062 ahead of it, pooled
+over three held-out runs of 10,000 games (p = 2.6e-5). Two speed rules on top
+— with no threat out, `neverStepBack` recommends only discards that keep the
+hand as close to ready as it is, and `takeShantenCalls` takes any pung or chow
+that brings it closer — take that to 0.270 on 6000 held-out games. They sit
+outside the expected-value model: the model still ranks the lines they allow,
+it just no longer gets to trade distance from ready for width or value. A model that also
 counts calls, with constants fitted to Hong Kong self-play, was built and
 measured but played no better (0.014 ahead of the shipped model over 6000
 paired games, p = 0.40), so it is not used under Hong Kong. Taiwanese *does*

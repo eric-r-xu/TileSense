@@ -393,8 +393,8 @@ void main() {
     // The table is created after a loading frame.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    // The guide is off by default; the clefairy mark opens it.
-    await tester.tap(find.byKey(const Key('guideToggle')));
+    // The guide is off by default; the TileSensor mascot opens it.
+    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Both dials are there, as two rows of the same kind of chip.

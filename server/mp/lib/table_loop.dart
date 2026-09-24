@@ -205,6 +205,7 @@ class TableLoop {
       riichiSticks: _riichiSticks,
       startingPoints: List.of(_points),
       ruleset: ruleset,
+      minimumFaan: room.minimumFaan,
     );
     _discardSerial = 0;
     _lastDiscardSeat = null;

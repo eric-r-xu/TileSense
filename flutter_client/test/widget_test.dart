@@ -32,8 +32,8 @@ void main() {
     expect(find.byType(HandView), findsOneWidget);
     expect(find.byType(EfficiencyOverlay), findsNothing);
 
-    // The clefairy mascot in the AppBar turns it on.
-    await tester.tap(find.byKey(const Key('guideToggle')));
+    // TileSensor, beside the hand, turns it on.
+    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(EfficiencyOverlay), findsOneWidget);
 

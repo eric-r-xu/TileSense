@@ -1,10 +1,20 @@
-/// Rules from HKMJ Cheat Sheet 1.0 (April 3, 2025), with a zero-faan minimum.
+/// Rules from HKMJ Cheat Sheet 1.0 (April 3, 2025), with a zero-faan minimum
+/// by default and 1, 2 or 3 faan as table options.
 library;
 
 class HongKongRules {
-  /// A complete hand scoring fewer faan than this cannot be declared. Zero
-  /// makes every complete hand, including a chicken hand, a legal win.
-  static const minimumFaan = 0;
+  /// A complete hand scoring fewer faan than the table's minimum cannot be
+  /// declared. Zero, the default, makes every complete hand, including a
+  /// chicken hand, a legal win.
+  static const defaultMinimumFaan = 0;
+
+  /// The minimums a table may pick from.
+  static const minimumFaanChoices = [0, 1, 2, 3];
+
+  /// Anything other than a listed choice falls back to the default, so a
+  /// missing or hand-edited value can never produce an unwinnable table.
+  static int normalizeMinimumFaan(Object? v) =>
+      v is int && minimumFaanChoices.contains(v) ? v : defaultMinimumFaan;
 
   /// Faan at which the payment table stops rising.
   static const limitFaan = 13;

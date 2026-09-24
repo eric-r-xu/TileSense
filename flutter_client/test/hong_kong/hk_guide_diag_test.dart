@@ -8,7 +8,9 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:mahjong_core/bot.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:mahjong_core/ruleset.dart';
 
 /// Decision-level counters for seat 0 under Hong Kong rules, the guide
@@ -60,6 +62,9 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
     final bot = SimpleBot(seed * 31 + 3);
     var readyThisHand = false;
     var calledThisHand = false;
+    // The safety rating of the last tile seat 0 discarded, or 'calm' when
+    // nobody was a threat — so a deal-in can be charged to its bucket.
+    var lastBucket = 'calm';
 
     for (var guard = 0; game.phase != GamePhase.gameEnd; guard++) {
       if (guard > 100000) throw StateError('seed $seed never finished');
@@ -81,8 +86,10 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
           if (r.loser == kHumanSeat) {
             inc('deal_ins');
             inc('deal_in_chips', -r.pointDeltas[kHumanSeat]!);
+            inc('deal_in_rating_$lastBucket');
           }
         }
+        if (r.kind == RoundEndKind.ron) _threatReads(game.round, r, inc);
         readyThisHand = false;
         calledThisHand = false;
         game.continueFromRoundEnd();
@@ -95,8 +102,8 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
         CallType choice;
         if (guide) {
           choice = game.recommendedCall ?? CallType.none;
-          final botChoice = bot.decideCall(
-              round, kHumanSeat, round.pendingDiscard!, types);
+          final botChoice =
+              bot.decideCall(round, kHumanSeat, round.pendingDiscard!, types);
           if (choice == CallType.none &&
               botChoice != CallType.none &&
               botChoice != CallType.ron) {
@@ -112,8 +119,8 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
             }
           }
         } else {
-          choice = bot.decideCall(
-              round, kHumanSeat, round.pendingDiscard!, types);
+          choice =
+              bot.decideCall(round, kHumanSeat, round.pendingDiscard!, types);
         }
         for (final t in types) {
           inc('offer_${t.name}');
@@ -136,6 +143,15 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
         }
         inc('discard_turns');
         if (report.defending) inc('turns_defending');
+        String bucketFor(TileType type) {
+          if (!report.defending) return 'calm';
+          final rating =
+              report.defense.where((d) => d.type == type).firstOrNull?.rating;
+          return rating == null
+              ? 'calm'
+              : 'r${rating.toString().padLeft(2, '0')}';
+        }
+
         if (guide) {
           final kan = game.kanAdvice;
           if (kan != null && kan.advice.eligible) {
@@ -158,13 +174,17 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
                   'pts=${l.averagePoints.toStringAsFixed(1)} '
                   'ev=${l.expectedValue.toStringAsFixed(2)} ${l.valuePlan}';
               final seat = round.seats[kHumanSeat];
-              _examples.add('hand=${seat.hand.map((t) => t.type.code).join(' ')} '
+              _examples.add(
+                  'hand=${seat.hand.map((t) => t.type.code).join(' ')} '
                   'melds=${seat.melds.map((m) => m.types.map((t) => t.code).join()).join('|')} '
                   'wall=${round.wall.remaining}\n   chose ${f(line)}\n   best  ${f(best)}');
             }
           }
-          final tile = round.legalDiscards(kHumanSeat)
+          final tile = round
+              .legalDiscards(kHumanSeat)
               .firstWhere((t) => t.type == line.discard);
+          lastBucket = bucketFor(tile.type);
+          inc('discard_rating_$lastBucket');
           game.humanDiscard(tile);
         } else {
           final d = bot.decideTurn(round, kHumanSeat);
@@ -182,6 +202,8 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
             inc('backward_steps');
             if (report.defending) inc('backward_steps_defending');
           }
+          lastBucket = bucketFor(tile.type);
+          inc('discard_rating_$lastBucket');
           game.humanDiscard(tile);
         }
         continue;
@@ -190,4 +212,46 @@ void _game(int seed, bool guide, void Function(String, [num]) inc) {
     }
     game.dispose();
   });
+}
+
+/// What a discard win by another seat looked like from outside: how many sets
+/// the winner had exposed, whether those sets pointed at one suit, and whether
+/// the winning tile was one the winner had discarded themselves. These are the
+/// public reads a Hong Kong defence can make, and the counters say how much
+/// each one is worth.
+void _threatReads(
+    Round round, RoundResult r, void Function(String, [num]) inc) {
+  for (var i = 0; i < r.winners.length; i++) {
+    final w = r.winners[i];
+    if (w == kHumanSeat) continue;
+    final seat = round.seats[w];
+    final win = r.winTiles[w]?.type;
+    if (win == null) continue;
+    final open = seat.melds.where((m) => !m.concealed).toList();
+    final paid = 2 * HongKongRules.basePoints(r.scores[i].faan);
+    inc('ron_by_open_sets_${open.length}');
+    inc('ron_chips_by_open_sets_${open.length}', paid);
+    if (open.length < HongKongGuideTuning.threatExposedSets) continue;
+    inc('threat_ron_wins');
+    inc('threat_ron_chips', paid);
+    final suits = {
+      for (final m in open)
+        if (m.low.isSuit) m.low.suit
+    };
+    final suited = open.where((m) => m.low.isSuit).length;
+    if (suits.length == 1 && suited >= 2) {
+      inc('threat_flushy_wins');
+      inc(win.isHonor
+          ? 'threat_flushy_win_honor'
+          : win.suit == suits.single
+              ? 'threat_flushy_win_in_suit'
+              : 'threat_flushy_win_off_suit');
+    }
+    final discards = seat.allDiscards.map((t) => t.type).toList();
+    inc('threat_win_discard_types', discards.toSet().length);
+    if (discards.contains(win)) inc('threat_win_on_own_discard');
+    final recent =
+        discards.skip(discards.length - 3 < 0 ? 0 : discards.length - 3);
+    if (recent.contains(win)) inc('threat_win_on_recent_discard');
+  }
 }

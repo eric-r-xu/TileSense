@@ -1,7 +1,7 @@
 # <img width="35" height="35" alt="tileSense" src="https://github.com/user-attachments/assets/5b178736-39e4-489d-9bc5-3ffa7f927057" /> TileSense 
 
 
-<img width="215" height="215" alt="clefairy" src="flutter_client/assets/clefairy.png" />
+<img width="215" height="215" alt="TileSensor" src="flutter_client/assets/tilesensor.png" />
 
 --- 
 
@@ -17,7 +17,7 @@ guide, so nobody gets an assist the others lack.
 Pick 🇯🇵 Riichi, 🇭🇰 Hong Kong or 🇹🇼 Taiwanese on the welcome screen, or switch
 at any time from the game's app bar (which deals a new game) or the builder's
 chip row. Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
-**0-faan minimum**; see [Hong Kong rules](docs/HONG_KONG_RULES.md). Taiwanese is
+**0-faan minimum** by default, or 1, 2 or 3 faan; see [Hong Kong rules](docs/HONG_KONG_RULES.md). Taiwanese is
 16-tile mahjong (5 melds and a pair) with flat, additive points and a
 **5-point minimum**; see [Taiwanese rules](docs/TAIWANESE_RULES.md). One-page
 references: [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf),
@@ -59,7 +59,7 @@ differ. Hong Kong-only logic lives in `packages/mahjong_core/lib/hong_kong/`:
 
 | File | What it holds |
 |---|---|
-| `hong_kong_rules.dart` | Minimum faan, the payment table, starting chips, Seven Pairs switch |
+| `hong_kong_rules.dart` | Minimum-faan choices, the payment table, starting chips, Seven Pairs switch |
 | `hong_kong_scoring.dart` | Faan patterns and payments (`scoreHongKongHand`, `scoreFlowerWin`) |
 | `hong_kong_wall.dart` | The 144-tile wall with flowers and tail replacements |
 | `hong_kong_safety.dart` | Risk estimates with no discard immunity |
@@ -144,8 +144,8 @@ ruleset tests in `packages/mahjong_core/test/`;
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
   [Hong Kong](https://app.ericrxu.com/static/HK.pdf),
   [Taiwanese](https://app.ericrxu.com/static/Taiwanese.pdf)). Hong Kong plays
-  with a **0-faan minimum** — any complete hand, even a chicken hand, may be
-  declared — plus flower and season tiles and the New Style discarder-pays-all
+  with a **0-faan minimum** by default — any complete hand, even a chicken
+  hand, may be declared — or a 1-, 2- or 3-faan minimum, plus flower and season tiles and the New Style discarder-pays-all
   table. Taiwanese deals 16 tiles a seat for a 17-tile, 5-meld winning hand,
   scores flat additive points with a **5-point minimum**, and adds a dealer
   win-streak bonus. Every ruleset plays a hanchan (East and South) by default,
@@ -185,9 +185,20 @@ guide to price every live riichi rather than only the first; re-measuring the
 same configuration put it at **0.279** of a placement ahead, with deal-ins down
 0.0515 per hanchan (p = 5e-13).
 
-**🇭🇰 Hong Kong — the guide wins too**, on three independent sets of seeds
-that no tuning round used (East-only games, 0-faan minimum). Measured at
-`df2627a` / `91b989a`, 2026-09-15:
+**🇭🇰 Hong Kong — the guide wins clearly.** On 6000 held-out East-only games
+(seeds 300000+, 2026-09-24) it finishes **0.270 ± 0.036 of a placement ahead
+of the bot** (p < 1e-6), and 0.492 ahead at a 3-faan minimum. It wins 0.310
+hands per hand played to the bot's 0.253 and deals in less. What changed:
+while no opponent is a threat it no longer breaks a hand up to get further
+from ready, and it takes any call that brings the hand closer — the bot's
+speed — while its own valuation and defence still pick among those lines.
+That alone was worth 0.163 of a placement over the previous guide; six other
+ideas measured at nothing and were left off
+([`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#round-6-8-the-bots-speed-the-guides-judgement)).
+
+The earlier result, before that change, on three sets of seeds that no tuning
+round used (East-only games, 0-faan minimum), measured at `df2627a` /
+`91b989a`, 2026-09-15:
 
 | Held-out run | Guide avg place | Bot avg place | Guide vs. bot | Wins / hand (guide · bot) |
 |---|---|---|---|---|

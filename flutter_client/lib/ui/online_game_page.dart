@@ -15,6 +15,7 @@ import 'client_id_text.dart';
 import 'hand_view.dart';
 import 'scoring_view.dart';
 import 'table_view.dart';
+import 'tilesensor.dart';
 
 class OnlineGamePage extends StatefulWidget {
   const OnlineGamePage({
@@ -91,19 +92,19 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
               ],
             ),
             title: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 // No TileSense here — see the module doc — but a dimmed,
-                // inert clefairy still marks where it would be, so the
+                // inert TileSensor still marks where it would be, so the
                 // tooltip can point back to offline play instead of the
                 // guide just silently vanishing.
                 Tooltip(
-                  message:
-                      'No TileSense guide in multiplayer — play single player for it.',
+                  message: 'TileSensor sits out multiplayer, so no seat gets '
+                      'a guide the others lack.\n'
+                      'Play single player to have me along!',
                   child: Opacity(
                     opacity: 0.35,
                     child: Image.asset(
-                      'assets/clefairy.png',
+                      kTileSensorAsset,
                       height: 28,
                       filterQuality: FilterQuality.high,
                       errorBuilder: (_, __, ___) => const Icon(Icons.school,
@@ -121,8 +122,33 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                         Icon(Icons.wifi_off, color: Colors.redAccent, size: 20),
                   ),
                 ],
+                // Round, wall and honba/riichi (or style and dealer repeat)
+                // on one line, centred in the rest of the bar.
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Center(
+                      child: TableStatusLine(game: game, showRuleset: true),
+                    ),
+                  ),
+                ),
               ],
             ),
+            // Sound sits top-right, where the solo table keeps its game
+            // controls too.
+            actions: [
+              IconButton(
+                key: const Key('soundToggle'),
+                tooltip: game.soundOn
+                    ? 'Sound on — tap to mute'
+                    : 'Sound off — tap to unmute',
+                iconSize: 24,
+                icon: Icon(game.soundOn ? Icons.volume_up : Icons.volume_off),
+                color: game.soundOn ? const Color(0xffe9d58f) : Colors.white38,
+                onPressed: () => game.setSoundOn(!game.soundOn),
+              ),
+              const SizedBox(width: 10),
+            ],
           ),
           body: SafeArea(
             child: Stack(

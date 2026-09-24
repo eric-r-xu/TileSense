@@ -29,7 +29,9 @@ void main() {
     final sw = Stopwatch()..start();
     final results = <(String, List<(double, int, int, int)>)>[];
     for (final arm in _arms) {
-      if (only != null && !only.contains(arm.name) && arm.name != 'control' &&
+      if (only != null &&
+          !only.contains(arm.name) &&
+          arm.name != 'control' &&
           arm.name != _arms[1].name) {
         continue;
       }
@@ -41,7 +43,8 @@ void main() {
       print('  ${arm.name} done at ${sw.elapsed.inSeconds}s');
     }
     _report(results, games, full);
-  }, skip: games == 0 ? 'set HK_TUNE_GAMES to run' : false,
+  },
+      skip: games == 0 ? 'set HK_TUNE_GAMES to run' : false,
       timeout: Timeout.none);
 }
 
@@ -53,7 +56,14 @@ class _Arm {
       this.narrow = 1.0,
       this.tries = 1.0,
       this.concealed = true,
-      this.model});
+      this.model,
+      this.readDiscards = false,
+      this.readFlush = false,
+      this.cost = 16,
+      this.visibleCost = false,
+      this.potential = false,
+      this.noStepBack = false,
+      this.shantenCalls = false});
   final String name;
   final bool guide;
   final bool gate;
@@ -65,19 +75,42 @@ class _Arm {
   /// A whole win model, overriding [narrow] and [tries] when set.
   final WinModel? model;
 
+  /// [HongKongGuideTuning.readThreatDiscards],
+  /// [HongKongGuideTuning.readThreatFlush], [HongKongGuideTuning.dealInCost],
+  /// [HongKongGuideTuning.dealInByVisibleFaan] and
+  /// [HongKongGuideTuning.potentialFaanInEstimate].
+  final bool readDiscards;
+  final bool readFlush;
+  final double cost;
+  final bool visibleCost;
+  final bool potential;
+
+  /// [HongKongGuideTuning.neverStepBack] and
+  /// [HongKongGuideTuning.takeShantenCalls].
+  final bool noStepBack;
+  final bool shantenCalls;
+
   void apply() {
     HongKongGuideTuning.gateCallsUnderThreat = gate;
     HongKongGuideTuning.threatExposedSets = threat;
-    HongKongGuideTuning.winModel = model ?? WinModel(
-      typicalWidth: WinModel.riichi.typicalWidth,
-      stepWidth: WinModel.riichi.stepWidth,
-      survivesTurn: WinModel.riichi.survivesTurn,
-      waitInheritance: WinModel.riichi.waitInheritance,
-      winChancesPerTurn: WinModel.riichi.winChancesPerTurn,
-      narrowPenalty: narrow,
-      stepTries: tries,
-    );
+    HongKongGuideTuning.winModel = model ??
+        WinModel(
+          typicalWidth: WinModel.riichi.typicalWidth,
+          stepWidth: WinModel.riichi.stepWidth,
+          survivesTurn: WinModel.riichi.survivesTurn,
+          waitInheritance: WinModel.riichi.waitInheritance,
+          winChancesPerTurn: WinModel.riichi.winChancesPerTurn,
+          narrowPenalty: narrow,
+          stepTries: tries,
+        );
     HongKongGuideTuning.concealedFaanInEstimate = concealed;
+    HongKongGuideTuning.readThreatDiscards = readDiscards;
+    HongKongGuideTuning.readThreatFlush = readFlush;
+    HongKongGuideTuning.dealInCost = cost;
+    HongKongGuideTuning.dealInByVisibleFaan = visibleCost;
+    HongKongGuideTuning.potentialFaanInEstimate = potential;
+    HongKongGuideTuning.neverStepBack = noStepBack;
+    HongKongGuideTuning.takeShantenCalls = shantenCalls;
   }
 }
 
@@ -87,8 +120,98 @@ List<_Arm> get _arms => switch (Platform.environment['HK_TUNE_ROUND']) {
       '3' => _holdout,
       '4' => _winModels,
       '5' => _headToHead,
+      'baseline' => _baseline,
+      '6' => _round6,
+      '7' => _round7,
+      '8' => _round8,
       _ => _round1,
     };
+
+/// Each idea from the 2026-09-24 plan alone on the shipped guide, split and
+/// extended where `hk_guide_diag_test.dart` said to: the threat read is two
+/// arms (a threat's own discards, which the bots almost never win on, and a
+/// flush read the bots give no reason to trust), and two arms carry the
+/// discard read to opponents with only two exposed sets, where most discard
+/// wins come from. The flat cost arm uses `HK_TUNE_COST`, the chips a deal-in
+/// actually cost the guide (7.3 on seeds 2000+).
+List<_Arm> get _round6 {
+  final cost =
+      double.tryParse(Platform.environment['HK_TUNE_COST'] ?? '') ?? 7.3;
+  const m = WinModel.hongKongDrawsOnly;
+  return [
+    const _Arm('control', guide: false),
+    const _Arm('shipped', threat: 3, model: m),
+    const _Arm('read-discards', threat: 3, model: m, readDiscards: true),
+    const _Arm('read-flush', threat: 3, model: m, readFlush: true),
+    _Arm('cost-$cost', threat: 3, model: m, cost: cost),
+    const _Arm('cost-visible', threat: 3, model: m, visibleCost: true),
+    const _Arm('narrow-0.25', threat: 3, narrow: 0.25),
+    const _Arm('potential', threat: 3, model: m, potential: true),
+    _Arm('threat-2+read+cost',
+        threat: 2, model: m, readDiscards: true, cost: cost),
+    _Arm('threat-2+read+cost+no-gate',
+        threat: 2, model: m, readDiscards: true, cost: cost, gate: false),
+    _Arm('read+cost+narrow+potential',
+        threat: 3,
+        narrow: 0.25,
+        readDiscards: true,
+        cost: cost,
+        potential: true),
+  ];
+}
+
+/// Round 6 was null on every arm: the defence and pricing ideas rarely change
+/// a decision. The diagnostic's gap is offence — the guide steps away from
+/// ready twice as often as the bot and turns down calls that advance the
+/// hand — so round 7 borrows the bot's speed and keeps the guide's defence.
+const _round7 = [
+  _Arm('control', guide: false),
+  _Arm('shipped', threat: 3, model: WinModel.hongKongDrawsOnly),
+  _Arm('no-step-back',
+      threat: 3, model: WinModel.hongKongDrawsOnly, noStepBack: true),
+  _Arm('shanten-calls',
+      threat: 3, model: WinModel.hongKongDrawsOnly, shantenCalls: true),
+  _Arm('no-step-back+shanten-calls',
+      threat: 3,
+      model: WinModel.hongKongDrawsOnly,
+      noStepBack: true,
+      shantenCalls: true),
+  _Arm('both+no-gate',
+      threat: 3,
+      model: WinModel.hongKongDrawsOnly,
+      noStepBack: true,
+      shantenCalls: true,
+      gate: false),
+];
+
+/// Round 7's pick on seeds no round has used, with `HK_TUNE_MIN` for the
+/// minimum-faan check.
+const _round8 = [
+  _Arm('control', guide: false),
+  _Arm('shipped', threat: 3, model: WinModel.hongKongDrawsOnly),
+  _Arm('no-step-back+shanten-calls',
+      threat: 3,
+      model: WinModel.hongKongDrawsOnly,
+      noStepBack: true,
+      shantenCalls: true),
+];
+
+/// The shipped guide against the bot on its own, to re-measure today's margin.
+/// An arm leaves [HongKongGuideTuning.neverStepBack] and
+/// [HongKongGuideTuning.takeShantenCalls] off unless it says otherwise, so
+/// 'shipped' in rounds 1-8 is the guide as it stood before round 7.
+const _baseline = [
+  _Arm('control', guide: false),
+  _Arm('shipped',
+      threat: 3,
+      model: WinModel.hongKongDrawsOnly,
+      noStepBack: true,
+      shantenCalls: true),
+];
+
+/// `HK_TUNE_MIN`: the table's minimum faan (0 by default).
+int get _minimumFaan =>
+    int.tryParse(Platform.environment['HK_TUNE_MIN'] ?? '') ?? 0;
 
 /// The calibrated call-aware model against the shipped guide, game by game.
 const _headToHead = [
@@ -185,7 +308,8 @@ List<(double, int, int, int)> _shard(
 (double, int, int, int) _play(int seed, _Arm arm, bool full) {
   late (double, int, int, int) row;
   fakeAsync((fa) {
-    final game = GameController(seed: seed, ruleset: Ruleset.hongKong)
+    final game = GameController(
+        seed: seed, ruleset: Ruleset.hongKong, minimumFaan: _minimumFaan)
       ..hanchan = full;
     if (arm.guide) {
       game
@@ -299,13 +423,12 @@ void _report(List<(String, List<(double, int, int, int)>)> results, int games,
   final control = results.firstWhere((r) => r.$1 == 'control').$2;
   final baselineName = results[1].$1;
   final baseline = results[1].$2;
-  final variants = results
-      .where((r) => r.$1 != 'control' && r.$1 != baselineName)
-      .toList();
+  final variants =
+      results.where((r) => r.$1 != 'control' && r.$1 != baselineName).toList();
   final vsBaseline = [for (final v in variants) _paired(v.$2, baseline)];
   final holm = _holm([for (final c in vsBaseline) c.p]);
   print('\nHong Kong, ${full ? 'hanchan' : 'East only'}, $games games/arm, '
-      'Aggressive / Speed\n');
+      '$_minimumFaan-faan minimum, Aggressive / Speed\n');
   print('arm                      place   win/hd   Δ vs control          '
       'Δ vs $baselineName   raw p   Holm p');
   for (final (name, rows) in results) {

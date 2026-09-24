@@ -6,7 +6,7 @@ row); Riichi remains the default. One-page reference:
 
 The scoring source is **HKMJ Cheat Sheet 1.0.pdf**, "Hong Kong Mahjong Rule Sheet / 香港麻雀正統牌型," version 1.0, April 3, 2025, by /u/danma. Its **New Style, discarder-pays-all** payment table replaces the original Japanese scoring system.
 
-**Minimum: 0 faan** (`HongKongRules.minimumFaan`). Any complete hand may be declared — a chicken hand (雞糊, no scoring features) wins and is paid on the 0-faan row of the table.
+**Minimum: 0 faan by default, or 1, 2 or 3** (`Round.minimumFaan`, choices in `HongKongRules.minimumFaanChoices`). At 0, any complete hand may be declared — a chicken hand (雞糊, no scoring features) wins and is paid on the 0-faan row of the table. Pick a higher minimum on the character screen (single player, beside "You start as") or when creating an online room; the app bar shows it (e.g. "🇭🇰 Hong Kong · 3 faan min"). A hand under the minimum cannot be declared, on a discard or a self-pick — though Self-Pick's own faan counts, so a hand one faan short can still win off the wall. The guide prices such a wait as self-pick-only and a wait short either way as no live wait. Bots never plan around the minimum: they call as freely as at 0 faan and simply can't declare a hand that falls short.
 
 ## Payments
 

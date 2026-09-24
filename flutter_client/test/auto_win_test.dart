@@ -50,7 +50,6 @@ void main() {
   testWidgets('is on by default', (tester) async {
     final game = GameController(seed: 4);
     expect(game.autoWin, isTrue);
-    expect(game.autoDiscardInRiichi, isTrue);
     game.dispose();
   });
 

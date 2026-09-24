@@ -3,7 +3,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
+import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/character_select_page.dart';
@@ -78,6 +80,40 @@ void main() {
     await tester.tap(find.byKey(const Key('lengthHanchan')));
     await tester.pump();
     expect(selected('lengthHanchan'), isTrue);
+  });
+
+  testWidgets('Hong Kong alone offers a 0-3 minimum faan, and the game uses it',
+      (tester) async {
+    await _boot(tester);
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+
+    bool selected(String key) {
+      final b = tester.widget<OutlinedButton>(find.byKey(Key(key)));
+      return b.style!.side!.resolve({})!.width == 2;
+    }
+
+    expect(find.byKey(const Key('minimumFaan_0')), findsNothing,
+        reason: 'riichi has no faan minimum to pick');
+    await tester.tap(find.byKey(const Key('startRuleset_hongKong')));
+    await tester.pump();
+    expect(selected('minimumFaan_0'), isTrue, reason: '0 is the default');
+
+    await tester.tap(find.byKey(const Key('minimumFaan_2')));
+    await tester.pump();
+    expect(selected('minimumFaan_2'), isTrue);
+    expect(selected('minimumFaan_0'), isFalse);
+
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final game = tester.widget<TableView>(find.byType(TableView)).game
+        as GameController;
+    expect(game.ruleset, Ruleset.hongKong);
+    expect(game.minimumFaan, 2);
+    expect(game.round.minimumFaan, 2);
+    expect(find.textContaining('2 faan min'), findsOneWidget);
   });
 
   testWidgets('offline goes through character select, with the old defaults',

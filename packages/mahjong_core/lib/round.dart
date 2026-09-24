@@ -131,6 +131,7 @@ class Round {
     this.riichiSticks = 0,
     required List<int> startingPoints,
     this.ruleset = Ruleset.riichi,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
     TileWall? wall,
   })  : wall = wall ??
             (ruleset.isTaiwanese
@@ -189,6 +190,7 @@ class Round {
     required this.wall,
     required List<int> startingPoints,
     this.ruleset = Ruleset.riichi,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
   }) : startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];
@@ -203,6 +205,10 @@ class Round {
 
   final TileWall wall;
   final Ruleset ruleset;
+
+  /// Hong Kong only: the fewest faan a complete hand needs to be declared —
+  /// one of [HongKongRules.minimumFaanChoices]. Ignored by the other rules.
+  final int minimumFaan;
   final int dealer;
   final Wind roundWind;
   int honba;
@@ -541,7 +547,7 @@ class Round {
     final score = _score(s, concealed, winTile,
         isTsumo: isTsumo, dryRun: true, chankan: chankan);
     if (ruleset.isHongKong) {
-      return score.valid && score.faan >= HongKongRules.minimumFaan;
+      return score.valid && score.faan >= minimumFaan;
     }
     // Taiwanese's own minimum tai is already baked into `score.valid` by
     // `scoreTaiwaneseHand` (a hand with zero tai comes back invalid).
