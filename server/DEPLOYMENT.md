@@ -108,19 +108,27 @@ authenticated. Run everything from the repo root unless noted.
 
 ### 2.0 Variables (re-do in every new terminal tab)
 
-`export` does not survive across tabs, so keep the stable values in a file:
+`export` does not survive across tabs, so keep the stable values in a file.
+Start from the tracked template and fill in its placeholders:
 
 ```sh
 cd ~/Documents/GitHub/TileSense
-cat > deploy.env <<'EOF'
+cp deploy.env.example deploy.env   # git-ignored; never commit it
+```
+
+For this deployment the values are:
+
+```sh
 export DB_ID=0e6e08c1-ed4d-4c6d-8a8f-b281c4de6b0a      # tilesense-db (doctl databases list)
-export DROPLET_ID=353749640                            # doctl compute droplet list
 export DROPLET_IP=143.198.98.204                       # SSH target (the droplet's own IP)
 export HOST=app.ericrxu.com                            # hostname only, no /tilesense
 export BASE_HREF=/tilesense/                           # existing sub-path deploy
-EOF
-grep -qxF deploy.env .gitignore || echo deploy.env >> .gitignore
+export DART_IMAGE=dart:3.13.3                          # exact SDK for ingest / mp builds
 ```
+
+`DROPLET_ID` and `SERVED_DIR` are no longer used by `deploy.sh`. The
+manual commands below still reference `$DROPLET_ID`, so keep it exported in
+your shell if you follow them by hand.
 
 > The live site (`https://app.ericrxu.com/tilesense/`) is served by this one
 > droplet — DNS points at a DigitalOcean **reserved IP** (`143.198.245.111`)

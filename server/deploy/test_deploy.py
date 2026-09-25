@@ -253,9 +253,37 @@ class DriverTests(unittest.TestCase):
         remote.assert_not_called()
 
     def test_mp_restart_requires_explicit_acknowledgement(self):
-        with patch.dict(os.environ, {}, clear=True), patch.object(deploy, 'Remote') as remote:
+        # No terminal to ask at (a script, cron, CI): refuse without the flag.
+        with patch.dict(os.environ, {}, clear=True), patch.object(deploy, 'Remote') as remote, \
+             patch.object(deploy.sys, 'stdin', MagicMock(**{'isatty.return_value': False})), \
+             patch('builtins.input') as prompt:
             with self.assertRaises(ValueError): deploy.deploy('mp', 'host', 'ip')
+        prompt.assert_not_called()
         remote.assert_not_called()
+
+    def test_mp_restart_enter_at_a_terminal_acknowledges(self):
+        tty = MagicMock(**{'isatty.return_value': True})
+        with patch.dict(os.environ, {}, clear=True), patch.object(deploy.sys, 'stdin', tty), \
+             patch('builtins.input', return_value='') as prompt:
+            deploy.confirm_mp_restart()
+        prompt.assert_called_once()
+
+    def test_mp_restart_cancel_at_the_prompt_stops_before_building(self):
+        tty = MagicMock(**{'isatty.return_value': True})
+        for cancel in (KeyboardInterrupt, EOFError):
+            with patch.dict(os.environ, {}, clear=True), patch.object(deploy.sys, 'stdin', tty), \
+                 patch('builtins.input', side_effect=cancel), \
+                 patch.object(deploy, 'build_service') as build, patch.object(deploy, 'Remote') as remote:
+                with self.assertRaises(ValueError): deploy.deploy('mp', 'host', 'ip')
+            build.assert_not_called()
+            remote.assert_not_called()
+
+    def test_mp_restart_flag_skips_the_prompt(self):
+        tty = MagicMock(**{'isatty.return_value': True})
+        with patch.dict(os.environ, {'ALLOW_MP_RESTART': '1'}, clear=True), \
+             patch.object(deploy.sys, 'stdin', tty), patch('builtins.input') as prompt:
+            deploy.confirm_mp_restart()
+        prompt.assert_not_called()
 
     def test_client_failure_does_not_commit_and_closes_worker(self):
         worker = MagicMock()

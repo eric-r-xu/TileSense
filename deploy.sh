@@ -7,7 +7,7 @@ case "${1:-all}" in
   *) echo 'Usage: deploy.sh [all|client|ingest|mp|migrate|geoip|setup-client|rollback-client RELEASE]' >&2; exit 2 ;;
 esac
 if [[ ! -f deploy.env ]]; then
-  echo 'Missing deploy.env; see server/DEPLOYMENT.md.' >&2
+  echo 'Missing deploy.env: cp deploy.env.example deploy.env, then fill it in (see DEPLOYMENT_CHEATSHEET.md).' >&2
   exit 1
 fi
 set -a
