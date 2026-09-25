@@ -146,8 +146,13 @@ HandScore scoreTaiwaneseHand(
     for (var i = 0; i < concealedKongs; i++) add('Concealed Kong', 2);
 
     if (!d.sevenPairsAndPung) {
-      final concealedPungCount =
-          groups.where((m) => m.isTripletLike && m.concealed).length;
+      // A pung finished off a discard was not concealed.
+      final ronPung =
+          ronCompletedTriplet(d.melds, d.pair, winTile, isTsumo: ctx.isTsumo);
+      final concealedPungCount = groups
+          .where((m) =>
+              m.isTripletLike && m.concealed && !identical(m, ronPung))
+          .length;
       if (concealedPungCount >= 5) {
         add('Five Concealed Pungs', 40);
       } else if (concealedPungCount == 4) {

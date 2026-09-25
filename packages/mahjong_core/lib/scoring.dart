@@ -143,10 +143,49 @@ HandScore scoreHand(
 
   HandScore? best;
   for (final d in decomps) {
-    final s = _scoreDecomp(d, all, winTile, openMelds, ctx, isDealer: isDealer);
+    final scored = _openRonTriplet(d, winTile, ctx);
+    final s =
+        _scoreDecomp(scored, all, winTile, openMelds, ctx, isDealer: isDealer);
     if (s.valid && (best == null || s.points > best.points)) best = s;
   }
   return best ?? HandScore.invalid();
+}
+
+/// The triplet in [melds] that a win off a discard must have completed, so
+/// is open rather than concealed (a minkou, not an ankou) — or null on a
+/// self-draw, or when the winning tile can be read as completing a sequence
+/// or the pair instead, the reading the winner is entitled to. [melds] and
+/// [pair] are a decomposition of the concealed tiles plus [winTile], which
+/// the parser reads as all concealed.
+Meld? ronCompletedTriplet(List<Meld> melds, TileType? pair, Tile winTile,
+    {required bool isTsumo}) {
+  final win = winTile.type;
+  if (isTsumo || pair == win) return null;
+  if (melds.any((m) => m.isSequence && m.types.contains(win))) return null;
+  for (final m in melds) {
+    if (m.isTripletLike && m.low == win) return m;
+  }
+  return null;
+}
+
+/// [d] with the triplet a ron completed marked open, so sanankou, suuankou
+/// and triplet fu all see it as the minkou it is.
+HandDecomposition _openRonTriplet(
+    HandDecomposition d, Tile winTile, ScoreContext ctx) {
+  final ron =
+      ronCompletedTriplet(d.melds, d.pair, winTile, isTsumo: ctx.isTsumo);
+  if (ron == null) return d;
+  return HandDecomposition(
+    melds: [
+      for (final m in d.melds)
+        identical(m, ron)
+            ? Meld(kind: m.kind, low: m.low, concealed: false)
+            : m,
+    ],
+    pair: d.pair,
+    sevenPairs: d.sevenPairs,
+    kokushi: d.kokushi,
+  );
 }
 
 HandScore _scoreDecomp(
