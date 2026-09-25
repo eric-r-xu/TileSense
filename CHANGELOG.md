@@ -41,6 +41,15 @@ approximate wherever a batch of work spanned more than a day.
   screens now centre vertically in whatever height they get.
 
 ### Fixed
+- **A triplet won off a discard counted as concealed, in Taiwanese and
+  Riichi.** Winning by ron on a two-pair wait scored the completed triplet
+  as concealed. In Taiwanese, two other concealed pungs scored Three
+  Concealed Pungs (5) instead of Two (2), and likewise up the ladder. In
+  Riichi, three other concealed triplets scored Suuankou (yakuman) instead
+  of Sanankou + Toitoi, and the triplet took concealed fu. It now counts as
+  open, unless the winning tile can instead be read as finishing a sequence
+  or the pair. Hong Kong already had this right. Both scorers use one
+  shared rule, `ronCompletedTriplet`.
 - **New icons could render blank after a deploy.** Icon fonts are tree-shaken
   per build but cached for a day under a fixed URL, so a browser kept
   yesterday's subset (this is how the builder button's tool icon went
