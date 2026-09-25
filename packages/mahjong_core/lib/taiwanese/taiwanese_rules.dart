@@ -1,14 +1,25 @@
 /// Rules for 16-tile Taiwanese mahjong (a complete hand is 5 melds and a
 /// pair — 17 tiles), following the San Diego Mahjong Club's Taiwanese
 /// cheat sheet: a flat, additive point score (not a doubling faan/tai
-/// table), a 5-point minimum to declare mahjong, and a dealer streak bonus
-/// paid on top of the hand's own value.
+/// table), a minimum to declare mahjong (the sheet's 5 by default; 1 or 3
+/// as table options), and a dealer streak bonus paid on top of the hand's
+/// own value.
 library;
 
 class TaiwaneseRules {
   /// "MAHJONG · 5-Point Minimum" — a complete hand scoring fewer points than
-  /// this cannot be declared.
-  static const minimumPoints = 5;
+  /// the table's minimum cannot be declared. The sheet's 5 is a club house
+  /// rule rather than a standard: in Taiwan any complete hand usually wins,
+  /// and groups that set a minimum commonly play 1 or 3 tai. See
+  /// docs/TAIWANESE_RULES.md.
+  static const defaultMinimumPoints = 5;
+
+  /// The minimums a table may pick from.
+  static const minimumPointsChoices = [1, 3, 5];
+
+  /// Anything other than a listed choice falls back to the default.
+  static int normalizeMinimumPoints(Object? v) =>
+      v is int && minimumPointsChoices.contains(v) ? v : defaultMinimumPoints;
 
   /// Seven Pairs and a Pung is the sheet's variant on seven pairs; always on.
   static const sevenPairsAndPung = true;

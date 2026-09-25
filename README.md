@@ -19,7 +19,7 @@ at any time from the game's app bar (which deals a new game) or the builder's
 chip row. Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
 **0-faan minimum** by default, or 1, 2 or 3 faan; see [Hong Kong rules](docs/HONG_KONG_RULES.md). Taiwanese is
 16-tile mahjong (5 melds and a pair) with flat, additive points and a
-**5-point minimum**; see [Taiwanese rules](docs/TAIWANESE_RULES.md). One-page
+**5-point (tai) minimum** by default, or 1 or 3; see [Taiwanese rules](docs/TAIWANESE_RULES.md). One-page
 references: [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf),
 [HK.pdf](https://app.ericrxu.com/static/HK.pdf),
 [Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf).
@@ -69,7 +69,7 @@ Taiwanese-only logic sits alongside it in
 
 | File | What it holds |
 |---|---|
-| `taiwanese_rules.dart` | Minimum points, the dealer win-streak bonus, starting points |
+| `taiwanese_rules.dart` | Minimum-points choices, the dealer win-streak bonus, starting points |
 | `taiwanese_scoring.dart` | Point patterns and payments (`scoreTaiwaneseHand`) |
 | `taiwanese_wall.dart` | The 144-tile wall, dealt 16 to a seat |
 | `taiwanese_hand_parse.dart` | Five-set hand parsing (`totalMelds` 5) |
@@ -147,7 +147,8 @@ ruleset tests in `packages/mahjong_core/test/`;
   with a **0-faan minimum** by default — any complete hand, even a chicken
   hand, may be declared — or a 1-, 2- or 3-faan minimum, plus flower and season tiles and the New Style discarder-pays-all
   table. Taiwanese deals 16 tiles a seat for a 17-tile, 5-meld winning hand,
-  scores flat additive points with a **5-point minimum**, and adds a dealer
+  scores flat additive points with a **5-point minimum** by default (1 or 3
+  tai can be chosen instead), and adds a dealer
   win-streak bonus. Every ruleset plays a hanchan (East and South) by default,
   with an East-only option.
 - **Play Online**: a private room for up to four humans, any empty seat

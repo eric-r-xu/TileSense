@@ -52,7 +52,7 @@ void main() {
   testWidgets('riichi stays the default from the welcome screen',
       (tester) async {
     await boot(tester);
-    expect(find.textContaining('optimal Riichi Mahjong decisions'),
+    expect(find.textContaining('Sharpen your Riichi Mahjong decisions'),
         findsOneWidget);
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -77,7 +77,7 @@ void main() {
     await boot(tester);
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('optimal Hong Kong Mahjong decisions'),
+    expect(find.textContaining('Sharpen your Hong Kong Mahjong decisions'),
         findsOneWidget);
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
     expect(find.text('🇭🇰 Hong Kong'), findsOneWidget);
@@ -244,7 +244,7 @@ void main() {
     // Taiwanese as the current choice.
     await tester.tap(find.byKey(const Key('backToMenu')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('optimal Taiwanese Mahjong decisions'),
+    expect(find.textContaining('Sharpen your Taiwanese Mahjong decisions'),
         findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
@@ -305,7 +305,7 @@ void main() {
     await boot(tester);
     await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('optimal Taiwanese Mahjong decisions'),
+    expect(find.textContaining('Sharpen your Taiwanese Mahjong decisions'),
         findsOneWidget);
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
     expect(find.text('🇭🇰 Hong Kong'), findsOneWidget);

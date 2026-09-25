@@ -206,6 +206,7 @@ class TableLoop {
       startingPoints: List.of(_points),
       ruleset: ruleset,
       minimumFaan: room.minimumFaan,
+      minimumPoints: room.minimumPoints,
     );
     _discardSerial = 0;
     _lastDiscardSeat = null;

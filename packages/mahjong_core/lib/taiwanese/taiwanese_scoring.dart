@@ -6,7 +6,8 @@
 ///
 /// Unlike Hong Kong's doubling faan table, points here are flat and additive
 /// (a hand's score is just the sum of its patterns), a hand needs at least
-/// [TaiwaneseRules.minimumPoints] to win, and there is no dealer premium on
+/// the table's minimum ([TaiwaneseRules.minimumPointsChoices], 5 by default)
+/// to win, and there is no dealer premium on
 /// the hand's own value — everyone pays the same amount. The dealer's win
 /// streak instead earns a separate additive bonus, computed in `round.dart`
 /// (which knows the streak) rather than here.
@@ -24,10 +25,11 @@ import 'taiwanese_hand_parse.dart';
 import 'taiwanese_rules.dart';
 
 /// Score a Taiwanese win. [concealed] excludes the winning tile and all
-/// declared melds.
+/// declared melds. A hand under [minimumPoints] comes back invalid.
 HandScore scoreTaiwaneseHand(
     List<Tile> concealed, Tile winTile, List<Meld> openMelds, ScoreContext ctx,
-    {required bool isDealer}) {
+    {required bool isDealer,
+    int minimumPoints = TaiwaneseRules.defaultMinimumPoints}) {
   final all = [...concealed, winTile];
   if (openMelds.length > 5 ||
       all.length != 17 - openMelds.length * 3 ||
@@ -185,7 +187,7 @@ HandScore scoreTaiwaneseHand(
     }
 
     final points = patterns.fold(0, (int n, p) => n + p.faan);
-    final score = _finish(patterns, points);
+    final score = _finish(patterns, points, minimumPoints: minimumPoints);
     if (best == null || score.faan > best.faan) best = score;
   }
   return best ?? HandScore.invalid();
@@ -214,8 +216,9 @@ bool _hasPureStraight(List<Meld> sequences) {
 /// Payments: a flat, additive point total, the same for every seat — no
 /// dealer premium and no self-draw multiplier on the hand's own value (see
 /// the file doc comment for the separate dealer-streak bonus).
-HandScore _finish(List<YakuResult> patterns, int points) {
-  if (points < TaiwaneseRules.minimumPoints) return HandScore.invalid();
+HandScore _finish(List<YakuResult> patterns, int points,
+    {int minimumPoints = TaiwaneseRules.defaultMinimumPoints}) {
+  if (points < minimumPoints) return HandScore.invalid();
   return HandScore(
       yaku: patterns,
       han: points,

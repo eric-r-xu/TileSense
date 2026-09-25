@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/bot.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/safety.dart';
@@ -66,6 +67,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     this.startingDealer = 0,
     this.hanchan = true,
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
+    this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     List<Character>? seatCharacters,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
@@ -375,6 +377,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// to another ruleset, which ignores it.
   int minimumFaan;
 
+  /// Taiwanese only: the fewest points (tai) a hand needs to win — one of
+  /// [TaiwaneseRules.minimumPointsChoices], 5 by default. Kept across a
+  /// switch to another ruleset, which ignores it.
+  int minimumPoints;
+
   @override
   EfficiencyReport report = EfficiencyReport.waiting();
 
@@ -486,6 +493,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (ruleset.isHongKong) newGame();
   }
 
+  /// [setMinimumFaan] for Taiwanese: restarts only a Taiwanese game.
+  void setMinimumPoints(int value) {
+    value = TaiwaneseRules.normalizeMinimumPoints(value);
+    if (minimumPoints == value) return;
+    minimumPoints = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'minimumPoints', value: '$value');
+    if (ruleset.isTaiwanese) newGame();
+  }
+
   // --- lifecycle -------------------------------------------------------
 
   /// The seat that deals first, and so is East, when a match starts; the human
@@ -561,6 +578,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     final points = List.of(_points);
     final rules = ruleset;
     final faan = minimumFaan;
+    final minPoints = minimumPoints;
     // Kept so [undo] can deal this exact hand again: the wall shuffles from
     // the seed, so the same arguments give the same tiles with the same ids.
     _dealRound = () => Round(
@@ -572,6 +590,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
           startingPoints: points,
           ruleset: rules,
           minimumFaan: faan,
+          minimumPoints: minPoints,
         );
     round = _dealRound();
     _log.clear();
@@ -1313,6 +1332,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         ruleset: ruleset,
         flowers: seat.flowers.map((t) => t.type).toList(),
         minimumFaan: round.minimumFaan,
+        minimumPoints: round.minimumPoints,
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong

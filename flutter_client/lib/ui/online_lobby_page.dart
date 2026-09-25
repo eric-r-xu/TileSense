@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 
 import '../game/online_game_controller.dart';
 import '../game/sfx.dart'
@@ -48,6 +49,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   bool _hanchan = true;
   int _timerSeconds = OnlineGameController.timerChoices.first;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
+  int _minimumPoints = TaiwaneseRules.defaultMinimumPoints;
   late Character _character = widget.controller.myCharacter;
   String? _shownError;
 
@@ -77,7 +79,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         ruleset: _ruleset,
         hanchan: _hanchan,
         timerSeconds: _timerSeconds,
-        minimumFaan: _minimumFaan);
+        minimumFaan: _minimumFaan,
+        minimumPoints: _minimumPoints);
   }
 
   void _join() {
@@ -223,8 +226,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                           onChanged: (v) => setState(() => _hanchan = v),
                         ),
                         const SizedBox(height: 10),
-                        // Side by side rather than stacked, so Hong Kong's
-                        // extra picker costs no height on this screen.
+                        // Side by side rather than stacked, so the minimum
+                        // picker costs no height on this screen.
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -232,6 +235,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                             if (_ruleset.isHongKong) ...[
                               const SizedBox(width: 16),
                               Expanded(child: _minimumFaanPicker()),
+                            ],
+                            if (_ruleset.isTaiwanese) ...[
+                              const SizedBox(width: 16),
+                              Expanded(child: _minimumPointsPicker()),
                             ],
                           ],
                         ),
@@ -370,16 +377,23 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     );
   }
 
-  /// Hong Kong's minimum faan to win, 0 to 3, for the room you create.
-  Widget _minimumFaanPicker() {
-    Widget option(int faan) {
-      final selected = _minimumFaan == faan;
+  /// The minimum to win for the room you create: Hong Kong's faan (0 to 3)
+  /// or Taiwanese's tai (1, 3 or 5).
+  Widget _minimumPicker({
+    required String label,
+    required String keyPrefix,
+    required List<int> choices,
+    required int current,
+    required ValueChanged<int> onChange,
+  }) {
+    Widget option(int n) {
+      final selected = current == n;
       return Expanded(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: OutlinedButton(
-            key: Key('onlineMinimumFaan_$faan'),
-            onPressed: () => setState(() => _minimumFaan = faan),
+            key: Key('${keyPrefix}_$n'),
+            onPressed: () => onChange(n),
             style: OutlinedButton.styleFrom(
               backgroundColor: selected ? const Color(0x33caa24e) : null,
               foregroundColor:
@@ -391,7 +405,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               minimumSize: Size.zero,
               padding: const EdgeInsets.symmetric(vertical: 10),
             ),
-            child: Text('$faan'),
+            child: Text('$n'),
           ),
         ),
       );
@@ -399,15 +413,29 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
 
     return Column(
       children: [
-        const Text('Minimum faan to win',
-            style: TextStyle(color: Colors.white60, fontSize: 12)),
+        Text(label,
+            style: const TextStyle(color: Colors.white60, fontSize: 12)),
         const SizedBox(height: 6),
-        Row(children: [
-          for (final n in HongKongRules.minimumFaanChoices) option(n)
-        ]),
+        Row(children: [for (final n in choices) option(n)]),
       ],
     );
   }
+
+  Widget _minimumFaanPicker() => _minimumPicker(
+        label: 'Minimum faan to win',
+        keyPrefix: 'onlineMinimumFaan',
+        choices: HongKongRules.minimumFaanChoices,
+        current: _minimumFaan,
+        onChange: (n) => setState(() => _minimumFaan = n),
+      );
+
+  Widget _minimumPointsPicker() => _minimumPicker(
+        label: 'Minimum tai to win',
+        keyPrefix: 'onlineMinimumPoints',
+        choices: TaiwaneseRules.minimumPointsChoices,
+        current: _minimumPoints,
+        onChange: (n) => setState(() => _minimumPoints = n),
+      );
 
   Widget _rulesetPicker() {
     Widget option(Ruleset value) {
@@ -479,6 +507,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         _card(
           title: '${game.ruleset.flagLabel} · '
               '${game.ruleset.isHongKong ? game.minimumFaanLabel : ''}'
+              '${game.ruleset.isTaiwanese ? game.minimumPointsLabel : ''}'
               '${game.hanchan ? "full game" : "East-only"} · '
               '${game.timerSeconds}s timer',
           child: Column(

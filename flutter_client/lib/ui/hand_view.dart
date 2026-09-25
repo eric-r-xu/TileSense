@@ -441,9 +441,9 @@ class _HandViewState extends State<HandView> {
 
   Widget _guideButton() {
     final action = widget.showGuide ? 'Hide guide' : 'Show guide';
-    return Tooltip(
-      message: '$kTileSensorIntro\n\n'
-          '${widget.showGuide ? 'Tap to hide my guide.' : 'Tap to show my guide.'}',
+    return TileSensorTooltip(
+      footer:
+          widget.showGuide ? 'Tap to hide my guide.' : 'Tap to show my guide.',
       child: TextButton(
         key: const Key('bottomGuideToggle'),
         onPressed: widget.onToggleGuide,

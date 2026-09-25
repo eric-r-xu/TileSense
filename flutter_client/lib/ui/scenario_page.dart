@@ -304,8 +304,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Tooltip(
-            message: kTileSensorIntro,
+          TileSensorTooltip(
             child: Image.asset(kTileSensorAsset,
                 height: 30,
                 filterQuality: FilterQuality.high,

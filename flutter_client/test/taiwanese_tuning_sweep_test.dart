@@ -18,6 +18,11 @@ import 'package:tilesense/logic/efficiency_engine.dart';
 ///
 ///   TW_TUNE_GAMES=800 flutter test test/taiwanese_tuning_sweep_test.dart
 ///   TW_TUNE_ARMS=shipped,calls TW_TUNE_GAMES=1600 flutter test ...
+///   TW_TUNE_MIN=1 TW_TUNE_ARMS=shipped TW_TUNE_GAMES=800 flutter test ...
+/// `TW_TUNE_MIN`: the table's minimum points (5 by default).
+int get _minimumPoints =>
+    int.tryParse(Platform.environment['TW_TUNE_MIN'] ?? '') ?? 5;
+
 void main() {
   final env = Platform.environment;
   final games = int.tryParse(env['TW_TUNE_GAMES'] ?? '') ?? 0;
@@ -37,7 +42,8 @@ void main() {
         ..sort((a, b) => a.$1.compareTo(b.$1));
     }
     final control = results['control']!;
-    print('\n$games games per arm, seeds $base..${base + games - 1}');
+    print('\n$games games per arm, seeds $base..${base + games - 1}, '
+        '$_minimumPoints-point minimum');
     print('arm                   avg place   Δ place vs control (95% CI)    p'
         '        Δ points     p');
     for (final e in results.entries) {
@@ -54,13 +60,15 @@ void main() {
       final q = _ms(dPts);
       final delta = '${p.mean >= 0 ? '+' : ''}${p.mean.toStringAsFixed(3)} '
           '± ${(1.96 * p.se).toStringAsFixed(3)}';
-      print('${e.key.padRight(20)}  ${_mean(place).toStringAsFixed(3).padLeft(9)}'
+      print(
+          '${e.key.padRight(20)}  ${_mean(place).toStringAsFixed(3).padLeft(9)}'
           '   ${delta.padRight(30)}'
           '  ${_p(p).toStringAsExponential(1).padRight(8)}'
           '  ${q.mean.toStringAsFixed(2).padLeft(7)}'
           '  ${_p(q).toStringAsExponential(1)}');
     }
-  }, skip: games == 0 ? 'set TW_TUNE_GAMES to run' : false,
+  },
+      skip: games == 0 ? 'set TW_TUNE_GAMES to run' : false,
       timeout: Timeout.none);
 }
 
@@ -100,7 +108,6 @@ const _calls = WinModel(
   chowRate: 1.609,
 );
 
-
 /// (seed, seat 0 placement, seat 0 final points) for one shard's games.
 List<(int, double, int)> _shard(int base, int games, int shard, _Arm arm) {
   Sfx.i.enabled = false;
@@ -113,7 +120,8 @@ List<(int, double, int)> _shard(int base, int games, int shard, _Arm arm) {
 (int, double, int) _play(int seed, bool guide) {
   late (int, double, int) row;
   fakeAsync((fa) {
-    final game = GameController(seed: seed, ruleset: Ruleset.taiwanese);
+    final game = GameController(
+        seed: seed, ruleset: Ruleset.taiwanese, minimumPoints: _minimumPoints);
     if (guide) game.setAutoplay(true);
     final bot = SimpleBot(seed * 31 + 3);
     for (var guard = 0; game.phase != GamePhase.gameEnd; guard++) {

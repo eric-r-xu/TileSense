@@ -116,6 +116,42 @@ void main() {
     expect(find.textContaining('2 faan min'), findsOneWidget);
   });
 
+  testWidgets('Taiwanese offers a 1, 3 or 5 tai minimum, and the game uses it',
+      (tester) async {
+    await _boot(tester);
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+
+    bool selected(String key) {
+      final b = tester.widget<OutlinedButton>(find.byKey(Key(key)));
+      return b.style!.side!.resolve({})!.width == 2;
+    }
+
+    await tester.tap(find.byKey(const Key('startRuleset_taiwanese')));
+    await tester.pump();
+    expect(find.byKey(const Key('minimumFaan_0')), findsNothing,
+        reason: 'the faan picker is Hong Kong\'s');
+    expect(selected('minimumPoints_5'), isTrue, reason: '5 is the default');
+    expect(find.byKey(const Key('minimumPoints_2')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('minimumPoints_1')));
+    await tester.pump();
+    expect(selected('minimumPoints_1'), isTrue);
+    expect(selected('minimumPoints_5'), isFalse);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final game = tester.widget<TableView>(find.byType(TableView)).game
+        as GameController;
+    expect(game.ruleset, Ruleset.taiwanese);
+    expect(game.minimumPoints, 1);
+    expect(game.round.minimumPoints, 1);
+    expect(find.textContaining('1 tai min'), findsOneWidget);
+  });
+
   testWidgets('offline goes through character select, with the old defaults',
       (tester) async {
     await _boot(tester);

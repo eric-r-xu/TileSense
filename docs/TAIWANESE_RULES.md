@@ -10,9 +10,31 @@ Kong, a complete Taiwanese hand is **17 tiles — five melds and a pair**, not
 fourteen; the app deals for that shape rather than reskinning the 14-tile one
 (see [Hand shape](#hand-shape-and-wall)).
 
-**Minimum: 5 points** (`TaiwaneseRules.minimumPoints`). A complete hand
-scoring fewer points than this cannot be declared — there is no zero-point
-chicken hand the way Hong Kong's zero-faan hand is always legal.
+**Minimum: 5 points (tai) by default, or 1 or 3** (`Round.minimumPoints`,
+choices in `TaiwaneseRules.minimumPointsChoices`). A complete hand scoring
+fewer points than the table's minimum cannot be declared, on a discard or a
+self-draw. Self-Drawn's own point counts, so a hand one short can still win
+off the wall. Pick the minimum on the character screen (single player,
+beside "You start as") or when creating an online room. The app bar shows it
+when it isn't 5 (e.g. "🇹🇼 Taiwanese · 3 tai min"). Every minimum is at least
+1, so unlike Hong Kong's 0-faan table there is never a zero-point chicken hand.
+
+**Why 5 is only the default.** The 5 comes from the San Diego club sheet this
+ruleset follows; it is a house rule, not a standard. In Taiwan any complete
+hand usually wins: a hand with no tai (屁胡) is paid just the agreed base (底),
+and Taiwanese competition rules define a win by shape alone. Groups that do
+set a minimum commonly play 1 tai, or 3 or more
+([MAHJ MAHJ](https://mahjmahj.co/styles/taiwanese-mahjong)). The app's
+"points" are the sheet's, which run a little high against Taiwan's tai (a
+flush is 10 or 40 here), so a 5-point minimum here is stricter than it
+sounds. The app has no base payment, so it keeps a minimum of at least 1
+rather than offering 0.
+
+The guide was tuned at 5 and still beats `SimpleBot` at the lower minimums
+without retuning. Over 800 paired East-only games (seeds 500000+,
+2026-09-24), it placed 0.263 ± 0.105 ahead at 1 tai (p = 9e-7) and
+0.181 ± 0.104 ahead at 3 (p = 6e-4). Re-run with
+`TW_TUNE_MIN=1 TW_TUNE_ARMS=shipped TW_TUNE_GAMES=800 flutter test test/taiwanese_tuning_sweep_test.dart`.
 
 ## Hand shape and wall
 

@@ -131,7 +131,7 @@ void main() {
       if (result.kind == RoundEndKind.ron || result.kind == RoundEndKind.tsumo) {
         for (final score in result.scores) {
           expect(score.valid, isTrue);
-          expect(score.han, greaterThanOrEqualTo(TaiwaneseRules.minimumPoints));
+          expect(score.han, greaterThanOrEqualTo(TaiwaneseRules.defaultMinimumPoints));
         }
         // 5 melds and a pair (or seven pairs and a pung) is 17 tiles: each
         // meld reserves 3 (a kong's extra tile is balanced by its own

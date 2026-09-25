@@ -72,6 +72,8 @@ Handler buildMultiplayerHandler(
             hanchan: hanchan,
             timerSeconds: Room.normalizeTimerSeconds(msg['timerSeconds']),
             minimumFaan: HongKongRules.normalizeMinimumFaan(msg['minimumFaan']),
+            minimumPoints:
+                TaiwaneseRules.normalizeMinimumPoints(msg['minimumPoints']),
             hostCharacter: msg['character'] as String?,
           );
           room = r;
