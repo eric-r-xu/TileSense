@@ -216,6 +216,14 @@ re-running `tools/mkastaroth.py`) can take up to a day to reach someone who
 already has the old one, because the filename doesn't change. If you need it
 immediately, either shorten the `max-age` or rename the file so the URL is new.
 
+Fonts fall under the same rule, and they change on *every* build: icon fonts
+are tree-shaken to the glyphs the app uses, so adding an icon ships a new
+`MaterialIcons-Regular.otf` under the old URL. A browser holding the previous
+subset draws the new icon as nothing. `deploy.sh` runs
+`tools/fingerprint_fonts.py` after the build to put a content hash in each font
+name and rewrite `FontManifest.json` (no-cache) to match, so a changed font
+gets a new URL.
+
 To check what a clip is actually costing:
 
 ```sh

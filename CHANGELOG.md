@@ -9,6 +9,43 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-09-25 — Centre status pill, room for full ponds, taller tablet tables
+
+### Changed
+- **The round/wall/honba/riichi read-out (dealer repeat on Hong Kong and
+  Taiwanese tables) is back in the middle of the table**, as one line in a
+  wide, short pill with the ponds around it, and gone from the app bar.
+  Online tables name the ruleset in it too.
+- **Full ponds no longer paint over the seats.** The across seat's portrait
+  and placard moved up into the app bar's empty middle, centred over the
+  table. Their face-down hand runs along the top of the felt right under the
+  portrait, with their open melds on the same line to its left.
+  Your portrait and placard are back, centred under your pond, at the side
+  seats' size. Pond tiles now size themselves to the room the table has:
+  1.25× wherever they fit, and about 1.16× on the phone-shaped canvas. Two
+  ponds with four full rows and a riichi stick, plus the pill, always fit
+  with at least 5px to spare. Before this, a fourth row ran ~24px into the
+  across hand and your placard. The builder, whose bar is full of its own
+  controls, keeps the whole across seat on the felt, portrait centred.
+- **All three opponents' face-down hands show the same size of tile.**
+  A side seat's hand used to shrink when its calls left the column short
+  of room; now the hand keeps its size and the melds shrink instead, which
+  only happens with four kans.
+- **An opponent's face-down hand re-centres when they call.** Its strip is
+  sized to the tiles actually in hand (plus room for a draw), rather than
+  always to a full 13.
+- **Tablets and laptops get a taller table instead of letterbox bars.** The
+  canvas keeps its 1600 width, and on screens squarer than 1600:820 it grows
+  taller to match, up to 1200. For example, an iPad in landscape gains ~210–310px
+  of table. Phones in landscape keep 1600×820. The welcome and character
+  screens now centre vertically in whatever height they get.
+
+### Fixed
+- **New icons could render blank after a deploy.** Icon fonts are tree-shaken
+  per build but cached for a day under a fixed URL, so a browser kept
+  yesterday's subset (this is how the builder button's tool icon went
+  missing). `deploy.sh` now content-hashes each font's name.
+
 ## 2026-09-24 — Taiwanese minimum tai
 
 ### Added

@@ -90,6 +90,9 @@ deploy_client() {
       --dart-define=BUILD_ID="$build_id" \
       --dart-define=APP_VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
     printf '{"build_id":"%s"}' "$build_id" > build/web/build_id.json
+    # Icon fonts are tree-shaken per build but long-cached by URL: hash their
+    # names so a new icon can't be drawn from yesterday's cached subset.
+    python3 tools/fingerprint_fonts.py build/web
     # After the build, before the sidecars: precompress skips files under 1KB,
     # so this one stays uncompressed and always freshly readable.
     python3 tools/precompress_web.py build/web

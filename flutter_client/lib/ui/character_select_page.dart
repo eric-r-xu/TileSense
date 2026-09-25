@@ -387,135 +387,147 @@ class CharacterSelectPage extends StatelessWidget {
       color: const Color(0xff042020),
       child: Stack(
         children: [
-          SingleChildScrollView(
-            child: Center(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'CHOOSE YOUR CHARACTERS',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      startingDealer == 0
-                          ? 'East deals first — that is you.'
-                          : 'East deals first — that is '
-                              '${kSeatPositionNames[startingDealer].toLowerCase()}.',
-                      key: const Key('dealerNote'),
-                      style:
-                          const TextStyle(color: Colors.white54, fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
-                    // The minimum shares the wind row: the style row below
-                    // has no width to spare.
-                    Row(
+          // At least as tall as the screen, so on a taller canvas the page
+          // sits in the middle rather than at the top.
+          LayoutBuilder(
+            builder: (context, c) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: c.maxHeight),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _windChoice(),
-                        if (_minimumPicker() case final picker?) ...[
-                          const SizedBox(width: 28),
-                          picker,
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Style shares the length row: the screen is already
-                    // tight against the design canvas's height.
-                    if ((ruleset, onRuleset) case (final r?, final set?))
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _rulesetChoice(r, set),
-                          const SizedBox(width: 28),
+                        const Text(
+                          'CHOOSE YOUR CHARACTERS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          startingDealer == 0
+                              ? 'East deals first — that is you.'
+                              : 'East deals first — that is '
+                                  '${kSeatPositionNames[startingDealer].toLowerCase()}.',
+                          key: const Key('dealerNote'),
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 14),
+                        ),
+                        const SizedBox(height: 12),
+                        // The minimum shares the wind row: the style row below
+                        // has no width to spare.
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _windChoice(),
+                            if (_minimumPicker() case final picker?) ...[
+                              const SizedBox(width: 28),
+                              picker,
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Style shares the length row: the screen is already
+                        // tight against the design canvas's height.
+                        if ((ruleset, onRuleset) case (final r?, final set?))
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _rulesetChoice(r, set),
+                              const SizedBox(width: 28),
+                              _lengthChoice(),
+                            ],
+                          )
+                        else
                           _lengthChoice(),
-                        ],
-                      )
-                    else
-                      _lengthChoice(),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        for (var seat = 0; seat < seatCharacters.length; seat++)
-                          _seatCard(seat),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        OutlinedButton.icon(
-                          key: const Key('randomizeCharacters'),
-                          onPressed: onRandomize,
-                          icon: const Icon(Icons.shuffle, size: 18),
-                          label: const Text('Randomize characters & seats'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xffe9d58f),
-                            side: const BorderSide(color: _gold),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 12),
-                          ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: [
+                            for (var seat = 0;
+                                seat < seatCharacters.length;
+                                seat++)
+                              _seatCard(seat),
+                          ],
                         ),
-                        const SizedBox(width: 24),
-                        InkWell(
-                          key: const Key('soundCheckbox'),
-                          borderRadius: BorderRadius.circular(6),
-                          onTap: () => onSoundOn(!soundOn),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Checkbox(
-                                  value: soundOn,
-                                  onChanged: (v) => onSoundOn(v ?? !soundOn),
-                                  activeColor: _gold,
-                                  checkColor: Colors.black,
-                                  side: const BorderSide(color: Colors.white54),
-                                ),
-                                Text(
-                                  'Sound',
-                                  style: TextStyle(
-                                    color:
-                                        soundOn ? Colors.white : Colors.white54,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            OutlinedButton.icon(
+                              key: const Key('randomizeCharacters'),
+                              onPressed: onRandomize,
+                              icon: const Icon(Icons.shuffle, size: 18),
+                              label: const Text('Randomize characters & seats'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xffe9d58f),
+                                side: const BorderSide(color: _gold),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                              ),
                             ),
+                            const SizedBox(width: 24),
+                            InkWell(
+                              key: const Key('soundCheckbox'),
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () => onSoundOn(!soundOn),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Checkbox(
+                                      value: soundOn,
+                                      onChanged: (v) =>
+                                          onSoundOn(v ?? !soundOn),
+                                      activeColor: _gold,
+                                      checkColor: Colors.black,
+                                      side: const BorderSide(
+                                          color: Colors.white54),
+                                    ),
+                                    Text(
+                                      'Sound',
+                                      style: TextStyle(
+                                        color: soundOn
+                                            ? Colors.white
+                                            : Colors.white54,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          key: const Key('charactersContinue'),
+                          onPressed: onAdvance,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _gold,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 14),
+                          ),
+                          child: Text(
+                            advanceLabel,
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      key: const Key('charactersContinue'),
-                      onPressed: onAdvance,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _gold,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 14),
-                      ),
-                      child: Text(
-                        advanceLabel,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
