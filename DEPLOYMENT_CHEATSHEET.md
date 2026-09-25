@@ -1,165 +1,143 @@
 # Deployment cheatsheet
 
-Quick reference for shipping a change to `app.ericrxu.com`. Full detail and
-one-time setup live in `flutter_client/DEPLOYMENT.md` and
-`server/DEPLOYMENT.md` — this is just the copy-paste part.
+`deploy.sh` is the supported production deployment entrypoint. It delegates to
+`server/deploy/deploy.py` and a locked SSH worker, `server/deploy/remote.py`.
+It does not upload generated files into the digitalOcean Git checkout.
 
-**`./deploy.sh` (repo root) runs everything below for you** —
-`./deploy.sh` for all of it, or `./deploy.sh migrate|client|ingest|mp` for
-just one piece. `./deploy.sh geoip` (re)loads the GeoIP city table the
-ingest uses for `sessions.geo_country`/`geo_region`/`geo_city` — not part of
-`all`; run it once after
-the first ingest deploy that has it, then monthly (`server/DEPLOYMENT.md`
-§2.11). The rest of this file is what that script actually runs,
-spelled out, for when something goes wrong and you need to run a piece by
-hand.
+## Configuration
 
-**Every session, first (`deploy.sh` does this part itself):**
+Keep the ignored `deploy.env` in the repository root:
 
 ```sh
-cd ~/Documents/GitHub/TileSense
-source deploy.env                 # DB_ID, DROPLET_ID, DROPLET_IP, HOST, BASE_HREF
-export PROD_DB="$(doctl databases connection "$DB_ID" --format URI --no-header)"
-open -a Docker && docker ps >/dev/null   # needed for every compile step below
+HOST=app.ericrxu.com
+DROPLET_IP=<your-droplet-address>
+BASE_HREF=/tilesense/
+DB_ID=<managed-postgres-id>       # only migrate / ingest / all
+DART_IMAGE=dart:3.13.3            # only ingest / mp / all; exact SDK tag required
 ```
 
-## What changed → what to redeploy
+Pin `DART_IMAGE` to the SDK validated for the release (a digest can also be
+appended). Docker must already be running for backend builds. Client-only
+deployments require Flutter, Python 3.9+, Git, SSH and rsync; they do not need
+Docker, doctl, or database credentials. Database deployment requires doctl on
+the laptop and psql on the already trusted Droplet. PostgreSQL credentials go
+through encrypted SSH stdin and subprocess environment, not command arguments.
+No firewall rules are replaced. `DROPLET_ID` and `SERVED_DIR` are no longer used.
 
-| You touched | Redeploy |
-| --- | --- |
-| `flutter_client/lib/**` (game, UI) | §2 Web client |
-| `packages/mahjong_core/**` (shared core) | §2 Web client **and** §4 Multiplayer — the server imports it too |
-| A new file in `server/migrations/` | §1 Migration, before §3 |
-| `server/bin/server.dart` | §3 Ingest |
-| `server/mp/lib/**`, `server/mp/bin/**` | §4 Multiplayer |
-| `server/deploy/load-geoip.sql`, or a month has passed | `./deploy.sh geoip` |
-| `server/mp/deploy/tilesense-mp.service` (env vars) | §4 Multiplayer (copy the `.service` file too, not just the binary) |
+Commit the source before deploying. The existing checkout may include locally
+modified compiled backend binaries: review those separately, never discard them
+blindly. `ALLOW_DIRTY_DEPLOY=1` explicitly allows a dirty checkout; release
+metadata records that exception, so a commit ID alone will not reproduce it.
 
----
-
-## 1. Database migration
-
-Only if a new file exists in `server/migrations/` that prod hasn't seen yet.
-**Always before §3** — the ingest binary's SQL references columns/tables
-that have to already exist, or every insert referencing them fails.
+## One-time client hosting transition
 
 ```sh
-MYIP=$(curl -s4 https://api.ipify.org)
-doctl databases firewalls replace "$DB_ID" \
-  --rule "ip_addr:$MYIP" --rule "droplet:$DROPLET_ID"
-
-docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/000X_name.sql
-docker run --rm postgres:16 psql "$PROD_DB" -c '\dt'    # confirm the new table/columns
-
-doctl databases firewalls replace "$DB_ID" --rule "droplet:$DROPLET_ID"   # drop laptop access again
+./deploy.sh setup-client
 ```
 
-## 2. Web client
+This copies the currently served assets from
+`/srv/digitalOcean/static/tilesense/` into `/srv/tilesense/legacy/`, backs up
+`/etc/nginx/sites-enabled/myproject`'s resolved file, and modifies only the known
+TileSense static location. Other Flask, ingest, TLS and WebSocket routes are
+preserved. It runs `nginx -t` before reloading and restores the previous config
+on validation, reload, or the driver's public HTTP check failure. The old Git
+checkout and its assets remain untouched.
+
+The setup fails on an unfamiliar/ambiguous Nginx layout. Review it rather than
+loosening the checks. A failed setup can leave a private backup and legacy
+snapshot; inspect them before retrying. Do not delete the old assets as part of
+this transition. Reconcile digitalOcean's existing Git differences separately.
+
+## Routine releases
 
 ```sh
-BUILD_ID=$(date -u +%Y%m%d%H%M%S)
-
-cd flutter_client
-flutter build web --release \
-  --base-href "$BASE_HREF" \
-  --dart-define=BUILD_ID="$BUILD_ID" \
-  --dart-define=APP_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-printf '{"build_id":"%s"}' "$BUILD_ID" > build/web/build_id.json
-python3 tools/precompress_web.py build/web     # .gz sidecars for gzip_static
-cd ..
-
-ssh root@$DROPLET_IP "nginx -T | grep -A6 'location /tilesense/'"   # first time only, to find SERVED_DIR
-ssh root@$DROPLET_IP 'python3 -' < server/deploy/install-web-compression.py   # first time only
-rsync -avz --delete flutter_client/build/web/ root@$DROPLET_IP:/SERVED_DIR/
-curl -sI https://$HOST/tilesense/     # 200, ETag changed from before
-curl -sI -H 'Accept-Encoding: gzip' https://$HOST/tilesense/main.dart.js | grep -i content-encoding
+./deploy.sh client
+./deploy.sh migrate
+./deploy.sh ingest
+./deploy.sh geoip                 # monthly DB-IP city refresh; not part of all
+ALLOW_MP_RESTART=1 ./deploy.sh mp
+ALLOW_MP_RESTART=1 ./deploy.sh all
 ```
 
-`BUILD_ID` has to reach the bundle *and* `build_id.json`, or the in-app Update
-button can never fire — see
-[`flutter_client/DEPLOYMENT.md`](flutter_client/DEPLOYMENT.md). Order matters:
-`build_id.json` is written before `precompress_web.py`, which skips anything
-under 1 KB, so the id itself is never served from a stale sidecar.
+Multiplayer restarts disconnect active rooms; the explicit environment flag
+acknowledges this. Schedule those releases when disruption is acceptable.
 
-`precompress_web.py` writes a `.gz` next to every `.js`, `.wasm`, `.json`,
-`.css`, `.html` and `.svg` over 1 KB; `install-web-compression.py` turns on
-`gzip_static` for `location /tilesense/` so Nginx serves them. It is idempotent,
-validates with `nginx -t`, and restores its backup if that fails, so re-running
-it is safe. `main.dart.js` ships at about 0.8 MB instead of 2.7 MB.
+The script builds all requested artifacts before making production changes.
+Backend builds use read-only source mounts and lockfiles and put outputs in a
+temporary directory, leaving tracked binaries untouched. Full releases apply
+migrations, install/verify ingest and multiplayer, then activate the client.
 
-## 3. Ingest service (telemetry)
+Client releases are uploaded to unique staging directories and checked against
+a SHA-256 manifest. They are published under `/srv/tilesense/releases/<id>/`.
+The stable `/tilesense/` URL serves the current release's index; its HTML base
+points at `/tilesense/releases/<id>/`. Deferred JavaScript, fonts and other
+assets therefore continue to work in tabs opened before a later deployment.
+The manifest's PWA start URL and the in-app build-ID check remain `/tilesense/`.
+Font fingerprinting, compressed sidecars and the initial loading page remain.
+No Flutter service worker is generated for new releases.
+
+An atomic symlink switch activates the client. Public checks verify the build
+ID, HTML base and core assets before and after activation. Local and remote
+locks prevent overlapping deployments using this script. Legacy deploy aliases
+and manual rsync commands bypass these locks and must no longer be used.
+
+## Recovery and retention
 
 ```sh
-docker run --rm --platform linux/amd64 -v "$PWD/server":/src -w /build dart:stable \
-  sh -c "cp -r /src/. /build && dart pub get && dart compile exe bin/server.dart -o /src/tilesense-ingest"
-file server/tilesense-ingest        # must say: ELF 64-bit ... x86-64
-
-scp server/tilesense-ingest root@$DROPLET_IP:/tmp/tilesense-ingest
-ssh root@$DROPLET_IP "mv /tmp/tilesense-ingest /usr/local/bin/tilesense-ingest && \
-  systemctl restart tilesense-ingest && systemctl status tilesense-ingest --no-pager && \
-  curl -s localhost:8787/healthz"        # -> ok, run on the Droplet (ingest only binds 127.0.0.1)
-curl -sI https://$HOST/tilesense/
+./deploy.sh rollback-client <previous-release-id>
 ```
 
-Don't touch `/etc/tilesense-ingest.env` on the Droplet as part of this —
-regenerating it (per the *first-deploy* instructions in `server/DEPLOYMENT.md`
-§2.5) rotates `IP_HMAC_SECRET` and breaks continuity with past sessions. Only
-touch it if you're deliberately rotating the secret or changing `DATABASE_URL`.
+Releases are immutable. The script never prunes the legacy snapshot, old
+releases, or backend backups. Monitor disk usage and retain versions needed by
+open tabs; deleting their assets can break deferred loading. A rollback to a
+versioned release runs the same health checks as a deployment. The initial
+legacy snapshot is reserved for automatic first-deployment rollback.
 
-## 4. Multiplayer service (mp)
+Until the worker receives an explicit commit, SSH EOF/disconnection restores
+activated clients and successfully replaced services in reverse order. Each
+service also restores its binary/unit immediately if its own restart or health
+check fails. Backups are in `/srv/tilesense/.staging/<id>/backup/`. An OS crash,
+forced kill, or network outage can prevent automatic recovery or verification;
+inspect the reported backup and `current` paths before retrying. Ingest uses
+its HTTP health endpoint; multiplayer checks service state and its listening
+socket (this is not a full game-protocol smoke test).
 
-**Restarting this drops every in-progress room** — by design, it has no DB
-of its own for live state (see `server/DEPLOYMENT.md` §3). Pick a low-traffic
-moment.
+Migrations run with `ON_ERROR_STOP`, transaction boundaries, an advisory lock,
+timeouts, and a checksum ledger. Current idempotent migrations run once when
+adopting the ledger on an existing database. Failed migrations roll back their
+own changes. Successful migrations remain applied if a later deployment step
+fails: automatic schema rollback could discard newly collected telemetry.
+Confirm database backups/PITR before releases; this script does not create a
+managed database backup. Nontransactional migrations require a separate review.
+
+## Regression checks (no production access)
 
 ```sh
-docker run --rm --platform linux/amd64 -v "$PWD":/repo -w /build dart:stable \
-  sh -c "mkdir -p /build && cp -r /repo/packages /build/packages && cp -r /repo/server /build/server && \
-    cd /build/server/mp && dart pub get && dart compile exe bin/mp_server.dart -o /repo/server/mp/tilesense-mp"
-file server/mp/tilesense-mp
-
-scp server/mp/tilesense-mp                root@$DROPLET_IP:/tmp/tilesense-mp
-scp server/mp/deploy/tilesense-mp.service root@$DROPLET_IP:/etc/systemd/system/
-ssh root@$DROPLET_IP "mv /tmp/tilesense-mp /usr/local/bin/tilesense-mp && systemctl daemon-reload && \
-  systemctl restart tilesense-mp && systemctl status tilesense-mp --no-pager"
-curl -sI https://$HOST/tilesense/
+python3 -B -m unittest discover -s server/deploy -p 'test_*.py' -v
+bash -n deploy.sh
 ```
 
-## Verify it actually worked
+The legacy manual commands in the longer platform documents describe initial
+provisioning and historical deployment. For routine production releases use
+this script, not direct rsync into `/srv/digitalOcean` or firewall replacement.
 
-Play a round (or a full multiplayer game), then:
+## GeoIP compatibility
+
+`geoip` retains the current DB-IP city download, prior-month fallback, existing
+`load-geoip.sql` table swap/backfill, and a 15-second database progress heartbeat.
+It validates the complete gzip stream and uploaded checksum before loading.
+The load now runs through SSH on the trusted Droplet, with no firewall changes
+or local Docker requirement. Its existing SQL transaction boundaries are kept;
+a completed table swap is not automatically undone if subsequent backfill fails.
+The compressed download stays in the unique staging directory for diagnosis.
+
+The optional database integration suite creates and drops randomly named test
+databases on an explicitly supplied **disposable localhost** PostgreSQL server.
+It exercises current migrations, SQL-error rollback, changed migration rejection,
+and the GeoIP loader with one million synthetic rows. Example after starting an
+isolated PostgreSQL instance and ensuring `psql` is on PATH:
 
 ```sh
-docker run --rm postgres:16 psql "$PROD_DB" -c \
-  "select match_id, mode, room_code from matches order by started_at desc limit 3;"
-docker run --rm postgres:16 psql "$PROD_DB" -c \
-  "select kind, actor_seat, tile from events order by occurred_at desc limit 10;"
+TILESENSE_TEST_DB_URI='postgresql://postgres:local-test-only@127.0.0.1:15439/postgres?sslmode=disable' \
+  python3 -B -m unittest discover -s server/deploy -p 'test_*.py' -v
 ```
-(Needs your laptop's IP on trusted sources again — see §1's firewall commands.)
-
-## Rollback
-
-| To undo | How |
-| --- | --- |
-| Web client | Redeploy the previous `build/web/`, or `ln -sfn` the previous release dir if using the symlink flow |
-| Ingest binary | scp the previous `tilesense-ingest` back the same way, restart |
-| Mp binary | Same, or `ssh root@$DROPLET_IP "systemctl disable --now tilesense-mp"` to stop it entirely |
-| Mp telemetry only, keep the game running | Remove `Environment=INGEST_URL=...` from `tilesense-mp.service`, then `daemon-reload && restart` |
-| A migration | Nothing to do — migrations here are additive-only by design (new columns/tables, never dropped/rewritten) |
-
-## Gotchas hit before
-
-- **`scp: dest open "..." Failure`** — this is `ETXTBSY`: you're overwriting a
-  binary that's currently running as a live process, which Linux refuses.
-  Always scp to `/tmp` then `ssh ... mv` into place (shown above) — `mv` on
-  the same filesystem is a rename, not a write into the busy file, so it
-  works even while the old binary is still executing.
-- **`Connection refused` connecting to Postgres** — misleading; it almost
-  always means your current IP isn't on the database's trusted-sources list
-  right now, not that the DB is down. Re-run §1's `doctl databases firewalls
-  replace` with your IP added.
-- **A new table doesn't show up in Metabase** — Metabase caches its schema.
-  Admin settings → Databases → (the telemetry DB) → **Sync database schema
-  now**. If it's still missing after that, the `metabase_ro` role likely
-  lacks `SELECT` on it specifically — `GRANT SELECT ON <table> TO
-  metabase_ro;` connected as the admin role.

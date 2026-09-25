@@ -21,7 +21,8 @@ Future<web.Response> _fetch(String url, String cache) =>
 Future<String?> fetchServerBuildId() async {
   try {
     final res = await _fetch(
-        'build_id.json?t=${DateTime.now().millisecondsSinceEpoch}', 'no-store');
+        '${const String.fromEnvironment('UPDATE_BASE_HREF')}build_id.json?t=${DateTime.now().millisecondsSinceEpoch}',
+        'no-store');
     if (!res.ok) return null;
     final body = jsonDecode((await res.text().toDart).toDart);
     final id = body is Map ? body['build_id'] : null;
