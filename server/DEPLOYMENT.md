@@ -293,7 +293,7 @@ docker run --rm postgres:16 psql "$PROD_DB" -c \
 docker run --rm postgres:16 psql "$PROD_DB" -c \
   "select kind, tile, auto, followed_guide from events order by occurred_at desc limit 20;"
 docker run --rm postgres:16 psql "$PROD_DB" -c \
-  "select ip_prefix, encode(ip_hmac,'hex') from sessions order by started_at desc limit 3;"
+  "select ip_prefix, geo_country, geo_region, geo_city, encode(ip_hmac,'hex') from sessions order by started_at desc limit 3;"
 ```
 
 ### 2.10 Rollback (any one, independent)
@@ -306,6 +306,52 @@ docker run --rm postgres:16 psql "$PROD_DB" -c \
 | everything | all three above; the DB is inert, or `doctl databases delete $DB_ID` |
 
 ---
+
+### 2.11 GeoIP location (`sessions.geo_country`, `geo_region`, `geo_city`)
+
+The ingest looks each new session's network up in `geoip_city` (migration
+`0004_geoip.sql`) and stores its country code, region and city on the
+session. The data is DB-IP's free "IP to City Lite" database, licensed **CC BY 4.0 — credit "IP Geolocation by DB-IP"
+(https://db-ip.com)** on any chart, dashboard or report built from it (see
+`server/README.md`, Data attribution).
+
+```sh
+./deploy.sh geoip   # download this month's file, swap it in, backfill
+```
+
+That downloads the CSV here (~85 MB, ~7.7M ranges), loads it through
+`server/deploy/load-geoip.sql` into a side table, and swaps it in with a quick
+rename, so the ingest never waits on the load. A short or failed download stops
+before the swap and leaves the current table in place, and its staging data is
+a temporary table, so nothing is left behind. It then fills in the location of
+every session missing a country or city, including every session recorded
+before this existed. Re-run it monthly to pick up DB-IP's new file; it is safe
+to run any time.
+
+Disk: the table is ~860 MB with its index. A reload briefly holds the old
+table, the new one and the staging data at once, peaking at ~2.3 GB, so keep
+~3 GB free (the `db-s-1vcpu-1gb` plan has 10 GiB).
+
+- Only the network address (the `/24` or `/48`) is ever looked up, never a
+  caller's own address.
+- The lookup runs outside the batch's transaction and swallows its own errors:
+  an empty or missing table just leaves the `geo_*` columns null, and the
+  batch is still stored. Failures log as `[ingest] geoip lookup failed: …`.
+- Country is reliable, region usually right. City is approximate: mobile
+  carriers, VPNs and corporate networks often resolve to their ISP's hub city
+  rather than the player's.
+- The caller's address is the **last** `X-Forwarded-For` entry — the one nginx
+  appends (`$proxy_add_x_forwarded_for`). Earlier entries are whatever the
+  client sent and are ignored. `CF-IPCountry`/`CF-Connecting-IP` are ignored
+  too: the site isn't behind Cloudflare, so only a client could set them.
+
+Check it:
+
+```sh
+docker run --rm postgres:16 psql "$PROD_DB" -c \
+  "select geo_country, geo_region, geo_city, count(distinct client_id) as clients
+   from sessions group by 1, 2, 3 order by 4 desc limit 20;"
+```
 
 ## 3. Multiplayer game server
 
@@ -472,7 +518,14 @@ PROD_DB="$(doctl databases connection <db-id-from-app> --format URI --no-header)
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0001_init.sql
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0002_seat_characters.sql
 docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0003_multiplayer.sql
+docker run --rm -i postgres:16 psql "$PROD_DB" -f - < server/migrations/0004_geoip.sql
 ```
+
+The ingest takes the caller's address from the **last** `X-Forwarded-For`
+entry (see 2.11), so check that App Platform's router appends the caller's
+address there before trusting `ip_prefix`/`geo_*` on this setup. Load
+the GeoIP data by running `server/deploy/load-geoip.sql` against `$PROD_DB`,
+as `load_geoip` in `deploy.sh` does.
 
 Then deploy the client exactly as in 2.8 with
 `TELEMETRY_ENDPOINT=https://<your-app>.ondigitalocean.app/ingest`.
