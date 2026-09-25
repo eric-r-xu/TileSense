@@ -75,7 +75,8 @@ close_db_firewall() {
     DB_TRUSTED_IP=""
   fi
 }
-trap close_db_firewall EXIT
+# Also stops the GeoIP heartbeat (below) if a load fails partway.
+trap 'stop_geoip_heartbeat; close_db_firewall' EXIT
 
 run_migrations() {
   echo "==> Applying database migrations (additive-only — safe to re-run all of them every time)..."
@@ -135,6 +136,53 @@ deploy_client() {
   check_site
 }
 
+# While the GeoIP load runs, one line every 15s on what the database is
+# doing: the upload's progress, the index build's phase, or whichever of our
+# statements is running and for how long. The quiet steps (upload, table
+# copy, index) take minutes on the small cluster; this shows they're moving.
+# A read-only query on its own connection, so it can't slow or break the load.
+# [rows] is the CSV's line count, for the upload percentage.
+geoip_heartbeat() {
+  local rows="$1"
+  while sleep 15; do
+    docker run --rm postgres:16 psql "$PROD_DB" -XAtq -c "
+      select format('    [heartbeat %s] %s · db %s',
+        to_char(now() at time zone 'America/Los_Angeles', 'HH24:MI:SS'),
+        coalesce(
+          (select format('uploading: %s%% (%s of $rows rows, %s)',
+                         round(100.0 * tuples_processed / $rows, 1),
+                         tuples_processed, pg_size_pretty(bytes_processed))
+           from pg_stat_progress_copy limit 1),
+          (select format('index: %s%s', phase,
+                         case when blocks_total > 0
+                              then format(' %s%%', round(100.0 * blocks_done
+                                                         / blocks_total, 1))
+                              else '' end)
+           from pg_stat_progress_create_index limit 1),
+          (select format('%s (running %s)',
+                         left(regexp_replace(query, '\s+', ' ', 'g'), 60),
+                         date_trunc('second', now() - query_start))
+           from pg_stat_activity
+           where state = 'active' and usename = current_user
+             and pid <> pg_backend_pid()
+           order by query_start limit 1),
+          'between statements'),
+        pg_size_pretty(pg_database_size(current_database())));" \
+      2>/dev/null || true
+  done
+}
+GEOIP_HEARTBEAT_PID=""
+stop_geoip_heartbeat() {
+  local pid="${GEOIP_HEARTBEAT_PID:-}"
+  if [[ -n "$pid" ]]; then
+    # Its in-flight sleep or check first, so no stray line prints afterwards.
+    pkill -P "$pid" 2>/dev/null || true
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+    GEOIP_HEARTBEAT_PID=""
+  fi
+}
+
 # DB-IP's free city database (CC BY 4.0 — credit "IP Geolocation by DB-IP",
 # https://db-ip.com) into geoip_city, which the ingest looks each new
 # session's network up in, then a backfill of the country, region and city of
@@ -160,11 +208,17 @@ load_geoip() {
     exit 1
   fi
 
-  echo "==> Loading it and backfilling sessions..."
+  local rows
+  rows="$(gunzip -c "$gz" | wc -l | tr -d ' ')"
+  echo "==> Loading it ($rows ranges) and backfilling sessions — a few quiet"
+  echo "    minutes on the database; a heartbeat line prints every 15s..."
   open_db_firewall
+  geoip_heartbeat "$rows" &
+  GEOIP_HEARTBEAT_PID=$!
   gunzip -c "$gz" | docker run --rm -i \
     -v "$PWD/server/deploy/load-geoip.sql:/load-geoip.sql:ro" postgres:16 \
     psql "$PROD_DB" -v ON_ERROR_STOP=1 -f /load-geoip.sql
+  stop_geoip_heartbeat
   close_db_firewall
   rm -f "$gz"
   echo "==> GeoIP loaded."

@@ -328,6 +328,18 @@ every session missing a country or city, including every session recorded
 before this existed. Re-run it monthly to pick up DB-IP's new file; it is safe
 to run any time.
 
+The database side is quiet for minutes at a time (the upload, the table copy,
+the index build), so `deploy.sh` prints a heartbeat line every 15 seconds
+from a separate read-only connection: the upload's percentage, the index
+build's phase, or which statement is running and for how long, plus the
+database's size. For example:
+
+```
+    [heartbeat 14:32:15] uploading: 63.1% (4893140 of 7748998 rows, 379 MB) · db 463 MB
+    [heartbeat 14:32:23] create table geoip_city_new as select ip_start, ip_end, coun (running 00:00:05) · db 1339 MB
+    [heartbeat 14:32:31] index: building index: loading tuples in tree · db 850 MB
+```
+
 Disk: the table is ~860 MB with its index. A reload briefly holds the old
 table, the new one and the staging data at once, peaking at ~2.3 GB, so keep
 ~3 GB free (the `db-s-1vcpu-1gb` plan has 10 GiB).
