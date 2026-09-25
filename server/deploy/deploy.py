@@ -77,7 +77,13 @@ class Remote:
 
     def upload(self, source, destination):
         # Upload only to a freshly-created stage, never delete anything on the server.
-        run(['rsync', '-rlptz', '--chmod=D755,F644', '-e',
+        # Normalize modes locally: macOS's openrsync has no --chmod, and -p then
+        # carries these (including the 0700 temp root) to the stage.
+        root = Path(source)
+        for path in [root, *root.rglob('*')]:
+            if not path.is_symlink():
+                path.chmod(0o755 if path.is_dir() else 0o644)
+        run(['rsync', '-rlptz', '-e',
              shlex.join(['ssh', *self.options]), str(source),
              self.destination + ':' + destination])
 
