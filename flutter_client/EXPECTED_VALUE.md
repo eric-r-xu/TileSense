@@ -532,7 +532,7 @@ the win-probability walk, the lookahead and the push/fold arithmetic are shared.
 |---|---|---|---|
 | Hand shape | 4 sets + a pair (`totalMelds` 4) | 4 sets + a pair | **5 sets + a pair** (`totalMelds` 5), dealt 16 |
 | Ready hand | yaku/fu/han/dora, riichi vs damaten, deposit | every live wait scored with `scoreHongKongHand`; no riichi or damaten | `scoreTaiwaneseHand`; no riichi or damaten |
-| Minimum to win | one yaku | **0 faan** by default — any complete hand, chicken hands included; or 1–3 faan, where `_scoreWait` treats a short hand as no win | **5 points** |
+| Minimum to win | one yaku | **0 faan** by default — any complete hand, chicken hands included; or 1–3 faan, where `_scoreWait` treats a short hand as no win | **5 points** by default, or 1 or 3 (tai); `scoreTaiwaneseHand` rejects a short hand |
 | Before ready | 3900/5800 (closed) or 2000/2900 (open) × dora | faan from visible dragon/wind pungs, flush, concealment and flowers, priced on the New Style table | `_taiwaneseProjectedPoints` — the same idea in Taiwanese points |
 | Payout mix | 0.65 ron / 0.35 tsumo | 0.65 discard win (discarder pays 2×) / 0.35 self-pick (all three pay, +1 faan) | as Hong Kong, with the self-draw collected from all three seats (`_selfDrawTotal`) |
 | Deal-in cost | 5800 / 8700 + honba | 16 chips (a 3-faan discard win) | **7 points** (measured: deal-ins averaged 6.9 in self-play) |

@@ -7,6 +7,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 
 import '../game/sfx.dart'
@@ -55,6 +56,8 @@ class CharacterSelectPage extends StatelessWidget {
     this.onRuleset,
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.onMinimumFaan,
+    this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
+    this.onMinimumPoints,
   });
 
   /// The style to play, pre-selected from the welcome screen's choice and
@@ -90,6 +93,11 @@ class CharacterSelectPage extends StatelessWidget {
   /// [ruleset] is Hong Kong and [onMinimumFaan] is set.
   final int minimumFaan;
   final ValueChanged<int>? onMinimumFaan;
+
+  /// Taiwanese's minimum tai to win: 1, 3 or 5. The picker only shows while
+  /// [ruleset] is Taiwanese and [onMinimumPoints] is set.
+  final int minimumPoints;
+  final ValueChanged<int>? onMinimumPoints;
 
   /// Leaves for wherever the player was headed (the table or the builder).
   final VoidCallback onAdvance;
@@ -296,34 +304,40 @@ class CharacterSelectPage extends StatelessWidget {
     );
   }
 
-  /// "Min faan: 0 · 1 · 2 · 3" — Hong Kong only; 0 (any chicken hand wins)
-  /// is the default.
-  Widget _minimumFaanChoice(ValueChanged<int> onChange) {
+  /// "Min faan: 0 · 1 · 2 · 3" under Hong Kong (0, any chicken hand wins,
+  /// is the default) or "Min tai: 1 · 3 · 5" under Taiwanese (5 is the
+  /// default) — the fewest the table lets a hand win on.
+  Widget _minimumChoice({
+    required String label,
+    required String tooltip,
+    required String keyPrefix,
+    required List<int> choices,
+    required int current,
+    required ValueChanged<int> onChange,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Tooltip(
-          message: 'The fewest faan a hand needs to win.\n'
-              '0 lets any complete hand, even a chicken hand, win.',
-          child: Text('Min faan',
-              style: TextStyle(color: Colors.white54, fontSize: 14)),
+        Tooltip(
+          message: tooltip,
+          child: Text(label,
+              style: const TextStyle(color: Colors.white54, fontSize: 14)),
         ),
         const SizedBox(width: 10),
-        for (final n in HongKongRules.minimumFaanChoices)
+        for (final n in choices)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: OutlinedButton(
-              key: Key('minimumFaan_$n'),
+              key: Key('${keyPrefix}_$n'),
               onPressed: () => onChange(n),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(44, 36),
-                backgroundColor:
-                    n == minimumFaan ? const Color(0x33caa24e) : null,
+                backgroundColor: n == current ? const Color(0x33caa24e) : null,
                 foregroundColor:
-                    n == minimumFaan ? const Color(0xffffdf76) : Colors.white54,
+                    n == current ? const Color(0xffffdf76) : Colors.white54,
                 side: BorderSide(
-                    color: n == minimumFaan ? _gold : Colors.white24,
-                    width: n == minimumFaan ? 2 : 1),
+                    color: n == current ? _gold : Colors.white24,
+                    width: n == current ? 2 : 1),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
@@ -334,6 +348,35 @@ class CharacterSelectPage extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// The minimum picker for [ruleset], or null when it has none (riichi) or
+  /// no callback was given.
+  Widget? _minimumPicker() {
+    if (ruleset == Ruleset.hongKong && onMinimumFaan != null) {
+      return _minimumChoice(
+        label: 'Min faan',
+        tooltip: 'The fewest faan a hand needs to win.\n'
+            '0 lets any complete hand, even a chicken hand, win.',
+        keyPrefix: 'minimumFaan',
+        choices: HongKongRules.minimumFaanChoices,
+        current: minimumFaan,
+        onChange: onMinimumFaan!,
+      );
+    }
+    if (ruleset == Ruleset.taiwanese && onMinimumPoints != null) {
+      return _minimumChoice(
+        label: 'Min tai',
+        tooltip: 'The fewest tai a hand needs to win.\n'
+            '5 is the San Diego club sheet\'s rule; 1 and 3 are common '
+            'house minimums.',
+        keyPrefix: 'minimumPoints',
+        choices: TaiwaneseRules.minimumPointsChoices,
+        current: minimumPoints,
+        onChange: onMinimumPoints!,
+      );
+    }
+    return null;
   }
 
   @override
@@ -372,16 +415,15 @@ class CharacterSelectPage extends StatelessWidget {
                           const TextStyle(color: Colors.white54, fontSize: 14),
                     ),
                     const SizedBox(height: 12),
-                    // Hong Kong's minimum shares the wind row: the style
-                    // row below has no width to spare.
+                    // The minimum shares the wind row: the style row below
+                    // has no width to spare.
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _windChoice(),
-                        if ((ruleset?.isHongKong ?? false, onMinimumFaan)
-                            case (true, final setMin?)) ...[
+                        if (_minimumPicker() case final picker?) ...[
                           const SizedBox(width: 28),
-                          _minimumFaanChoice(setMin),
+                          picker,
                         ],
                       ],
                     ),

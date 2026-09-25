@@ -398,6 +398,7 @@ class EfficiencyValueContext {
     this.flowers = const [],
     this.flowersEnabled = true,
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
+    this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
   });
 
   final List<Meld> melds;
@@ -412,6 +413,10 @@ class EfficiencyValueContext {
   /// Hong Kong: the fewest faan a complete hand needs to be declared (see
   /// `Round.minimumFaan`). A wait scoring less is no win at all.
   final int minimumFaan;
+
+  /// Taiwanese: the fewest points a complete hand needs to be declared (see
+  /// `Round.minimumPoints`). A wait scoring less is no win at all.
+  final int minimumPoints;
 
   /// What [points] is worth on this context's [focus] dial.
   double worth(double points) => focus.worth(points, ruleset: ruleset);
@@ -498,6 +503,7 @@ class EfficiencyValueContext {
         flowers: flowers,
         flowersEnabled: flowersEnabled,
         minimumFaan: minimumFaan,
+        minimumPoints: minimumPoints,
       );
 
   /// The same context with one or more of the three guide dials swapped —
@@ -528,6 +534,7 @@ class EfficiencyValueContext {
         flowers: flowers,
         flowersEnabled: flowersEnabled,
         minimumFaan: minimumFaan,
+        minimumPoints: minimumPoints,
       );
 }
 
@@ -2499,7 +2506,7 @@ class EfficiencyEngine {
   /// patterns would pay once it wins, off the Taiwanese chart rather than the
   /// Hong Kong faan table, so a hand one step from ready is priced on the
   /// same scale the exact score takes over with once it is ready. Floored at
-  /// the 5-point minimum a hand must reach to win at all; a self-draw adds
+  /// the table's minimum a hand must reach to win at all; a self-draw adds
   /// Self-Drawn, turns Concealed into Fully Concealed, and is paid by all
   /// three other seats.
   static double _taiwaneseProjectedPoints(
@@ -2522,9 +2529,9 @@ class EfficiencyEngine {
       points += context.flowers.isEmpty ? 1 : context.flowers.length;
     }
     if (context.closed) points++;
-    final discard = math.max(TaiwaneseRules.minimumPoints, points);
+    final discard = math.max(context.minimumPoints, points);
     final selfDraw = math.max(
-        TaiwaneseRules.minimumPoints, points + 1 + (context.closed ? 2 : 0));
+        context.minimumPoints, points + 1 + (context.closed ? 2 : 0));
     return 0.65 * discard + 0.35 * 3 * selfDraw;
   }
 
@@ -2653,7 +2660,7 @@ class EfficiencyEngine {
   /// wall already drawn. Flower replacements come off it too, so it leans
   /// high — the safe side, since those patterns only pay for being early.
   /// Left at 0, every wait scored as an early win (+10), and cleared the
-  /// 5-point minimum it often could not.
+  /// (then fixed) 5-point minimum it often could not.
   static int _taiwaneseDiscardsSoFar(EfficiencyValueContext context) =>
       math.max(0, _taiwaneseWallAfterDeal - context.wallTilesRemaining);
 
@@ -3120,7 +3127,7 @@ class EfficiencyEngine {
         plan: 'READY',
         reason: context.ruleset.isTaiwanese
             ? 'Ready — any wait scored above needs at least '
-                '${TaiwaneseRules.minimumPoints} points to declare hu.'
+                '${context.minimumPoints} points to declare hu.'
             : context.minimumFaan == 0
                 ? 'Any complete hand can win, including a zero-faan chicken '
                     'hand.'
@@ -3214,6 +3221,7 @@ class EfficiencyEngine {
           discardCount: _taiwaneseDiscardsSoFar(context),
         ),
         isDealer: context.isDealer,
+        minimumPoints: context.minimumPoints,
       );
     }
     if (context.ruleset.isHongKong) {

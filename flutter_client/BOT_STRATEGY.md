@@ -458,7 +458,7 @@ decision diagnostic found why, one layer at a time:
    Taiwanese points, counting a self-draw's payment once instead of from all
    three payers (≈ 7). A hand one step out looked worth more than a ready
    one. Both ends are now Taiwanese points (`_taiwaneseProjectedPoints`,
-   `_selfDrawTotal`), and a wait under the 5-point minimum on a discard but
+   `_selfDrawTotal`), and a wait under the table's minimum on a discard but
    not on a self-draw counts as a self-draw-only wait instead of being
    dropped.
 3. **Smaller corrections.** "Win Within N Discards" was scored as if no one

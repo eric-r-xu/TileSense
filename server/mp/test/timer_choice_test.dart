@@ -46,4 +46,24 @@ void main() {
         minimumFaan: 9);
     expect(bad.minimumFaan, 0, reason: 'out-of-range falls back to 0');
   });
+
+  test('a Taiwanese room carries its minimum tai to room_state', () {
+    final def = Room(code: 'EEEE', ruleset: Ruleset.taiwanese, hanchan: true);
+    expect(def.roomStateJson()['minimumPoints'], 5);
+    final manager = RoomManager();
+    final room = manager.createRoom(
+        hostGuestId: 'g',
+        hostName: 'Host',
+        ruleset: Ruleset.taiwanese,
+        hanchan: true,
+        minimumPoints: 1);
+    expect(room.roomStateJson()['minimumPoints'], 1);
+    final bad = manager.createRoom(
+        hostGuestId: 'h',
+        hostName: 'Host',
+        ruleset: Ruleset.taiwanese,
+        hanchan: true,
+        minimumPoints: 2);
+    expect(bad.minimumPoints, 5, reason: 'not a choice: falls back to 5');
+  });
 }

@@ -9,6 +9,18 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-09-24 — Taiwanese minimum tai
+
+### Added
+- **Taiwanese tables can require 1, 3 or 5 tai to win**, with the sheet's 5
+  kept as the default. Single player picks it on the character screen,
+  online hosts pick it when creating a room, and the app bar and room card
+  show it. `Round` enforces it for every seat, bots included, and the guide
+  scores waits and pre-ready hands against it. The 5 came from the San Diego
+  club sheet and is a house rule, not a standard: in Taiwan any complete hand
+  usually wins, and 1 or 3 tai are common house minimums (see
+  `docs/TAIWANESE_RULES.md`).
+
 ## 2026-09-24 — Hong Kong guide: the bot's speed, the guide's judgement
 
 ### Changed

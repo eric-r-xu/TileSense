@@ -111,9 +111,9 @@ enum Ruleset {
   /// essentially never reaches, so it gets its own threshold instead: 5
   /// faan, the same rough "the scale stops just doubling" position mangan
   /// (5 han) occupies among riichi hands. Taiwanese has no such cap either,
-  /// and its own 5-point minimum to declare a win at all means every win
-  /// already clears that bar — so its threshold sits a tier higher, at the
-  /// sheet's 10-Point patterns, the first tier that reads as a genuinely
+  /// and its default 5-point minimum to declare a win at all means every win
+  /// there already clears that bar — so its threshold sits a tier higher, at
+  /// the sheet's 10-Point patterns, the first tier that reads as a genuinely
   /// strong hand rather than just a legal one.
   bool isBigHand(HandScore score) => isTaiwanese
       ? score.han >= 10

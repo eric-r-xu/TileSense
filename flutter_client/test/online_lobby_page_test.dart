@@ -70,6 +70,29 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('Taiwanese rooms pick a 1, 3 or 5 tai minimum, with no overflow',
+      (tester) async {
+    final game = OnlineGameController();
+    await pump(tester, game);
+
+    expect(find.byKey(const Key('onlineMinimumPoints_5')), findsNothing,
+        reason: 'riichi has no minimum to pick');
+    await tester.tap(find.byKey(const Key('onlineRuleset_taiwanese')));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('onlineMinimumFaan_0')), findsNothing);
+    await tester.tap(find.byKey(const Key('onlineMinimumPoints_3')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('createRoom')));
+    await tester.pump();
+    expect(game.ruleset, Ruleset.taiwanese);
+    expect(game.minimumPoints, 3);
+
+    game.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   testWidgets('the name field defaults to the selected character',
       (tester) async {
     final game = OnlineGameController();

@@ -21,6 +21,7 @@ import 'meld.dart';
 import 'round.dart';
 import 'ruleset.dart';
 import 'scoring.dart';
+import 'taiwanese/taiwanese_rules.dart';
 import 'tile.dart';
 import 'wall.dart';
 
@@ -156,6 +157,7 @@ Map<String, dynamic> roundSnapshotToJson(
   return {
     'ruleset': round.ruleset.name,
     'minimumFaan': round.minimumFaan,
+    'minimumPoints': round.minimumPoints,
     'dealer': round.dealer,
     'roundWind': round.roundWind.name,
     'honba': round.honba,
@@ -262,6 +264,8 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     startingPoints: startingPoints,
     ruleset: ruleset,
     minimumFaan: HongKongRules.normalizeMinimumFaan(json['minimumFaan']),
+    minimumPoints:
+        TaiwaneseRules.normalizeMinimumPoints(json['minimumPoints']),
   );
 
   var nextPlaceholderId = -900000;

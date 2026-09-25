@@ -126,6 +126,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// "3-faan min · ", for the room card's settings line.
   String get minimumFaanLabel => '$minimumFaan-faan min · ';
 
+  /// Taiwanese only: the fewest points (tai) a hand needs to win, chosen by
+  /// the host when the room is created and echoed back by the server.
+  int minimumPoints = TaiwaneseRules.defaultMinimumPoints;
+
+  /// "3-tai min · ", for the room card's settings line.
+  String get minimumPointsLabel => '$minimumPoints-tai min · ';
+
   /// Seconds each player gets per discard and per call offer, chosen by the
   /// host when the room is created (30 or 60) and echoed back by the server.
   static const List<int> timerChoices = [30, 60];
@@ -145,11 +152,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     required bool hanchan,
     int timerSeconds = 30,
     int minimumFaan = HongKongRules.defaultMinimumFaan,
+    int minimumPoints = TaiwaneseRules.defaultMinimumPoints,
   }) {
     this.ruleset = ruleset;
     this.hanchan = hanchan;
     this.timerSeconds = timerSeconds;
     this.minimumFaan = minimumFaan;
+    this.minimumPoints = minimumPoints;
     _client.send({
       'type': 'create_room',
       'guestId': _identity.guestId,
@@ -159,6 +168,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       'hanchan': hanchan,
       'timerSeconds': timerSeconds,
       'minimumFaan': minimumFaan,
+      'minimumPoints': minimumPoints,
     });
   }
 
@@ -428,6 +438,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     hanchan = msg['hanchan'] as bool;
     timerSeconds = msg['timerSeconds'] as int? ?? 30;
     minimumFaan = HongKongRules.normalizeMinimumFaan(msg['minimumFaan']);
+    minimumPoints =
+        TaiwaneseRules.normalizeMinimumPoints(msg['minimumPoints']);
     roomPhase = RoomLifecycle.values.byName(msg['phase'] as String);
     final yourSeat = msg['yourSeat'] as int?;
     if (yourSeat != null) mySeat = yourSeat;
@@ -967,6 +979,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         ruleset: ruleset,
         flowers: seat.flowers.map((t) => t.type).toList(),
         minimumFaan: round.minimumFaan,
+        minimumPoints: round.minimumPoints,
       );
 
   SeatState? _threatOpponent() {

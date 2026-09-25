@@ -14,6 +14,7 @@ import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
@@ -200,14 +201,11 @@ class _AutoPlayBadge extends StatelessWidget {
                 border: Border.all(
                     color: on ? _autoPlayGold : Colors.white38, width: 1),
                 boxShadow: on
-                    ? const [
-                        BoxShadow(color: Color(0x88caa24e), blurRadius: 6)
-                      ]
+                    ? const [BoxShadow(color: Color(0x88caa24e), blurRadius: 6)]
                     : null,
               ),
               child: Icon(Icons.play_arrow,
-                  size: badge * 0.8,
-                  color: on ? Colors.black : Colors.white54),
+                  size: badge * 0.8, color: on ? Colors.black : Colors.white54),
             ),
           ),
         ],
@@ -841,6 +839,7 @@ class _GamePageState extends State<GamePage> {
   int _startingDealer = 0;
   bool _hanchan = true;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
+  int _minimumPoints = TaiwaneseRules.defaultMinimumPoints;
   bool _startingGame = false;
   bool _startFailed = false;
   int _startRequest = 0;
@@ -926,6 +925,23 @@ class _GamePageState extends State<GamePage> {
     return false;
   }
 
+  /// ", 3-tai minimum" for the ruleset label's tooltip; empty under riichi.
+  String _minimumSentence() => _game.ruleset.isHongKong
+      ? ', ${_game.minimumFaan}-faan minimum'
+      : _game.ruleset.isTaiwanese
+          ? ', ${_game.minimumPoints}-tai minimum'
+          : '';
+
+  /// "3 tai min" beside the ruleset label, only when the table's minimum
+  /// isn't its ruleset's default.
+  String? _minimumTag() => _game.ruleset.isHongKong &&
+          _game.minimumFaan != HongKongRules.defaultMinimumFaan
+      ? '${_game.minimumFaan} faan min'
+      : _game.ruleset.isTaiwanese &&
+              _game.minimumPoints != TaiwaneseRules.defaultMinimumPoints
+          ? '${_game.minimumPoints} tai min'
+          : null;
+
   void _toggleGuide() => setState(() => _showGuide = !_showGuide);
 
   /// New game sits beside pause, an easy mis-tap on a phone, and throws away
@@ -969,6 +985,7 @@ class _GamePageState extends State<GamePage> {
       _startingDealer = _game.startingDealer;
       _hanchan = _game.hanchan;
       _minimumFaan = _game.minimumFaan;
+      _minimumPoints = _game.minimumPoints;
       _showWelcome = true;
     });
   }
@@ -993,12 +1010,15 @@ class _GamePageState extends State<GamePage> {
               startingDealer: _startingDealer,
               hanchan: _hanchan,
               minimumFaan: _minimumFaan,
+              minimumPoints: _minimumPoints,
             );
         _game.setMinimumFaan(_minimumFaan);
+        _game.setMinimumPoints(_minimumPoints);
       } else {
         _game.setRuleset(_selectedRuleset);
         _game.setHanchan(_hanchan);
         _game.setMinimumFaan(_minimumFaan);
+        _game.setMinimumPoints(_minimumPoints);
         _game.setStartingDealer(_startingDealer);
         for (var seat = 0; seat < _characters.length; seat++) {
           _game.setSeatCharacter(seat, _characters[seat]);
@@ -1082,6 +1102,8 @@ class _GamePageState extends State<GamePage> {
           onHanchan: (h) => setState(() => _hanchan = h),
           minimumFaan: _minimumFaan,
           onMinimumFaan: (n) => setState(() => _minimumFaan = n),
+          minimumPoints: _minimumPoints,
+          onMinimumPoints: (n) => setState(() => _minimumPoints = n),
           onBack: () => setState(() => _choosingCharacters = false),
           onAdvance: _startOffline,
         );
@@ -1125,18 +1147,17 @@ class _GamePageState extends State<GamePage> {
               animation: _game,
               builder: (context, _) => Tooltip(
                 message: 'Playing ${_game.ruleset.label} rules'
-                    '${_game.ruleset.isHongKong ? ', ${_game.minimumFaan}-faan '
-                        'minimum' : ''}.\n'
+                    '${_minimumSentence()}.\n'
                     'To play another style, go back to the main menu.',
                 child: Padding(
                   key: const Key('ruleset'),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: Text(
-                    _game.ruleset.isHongKong && _game.minimumFaan > 0
-                        ? '${_game.ruleset.flagLabel} · '
-                            '${_game.minimumFaan} faan min'
-                        : _game.ruleset.flagLabel,
+                    switch (_minimumTag()) {
+                      final tag? => '${_game.ruleset.flagLabel} · $tag',
+                      null => _game.ruleset.flagLabel,
+                    },
                     style: const TextStyle(
                       color: Color(0xffffdf76),
                       fontSize: 12,
@@ -1386,10 +1407,8 @@ class _GamePageState extends State<GamePage> {
                   width: 56,
                   tooltip: _game.paused ? 'Resume' : 'Pause',
                   onTap: _game.togglePause,
-                  value: Icon(
-                      _game.paused ? Icons.play_arrow : Icons.pause,
-                      size: 22,
-                      color: const Color(0xffe9d58f)),
+                  value: Icon(_game.paused ? Icons.play_arrow : Icons.pause,
+                      size: 22, color: const Color(0xffe9d58f)),
                 ),
                 const SizedBox(width: 8),
                 _barTile(
@@ -1562,7 +1581,7 @@ class _WelcomeScreen extends StatelessWidget {
       children: [
         option(Ruleset.riichi, 'yaku, dora, riichi'),
         option(Ruleset.hongKong, 'faan, flowers, 0–3 faan minimum'),
-        option(Ruleset.taiwanese, '17 tiles, flowers, 5-point minimum'),
+        option(Ruleset.taiwanese, '17 tiles, flowers, 1–5 tai minimum'),
       ],
     );
   }
@@ -1615,14 +1634,15 @@ class _WelcomeScreen extends StatelessWidget {
                 // wrapper. Left to itself at a snug width a line can land
                 // within a pixel of the limit, so any browser whose default
                 // face runs a hair wider than Roboto spills it onto a third.
-                // The box is ~20% wider than the longest line needs (~690px
-                // in Roboto, with "Taiwanese" in it), which keeps these two
-                // lines two lines. Re-balance the breaks if the text changes.
+                // The box is well wider than the longest line needs ("Sharpen
+                // your Taiwanese Mahjong decisions", ~450px in Roboto), which
+                // keeps these two lines two lines. Re-balance the breaks if
+                // the text changes.
                 SizedBox(
                   width: 840,
                   child: Text(
-                    'TileSense builds your sense of optimal ${ruleset.label} Mahjong decisions,\n'
-                    'with a guide whose calculations are based on observable patterns.',
+                    'Sharpen your ${ruleset.label} Mahjong decisions\n'
+                    'with a guide that sees only what you see.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white70,
