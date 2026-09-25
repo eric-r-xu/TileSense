@@ -209,13 +209,30 @@ def source_state():
     return revision, dirty
 
 
+def confirm_mp_restart():
+    """Restarting multiplayer drops every room in progress, so it needs an
+    acknowledgement: ALLOW_MP_RESTART=1 up front, or Enter at an interactive
+    prompt. Without a terminal to ask at (a script, cron, CI) it refuses
+    rather than restart unattended."""
+    if os.environ.get('ALLOW_MP_RESTART') == '1':
+        return
+    if not sys.stdin.isatty():
+        raise ValueError('Multiplayer restart disconnects active rooms. Set ALLOW_MP_RESTART=1 to acknowledge it.')
+    print('Warning: restarting multiplayer disconnects every room in progress.', file=sys.stderr)
+    try:
+        input('Press Enter to continue, or Ctrl-C to cancel: ')
+    except (EOFError, KeyboardInterrupt):
+        print(file=sys.stderr)
+        raise ValueError('Multiplayer restart not confirmed; nothing was built or deployed.')
+
+
 def deploy(target, host, droplet, rollback=None):
     needs_client = target in ('all', 'client')
     needs_ingest = target in ('all', 'ingest')
     needs_mp = target in ('all', 'mp')
     needs_geoip = target == 'geoip'
-    if needs_mp and os.environ.get('ALLOW_MP_RESTART') != '1':
-        raise ValueError('Multiplayer restart disconnects active rooms. Set ALLOW_MP_RESTART=1 to acknowledge it.')
+    if needs_mp:
+        confirm_mp_restart()
     rid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-') + uuid.uuid4().hex[:8]
     with tempfile.TemporaryDirectory(prefix='tilesense-deploy-') as directory:
         work = Path(directory)

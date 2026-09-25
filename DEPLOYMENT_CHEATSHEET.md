@@ -6,7 +6,8 @@ It does not upload generated files into the digitalOcean Git checkout.
 
 ## Configuration
 
-Keep the ignored `deploy.env` in the repository root:
+Keep the ignored `deploy.env` in the repository root. Start from the tracked
+template, `cp deploy.env.example deploy.env`, and fill in its placeholders:
 
 ```sh
 HOST=app.ericrxu.com
@@ -55,12 +56,15 @@ this transition. Reconcile digitalOcean's existing Git differences separately.
 ./deploy.sh migrate
 ./deploy.sh ingest
 ./deploy.sh geoip                 # monthly DB-IP city refresh; not part of all
-ALLOW_MP_RESTART=1 ./deploy.sh mp
-ALLOW_MP_RESTART=1 ./deploy.sh all
+./deploy.sh mp                    # asks you to press Enter first
+./deploy.sh all                   # likewise
 ```
 
-Multiplayer restarts disconnect active rooms; the explicit environment flag
-acknowledges this. Schedule those releases when disruption is acceptable.
+Multiplayer restarts disconnect active rooms, so `mp` and `all` warn and wait
+for Enter before building anything (Ctrl-C cancels). `ALLOW_MP_RESTART=1`
+acknowledges it up front instead and skips the prompt; without a terminal
+(scripts, cron, CI) that flag is required, and the deploy refuses otherwise.
+Schedule those releases when disruption is acceptable.
 
 The script builds all requested artifacts before making production changes.
 Backend builds use read-only source mounts and lockfiles and put outputs in a
