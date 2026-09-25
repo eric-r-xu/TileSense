@@ -22,7 +22,9 @@ void main() {
           opponentRiichi: true,
           defenseHand: hand,
           valueContext: hkContext());
-      expect(report.lines.where((l) => l.recommended), hasLength(1));
+      // One recommendation, or several tied for it.
+      expect(report.lines.where((l) => l.recommended), isNotEmpty);
+      expect(report.lines.first.recommended, isTrue);
       expect(report.lines.every((l) => l.expectedValue.isFinite), isTrue);
       expect(report.defense.any((s) => s.isSafe), isFalse);
       expect(report.lines.every((l) => l.riichiLockCost == 0), isTrue);

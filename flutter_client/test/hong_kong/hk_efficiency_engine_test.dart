@@ -88,11 +88,18 @@ void main() {
                       line.commitmentCost,
                   1e-8));
         }
-        final best = report.lines.singleWhere((l) => l.recommended);
+        // The first recommended line is the best at the panel's whole-point
+        // resolution (within that, shape decides); any others are tied with
+        // it.
+        final best = report.lines.first;
+        expect(best.recommended, isTrue);
         expect(
-            report.lines
-                .every((l) => l.expectedValue <= best.expectedValue + 1e-8),
+            report.lines.every((l) =>
+                l.expectedValue.round() <= best.expectedValue.round()),
             isTrue);
+        for (final l in report.lines.where((l) => l.recommended)) {
+          expect(l.expectedValue.round(), best.expectedValue.round());
+        }
       });
     }
   }

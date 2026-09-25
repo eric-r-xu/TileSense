@@ -20,8 +20,9 @@ void main() {
     round.turn = 0;
     round.phase = RoundPhase.discarding;
     game.setHandFocus(game.handFocus.next);
+    // Of any tiles tied for the recommendation, Auto-Play cuts the first.
     final expected =
-        game.report.lines.singleWhere((l) => l.recommended).discard;
+        game.report.lines.firstWhere((l) => l.recommended).discard;
     game.setAutoplay(true);
     await tester.pump(const Duration(milliseconds: 1104));
     expect(round.seats[0].pond.last.type, expected);

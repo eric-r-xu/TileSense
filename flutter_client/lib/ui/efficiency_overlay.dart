@@ -1265,12 +1265,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         child: child,
       );
 
-  /// [DiscardLine.placementExpectedValue] is a probability-flavoured number —
-  /// typically a small fraction — so it is scaled up for the column the same
-  /// way a percentage is quoted as "36" rather than "0.36". Only relative
-  /// order and magnitude next to the other lines' mean anything; the scale
-  /// itself is arbitrary.
-  static const int _placementDisplayScale = 1000;
+  /// See [kPlacementDisplayScale].
+  static const int _placementDisplayScale = kPlacementDisplayScale;
 
   /// Wrap the Placement heading and cells so hovering explains what the number
   /// is — and, plainly, what it isn't. See [_placementTip].
@@ -1418,6 +1414,44 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
+  /// The columns that rank the discards, in the order they are compared, each
+  /// with whether higher (true) or lower (false) is better: the value column
+  /// the active strategy ranks by, then shanten, then ukeire. See
+  /// [EfficiencyEngine.analyze].
+  List<(String, bool)> _rankingColumns() => [
+        (
+          widget.game.strategy == Strategy.placement && !_hk
+              ? 'Placement'
+              : 'TileSense EV',
+          true
+        ),
+        (_hk ? 'Away' : 'Shanten', false),
+        (_hk ? 'Accepts' : 'Ukeire', true),
+      ];
+
+  /// Added to a ranking column's heading tip: which way is better, and where
+  /// the column sits in the order that picks the green tile.
+  List<InlineSpan> _rankingNote(String label) {
+    final ranking = _rankingColumns();
+    final (_, higher) = ranking.firstWhere((c) => c.$1 == label);
+    final order = [
+      for (final (name, up) in ranking)
+        '$name (${up ? 'higher' : 'lower'} first)'
+    ];
+    return [
+      TextSpan(
+          text: '\n\n${higher ? 'Higher' : 'Lower'} is better — '
+              'the arrow on the heading. ',
+          style: _tipBody),
+      TextSpan(
+          text: 'Discards are ranked by ${order[0]}, then ${order[1]}, then '
+              '${order[2]}; values count as equal when they show the same '
+              'number. The green tile is the top of that order, and every '
+              'tile equal to it on all three is green too.',
+          style: _tipDim),
+    ];
+  }
+
   TableRow _headerRow(List<String> labels) => TableRow(
         decoration: const BoxDecoration(color: Color(0x22ffffff)),
         children: labels.map((l) {
@@ -1443,25 +1477,53 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'Detail' => _detailTip(),
             _ => null,
           };
+          // A ranking column's arrow: up where higher is better, down where
+          // lower is. An icon rather than an arrow glyph, which not every
+          // font the web build falls back on draws.
+          final higher = _rankingColumns()
+              .where((c) => c.$1 == l)
+              .map((c) => c.$2)
+              .firstOrNull;
+          final colour = l == 'TileSense EV'
+              ? const Color(0xffbfe6e0)
+              : l == 'EV (HMR)'
+                  ? const Color(0xff9fb0b8)
+                  : Colors.white70;
+          final label = Text(l,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colour,
+                fontSize: 9,
+                height: 1.15,
+                fontWeight: FontWeight.w700,
+                decoration: tip == null ? null : TextDecoration.underline,
+                decorationStyle: TextDecorationStyle.dotted,
+                decorationColor: const Color(0x8880cbc4),
+              ));
+          // A Wrap, so a heading with no room left for its arrow drops it
+          // under the word rather than breaking the word.
           final cell = Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-            child: Text(l,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: l == 'TileSense EV'
-                      ? const Color(0xffbfe6e0)
-                      : l == 'EV (HMR)'
-                          ? const Color(0xff9fb0b8)
-                          : Colors.white70,
-                  fontSize: 9,
-                  height: 1.15,
-                  fontWeight: FontWeight.w700,
-                  decoration: tip == null ? null : TextDecoration.underline,
-                  decorationStyle: TextDecorationStyle.dotted,
-                  decorationColor: const Color(0x8880cbc4),
-                )),
+            child: higher == null
+                ? label
+                : Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      label,
+                      Icon(
+                        higher ? Icons.arrow_upward : Icons.arrow_downward,
+                        key: ValueKey('rankArrow-$l'),
+                        size: 10,
+                        color: const Color(0xffffdf76),
+                      ),
+                    ],
+                  ),
           );
-          return tip == null ? cell : _tipBox(cell, tip);
+          final body = tip == null
+              ? null
+              : [...tip, if (higher != null) ..._rankingNote(l)];
+          return body == null ? cell : _tipBox(cell, body);
         }).toList(),
       );
 
