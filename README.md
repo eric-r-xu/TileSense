@@ -394,3 +394,10 @@ version: 0.2.1+4     # 0.2.1 = version name, 4 = build number — bump +N on eve
 TileSense is licensed under GPLv3. Its efficiency calculations are adapted from
 the Riichi-Trainer algorithm. See
 [`LICENSE`](LICENSE). Contributions welcome.
+
+The telemetry ingest's location lookup uses DB-IP's free "IP to City Lite"
+database, licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/):
+[IP Geolocation by DB-IP](https://db-ip.com). Credit it the same way on any
+chart or report built from `sessions.geo_country`, `geo_region` or
+`geo_city`.

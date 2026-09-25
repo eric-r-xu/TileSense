@@ -8,6 +8,8 @@
 #   ./deploy.sh client       # just the web client (the game itself)
 #   ./deploy.sh ingest       # migrations, then the telemetry ingest service
 #   ./deploy.sh mp           # just the multiplayer service
+#   ./deploy.sh geoip        # migrations, then (re)load the GeoIP city table and
+#                            # backfill sessions' geo_* columns — run monthly
 #
 # Requires: deploy.env in the repo root (DB_ID, DROPLET_ID, DROPLET_IP, HOST,
 # BASE_HREF — see server/DEPLOYMENT.md section 2.0 to generate one), doctl
@@ -53,26 +55,38 @@ check_site() {
 
 # --- steps -----------------------------------------------------------------
 
-run_migrations() {
-  echo "==> Applying database migrations (additive-only — safe to re-run all of them every time)..."
-  local myip
-  myip="$(curl -s4 https://api.ipify.org || true)"
-  if [[ -z "$myip" ]]; then
+# The database only trusts the Droplet. A step that talks to it from here
+# trusts this machine's IP too for its duration, then puts the Droplet-only
+# rule back — on failure as well, via the EXIT trap below.
+DB_TRUSTED_IP=""
+open_db_firewall() {
+  DB_TRUSTED_IP="$(curl -s4 https://api.ipify.org || true)"
+  if [[ -z "$DB_TRUSTED_IP" ]]; then
     echo "    could not determine this machine's IP — skipping the firewall" \
-         "update; migrations will fail if this IP isn't already trusted." >&2
+         "update; this step will fail if this IP isn't already trusted." >&2
   else
     doctl databases firewalls replace "$DB_ID" \
-      --rule "ip_addr:$myip" --rule "droplet:$DROPLET_ID"
+      --rule "ip_addr:$DB_TRUSTED_IP" --rule "droplet:$DROPLET_ID"
   fi
+}
+close_db_firewall() {
+  if [[ -n "$DB_TRUSTED_IP" ]]; then
+    doctl databases firewalls replace "$DB_ID" --rule "droplet:$DROPLET_ID"
+    DB_TRUSTED_IP=""
+  fi
+}
+trap close_db_firewall EXIT
+
+run_migrations() {
+  echo "==> Applying database migrations (additive-only — safe to re-run all of them every time)..."
+  open_db_firewall
 
   for f in server/migrations/*.sql; do
     echo "    - $f"
     docker run --rm -i postgres:16 psql "$PROD_DB" -f - < "$f"
   done
 
-  if [[ -n "$myip" ]]; then
-    doctl databases firewalls replace "$DB_ID" --rule "droplet:$DROPLET_ID"
-  fi
+  close_db_firewall
   echo "==> Migrations applied."
 }
 
@@ -119,6 +133,41 @@ deploy_client() {
   rsync -avz --delete flutter_client/build/web/ "root@$DROPLET_IP:$served/"
   echo "==> Web client deployed."
   check_site
+}
+
+# DB-IP's free city database (CC BY 4.0 — credit "IP Geolocation by DB-IP",
+# https://db-ip.com) into geoip_city, which the ingest looks each new
+# session's network up in, then a backfill of the country, region and city of
+# sessions recorded without them. DB-IP publishes a new file each month;
+# re-run this to pick it up. ~85 MB to download, a few minutes to load.
+load_geoip() {
+  run_migrations # geoip_city has to exist first
+  echo "==> Downloading the DB-IP city database (~85 MB)..."
+  local month gz=""
+  # This month's file, or last month's if it isn't published yet.
+  for month in "$(date -u +%Y-%m)" \
+               "$(date -u -v-1m +%Y-%m 2>/dev/null || date -u -d '1 month ago' +%Y-%m)"; do
+    gz="$(mktemp)"
+    if curl -fsSL "https://download.db-ip.com/free/dbip-city-lite-$month.csv.gz" -o "$gz"; then
+      echo "    got $month"
+      break
+    fi
+    rm -f "$gz"
+    gz=""
+  done
+  if [[ -z "$gz" ]]; then
+    echo "Could not download the DB-IP city database." >&2
+    exit 1
+  fi
+
+  echo "==> Loading it and backfilling sessions..."
+  open_db_firewall
+  gunzip -c "$gz" | docker run --rm -i \
+    -v "$PWD/server/deploy/load-geoip.sql:/load-geoip.sql:ro" postgres:16 \
+    psql "$PROD_DB" -v ON_ERROR_STOP=1 -f /load-geoip.sql
+  close_db_firewall
+  rm -f "$gz"
+  echo "==> GeoIP loaded."
 }
 
 deploy_ingest() {
@@ -188,8 +237,9 @@ case "$TARGET" in
   client) deploy_client ;;
   ingest) deploy_ingest ;;
   mp) deploy_mp ;;
+  geoip) load_geoip ;;
   *)
-    echo "Usage: $0 [all|migrate|client|ingest|mp]" >&2
+    echo "Usage: $0 [all|migrate|client|ingest|mp|geoip]" >&2
     exit 1
     ;;
 esac

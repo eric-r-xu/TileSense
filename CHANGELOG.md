@@ -40,7 +40,29 @@ approximate wherever a batch of work spanned more than a day.
   of table. Phones in landscape keep 1600×820. The welcome and character
   screens now centre vertically in whatever height they get.
 
+### Added
+- **Sessions record their approximate location.** The ingest looks each new
+  session's network (the stored `/24` or `/48`, never the caller's own
+  address) up in a new `geoip_city` table and fills `sessions.geo_country`
+  and the new `geo_region` and `geo_city` columns. `geo_country` had always
+  been empty: it read Cloudflare's `CF-IPCountry` header, and the site isn't
+  behind Cloudflare. `./deploy.sh geoip` loads DB-IP's free "IP to City Lite"
+  database (CC BY 4.0 — credit "IP Geolocation by DB-IP") and backfills
+  existing sessions; re-run it monthly. The table is ~860 MB. A missing or
+  empty table only leaves the location null; batches are still stored.
+
 ### Fixed
+- **A client could forge its recorded IP.** The ingest took the *first*
+  `X-Forwarded-For` entry, which is whatever the client sent; nginx appends
+  the real peer address after it. It now takes the last entry, and ignores
+  `CF-Connecting-IP`/`CF-IPCountry`, which only a client could set here.
+  Ordinary visitors get the same `ip_hmac` as before, so grouping by it is
+  unaffected.
+- **Some IPv6 network prefixes were malformed.** The `/48` was built by
+  splitting the address text, so a compressed address like `2601:647::1`
+  became `2601:647:::/48`, which isn't valid CIDR. Addresses are now parsed,
+  and IPv4-mapped IPv6 addresses are treated as IPv4. IPv4 prefixes are
+  unchanged.
 - **A triplet won off a discard counted as concealed, in Taiwanese and
   Riichi.** Winning by ron on a two-pair wait scored the completed triplet
   as concealed. In Taiwanese, two other concealed pungs scored Three

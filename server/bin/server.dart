@@ -3,8 +3,10 @@
 /// One endpoint, `POST /ingest`, accepts a JSON batch from the client
 /// (`navigator.sendBeacon`, so `text/plain`), captures the caller IP from the
 /// proxy headers, reduces it to an HMAC + network prefix (the raw address is
-/// never stored), and upserts the batch into Postgres. It always answers `204`
-/// — a beacon can't act on an error anyway — and logs failures for monitoring.
+/// never stored), looks the network's country, region and city up in
+/// `geoip_city` (loaded by `deploy.sh geoip`), and upserts the batch into
+/// Postgres. It always answers `204` — a beacon can't act on an error anyway —
+/// and logs failures for monitoring.
 ///
 /// Env:
 ///   DATABASE_URL       postgres://user:pass@host:port/db?sslmode=require
@@ -24,6 +26,7 @@ import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
+import 'package:tilesense_ingest/client_network.dart';
 
 const _maxBody = 65536;
 const _maxEvents = 200;
@@ -97,10 +100,11 @@ Future<Response> _ingest(Request req) async {
     final events = (batch['events'] as List?) ?? const [];
     if (events.length > _maxEvents) return _cors(Response(413));
 
-    final ip = _clientIp(req);
+    final ip = clientIp(req);
     final ipHmac = Hmac(sha256, _hmacKey).convert(utf8.encode(ip)).bytes;
-    final ipPrefix = _networkPrefix(ip);
-    final country = req.headers['cf-ipcountry'];
+    final network = networkOf(ip);
+    final ipPrefix = network?.prefix;
+    final place = await _placeOf(network?.address);
     final ua = (batch['user_agent'] as String?) ?? req.headers['user-agent'];
     final appVersion = batch['app_version'] as String?;
 
@@ -116,8 +120,9 @@ Future<Response> _ingest(Request req) async {
       await s.execute(
         Sql.named('''
           insert into sessions
-            (session_id, client_id, app_version, user_agent, ip_prefix, ip_hmac, geo_country)
-          values (@sid, @cid, @ver, @ua, @pfx, @hmac, @cc)
+            (session_id, client_id, app_version, user_agent, ip_prefix, ip_hmac,
+             geo_country, geo_region, geo_city)
+          values (@sid, @cid, @ver, @ua, @pfx, @hmac, @cc, @region, @city)
           on conflict (session_id) do nothing
         '''),
         parameters: {
@@ -127,7 +132,9 @@ Future<Response> _ingest(Request req) async {
           'ua': ua,
           'pfx': ipPrefix,
           'hmac': ipHmac,
-          'cc': country,
+          'cc': place?.country,
+          'region': place?.region,
+          'city': place?.city,
         },
       );
       for (final e in events) {
@@ -382,25 +389,38 @@ Response _cors(Response r) => r.change(headers: {
       'access-control-allow-headers': 'content-type',
     });
 
-String _clientIp(Request r) {
-  final xff = r.headers['x-forwarded-for'];
-  if (xff != null && xff.trim().isNotEmpty) return xff.split(',').first.trim();
-  final cf = r.headers['cf-connecting-ip'];
-  if (cf != null && cf.trim().isNotEmpty) return cf.trim();
-  final info = r.context['shelf.io.connection_info'];
-  if (info is HttpConnectionInfo) return info.remoteAddress.address;
-  return '0.0.0.0';
-}
-
-/// /24 for IPv4, /48 for IPv6 — enough to group a network, not to identify a host.
-String _networkPrefix(String ip) {
-  if (ip.contains(':')) {
-    final parts = ip.split(':');
-    return '${parts.take(3).join(':')}::/48';
+/// Where [address] (a network address from [networkOf]) is, from the
+/// `geoip_city` ranges — null when it isn't covered, the table is empty, or
+/// the lookup fails for any reason. Run on its own, outside the batch's
+/// transaction, so a GeoIP problem can only cost a session its location,
+/// never the batch. Only the network address is sent, never the caller's own.
+Future<({String country, String? region, String? city})?> _placeOf(
+    String? address) async {
+  if (address == null) return null;
+  try {
+    final rows = await _pool.execute(
+      Sql.named('''
+        select country, region, city from (
+          select country, region, city, ip_end from geoip_city
+          where ip_start <= @a::inet
+          order by ip_start desc
+          limit 1
+        ) g
+        where g.ip_end >= @a::inet
+      '''),
+      parameters: {'a': address},
+    );
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    return (
+      country: r[0] as String,
+      region: r[1] as String?,
+      city: r[2] as String?,
+    );
+  } catch (e) {
+    _logErr('geoip lookup failed: $e');
+    return null;
   }
-  final o = ip.split('.');
-  if (o.length == 4) return '${o[0]}.${o[1]}.${o[2]}.0/24';
-  return ip;
 }
 
 List<int>? _intList(Object? v) =>

@@ -6,7 +6,11 @@ one-time setup live in `flutter_client/DEPLOYMENT.md` and
 
 **`./deploy.sh` (repo root) runs everything below for you** —
 `./deploy.sh` for all of it, or `./deploy.sh migrate|client|ingest|mp` for
-just one piece. The rest of this file is what that script actually runs,
+just one piece. `./deploy.sh geoip` (re)loads the GeoIP city table the
+ingest uses for `sessions.geo_country`/`geo_region`/`geo_city` — not part of
+`all`; run it once after
+the first ingest deploy that has it, then monthly (`server/DEPLOYMENT.md`
+§2.11). The rest of this file is what that script actually runs,
 spelled out, for when something goes wrong and you need to run a piece by
 hand.
 
@@ -28,6 +32,7 @@ open -a Docker && docker ps >/dev/null   # needed for every compile step below
 | A new file in `server/migrations/` | §1 Migration, before §3 |
 | `server/bin/server.dart` | §3 Ingest |
 | `server/mp/lib/**`, `server/mp/bin/**` | §4 Multiplayer |
+| `server/deploy/load-geoip.sql`, or a month has passed | `./deploy.sh geoip` |
 | `server/mp/deploy/tilesense-mp.service` (env vars) | §4 Multiplayer (copy the `.service` file too, not just the binary) |
 
 ---
