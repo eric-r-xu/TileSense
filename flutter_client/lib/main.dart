@@ -1583,8 +1583,7 @@ class _WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Tooltip(
-                  message: kTileSensorIntro,
+                TileSensorTooltip(
                   child: Image.asset(
                     kTileSensorAsset,
                     height: 140,
