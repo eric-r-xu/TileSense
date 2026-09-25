@@ -118,6 +118,38 @@ void main() {
   String signed(double v) =>
       '${v < 0 ? '−' : '+'}${v.abs().toStringAsFixed(2)}';
 
+  testWidgets(
+      'the ranking columns carry arrows: value and ukeire up, shanten down',
+      (tester) async {
+    await withPanel(tester, (game) async {
+      IconData? arrow(String heading) {
+        final f = find.byKey(ValueKey('rankArrow-$heading'));
+        return f.evaluate().isEmpty ? null : tester.widget<Icon>(f).icon;
+      }
+
+      expect(arrow('TileSense EV'), Icons.arrow_upward);
+      expect(arrow('Shanten'), Icons.arrow_downward);
+      expect(arrow('Ukeire'), Icons.arrow_upward);
+      for (final other in ['EV (HMR)', 'Placement', 'Safety', 'Risk']) {
+        expect(arrow(other), isNull, reason: '$other does not rank');
+      }
+      await openTip(tester, 'SHANTEN');
+      expect(text('Lower is better'), findsOneWidget);
+      expect(
+          text('ranked by TileSense EV (higher first), then Shanten '
+              '(lower first), then Ukeire (higher first)'),
+          findsOneWidget);
+
+      // Placement ranks instead once it is the strategy.
+      // (The app rebuilds the panel when the dial turns; here, by hand.)
+      game.setStrategy(Strategy.placement);
+      tester.element(find.byType(EfficiencyOverlay)).markNeedsBuild();
+      await tester.pump();
+      expect(arrow('Placement'), Icons.arrow_upward);
+      expect(arrow('TileSense EV'), isNull);
+    });
+  });
+
   testWidgets('the glossary under the table is gone', (tester) async {
     await withPanel(tester, (_) async {
       expect(find.textContaining('• '), findsNothing);

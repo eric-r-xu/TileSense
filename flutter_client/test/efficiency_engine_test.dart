@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:mahjong_core/meld.dart';
@@ -180,8 +182,8 @@ void main() {
       expect(read(dora, oppDealer: true).push.expectedValue,
           lessThan(base.expectedValue),
           reason: 'dealing into the dealer costs more');
-      expect(read(dora, wall: 12).push.expectedValue,
-          lessThan(base.expectedValue),
+      expect(
+          read(dora, wall: 12).push.expectedValue, lessThan(base.expectedValue),
           reason: 'fewer draws left to win, same exposure');
     });
 
@@ -383,6 +385,85 @@ void main() {
         previous = l.winProbability;
       }
       expect(previous, lessThan(0.1), reason: 'a dying wall should be bleak');
+    });
+  });
+
+  group('tied discards', () {
+    EfficiencyReport read(String spec, {Strategy strategy = Strategy.points}) {
+      final hand = parseTiles(spec);
+      return EfficiencyEngine().analyze(
+        hand: hand,
+        visibleCounts34: toCounts34(hand),
+        canRiichi: true,
+        valueContext: EfficiencyValueContext(
+          melds: const [],
+          roundWind: Wind.east,
+          seatWind: Wind.south,
+          isDealer: false,
+          inRiichi: false,
+          wallTilesRemaining: 40,
+          doraIndicators: const [],
+          strategy: strategy,
+        ),
+      );
+    }
+
+    test('every tile tied for best is recommended, and listed first', () {
+      for (final strategy in Strategy.values) {
+        // West and North are both lone guest winds here: nothing tells
+        // cutting one from cutting the other.
+        final r = read('123m 456m 78m 22p 45s W N', strategy: strategy);
+        final recommended = [
+          for (final l in r.lines)
+            if (l.recommended) l.discard
+        ];
+        expect(recommended.toSet(), {TileType.shaa, TileType.pei},
+            reason: '$strategy');
+        expect(r.lines.take(2).every((l) => l.recommended), isTrue,
+            reason: '$strategy');
+      }
+    });
+
+    test('discards are ordered by shown value, then shanten, then ukeire', () {
+      final rng = Random(7);
+      for (var trial = 0; trial < 60; trial++) {
+        final bag = [
+          for (var i = 0; i < 34; i++)
+            for (var n = 0; n < 4; n++) typeFrom34(i)
+        ]..shuffle(rng);
+        final hand = [for (var i = 0; i < 14; i++) Tile(i, bag[i])];
+        final r = EfficiencyEngine().analyze(
+          hand: hand,
+          visibleCounts34: toCounts34(hand),
+          canRiichi: true,
+          valueContext: const EfficiencyValueContext(
+            melds: [],
+            roundWind: Wind.east,
+            seatWind: Wind.south,
+            isDealer: false,
+            inRiichi: false,
+            wallTilesRemaining: 40,
+            doraIndicators: [],
+          ),
+        );
+        for (var i = 1; i < r.lines.length; i++) {
+          final a = r.lines[i - 1], b = r.lines[i];
+          final key = [
+            b.expectedValue.round() - a.expectedValue.round(),
+            a.shanten - b.shanten,
+            b.ukeire - a.ukeire,
+          ].firstWhere((d) => d != 0, orElse: () => 0);
+          expect(key, lessThanOrEqualTo(0),
+              reason: 'trial $trial: ${a.discard.code} is listed before '
+                  '${b.discard.code}');
+        }
+      }
+    });
+
+    test('a clear winner is the only one recommended', () {
+      final r = read('123m 456m 789m 22p 45s 9s');
+      expect(r.lines.where((l) => l.recommended).map((l) => l.discard),
+          [TileType.sou9]);
     });
   });
 

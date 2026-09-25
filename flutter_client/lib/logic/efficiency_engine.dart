@@ -194,6 +194,13 @@ enum Strategy {
 /// opt-in alternative.
 const Strategy kDefaultStrategy = Strategy.points;
 
+/// [DiscardLine.placementExpectedValue] is a probability-flavoured number —
+/// typically a small fraction — so the guide panel scales it up the same way
+/// a percentage is quoted as "36" rather than "0.36". Only relative order and
+/// magnitude next to the other lines' mean anything; the scale itself is
+/// arbitrary. Ties between discards are judged at this same resolution.
+const int kPlacementDisplayScale = 1000;
+
 /// Tuning for the Hong Kong guide, kept in one place so
 /// `test/hong_kong/hk_tuning_sweep_test.dart` can measure alternatives against
 /// the bots on identical seeds. Riichi never reads any of it.
@@ -1125,12 +1132,27 @@ class EfficiencyEngine {
     double rank(DiscardLine l) => valueContext.strategy == Strategy.placement
         ? l.placementExpectedValue
         : l.expectedValue;
+
+    // The value a line shows in the panel's ranking column: whole points, or
+    // placement at its display scale. Lines that show the same number are
+    // tied on value — a fraction of a point either way is noise, not a
+    // preference — so shape decides between them.
+    int shownRank(DiscardLine l) => valueContext.strategy == Strategy.placement
+        ? (l.placementExpectedValue * kPlacementDisplayScale).round()
+        : l.expectedValue.round();
+
+    // Value as shown (higher first), then shanten (lower first), then ukeire
+    // (higher first) — the order the panel's column arrows spell out. Raw
+    // value only settles lines already equal on all three, so which of a
+    // tied set comes first (and is what Auto-Play cuts) stays stable.
     lines.sort((a, b) {
-      final ev = rank(b).compareTo(rank(a));
+      final ev = shownRank(b).compareTo(shownRank(a));
       if (ev != 0) return ev;
       final s = a.shanten.compareTo(b.shanten);
       if (s != 0) return s;
-      return b.ukeire.compareTo(a.ukeire);
+      final u = b.ukeire.compareTo(a.ukeire);
+      if (u != 0) return u;
+      return rank(b).compareTo(rank(a));
     });
 
     final currentShanten = lines.isEmpty
@@ -1150,7 +1172,11 @@ class EfficiencyEngine {
     bestEfficiency?.bestUkeire = true;
 
     final bestValue = lines.isEmpty ? null : lines.first;
-    bestValue?.bestExpectedValue = true;
+    if (bestValue != null) {
+      for (final l in lines) {
+        if (shownRank(l) == shownRank(bestValue)) l.bestExpectedValue = true;
+      }
+    }
 
     // Recommendation: the best expected value, full stop — at tenpai and
     // before it, defending or not.
@@ -1169,14 +1195,30 @@ class EfficiencyEngine {
         ruleset.isHongKong && HongKongGuideTuning.neverStepBack && !defending
             ? lines.where((l) => l.shanten == currentShanten).firstOrNull
             : bestValue;
-    recommended?.recommended = true;
-    // The panel always shows the recommended line first — while defending,
-    // it can be the safest discard rather than the best-EV one, which the
-    // EV sort above would otherwise bury anywhere in the list.
-    if (recommended != null) {
-      lines.remove(recommended);
-      lines.insert(0, recommended);
+    // Every discard nothing in the panel separates from the recommended one
+    // — the same shown value, shanten and ukeire — is recommended too, so a
+    // tie lights every tied tile green instead of whichever one the sort
+    // happened to put first. That first one stays at the head of the list,
+    // and is what Auto-Play cuts.
+    final tied = recommended == null
+        ? const <DiscardLine>[]
+        : [
+            recommended,
+            for (final l in lines)
+              if (!identical(l, recommended) &&
+                  l.shanten == recommended.shanten &&
+                  l.ukeire == recommended.ukeire &&
+                  shownRank(l) == shownRank(recommended))
+                l,
+          ];
+    for (final l in tied) {
+      l.recommended = true;
     }
+    // The panel always shows the recommended lines first — while defending,
+    // they can be the safest discards rather than the best-EV ones, which the
+    // EV sort above would otherwise bury anywhere in the list.
+    lines.removeWhere((l) => l.recommended);
+    lines.insertAll(0, tied);
 
     // Whether to riichi against a live opponent riichi is now weighed as an
     // expected-value trade-off (see _riichiDangerFactor) rather than blocked
