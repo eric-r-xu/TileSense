@@ -232,10 +232,27 @@ Color strategyColor(Strategy strategy) => switch (strategy) {
     };
 
 /// The design resolution the UI is authored at. Everything is laid out in these
-/// logical pixels and then scaled as one unit, so the table never reflows. The
-/// ~2:1 ratio is deliberately wide so a phone held in landscape fills almost the
-/// whole viewport with only thin letterbox bars.
+/// logical pixels and then scaled as one unit. The ~2:1 ratio is deliberately
+/// wide so a phone held in landscape fills almost the whole viewport with only
+/// thin letterbox bars. This is also the shortest the canvas gets: a screen
+/// squarer than this gets a taller one instead — see [canvasSizeFor].
 const Size kDesignSize = Size(1600, 820);
+
+/// The tallest canvas [canvasSizeFor] hands out, a little past a 4:3 screen.
+const double kMaxCanvasHeight = 1200;
+
+/// The canvas to lay the app out on for a window of [available] size. Always
+/// [kDesignSize]'s width, so nothing reflows sideways; on a screen squarer
+/// than 1600:820 (a tablet, most laptops) the height grows to match it, up to
+/// [kMaxCanvasHeight], so the table gets taller instead of letterboxed. The
+/// scale is the same either way — set by the width — so tiles don't change
+/// size. Wider screens (phones) keep 820 and are letterboxed at the sides.
+Size canvasSizeFor(Size available) {
+  if (available.width <= 0 || available.height <= 0) return kDesignSize;
+  final height = kDesignSize.width * available.height / available.width;
+  return Size(kDesignSize.width,
+      height.clamp(kDesignSize.height, kMaxCanvasHeight).toDouble());
+}
 
 /// Colour shown in the letterbox bars around the scaled canvas.
 const Color kLetterboxColor = Color(0xff042020);
@@ -535,28 +552,29 @@ class _FixedCanvasState extends State<_FixedCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    final canvas = Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: SizedBox(
-          width: kDesignSize.width,
-          height: kDesignSize.height,
-          // Give the subtree a MediaQuery that reflects the fixed canvas, not
-          // the browser window, so SafeArea / layout math stays stable. The
-          // real insets are handled by the SafeArea below, before the canvas is
-          // sized, so there is nothing left for the subtree to dodge.
-          child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              size: kDesignSize,
-              padding: EdgeInsets.zero,
-              viewInsets: EdgeInsets.zero,
-              viewPadding: EdgeInsets.zero,
+    Widget canvasFor(Size size) => Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(
+              width: size.width,
+              height: size.height,
+              // Give the subtree a MediaQuery that reflects the canvas, not
+              // the browser window, so SafeArea / layout math stays stable.
+              // The real insets are handled by the SafeArea below, before the
+              // canvas is sized, so there is nothing left for the subtree to
+              // dodge.
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  size: size,
+                  padding: EdgeInsets.zero,
+                  viewInsets: EdgeInsets.zero,
+                  viewPadding: EdgeInsets.zero,
+                ),
+                child: widget.child,
+              ),
             ),
-            child: widget.child,
           ),
-        ),
-      ),
-    );
+        );
 
     return ColoredBox(
       color: kLetterboxColor,
@@ -566,24 +584,27 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       // this the guide panel's outer edge sits under the notch. The letterbox
       // colour fills the inset, so nothing looks cut off.
       child: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: _FixedCanvas._deliberateZoom
-                  ? _desktopZoomable(canvas)
-                  : _FixedCanvas._pinchZoomable
-                      ? InteractiveViewer(
-                          transformationController: _zoom,
-                          minScale: _minScale,
-                          maxScale: _maxScale,
-                          panEnabled: _zoomedIn,
-                          child: canvas,
-                        )
-                      : canvas,
-            ),
-            _corner(),
-          ],
-        ),
+        child: LayoutBuilder(builder: (context, c) {
+          final canvas = canvasFor(canvasSizeFor(c.biggest));
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: _FixedCanvas._deliberateZoom
+                    ? _desktopZoomable(canvas)
+                    : _FixedCanvas._pinchZoomable
+                        ? InteractiveViewer(
+                            transformationController: _zoom,
+                            minScale: _minScale,
+                            maxScale: _maxScale,
+                            panEnabled: _zoomedIn,
+                            child: canvas,
+                          )
+                        : canvas,
+              ),
+              _corner(),
+            ],
+          );
+        }),
       ),
     );
   }
@@ -1133,134 +1154,119 @@ class _GamePageState extends State<GamePage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: _backToMenu,
         ),
-        title: Row(
-          children: [
-            // No TileSensor up here: the guide toggle is the big one beside
-            // your hand, and the TileSensor in this bar is Auto-Play's — one
-            // mascot button per bar, so neither reads as the other.
-            const Text('TileSense'),
-            const SizedBox(width: 16),
-            // Which rules the table plays — a label, not a switch: the style
-            // is fixed for the game once it is under way. It is chosen on the
-            // welcome and character screens, reached with the back arrow.
-            AnimatedBuilder(
-              animation: _game,
-              builder: (context, _) => Tooltip(
-                message: 'Playing ${_game.ruleset.label} rules'
-                    '${_minimumSentence()}.\n'
-                    'To play another style, go back to the main menu.',
-                child: Padding(
-                  key: const Key('ruleset'),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Text(
-                    switch (_minimumTag()) {
-                      final tag? => '${_game.ruleset.flagLabel} · $tag',
-                      null => _game.ruleset.flagLabel,
-                    },
-                    style: const TextStyle(
-                      color: Color(0xffffdf76),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+        // The bar's own controls on the left, then the across seat — up here
+        // rather than on the felt, so the ponds get that row's height.
+        title: AnimatedBuilder(
+          animation: _game,
+          builder: (context, _) => TableBarTitle(
+            game: _game,
+            // Default leading width plus the titleSpacing above.
+            titleStart: kToolbarHeight + 12,
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // No TileSensor up here: the guide toggle is the big one beside
+                // your hand, and the TileSensor in this bar is Auto-Play's — one
+                // mascot button per bar, so neither reads as the other.
+                const Text('TileSense'),
+                const SizedBox(width: 16),
+                // Which rules the table plays — a label, not a switch: the style
+                // is fixed for the game once it is under way. It is chosen on the
+                // welcome and character screens, reached with the back arrow.
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) => Tooltip(
+                    message: 'Playing ${_game.ruleset.label} rules'
+                        '${_minimumSentence()}.\n'
+                        'To play another style, go back to the main menu.',
+                    child: Padding(
+                      key: const Key('ruleset'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      child: Text(
+                        switch (_minimumTag()) {
+                          final tag? => '${_game.ruleset.flagLabel} · $tag',
+                          null => _game.ruleset.flagLabel,
+                        },
+                        style: const TextStyle(
+                          color: Color(0xffffdf76),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            // The current ruleset's one-page rules reference.
-            AnimatedBuilder(
-              animation: _game,
-              builder: (context, _) => IconButton(
-                key: const Key('rulesPdf'),
-                tooltip: '${_game.ruleset.label} rules (PDF)',
-                iconSize: 18,
-                visualDensity: VisualDensity.compact,
-                color: Colors.white54,
-                icon: const Icon(Icons.menu_book),
-                onPressed: () => openRules(_game.ruleset),
-              ),
-            ),
-            // East-only vs. full game length (the full game is the default).
-            AnimatedBuilder(
-              animation: _game,
-              builder: (context, _) {
-                final caveat = _game.ruleset.isChineseStyle
-                    ? _handCountCaveatChineseStyle
-                    : _handCountCaveat;
-                return Tooltip(
-                  message: _game.hanchan
-                      ? 'Hanchan — East and South (半庄) rounds, 8+ hands.\n'
-                          '$caveat\n'
-                          'Tap for East only (东风战), 4+ hands.'
-                      : (_game.ruleset.isChineseStyle
-                          ? 'East only — the East round, 4+ hands.\n'
-                              '$caveat\n'
-                              'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'
-                          : 'East only (东风战/tonpuusen) — the East round, 4+ hands.\n'
-                              '$caveat\n'
-                              'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'),
-                  child: TextButton(
-                    key: const Key('hanchan'),
-                    onPressed: () => _game.setHanchan(!_game.hanchan),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      foregroundColor: const Color(0xffe9d58f),
-                    ),
-                    child: Text(
-                      _game.hanchan ? 'Hanchan' : 'East only',
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                );
-              },
-            ),
-            // 2x fast-mode toggle.
-            AnimatedBuilder(
-              animation: _game,
-              builder: (context, _) => Tooltip(
-                message: _game.fastMode
-                    ? 'Bots and draws move at double speed.\n'
-                        'Tap for normal speed.'
-                    : 'Bots and draws move at normal speed.\n'
-                        'Tap for double speed.',
-                child: TextButton(
-                  key: const Key('fastMode'),
-                  onPressed: () => _game.setFastMode(!_game.fastMode),
-                  style: TextButton.styleFrom(
+                // The current ruleset's one-page rules reference.
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) => IconButton(
+                    key: const Key('rulesPdf'),
+                    tooltip: '${_game.ruleset.label} rules (PDF)',
+                    iconSize: 18,
                     visualDensity: VisualDensity.compact,
-                    foregroundColor: _game.fastMode
+                    color: Colors.white54,
+                    icon: const Icon(Icons.menu_book),
+                    onPressed: () => openRules(_game.ruleset),
+                  ),
+                ),
+                // East-only vs. full game length (the full game is the default).
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) {
+                    final caveat = _game.ruleset.isChineseStyle
+                        ? _handCountCaveatChineseStyle
+                        : _handCountCaveat;
+                    return Tooltip(
+                      message: _game.hanchan
+                          ? 'Hanchan — East and South (半庄) rounds, 8+ hands.\n'
+                              '$caveat\n'
+                              'Tap for East only (东风战), 4+ hands.'
+                          : (_game.ruleset.isChineseStyle
+                              ? 'East only — the East round, 4+ hands.\n'
+                                  '$caveat\n'
+                                  'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'
+                              : 'East only (东风战/tonpuusen) — the East round, 4+ hands.\n'
+                                  '$caveat\n'
+                                  'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'),
+                      child: TextButton(
+                        key: const Key('hanchan'),
+                        onPressed: () => _game.setHanchan(!_game.hanchan),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: const Color(0xffe9d58f),
+                        ),
+                        child: Text(
+                          _game.hanchan ? 'Hanchan' : 'East only',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                // Bot speed: normal (1x) or fast (2x), in the same
+                // caption-over-value tile as the guide dials.
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) => _barDial(
+                    caption: 'BOT SPEED',
+                    buttonKey: const Key('fastMode'),
+                    label: _game.fastMode ? '2x' : '1x',
+                    colour: _game.fastMode
                         ? const Color(0xffffdf76)
-                        : Colors.white38,
-                  ),
-                  child: Text(
-                    '2x',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      decoration: _game.fastMode
-                          ? TextDecoration.none
-                          : TextDecoration.lineThrough,
-                    ),
+                        : Colors.white60,
+                    tooltip: _game.fastMode
+                        ? 'Bots and draws move at double speed.\n'
+                            'Tap for normal speed.'
+                        : 'Bots and draws move at normal speed.\n'
+                            'Tap for double speed.',
+                    onTap: () => _game.setFastMode(!_game.fastMode),
                   ),
                 ),
-              ),
+              ],
             ),
-            // Round, wall and honba/riichi (or dealer repeat) on one line,
-            // centred in whatever the controls either side leave free. The
-            // style is already named just left of here, so not again.
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(
-                  child: AnimatedBuilder(
-                    animation: _game,
-                    builder: (context, _) => TableStatusLine(game: _game),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
         actions: [
           // Auto-Play and the three guide dials in one panel: Auto-Play
@@ -1437,7 +1443,9 @@ class _GamePageState extends State<GamePage> {
                   children: [
                     Expanded(
                         child: TableView(
-                            game: _game, autoplaying: _game.autoplay)),
+                            game: _game,
+                            autoplaying: _game.autoplay,
+                            acrossInBar: true)),
                     HandView(
                       game: _game,
                       showGuide: _showGuide,
@@ -1594,196 +1602,203 @@ class _WelcomeScreen extends StatelessWidget {
     return Material(
       color: kLetterboxColor,
       // Scrollable rather than fixed: this screen can be taller than the
-      // design canvas leaves room for at some window sizes.
-      child: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TileSensorTooltip(
-                  child: Image.asset(
-                    kTileSensorAsset,
-                    height: 140,
-                    filterQuality: FilterQuality.high,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Welcome to',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Text(
-                  'TileSense',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xffe9d58f),
-                    fontSize: 66,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Two balanced lines, broken by hand rather than by the
-                // wrapper. Left to itself at a snug width a line can land
-                // within a pixel of the limit, so any browser whose default
-                // face runs a hair wider than Roboto spills it onto a third.
-                // The box is well wider than the longest line needs ("Sharpen
-                // your Taiwanese Mahjong decisions", ~450px in Roboto), which
-                // keeps these two lines two lines. Re-balance the breaks if
-                // the text changes.
-                SizedBox(
-                  width: 840,
-                  child: Text(
-                    'Sharpen your ${ruleset.label} Mahjong decisions\n'
-                    'with a guide that sees only what you see.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 22.5,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _rulesetChoice(),
-                const SizedBox(height: 10),
-                const Row(
+      // design canvas leaves room for at some window sizes. At least as tall
+      // as the screen, so on a taller canvas it sits in the middle rather
+      // than at the top.
+      child: LayoutBuilder(
+        builder: (context, c) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: c.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [_FullscreenButton(), _UpdateButton()],
+                  children: [
+                    TileSensorTooltip(
+                      child: Image.asset(
+                        kTileSensorAsset,
+                        height: 140,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Welcome to',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Text(
+                      'TileSense',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xffe9d58f),
+                        fontSize: 66,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Two balanced lines, broken by hand rather than by the
+                    // wrapper. Left to itself at a snug width a line can land
+                    // within a pixel of the limit, so any browser whose default
+                    // face runs a hair wider than Roboto spills it onto a third.
+                    // The box is well wider than the longest line needs ("Sharpen
+                    // your Taiwanese Mahjong decisions", ~450px in Roboto), which
+                    // keeps these two lines two lines. Re-balance the breaks if
+                    // the text changes.
+                    SizedBox(
+                      width: 840,
+                      child: Text(
+                        'Sharpen your ${ruleset.label} Mahjong decisions\n'
+                        'with a guide that sees only what you see.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 22.5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _rulesetChoice(),
+                    const SizedBox(height: 10),
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [_FullscreenButton(), _UpdateButton()],
+                    ),
+                    const SizedBox(height: 10),
+                    // Scales down rather than overflowing if a wide default font
+                    // pushes the three buttons past the canvas width.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ElevatedButton(
+                            onPressed: onStart,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xffcaa24e),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // The mascot that toggles the guide at the table,
+                                // as the button's icon: the guide comes with
+                                // offline play.
+                                Image.asset(
+                                  kTileSensorAsset,
+                                  key: const Key('startGuideMascot'),
+                                  height: 36,
+                                  filterQuality: FilterQuality.high,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink(),
+                                ),
+                                const SizedBox(width: 8),
+                                const Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Single Player',
+                                        style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Includes the guide',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            key: const Key('playOnline'),
+                            onPressed: onPlayOnline,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xffe9d58f),
+                              side: const BorderSide(color: Color(0xffcaa24e)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // A globe: play with anyone, anywhere.
+                                Text('🌐',
+                                    key: Key('playOnlineEmoji'),
+                                    style: TextStyle(fontSize: 28)),
+                                SizedBox(width: 8),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Play Online',
+                                        style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'With friends — bots fill empty seats, no guide',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.white60),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            key: const Key('openBuilder'),
+                            onPressed: onBuild,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xffe9d58f),
+                              side: const BorderSide(color: Color(0xffcaa24e)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Tools: you build the table yourself. An icon,
+                                // not the 🛠️ emoji: its U+FE0F has no Noto font,
+                                // so Flutter web logs a missing-font warning.
+                                Icon(Icons.handyman,
+                                    key: Key('openBuilderEmoji'), size: 28),
+                                SizedBox(width: 8),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Custom Hand & Context Builder',
+                                        style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Pose any table and have TileSense score it',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.white60),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                // Scales down rather than overflowing if a wide default font
-                // pushes the three buttons past the canvas width.
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ElevatedButton(
-                        onPressed: onStart,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xffcaa24e),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // The mascot that toggles the guide at the table,
-                            // as the button's icon: the guide comes with
-                            // offline play.
-                            Image.asset(
-                              kTileSensorAsset,
-                              key: const Key('startGuideMascot'),
-                              height: 36,
-                              filterQuality: FilterQuality.high,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink(),
-                            ),
-                            const SizedBox(width: 8),
-                            const Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Single Player',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Includes the guide',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        key: const Key('playOnline'),
-                        onPressed: onPlayOnline,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xffe9d58f),
-                          side: const BorderSide(color: Color(0xffcaa24e)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // A globe: play with anyone, anywhere.
-                            Text('🌐',
-                                key: Key('playOnlineEmoji'),
-                                style: TextStyle(fontSize: 28)),
-                            SizedBox(width: 8),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Play Online',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                                SizedBox(height: 2),
-                                Text(
-                                  'With friends — bots fill empty seats, no guide',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.white60),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        key: const Key('openBuilder'),
-                        onPressed: onBuild,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xffe9d58f),
-                          side: const BorderSide(color: Color(0xffcaa24e)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Tools: you build the table yourself. An icon,
-                            // not the 🛠️ emoji: its U+FE0F has no Noto font,
-                            // so Flutter web logs a missing-font warning.
-                            Icon(Icons.handyman,
-                                key: Key('openBuilderEmoji'), size: 28),
-                            SizedBox(width: 8),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Custom Hand & Context Builder',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Pose any table and have TileSense score it',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.white60),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

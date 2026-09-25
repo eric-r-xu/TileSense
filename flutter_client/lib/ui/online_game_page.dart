@@ -91,48 +91,45 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 const Expanded(child: ClientIdText()),
               ],
             ),
-            title: Row(
-              children: [
-                // No TileSense here — see the module doc — but a dimmed,
-                // inert TileSensor still marks where it would be, so the
-                // tooltip can point back to offline play instead of the
-                // guide just silently vanishing.
-                Tooltip(
-                  message: 'TileSensor sits out multiplayer, so no seat gets '
-                      'a guide the others lack.\n'
-                      'Play single player to have me along!',
-                  child: Opacity(
-                    opacity: 0.35,
-                    child: Image.asset(
-                      kTileSensorAsset,
-                      height: 28,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.school,
-                          size: 28, color: Colors.white38),
+            // The room's own details on the left, then the across seat — up
+            // here rather than on the felt, so the ponds get that row's height.
+            title: TableBarTitle(
+              game: game,
+              titleStart: 300 + 12, // leadingWidth + titleSpacing
+              leading: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // No TileSense here — see the module doc — but a dimmed,
+                  // inert TileSensor still marks where it would be, so the
+                  // tooltip can point back to offline play instead of the
+                  // guide just silently vanishing.
+                  Tooltip(
+                    message: 'TileSensor sits out multiplayer, so no seat gets '
+                        'a guide the others lack.\n'
+                        'Play single player to have me along!',
+                    child: Opacity(
+                      opacity: 0.35,
+                      child: Image.asset(
+                        kTileSensorAsset,
+                        height: 28,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.school,
+                            size: 28, color: Colors.white38),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text('Room ${game.roomCode}'),
-                if (game.connectionLost) ...[
-                  const SizedBox(width: 10),
-                  const Tooltip(
-                    message: 'Connection lost — reconnecting…',
-                    child:
-                        Icon(Icons.wifi_off, color: Colors.redAccent, size: 20),
-                  ),
+                  const SizedBox(width: 8),
+                  Text('Room ${game.roomCode}'),
+                  if (game.connectionLost) ...[
+                    const SizedBox(width: 10),
+                    const Tooltip(
+                      message: 'Connection lost — reconnecting…',
+                      child: Icon(Icons.wifi_off,
+                          color: Colors.redAccent, size: 20),
+                    ),
+                  ],
                 ],
-                // Round, wall and honba/riichi (or style and dealer repeat)
-                // on one line, centred in the rest of the bar.
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Center(
-                      child: TableStatusLine(game: game, showRuleset: true),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
             // Sound sits top-right, where the solo table keeps its game
             // controls too.
@@ -155,7 +152,13 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
               children: [
                 Column(
                   children: [
-                    Expanded(child: TableView(game: game)),
+                    // No other place on this screen names the ruleset, so
+                    // the centre status does.
+                    Expanded(
+                        child: TableView(
+                            game: game,
+                            showRulesetInStatus: true,
+                            acrossInBar: true)),
                     HandView(game: game),
                   ],
                 ),

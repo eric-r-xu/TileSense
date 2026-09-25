@@ -537,7 +537,8 @@ class _HandViewState extends State<HandView> {
   }
 
   /// One of the two toggles stacked left of the hand, in the same
-  /// caption-over-value grammar as the top bar's tiles. 96×46 each with a
+  /// caption-over-value grammar as the top bar's tiles. 120×46 each (wide
+  /// enough for "Hand+draw" and "AUTO-WIN" without fading out) with a
   /// 10px gap: the pair still fits inside the tile row's height, so it
   /// covers nothing, while each is big enough to hit on a phone — where the
   /// whole canvas is drawn at about half size. Filled in its colour when on,
@@ -566,7 +567,7 @@ class _HandViewState extends State<HandView> {
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
           child: SizedBox(
-            width: 96,
+            width: 120,
             height: 46,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
