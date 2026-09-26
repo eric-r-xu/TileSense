@@ -332,14 +332,20 @@ void main() {
         Icons.volume_off);
   });
 
-  testWidgets('the builder skips character select and draws four characters',
+  testWidgets('the builder skips character select and shows no characters',
       (tester) async {
     await _boot(tester);
     await tester.tap(find.byKey(const Key('openBuilder')));
     await pumpLoadedPage(tester);
     expect(find.byType(CharacterSelectPage), findsNothing);
     expect(find.byType(ScenarioPage), findsOneWidget);
+    // No portraits anywhere — the table's or the across seat's in the bar —
+    // and seats go by where they sit.
+    for (final path in kCharacterPortrait.values) {
+      expect(find.image(AssetImage(path)), findsNothing, reason: path);
+    }
     final game = tester.widget<TableView>(find.byType(TableView)).game;
-    expect({for (var i = 0; i < 4; i++) game.characterForSeat(i)}.length, 4);
+    expect([for (var i = 0; i < 4; i++) game.seatLabel(i)],
+        ['You', 'Right', 'Across', 'Left']);
   });
 }

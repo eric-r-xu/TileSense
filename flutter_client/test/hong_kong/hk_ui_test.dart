@@ -73,8 +73,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
     await pumpLoadedPage(tester);
-    await tester.tap(find.text('Random'));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tapBuilderMenu(tester, 'builderMenuRandom');
     await tester.tap(find.text('Your flowers (0)'));
     await tester.pump(const Duration(milliseconds: 100));
     final flower =

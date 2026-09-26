@@ -904,7 +904,6 @@ class _GamePageState extends State<GamePage> {
 
   // Who sits where in the builder, drawn afresh each time it opens: it has no
   // character-select step of its own.
-  List<Character> _builderCharacters = randomSeatCharacters();
   Wind _builderWind = Wind.east;
 
   // The character-select screen between the welcome screen and the offline
@@ -1102,7 +1101,6 @@ class _GamePageState extends State<GamePage> {
         onBack: () => setState(() => _showBuilder = false),
         builder: (_) => scenario.ScenarioPage(
           initialRuleset: _selectedRuleset,
-          seatCharacters: _builderCharacters,
           seatWind: _builderWind,
           onExit: () => setState(() => _showBuilder = false),
         ),
@@ -1160,7 +1158,6 @@ class _GamePageState extends State<GamePage> {
         onRuleset: (r) => setState(() => _selectedRuleset = r),
         onStart: () => setState(() => _choosingCharacters = true),
         onBuild: () => setState(() {
-          _builderCharacters = randomSeatCharacters();
           _builderWind = Wind.values[randomStartingDealer()];
           _showBuilder = true;
         }),

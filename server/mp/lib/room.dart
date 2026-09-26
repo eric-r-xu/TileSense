@@ -109,11 +109,12 @@ class Room {
 
   /// Picks the character a new seat renders as: [requested] if it's one of
   /// the selectable personas and nobody else at this table already has
-  /// it, otherwise the first unclaimed character in the same pool
+  /// it, otherwise an unclaimed character from the same pool — a random one
+  /// when [random] is given (the bots filling empty seats), else the first
   /// — always available, since a room seats at most four. Keeps every
   /// client's avatar/name for a given seat identical and collision-free
   /// without a round trip: whoever asks first gets first pick.
-  String resolveCharacter([String? requested]) {
+  String resolveCharacter([String? requested, Random? random]) {
     final used = {
       for (final s in seats)
         if (s != null) s.character
@@ -123,8 +124,12 @@ class Room {
         !used.contains(requested)) {
       return requested;
     }
-    for (final c in allCharacters) {
-      if (!used.contains(c)) return c;
+    final free = [
+      for (final c in allCharacters)
+        if (!used.contains(c)) c
+    ];
+    if (free.isNotEmpty) {
+      return random == null ? free.first : free[random.nextInt(free.length)];
     }
     return allCharacters.first; // unreachable: 6 characters, at most 4 seats
   }

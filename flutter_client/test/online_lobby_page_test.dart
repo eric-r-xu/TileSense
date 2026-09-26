@@ -5,6 +5,7 @@ import 'package:tilesense/game/online_game_controller.dart';
 import 'package:tilesense/game/sfx.dart' show Character, kCharacterName;
 import 'package:tilesense/main.dart' show kDesignSize;
 import 'package:tilesense/ui/character_picker.dart';
+import 'package:tilesense/ui/online_game_page.dart';
 import 'package:tilesense/ui/online_lobby_page.dart';
 
 /// The pre-room setup screen: it runs two columns side by side (rather than
@@ -42,6 +43,29 @@ void main() {
     expect(find.text('Create a room'), findsOneWidget);
     expect(find.text('Choose your character'), findsOneWidget);
     expect(find.text('Join a room'), findsOneWidget);
+
+    game.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('Create and Join each carry an emoji on the left of the title',
+      (tester) async {
+    final game = OnlineGameController();
+    await pump(tester, game);
+
+    for (final (emojiKey, title) in [
+      ('createRoomEmoji', 'Create a room'),
+      ('joinRoomEmoji', 'Join a room'),
+    ]) {
+      final emoji = tester.getRect(find.byKey(Key(emojiKey)));
+      final label = tester.getRect(find.text(title));
+      expect(emoji.right, lessThanOrEqualTo(label.left),
+          reason: '$title\'s emoji should sit to its left');
+      expect((emoji.center.dy - label.center.dy).abs(), lessThan(4),
+          reason: 'on the same line as $title');
+    }
+    expect(tester.takeException(), isNull);
 
     game.dispose();
     await tester.pumpWidget(const SizedBox());
@@ -145,5 +169,83 @@ void main() {
     game.dispose();
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
+  });
+
+  group('the online table', () {
+    /// [phone] boosts the text the way the fitted canvas does on a phone,
+    /// which is what `isPhoneLayout` reads.
+    Future<void> pumpTable(WidgetTester tester, OnlineGameController game,
+        {required VoidCallback onExit, bool phone = false}) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(phone ? 1.35 : 1)),
+          child: child!,
+        ),
+        home: OnlineGamePage(controller: game, onExit: onExit),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('Leave is a big labelled button that asks first mid-game',
+        (tester) async {
+      final game = OnlineGameController();
+      var exited = false;
+      await pumpTable(tester, game, onExit: () => exited = true);
+
+      final leave = find.byKey(const Key('onlineLeave'));
+      expect(tester.getSize(leave).height, greaterThanOrEqualTo(40));
+      expect(tester.getSize(leave).width, greaterThanOrEqualTo(44));
+      expect(find.byKey(const Key('clientIdButton')), findsOneWidget);
+
+      await tester.tap(leave);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Leave this game?'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('leaveStay')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(exited, isFalse, reason: 'Stay keeps you at the table');
+
+      await tester.tap(leave);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byKey(const Key('leaveConfirm')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(exited, isTrue);
+
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('a phone gets Leave, Sound and Client ID in its Menu',
+        (tester) async {
+      final game = OnlineGameController();
+      await pumpTable(tester, game, onExit: () {}, phone: true);
+
+      expect(find.byKey(const Key('onlineLeave')), findsNothing);
+      expect(find.byKey(const Key('clientIdButton')), findsNothing);
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      for (final key in [
+        'onlineMenuLeave',
+        'onlineMenuSound',
+        'onlineMenuClientId'
+      ]) {
+        expect(tester.getSize(find.byKey(Key(key))).height,
+            greaterThanOrEqualTo(48),
+            reason: key);
+      }
+      await tester.tap(find.byKey(const Key('onlineMenuClientId')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byKey(const Key('clientIdValue')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
   });
 }

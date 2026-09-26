@@ -279,21 +279,18 @@ void main() {
     await tester.tap(find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
-    await pumpUntilFound(tester, find.text('🇭🇰 HK'));
+    await pumpUntilFound(tester, find.text('Your flowers (0)'));
 
-    expect(find.text('🇭🇰 HK'), findsOneWidget);
-    expect(find.text('Honba '), findsNothing);
+    // Hong Kong: flowers, no dora.
     expect(find.text('Your flowers (0)'), findsOneWidget);
+    expect(find.text('Dora (1)'), findsNothing);
 
-    await tester.tap(find.byKey(const Key('builderRuleset_taiwanese')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('🇹🇼 TW'), findsOneWidget);
-    expect(find.text('Honba '), findsNothing);
+    await tapBuilderMenu(tester, 'builderMenuRuleset_taiwanese');
     expect(find.text('Your flowers (0)'), findsOneWidget);
+    expect(find.text('Dora (1)'), findsNothing);
 
-    await tester.tap(find.byKey(const Key('builderRuleset_riichi')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Honba '), findsOneWidget);
+    await tapBuilderMenu(tester, 'builderMenuRuleset_riichi');
+    expect(find.text('Your flowers (0)'), findsNothing);
     expect(find.text('Dora (1)'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());

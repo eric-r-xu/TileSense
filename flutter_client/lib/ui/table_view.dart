@@ -143,7 +143,6 @@ class TableView extends StatelessWidget {
   /// The across seat's portrait, placard and hand are up in the app bar
   /// ([TableBarTitle]) rather than along the top of the felt, which gives
   /// the ponds that row's height. Only their open melds stay on the felt.
-  /// Off in the builder, whose bar is full of its own controls.
   final bool acrossInBar;
 
   // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
@@ -209,7 +208,8 @@ class TableView extends StatelessWidget {
           // The across seat's open melds, on the line of their hand and just
           // left of it: out over empty felt, since they stand taller than the
           // hand's row and the pond below starts at the middle.
-          if (acrossInBar && round.seats[2].melds.isNotEmpty)
+          // The builder shows them even empty: somewhere to tap to add one.
+          if (acrossInBar && (edits != null || round.seats[2].melds.isNotEmpty))
             Positioned(
               top: 0,
               // Clear of the side seats' columns below, whose tops they
@@ -697,7 +697,7 @@ class TableView extends StatelessWidget {
   }
 
   /// Across player along the top of the felt — only where they aren't up in
-  /// the app bar ([acrossInBar]), i.e. the builder. On one line so the ponds
+  /// the app bar ([acrossInBar]). On one line so the ponds
   /// get the height a second row would take: portrait and placard dead centre, over the across pond,
   /// with open melds (and Hong Kong's / Taiwanese flowers) to their left and
   /// the concealed hand to their right. The hand takes the right because the
@@ -792,31 +792,45 @@ class TableView extends StatelessWidget {
     // The hand keeps its full size — the same backs as the across seat's —
     // and the melds below it are what give way if a column of calls ever
     // runs longer than the table is tall. Each call takes three backs out of
-    // the hand, so that only happens with four kans on a short table.
-    final inside = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _OpponentHand(
-          key: ValueKey('sideHand-$seat'),
-          game: game,
-          seat: seat,
-          vertical: true,
-          rotate: isLeft ? 1 : 3,
-        ),
-        if (s.melds.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: RotatedBox(
-                quarterTurns: isLeft ? 1 : 3,
-                child: _meldGroup(s),
+    // the hand, so that only happens with four kans on a short table. Only a
+    // table shorter than the hand itself — the builder's on a phone, above
+    // its taller editor band — scales the hand down, keeping room for calls.
+    final hand = _OpponentHand(
+      key: ValueKey('sideHand-$seat'),
+      game: game,
+      seat: seat,
+      vertical: true,
+      rotate: isLeft ? 1 : 3,
+    );
+    final inside = LayoutBuilder(builder: (context, c) {
+      final need = _OpponentHandState.mainExtent(
+          _OpponentHandState.restFor(round, seat));
+      final room = c.maxHeight - (s.melds.isEmpty ? 0 : 60);
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (need <= room)
+            hand
+          else
+            SizedBox(
+              height: room,
+              child: FittedBox(fit: BoxFit.scaleDown, child: hand),
+            ),
+          if (s.melds.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: RotatedBox(
+                  quarterTurns: isLeft ? 1 : 3,
+                  child: _meldGroup(s),
+                ),
               ),
             ),
-          ),
+          ],
         ],
-      ],
-    );
+      );
+    });
     // Scales the placard column down to fit rather than overflowing — the
     // rotated placard alone already runs tall, and Hong Kong's added flower
     // tray beneath it needs the same headroom [inside] gets.
@@ -854,6 +868,8 @@ class TableView extends StatelessWidget {
   /// level with it. [tooltip], when given, names the player on hover — the
   /// same mechanism as the TileSensor guide toggle.
   Widget _portrait(int seat, {double size = 42, String? tooltip}) {
+    // The builder poses tiles, not players: it has no characters to show.
+    if (edits != null) return const SizedBox.shrink();
     final avatar = Container(
       width: size,
       height: size,
@@ -1431,10 +1447,15 @@ class TableBarTitle extends StatelessWidget {
     required this.titleStart,
     required this.leading,
     this.height = 50,
+    this.edits,
   });
   final GuideHost game;
   final double titleStart;
   final Widget leading;
+
+  /// The builder's [TableEdits], so the across seat's flower tray up here
+  /// stays selectable. Null in play.
+  final TableEdits? edits;
 
   /// The bar's toolbar height. A bar's title slot leaves height unbounded,
   /// so this title sizes itself to it.
@@ -1443,7 +1464,7 @@ class TableBarTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final round = game.round;
-    final table = TableView(game: game, acrossInBar: true);
+    final table = TableView(game: game, edits: edits, acrossInBar: true);
     const seat = 2;
     return SizedBox(
       height: height,

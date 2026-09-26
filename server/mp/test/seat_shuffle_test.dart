@@ -51,4 +51,25 @@ void main() {
     expect(room.seats.map((s) => s!.guestId).toSet().length, 4,
         reason: 'bots must not collide with a human or each other');
   });
+
+  test('bots filling empty seats get distinct, unclaimed, random characters',
+      () {
+    final lineups = <String>{};
+    for (var i = 0; i < 30; i++) {
+      final room = roomWith(['alice']);
+      final alices = room.seats[0]!.character;
+      TableLoop(room, botTurnPace: Duration.zero).start();
+      final bots = [
+        for (final s in room.seats)
+          if (s!.isBot) s.character
+      ];
+      expect(bots, hasLength(3));
+      expect(bots.toSet(), hasLength(3), reason: 'no two bots share one');
+      expect(bots, isNot(contains(alices)));
+      expect(Room.allCharacters, containsAll(bots));
+      lineups.add((bots..sort()).join(','));
+    }
+    expect(lineups.length, greaterThan(1),
+        reason: 'not the same first-three characters every game');
+  });
 }

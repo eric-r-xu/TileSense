@@ -14,7 +14,7 @@ import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import '../game/online_game_controller.dart';
 import '../game/sfx.dart'
     show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
-import '../main.dart' show kLetterboxColor;
+import '../main.dart' show isPhoneLayout, kLetterboxColor;
 import 'character_picker.dart';
 import 'client_id_text.dart';
 
@@ -105,26 +105,39 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       });
     }
 
+    // On a phone the whole bar is drawn at about half size, so it is taller
+    // there: Back and the ID chip, 8 short of it, then clear 44pt each way
+    // for a thumb at a landscape iPhone's ~0.48×.
+    final barHeight = isPhoneLayout(context) ? 100.0 : kToolbarHeight;
     return Scaffold(
       backgroundColor: kLetterboxColor,
       appBar: AppBar(
         backgroundColor: kLetterboxColor,
-        leadingWidth: 300,
-        // The client id sits right after the back arrow, top-left, in white.
-        leading: Row(
-          children: [
-            IconButton(
-              tooltip: 'Back to menu',
-              icon: const Icon(Icons.arrow_back),
+        toolbarHeight: barHeight,
+        leadingWidth: 132,
+        // A labelled Back, the bar's full height, with nothing beside it to
+        // mis-tap: the client id is behind the ID chip at the other end.
+        leading: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+          child: Tooltip(
+            message: 'Back to menu',
+            child: TextButton.icon(
+              key: const Key('onlineBack'),
               onPressed: () {
                 if (game.roomCode.isNotEmpty) game.leaveRoom();
                 widget.onExit();
               },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Menu'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
             ),
-            const Expanded(child: ClientIdText()),
-          ],
+          ),
         ),
         title: const Text('Play Online'),
+        actions: [
+          ClientIdButton(height: barHeight - 8),
+          const SizedBox(width: 12),
+        ],
       ),
       body: Column(
         children: [
@@ -211,6 +224,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                   const SizedBox(height: 20),
                   _card(
                     title: 'Create a room',
+                    // A house: a new room of your own.
+                    emoji: const Text('🏠',
+                        key: Key('createRoomEmoji'),
+                        style: TextStyle(fontSize: 18)),
                     child: Column(
                       children: [
                         _rulesetPicker(),
@@ -271,6 +288,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                   const SizedBox(height: 20),
                   _card(
                     title: 'Join a room',
+                    // A door: into someone else's room.
+                    emoji: const Text('🚪',
+                        key: Key('joinRoomEmoji'),
+                        style: TextStyle(fontSize: 18)),
                     child: Row(
                       children: [
                         Expanded(
@@ -606,7 +627,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         ),
       );
 
-  Widget _card({required String title, required Widget child}) {
+  /// [emoji], when given, sits left of [title]. Single-codepoint emoji only:
+  /// one ending in U+FE0F has no Noto font on web, which then logs a
+  /// missing-font warning (see the welcome screen's builder button).
+  Widget _card({required String title, required Widget child, Widget? emoji}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -625,9 +649,14 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title,
-                style: const TextStyle(
-                    color: Color(0xffe9d58f), fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                if (emoji != null) ...[emoji, const SizedBox(width: 8)],
+                Text(title,
+                    style: const TextStyle(
+                        color: Color(0xffe9d58f), fontWeight: FontWeight.bold)),
+              ],
+            ),
             const SizedBox(height: 10),
             child,
           ],

@@ -7,7 +7,7 @@
 /// Under Hong Kong rules the dora and riichi give way to each seat's flowers.
 library;
 
-import '../game/game_controller.dart' show kHumanSeat, kSeatNames;
+import '../game/game_controller.dart' show kHumanSeat;
 import '../logic/efficiency_engine.dart'
     show
         HandFocus,
@@ -16,8 +16,10 @@ import '../logic/efficiency_engine.dart'
         kDefaultHandFocus,
         kDefaultPlayStyle,
         kDefaultStrategy;
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart';
 
 /// The most tiles of one type that can exist, and the most red fives per suit.
@@ -55,6 +57,10 @@ class ScenarioSeat {
 /// Where the tile palette puts the next tile you tap.
 enum EditTarget { hand, pond, melds, dora }
 
+/// How the builder names each seat, by index: by where it sits, since the
+/// builder has no characters.
+const List<String> kScenarioSeatNames = ['You', 'Right', 'Across', 'Left'];
+
 class Scenario {
   /// Which game the posed table follows. Change it through
   /// [ScenarioController.setRuleset], which also clears the table.
@@ -90,6 +96,13 @@ class Scenario {
   int dealer = 0;
   int honba = 0;
   int riichiSticks = 0;
+
+  /// Hong Kong's minimum faan and Taiwanese's minimum tai for a win — one of
+  /// [HongKongRules.minimumFaanChoices] and
+  /// [TaiwaneseRules.minimumPointsChoices]. Settings, like the winds: [clear]
+  /// keeps them.
+  int minimumFaan = HongKongRules.defaultMinimumFaan;
+  int minimumPoints = TaiwaneseRules.defaultMinimumPoints;
 
   /// The tile on offer for a call, for the 13-tile "should I call?" read.
   /// Null in the 14-tile discard read.
@@ -254,7 +267,7 @@ class Scenario {
   /// should recommend a discard rather than a call.
   bool get isDiscardRead => hand.length == concealedTarget(withDraw: true);
 
-  String _seatWord(int seat) => seat == kHumanSeat ? 'You' : kSeatNames[seat];
+  String _seatWord(int seat) => kScenarioSeatNames[seat];
 
   void clear() {
     hand.clear();

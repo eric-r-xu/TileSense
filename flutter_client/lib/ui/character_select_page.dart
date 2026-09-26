@@ -182,7 +182,7 @@ class CharacterSelectPage extends StatelessWidget {
             key: Key('seatCharacterName_$seat'),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 17.6,
               fontWeight: FontWeight.w700,
             ),
           ),
