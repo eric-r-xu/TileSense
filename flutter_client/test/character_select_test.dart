@@ -58,6 +58,22 @@ void main() {
         lessThanOrEqualTo(tester.getRect(find.text('Single Player')).left));
   });
 
+  testWidgets('on a landscape iPhone, Start is on screen without scrolling',
+      (tester) async {
+    const size = Size(852, 393);
+    await tester.binding.setSurfaceSize(size);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+
+    final start = tester.getRect(find.byKey(const Key('charactersContinue')));
+    expect(start.top, greaterThanOrEqualTo(0));
+    expect(start.bottom, lessThanOrEqualTo(size.height));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('character select picks hanchan (default) or East only',
       (tester) async {
     await _boot(tester);

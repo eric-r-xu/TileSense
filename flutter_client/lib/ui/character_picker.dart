@@ -56,6 +56,8 @@ class CharacterRow extends StatelessWidget {
         for (var i = 0; i < options.length; i += columns) ...[
           if (i > 0) const SizedBox(height: 12),
           Row(
+            // Top-aligned so every portrait in a row sits level.
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var j = i; j < i + columns; j++)
                 cell(j < options.length ? options[j] : null),
@@ -116,12 +118,21 @@ class CharacterOption extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                kCharacterName[character]!,
-                style: TextStyle(
-                  color: selected ? const Color(0xffffdf76) : Colors.white70,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 12,
+              // One line, shrunk to fit: a long name (Matityahu) wrapping to
+              // two would make its cell taller than the rest of the row.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  kCharacterName[character]!,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color:
+                        selected ? const Color(0xffffdf76) : Colors.white70,
+                    fontWeight:
+                        selected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
