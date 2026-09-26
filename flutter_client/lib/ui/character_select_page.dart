@@ -113,7 +113,7 @@ class CharacterSelectPage extends StatelessWidget {
       key: Key('seatCard_$seat'),
       // Five 64px choices per row keep the roster and controls on screen.
       width: 344,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         color: const Color(0x33000000),
         borderRadius: BorderRadius.circular(14),
@@ -159,10 +159,10 @@ class CharacterSelectPage extends StatelessWidget {
               fontWeight: seat == 0 ? FontWeight.w800 : FontWeight.normal,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Container(
-            width: 128,
-            height: 128,
+            width: 104,
+            height: 104,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Color(0xff0c4747),
@@ -186,7 +186,7 @@ class CharacterSelectPage extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           CharacterRow(
             options: kSelectableCharacters,
             columns: 5,
@@ -515,23 +515,25 @@ class CharacterSelectPage extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            // Start shares this row rather than taking its
+                            // own: on a phone there is no height left for one.
+                            const SizedBox(width: 24),
+                            ElevatedButton(
+                              key: const Key('charactersContinue'),
+                              onPressed: onAdvance,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _gold,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 40, vertical: 14),
+                              ),
+                              child: Text(
+                                advanceLabel,
+                                style: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          key: const Key('charactersContinue'),
-                          onPressed: onAdvance,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _gold,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 40, vertical: 14),
-                          ),
-                          child: Text(
-                            advanceLabel,
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
                         ),
                       ],
                     ),

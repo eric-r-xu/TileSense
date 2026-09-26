@@ -5,4 +5,4 @@ library;
 const Duration kCallPause = Duration(microseconds: 1294500);
 
 /// Time to read each visible score page before automatically continuing.
-const Duration kScorePageDelay = Duration(seconds: 25);
+const Duration kScorePageDelay = Duration(seconds: 20);

@@ -70,11 +70,11 @@ void main() {
     });
   });
 
-  testWidgets('scores get 25 visible seconds, then continue on their own',
+  testWidgets('scores get 20 visible seconds, then continue on their own',
       (tester) async {
     await withScores(tester, call: false, (game) async {
-      expect(find.textContaining('Auto Continue in 25s'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 24));
+      expect(find.textContaining('Auto Continue in 20s'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 19));
       expect(game.continues, 0);
       expect(find.textContaining('Auto Continue in 1s'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
@@ -92,21 +92,21 @@ void main() {
       expect(game.continues, 0);
       game.togglePause();
       await tester.pump();
-      expect(find.textContaining('Auto Continue in 20s'), findsOneWidget);
+      expect(find.textContaining('Auto Continue in 15s'), findsOneWidget);
       await tester.tap(find.text('Continue'));
       expect(game.continues, 1);
     });
   });
 
-  testWidgets('each winner score page gets its own 25 seconds', (tester) async {
+  testWidgets('each winner score page gets its own 20 seconds', (tester) async {
     await withScores(tester, (game) async {
       await tester.pump(CallCallout.flash);
       expect(find.text('Round result  (1 / 2)'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 25));
+      await tester.pump(const Duration(seconds: 20));
       expect(game.continues, 0);
       expect(find.text('Round result  (2 / 2)'), findsOneWidget);
-      expect(find.textContaining('Auto Continue in 25s'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 24));
+      expect(find.textContaining('Auto Continue in 20s'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 19));
       expect(game.continues, 0);
       await tester.pump(const Duration(seconds: 1));
       expect(game.continues, 1);
