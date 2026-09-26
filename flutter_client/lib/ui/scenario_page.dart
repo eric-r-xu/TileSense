@@ -312,8 +312,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
                     const Icon(Icons.school, size: 30)),
           ),
           const SizedBox(width: 8),
-          const Text('Custom Hand & Context Builder',
-              style: TextStyle(fontSize: 14)),
+          // Truncates on a phone, where boosted text leaves the controls
+          // less room.
+          const Flexible(
+            child: Text('Custom Hand & Context Builder',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14)),
+          ),
         ],
       ),
       actions: [

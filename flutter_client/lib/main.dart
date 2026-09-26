@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -73,8 +74,8 @@ const String _handCountCaveatChineseStyle =
 
 /// The caption every top-bar tile carries above its value.
 const TextStyle _barCaptionStyle = TextStyle(
-    color: Colors.white38,
-    fontSize: 8,
+    color: Colors.white54,
+    fontSize: 10,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.6);
 
@@ -106,14 +107,19 @@ Widget _barTile({
           child: SizedBox(
             width: width,
             height: 44,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(caption,
-                    maxLines: 1, softWrap: false, style: _barCaptionStyle),
-                const SizedBox(height: 3),
-                value,
-              ],
+            // Scales down rather than overflowing once text is boosted on a
+            // phone (see _FixedCanvas).
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(caption,
+                      maxLines: 1, softWrap: false, style: _barCaptionStyle),
+                  const SizedBox(height: 3),
+                  value,
+                ],
+              ),
             ),
           ),
         ),
@@ -286,8 +292,10 @@ class TileSenseApp extends StatelessWidget {
           // the centre status block or the rotate-landscape prompt rendered
           // taller / more loosely spaced on some browsers than others. Pin it
           // to 1.0 everywhere — including _LandscapeGate, which sits outside
-          // _FixedCanvas's own MediaQuery override — so text always renders
-          // at the size it was authored at.
+          // _FixedCanvas's own MediaQuery override — so text renders at the
+          // size it was authored at. The one exception is _FixedCanvas's
+          // own phone boost, which depends only on how far the canvas is
+          // shrunk, never on the browser.
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(textScaler: TextScaler.noScaling),
@@ -552,7 +560,7 @@ class _FixedCanvasState extends State<_FixedCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    Widget canvasFor(Size size) => Center(
+    Widget canvasFor(Size size, double fit) => Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: SizedBox(
@@ -564,11 +572,17 @@ class _FixedCanvasState extends State<_FixedCanvas> {
               // canvas is sized, so there is nothing left for the subtree to
               // dodge.
               child: MediaQuery(
+                // A phone shrinks the canvas to about half size, which
+                // leaves authored text a few points tall, so text grows by
+                // up to 1.35x once the canvas is shrunk below 0.65x. Desktop
+                // and large tablets stay at 1.0.
                 data: MediaQuery.of(context).copyWith(
                   size: size,
                   padding: EdgeInsets.zero,
                   viewInsets: EdgeInsets.zero,
                   viewPadding: EdgeInsets.zero,
+                  textScaler:
+                      TextScaler.linear((0.65 / fit).clamp(1.0, 1.35)),
                 ),
                 child: widget.child,
               ),
@@ -585,7 +599,10 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       // colour fills the inset, so nothing looks cut off.
       child: SafeArea(
         child: LayoutBuilder(builder: (context, c) {
-          final canvas = canvasFor(canvasSizeFor(c.biggest));
+          final size = canvasSizeFor(c.biggest);
+          final fit = math.min(
+              c.biggest.width / size.width, c.biggest.height / size.height);
+          final canvas = canvasFor(size, fit);
           return Stack(
             children: [
               Positioned.fill(
