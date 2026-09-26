@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../game/game_controller.dart' show kHumanSeat;
 import '../game/guide_host.dart';
@@ -35,8 +33,13 @@ class HandView extends StatefulWidget {
     required this.game,
     this.onToggleGuide,
     this.showGuide = true,
+    this.onMenu,
   });
   final TableGameHost game;
+
+  /// Set on a phone only: shows the Menu button at the right end of the tile
+  /// row, which holds the controls the phone's top bar is too small for.
+  final VoidCallback? onMenu;
 
   /// Null hides the TileSense button entirely — multiplayer has no guide, so
   /// nobody gets an assist the other seats lack. Offline always passes one.
@@ -403,7 +406,7 @@ class _HandViewState extends State<HandView> {
                   ),
                 ),
               ),
-              // Your open melds sit on the right, left of the GitHub link.
+              // Your open melds sit on the right, left of a phone's Menu.
               if (seat.melds.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(left: 10),
@@ -415,26 +418,55 @@ class _HandViewState extends State<HandView> {
                     ],
                   ),
                 ),
-              // The credits, small and muted in the corner: they are links
-              // out of the game, not controls of it, so they stay out of a
-              // thumb's way. Sound, which is a control, lives with pause and
-              // new game in the top bar.
-              const SizedBox(width: 10),
-              IconButton(
-                tooltip: 'View on GitHub',
-                iconSize: 22,
-                visualDensity: VisualDensity.compact,
-                icon: const FaIcon(FontAwesomeIcons.github, size: 22),
-                color: Colors.white38,
-                onPressed: () => launchUrl(
-                  Uri.parse('https://github.com/eric-r-xu/TileSense'),
-                  mode: LaunchMode.externalApplication,
-                ),
-              ),
-              const _FlutterAttribution(),
+              if (widget.onMenu != null) ...[
+                const SizedBox(width: 14),
+                _menuButton(),
+                // Kept off the screen's right edge, which a raised phone
+                // case can cover.
+                const SizedBox(width: 26),
+              ],
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// A phone's Menu: under the right thumb, mirroring the guide button under
+  /// the left, and square enough to clear 44pt each way on a phone. Says when
+  /// the game is paused, since the phone's bar has no Pause of its own.
+  Widget _menuButton() {
+    const gold = Color(0xffe9d58f);
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        key: const Key('phoneMenu'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: widget.onMenu,
+        child: Container(
+          width: 120,
+          height: 96,
+          decoration: BoxDecoration(
+            color: const Color(0x14ffffff),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.menu, size: 40, color: gold),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(widget.game.paused ? 'PAUSED' : 'MENU',
+                    style: const TextStyle(
+                        color: gold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -921,36 +953,6 @@ class _DragGrabFlash extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// "Built with Flutter" credit, bottom-right of the hand bar (so bottom-right
-/// of the whole app) — the stock [FlutterLogo] widget rather than a bundled
-/// image, tappable through to flutter.dev. The credit is a [Tooltip] popup
-/// (hover on desktop, long-press on touch) so it never changes this icon's
-/// footprint or nudges its neighbours in the row.
-class _FlutterAttribution extends StatelessWidget {
-  const _FlutterAttribution();
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Built with Flutter',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: () => launchUrl(
-            Uri.parse('https://flutter.dev'),
-            mode: LaunchMode.externalApplication,
-          ),
-          child: const Padding(
-            padding: EdgeInsets.all(4),
-            child: FlutterLogo(size: 20),
-          ),
-        ),
-      ),
     );
   }
 }

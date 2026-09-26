@@ -58,6 +58,26 @@ void main() {
         lessThanOrEqualTo(tester.getRect(find.text('Single Player')).left));
   });
 
+  testWidgets('the GitHub and Flutter links sit in the title screen corner',
+      (tester) async {
+    await _boot(tester);
+    for (final key in ['githubLink', 'flutterLink']) {
+      final r = tester.getRect(find.byKey(Key(key)));
+      expect(r.right, greaterThan(kDesignSize.width - 120), reason: key);
+      expect(r.bottom, greaterThan(kDesignSize.height - 60), reason: key);
+    }
+    // And no longer at the table.
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const Key('githubLink')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   testWidgets('on a landscape iPhone, Start is on screen without scrolling',
       (tester) async {
     const size = Size(852, 393);

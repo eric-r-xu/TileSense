@@ -160,7 +160,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
     }
 
-    testWidgets('the bar is one Menu button, not the desktop tiles',
+    testWidgets('one Menu button under the right thumb replaces the bar tiles',
         (tester) async {
       await startGame(tester, size: iPhone);
       expect(find.byKey(const Key('phoneMenu')), findsOneWidget);
@@ -168,8 +168,13 @@ void main() {
         expect(find.byKey(Key(key)), findsNothing, reason: key);
       }
       final menu = tester.getRect(find.byKey(const Key('phoneMenu')));
-      expect(menu.width, greaterThanOrEqualTo(96),
-          reason: 'far wider than a thumb on the shrunk canvas');
+      expect(menu.width, greaterThanOrEqualTo(44));
+      expect(menu.height, greaterThanOrEqualTo(44));
+      expect(iPhone.width - menu.right, greaterThanOrEqualTo(16),
+          reason: 'clear of the right edge, which a raised case covers');
+      expect(menu.top, greaterThan(iPhone.height / 2),
+          reason: 'low, where a thumb rests, not at the top edge');
+      expect(menu.bottom, lessThan(iPhone.height));
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
     });
@@ -187,7 +192,11 @@ void main() {
       await tester.tap(find.byKey(const Key('phoneMenuDone')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.text('MENU · PAUSED'), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byKey(const Key('phoneMenu')),
+              matching: find.text('PAUSED')),
+          findsOneWidget);
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
     });
