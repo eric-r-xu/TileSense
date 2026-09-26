@@ -44,6 +44,9 @@ void main() {
   testWidgets(
       'the pause button toggles the paused overlay, which itself resumes on tap',
       (tester) async {
+    // The desktop bar: at the default 800x600 the app takes the phone one.
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Single Player'));
@@ -78,6 +81,9 @@ void main() {
   testWidgets(
       'the back-to-menu button pauses the game and returns to it on Start',
       (tester) async {
+    // The desktop bar: at the default 800x600 the app takes the phone one.
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Single Player'));

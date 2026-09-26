@@ -4,6 +4,7 @@ import 'package:mahjong_core/round.dart';
 
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/logic/efficiency_engine.dart' show HandFocus;
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/table_view.dart';
 
@@ -15,10 +16,10 @@ import 'loading_helpers.dart';
 void main() {
   preloadDeferredPages();
 
-  Future<void> startGame(WidgetTester tester) async {
+  Future<void> startGame(WidgetTester tester, {Size size = kDesignSize}) async {
     Sfx.i.enabled = false;
     addTearDown(() => Sfx.i.enabled = true);
-    await tester.binding.setSurfaceSize(kDesignSize);
+    await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
@@ -145,5 +146,83 @@ void main() {
     expect([for (final t in game.round.seats[0].hand) t.id], hand);
     expect(find.byKey(const Key('undo')), findsNothing);
     await tearDownApp(tester);
+  });
+
+  group('on a landscape iPhone', () {
+    const iPhone = Size(852, 393);
+
+    GameController gameOf(WidgetTester tester) =>
+        tester.widget<TableView>(find.byType(TableView)).game as GameController;
+
+    Future<void> openMenu(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('the bar is one Menu button, not the desktop tiles',
+        (tester) async {
+      await startGame(tester, size: iPhone);
+      expect(find.byKey(const Key('phoneMenu')), findsOneWidget);
+      for (final key in ['backToMenu', 'autoplay', 'newGame', 'soundToggle']) {
+        expect(find.byKey(Key(key)), findsNothing, reason: key);
+      }
+      final menu = tester.getRect(find.byKey(const Key('phoneMenu')));
+      expect(menu.width, greaterThanOrEqualTo(96),
+          reason: 'far wider than a thumb on the shrunk canvas');
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
+
+    testWidgets('the menu pauses, and the button says so', (tester) async {
+      await startGame(tester, size: iPhone);
+      final game = gameOf(tester);
+      await openMenu(tester);
+      final pause = tester.getRect(find.byKey(const Key('phoneMenuPause')));
+      expect(pause.height, greaterThanOrEqualTo(44),
+          reason: 'drawn at full size, not shrunk with the canvas');
+      await tester.tap(find.byKey(const Key('phoneMenuPause')));
+      await tester.pump();
+      expect(game.paused, isTrue);
+      await tester.tap(find.byKey(const Key('phoneMenuDone')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('MENU · PAUSED'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
+
+    testWidgets('a dial setting is picked with one tap', (tester) async {
+      await startGame(tester, size: iPhone);
+      final game = gameOf(tester);
+      await openMenu(tester);
+      final target = HandFocus.values.firstWhere((f) => f != game.handFocus);
+      await tester.tap(find.byKey(Key('phoneMenuFocus_${target.name}')));
+      await tester.pump();
+      expect(game.handFocus, target);
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
+
+    testWidgets('New game still asks first, and Main menu leaves',
+        (tester) async {
+      await startGame(tester, size: iPhone);
+      await openMenu(tester);
+      await tester.tap(find.byKey(const Key('phoneMenuNewGame')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byKey(const Key('newGameConfirm')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('newGameCancel')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      await openMenu(tester);
+      await tester.tap(find.byKey(const Key('phoneMenuMainMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Single Player'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
   });
 }
