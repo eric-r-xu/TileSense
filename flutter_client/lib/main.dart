@@ -21,6 +21,7 @@ import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/online_page.dart' deferred as online;
+import 'ui/phone_menu.dart';
 import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
@@ -259,6 +260,13 @@ Size canvasSizeFor(Size available) {
   return Size(kDesignSize.width,
       height.clamp(kDesignSize.height, kMaxCanvasHeight).toDouble());
 }
+
+/// Whether the app is on a phone: the canvas is shrunk far enough that
+/// [_FixedCanvas] boosts its text, which it does only below 0.65x. Read from
+/// the text scaler rather than the window so it follows the same fit, and
+/// rebuilds with it.
+bool isPhoneLayout(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(1) > 1;
 
 /// Colour shown in the letterbox bars around the scaled canvas.
 const Color kLetterboxColor = Color(0xff042020);
@@ -1012,6 +1020,49 @@ class _GamePageState extends State<GamePage> {
     if (go ?? false) _game.newGame();
   }
 
+  /// The phone bar's one control, standing in for all of the desktop bar's:
+  /// the full bar height and far wider than any of them, so it is hard to
+  /// miss. Says when the game is paused, since the Pause tile is gone.
+  Widget _phoneMenuButton() => AnimatedBuilder(
+        animation: _game,
+        builder: (context, _) => Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: const Key('phoneMenu'),
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => showPhoneMenu(context, _game,
+                onMainMenu: _backToMenu, onNewGame: _confirmNewGame),
+            child: Container(
+              width: 220,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0x14ffffff),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _autoPlayGold),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.menu, size: 26, color: _autoPlayGold),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(_game.paused ? 'MENU · PAUSED' : 'MENU',
+                          style: const TextStyle(
+                              color: _autoPlayGold,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
   // Leaving a game in progress for the welcome screen — the only way there to
   // reach the Custom Hand & Context Builder — pauses it so bots and autoplay
   // don't keep running unattended; Start un-pauses it again on the way back.
@@ -1159,11 +1210,14 @@ class _GamePageState extends State<GamePage> {
       );
     }
     _game.guideVisible = _showGuide; // read only by telemetry
+    // On a phone every control in this bar is too small to tap, so they all
+    // fold into one Menu button that opens them at full size.
+    final phone = isPhoneLayout(context);
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 50,
         titleSpacing: 12,
-        leading: IconButton(
+        leading: phone ? null : IconButton(
           key: const Key('backToMenu'),
           tooltip: 'Main menu — pauses this game; Start resumes it. Change '
               'the style there (a new game), or open the Custom Hand & '
@@ -1178,8 +1232,8 @@ class _GamePageState extends State<GamePage> {
           builder: (context, _) => TableBarTitle(
             game: _game,
             // Default leading width plus the titleSpacing above.
-            titleStart: kToolbarHeight + 12,
-            leading: Row(
+            titleStart: phone ? 12 : kToolbarHeight + 12,
+            leading: phone ? const Text('TileSense') : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // No TileSensor up here: the guide toggle is the big one beside
@@ -1285,7 +1339,7 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
         ),
-        actions: [
+        actions: phone ? [_phoneMenuButton(), const SizedBox(width: 10)] : [
           // Auto-Play and the three guide dials in one panel: Auto-Play
           // plays from the guide's own scores, so these dials are what it
           // plays by. The panel's border lights up gold while it is on, which
