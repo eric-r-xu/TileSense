@@ -78,8 +78,9 @@ where a.decision_maker = 'guide'
       and c.decision_maker = 'simple_bot' and cg.seed = g.seed);
 
 -- Each guide arm against its control on the same seeds. delta is the effect
--- to detect: 10 percentage points of stack for points_pct, 10% of the
--- control's mean otherwise. n_* are seeds per arm for a two-sided 5% test
+-- to detect: 10 percentage points of stack for points_pct, 20% of the
+-- control's mean for deal_in_rate (deal-ins are rare, so 10% of ~0.15 would
+-- need ~3,000 seeds), 10% of the control's mean otherwise. n_* are seeds per arm for a two-sided 5% test
 -- at 80% power: 7.849 = (1.960 + 0.842)^2; unpaired uses twice that on the
 -- pooled SD. Holm p is adjusted within each (control, metric) family.
 create or replace view sim_paired_stats as
@@ -101,7 +102,9 @@ with pairs as (
   from pairs group by arm_id, control_arm_id, metric
 ), d as (
   select s.*,
-         case when metric = 'points_pct' then 10.0 else 0.10 * abs(mean_control) end as delta,
+         case metric when 'points_pct' then 10.0
+                     when 'deal_in_rate' then 0.20 * abs(mean_control)
+                     else 0.10 * abs(mean_control) end as delta,
          sd_diff * sqrt((n_pairs - 1) / sim_chi2_q20(n_pairs - 1)) as sd_diff_ucl,
          erfc(abs(mean_diff) / nullif(sd_diff / sqrt(n_pairs), 0) / sqrt(2)) as p
   from s

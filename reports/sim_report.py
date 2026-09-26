@@ -79,7 +79,8 @@ def main():
         "value on each seed. **Δ**: mean of guide − bot. **Holm p**: two-sided, Holm-adjusted "
         "within each variant, length and metric.",
         "- **Seeds needed** to detect an effect δ (two-sided α = 0.05, power 0.80). δ is 10 "
-        "percentage points of stack for Ending Points and 10% of the bot's mean otherwise. "
+        "percentage points of stack for Ending Points, 20% of the bot's mean for Deal-in "
+        "Rate, and 10% of the bot's mean otherwise. "
         "*Unpaired* ignores the shared seeds. *Paired* uses the SD of the per-seed "
         "differences. *Paired (UCL)* uses that SD's 80% upper confidence limit, so a CV "
         "estimated from a small sample does not under-power the plan; this is the one to use.",
