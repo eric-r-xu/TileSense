@@ -131,7 +131,7 @@ class CharacterOption extends StatelessWidget {
                         selected ? const Color(0xffffdf76) : Colors.white70,
                     fontWeight:
                         selected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 12,
+                    fontSize: 10.56,
                   ),
                 ),
               ),

@@ -187,8 +187,9 @@ void main() {
       }
     });
 
-    testWidgets('the client id is white text, top-left, on the online screen',
-        (tester) async {
+    testWidgets(
+        'the client id is behind an ID chip, away from Back, and copies from '
+        'its dialog', (tester) async {
       await tester.binding.setSurfaceSize(kDesignSize);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
@@ -210,28 +211,43 @@ void main() {
         expect(find.text(id), findsNothing);
 
         await tester.tap(find.byKey(const Key('playOnline')));
-        final text = find.byKey(const Key('clientId'));
-        await pumpUntilFound(tester, text);
-        expect(text, findsOneWidget);
-        expect(find.text(id), findsOneWidget);
-        expect(tester.widget<SelectableText>(text).style?.color, Colors.white);
+        final chip = find.byKey(const Key('clientIdButton'));
+        await pumpUntilFound(tester, chip);
+        // Only the chip shows: the id itself waits behind it.
+        expect(find.text(id), findsNothing);
 
-        // Top-left, immediately after the back arrow.
-        final back = tester.getRect(find.byTooltip('Back to menu'));
-        final rect = tester.getRect(text);
-        expect(rect.left, greaterThanOrEqualTo(back.right - 1));
-        expect(rect.top, lessThan(60));
-        expect(rect.left, lessThan(120));
+        // Back is a big labelled target on the left; the chip is at the
+        // other end of the bar, nowhere near it.
+        final back = tester.getRect(find.byKey(const Key('onlineBack')));
+        expect(back.width, greaterThanOrEqualTo(44));
+        expect(back.height, greaterThanOrEqualTo(44));
+        expect(back.left, lessThan(20));
+        expect(tester.getRect(chip).left, greaterThan(kDesignSize.width / 2));
 
-        // Tapping copies it.
-        await tester.tap(text);
+        // The dialog shows the id, and Copy copies it.
+        await tester.tap(chip);
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(
+            tester
+                .widget<SelectableText>(
+                    find.byKey(const Key('clientIdValue')))
+                .data,
+            id);
+        await tester.tap(find.byKey(const Key('clientIdCopy')));
         await tester.pump();
         expect(copied, id);
-
-        // Back on the title screen, it is gone again.
+        expect(find.text('Copied'), findsOneWidget);
         await tester.pump(const Duration(seconds: 3));
-        await tester.tap(find.byTooltip('Back to menu'));
+        await tester.tap(find.byKey(const Key('clientIdClose')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump();
+        expect(find.text(id), findsNothing);
+
+        // Back to the title screen.
+        await tester.tap(find.byKey(const Key('onlineBack')));
         await tester.pump(const Duration(milliseconds: 100));
+        expect(find.byKey(const Key('playOnline')), findsOneWidget);
         expect(find.text(id), findsNothing);
 
         await tester.pumpWidget(const SizedBox());
@@ -241,6 +257,27 @@ void main() {
             .setMockMethodCallHandler(SystemChannels.platform, null);
         debugDefaultTargetPlatformOverride = null;
       }
+    });
+
+    testWidgets('on a phone the lobby\'s Back and ID chip clear 44pt',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(852, 393));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.ensureVisible(find.byKey(const Key('playOnline')));
+      await tester.tap(find.byKey(const Key('playOnline')));
+      await pumpLoadedPage(tester);
+      await tester.pump(const Duration(milliseconds: 100));
+      for (final key in ['onlineBack', 'clientIdButton']) {
+        final r = tester.getRect(find.byKey(Key(key)));
+        expect(r.height, greaterThanOrEqualTo(44), reason: key);
+        expect(r.width, greaterThanOrEqualTo(44), reason: key);
+      }
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets('the keyboard shortcuts zoom and reset', (tester) async {

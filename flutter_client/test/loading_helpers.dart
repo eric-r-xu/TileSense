@@ -78,3 +78,18 @@ void preloadDeferredPages() {
     await scenario.loadLibrary();
   });
 }
+
+/// Opens the builder's Menu, taps the item keyed [key], and closes the sheet
+/// again if that item left it open (a dial does; Random, Clear and Back to
+/// start close it themselves).
+Future<void> tapBuilderMenu(WidgetTester tester, String key) async {
+  await tester.tap(find.byKey(const Key('phoneMenu')));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.ensureVisible(find.byKey(Key(key)));
+  await tester.tap(find.byKey(Key(key)));
+  await tester.pump(const Duration(milliseconds: 100));
+  final done = find.byKey(const Key('builderMenuDone'));
+  if (done.evaluate().isNotEmpty) await tester.tap(done);
+  await tester.pump(const Duration(milliseconds: 500));
+}

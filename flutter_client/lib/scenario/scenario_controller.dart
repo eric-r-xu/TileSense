@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
-import '../game/sfx.dart' show Character, kCharacterName;
+import '../game/sfx.dart' show Character;
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
 import 'package:mahjong_core/meld.dart';
@@ -21,16 +21,11 @@ import 'package:mahjong_core/wall.dart';
 import 'scenario.dart';
 
 class ScenarioController extends ChangeNotifier implements GuideHost {
-  /// [seatCharacters] is who sits at each seat (index 0 the human), chosen on
-  /// the character-select screen; it defaults to [kSeatCharacters].
-  /// [seatWind] is the wind you start on there (East when null).
-  ScenarioController({List<Character>? seatCharacters, Wind? seatWind})
-      : _seatCharacters = List.of(seatCharacters ?? kSeatCharacters) {
+  /// [seatWind] is the wind you start on (East when null).
+  ScenarioController({Wind? seatWind}) {
     if (seatWind != null) scenario.seatWind = seatWind;
     rebuild();
   }
-
-  final List<Character> _seatCharacters;
 
   final Scenario scenario = Scenario();
   final _efficiency = EfficiencyEngine();
@@ -139,10 +134,13 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   int get dealerRepeat => 0;
   @override
   int? get turnDeadlineMs => null;
+  // The builder has no characters: its table draws no portraits, and seats
+  // go by where they sit. [GuideHost] still asks for a character, which
+  // nothing here shows.
   @override
-  Character characterForSeat(int seat) => _seatCharacters[seat];
+  Character characterForSeat(int seat) => kSeatCharacters[seat];
   @override
-  String seatLabel(int seat) => kCharacterName[_seatCharacters[seat]]!;
+  String seatLabel(int seat) => kScenarioSeatNames[seat];
 
   @override
   bool get humanFuriten =>
@@ -229,6 +227,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       strategy: scenario.strategy,
       ruleset: ruleset,
       flowers: human.flowers.map((t) => t.type).toList(),
+      minimumFaan: scenario.minimumFaan,
+      minimumPoints: scenario.minimumPoints,
     );
 
     if (scenario.isDiscardRead) {
@@ -377,6 +377,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
             ),
       startingPoints: List.filled(4, ruleset.startingPoints),
       ruleset: ruleset,
+      minimumFaan: scenario.minimumFaan,
+      minimumPoints: scenario.minimumPoints,
     );
     for (var i = 0; i < 4; i++) {
       final src = scenario.seats[i];

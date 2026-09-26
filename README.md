@@ -389,6 +389,18 @@ version: 0.2.1+4     # 0.2.1 = version name, 4 = build number — bump +N on eve
 
 ---
 
+## Credits
+
+TileSense owes a great deal to two fantastic, inspirational resources:
+
+- **[Riichi-Trainer](https://github.com/Euophrys/Riichi-Trainer)** by
+  Euophrys, for the shanten, ukeire and defense calculations.
+- **[Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html)**
+  on Path of Houou, for the EV calculation comparisons (the guide's
+  **EV (HMR)** column).
+
+---
+
 ## License
 
 TileSense is licensed under GPLv3. Its efficiency calculations are adapted from

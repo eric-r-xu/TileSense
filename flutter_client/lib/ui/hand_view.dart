@@ -7,6 +7,7 @@ import '../game/guide_host.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
+import 'phone_menu.dart' show PhoneMenuButton;
 import 'table_view.dart' show CountdownBadge;
 import 'tile_face.dart';
 import 'tilesensor.dart';
@@ -420,7 +421,8 @@ class _HandViewState extends State<HandView> {
                 ),
               if (widget.onMenu != null) ...[
                 const SizedBox(width: 14),
-                _menuButton(),
+                PhoneMenuButton(
+                    onTap: widget.onMenu!, paused: widget.game.paused),
                 // Kept off the screen's right edge, which a raised phone
                 // case can cover.
                 const SizedBox(width: 26),
@@ -428,45 +430,6 @@ class _HandViewState extends State<HandView> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  /// A phone's Menu: under the right thumb, mirroring the guide button under
-  /// the left, and square enough to clear 44pt each way on a phone. Says when
-  /// the game is paused, since the phone's bar has no Pause of its own.
-  Widget _menuButton() {
-    const gold = Color(0xffe9d58f);
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        key: const Key('phoneMenu'),
-        borderRadius: BorderRadius.circular(12),
-        onTap: widget.onMenu,
-        child: Container(
-          width: 120,
-          height: 96,
-          decoration: BoxDecoration(
-            color: const Color(0x14ffffff),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.menu, size: 40, color: gold),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(widget.game.paused ? 'PAUSED' : 'MENU',
-                    style: const TextStyle(
-                        color: gold,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

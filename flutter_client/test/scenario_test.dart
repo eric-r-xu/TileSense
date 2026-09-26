@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart' show kHumanSeat;
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/scenario/scenario.dart';
@@ -11,6 +12,7 @@ import 'package:tilesense/scenario/scenario_controller.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/scenario_page.dart';
 import 'package:tilesense/ui/table_view.dart';
+import 'package:tilesense/ui/tile_face.dart';
 
 import 'helpers.dart';
 
@@ -242,19 +244,61 @@ void main() {
       await tester.tap(find.byKey(const Key('openBuilder')));
       await pumpLoadedPage(tester);
 
-      // The starting wind is random; tap round to East, which deals.
-      final seat = find.byKey(const Key('seatWind'));
-      String label() => tester
-          .widget<Text>(find.descendant(of: seat, matching: find.byType(Text)))
-          .data!;
-      for (var i = 0; i < 4 && label() != 'Seat 東 ★'; i++) {
-        await tester.tap(seat);
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      expect(label(), 'Seat 東 ★');
-      await tester.tap(seat);
+      // The starting wind is random; set it to East, which deals, from the
+      // Menu, whose East segment carries the dealer's star.
+      ScenarioController builder() =>
+          tester.widget<TableView>(find.byType(TableView)).game
+              as ScenarioController;
+      await tapBuilderMenu(tester, 'builderMenuSeatWind_east');
+      expect(builder().round.seats[kHumanSeat].isDealer, isTrue);
+      await tapBuilderMenu(tester, 'builderMenuSeatWind_south');
+      expect(builder().scenario.seatWind, Wind.south);
+      expect(builder().round.seats[kHumanSeat].isDealer, isFalse);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  });
+
+  group('minimum points', () {
+    test('the posed round carries the minimum, and Clear keeps it', () {
+      final c = ScenarioController()..setRuleset(Ruleset.hongKong);
+      c.edit((s) => s.minimumFaan = 3);
+      expect(c.round.minimumFaan, 3);
+      c.setRuleset(Ruleset.taiwanese);
+      c.edit((s) => s.minimumPoints = 1);
+      expect(c.round.minimumPoints, 1);
+      c.edit((s) => s.clear());
+      expect(c.scenario.minimumFaan, 3);
+      expect(c.scenario.minimumPoints, 1);
+    });
+
+    testWidgets('the Menu offers each rule\'s own minimum', (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
-      expect(label(), 'Seat 南');
+      await tester.tap(find.byKey(const Key('openBuilder')));
+      await pumpLoadedPage(tester);
+      ScenarioController builder() =>
+          tester.widget<TableView>(find.byType(TableView)).game
+              as ScenarioController;
+
+      await tapBuilderMenu(tester, 'builderMenuRuleset_hongKong');
+      await tapBuilderMenu(tester, 'builderMenuMinFaan_2');
+      expect(builder().round.minimumFaan, 2);
+
+      await tapBuilderMenu(tester, 'builderMenuRuleset_taiwanese');
+      await tapBuilderMenu(tester, 'builderMenuMinTai_3');
+      expect(builder().round.minimumPoints, 3);
+
+      // Riichi has no minimum to pick.
+      await tapBuilderMenu(tester, 'builderMenuRuleset_riichi');
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.textContaining('Min '), findsNothing);
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox());
@@ -289,8 +333,39 @@ void main() {
               .toPlainText(),
           isNot(contains('Esc')));
 
-      await tester.tap(find.text('Random'));
+      await tapBuilderMenu(tester, 'builderMenuRandom');
+      expect(find.textContaining('Scored:'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets(
+        'the across seat is centred up in the bar, and the setup is in the '
+        'Menu, as on a phone', (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const Key('openBuilder')));
+      await pumpLoadedPage(tester);
+
+      final bar = find.byType(AppBar);
+      final seat = find.byKey(const Key('acrossSeat'));
+      expect(find.descendant(of: bar, matching: seat), findsOneWidget);
+      final table = tester.getRect(find.byType(TableView));
+      expect((tester.getRect(seat).center.dx - table.center.dx).abs(),
+          lessThan(4));
+      // Just the placard: the builder draws no portrait.
+      expect(tester.getSize(seat).height, greaterThanOrEqualTo(28),
+          reason: 'drawn at full size, not squeezed by the bar');
+
+      expect(find.byTooltip('Back to start'), findsNothing);
+      expect(tester.getRect(find.byKey(const Key('phoneMenu'))).top,
+          greaterThan(table.bottom),
+          reason: 'the Menu is in the editor band');
+      await tapBuilderMenu(tester, 'builderMenuRandom');
       expect(find.textContaining('Scored:'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
@@ -305,8 +380,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
       await pumpLoadedPage(tester);
-      await tester.tap(find.text('Random'));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tapBuilderMenu(tester, 'builderMenuRandom');
 
       final page = tester.widget<TableView>(find.byType(TableView)).game;
       final posed = [
@@ -323,10 +397,174 @@ void main() {
       expect(after, posed, reason: 'no bot took a turn behind the builder');
 
       // Leaving drops back to the welcome screen with the game still unstarted.
-      await tester.tap(find.byTooltip('Back to start'));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tapBuilderMenu(tester, 'builderMenuBack');
       expect(find.text('Single Player'), findsOneWidget);
       expect(find.byType(ScenarioPage), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  });
+
+  group('the builder on a landscape iPhone', () {
+    const iPhone = Size(852, 393);
+
+    Future<void> openBuilder(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(iPhone);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.ensureVisible(find.byKey(const Key('openBuilder')));
+      await tester.tap(find.byKey(const Key('openBuilder')));
+      await pumpLoadedPage(tester);
+    }
+
+    Future<void> tapInSheet(WidgetTester tester, String key) async {
+      await tester.ensureVisible(find.byKey(Key(key)));
+      await tester.tap(find.byKey(Key(key)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('one Menu button under the right thumb replaces the tool bar',
+        (tester) async {
+      await openBuilder(tester);
+      expect(find.byKey(const Key('seatWind')), findsNothing);
+      expect(find.byKey(const Key('builderRuleset_riichi')), findsNothing);
+      expect(find.byTooltip('Back to start'), findsNothing);
+
+      final menu = tester.getRect(find.byKey(const Key('phoneMenu')));
+      expect(menu.width, greaterThanOrEqualTo(44));
+      expect(menu.height, greaterThanOrEqualTo(44));
+      expect(iPhone.width - menu.right, greaterThanOrEqualTo(16),
+          reason: 'clear of the right edge, which a raised case covers');
+      expect(menu.top, greaterThan(iPhone.height / 2),
+          reason: 'within reach of a thumb');
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('the across seat sits up in the bar, as in the game',
+        (tester) async {
+      await openBuilder(tester);
+      final seat = find.byKey(const Key('acrossSeat'));
+      expect(find.descendant(of: find.byType(AppBar), matching: seat),
+          findsOneWidget);
+      expect(find.byKey(const Key('acrossHand')), findsOneWidget);
+      final table = tester.getRect(find.byType(TableView));
+      expect((tester.getRect(seat).center.dx - table.center.dx).abs(),
+          lessThan(4),
+          reason: 'centred over the table, over the across pond');
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('the editor band\'s tiles and chips are big enough to tap',
+        (tester) async {
+      await openBuilder(tester);
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byKey(const Key('builderMenuRandom')));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      Size chip(Finder label) => tester.getSize(
+          find.ancestor(of: label, matching: find.byType(InkWell)).first);
+
+      final palette = find.byWidgetPredicate((w) =>
+          w is TileFace &&
+          w.tile == null &&
+          w.type == typeFrom34(0) &&
+          w.size == TileSize.normal);
+      final tile = tester.getSize(palette.first);
+      expect(tile.width, greaterThanOrEqualTo(29));
+      expect(tile.height, greaterThanOrEqualTo(39.5));
+
+      for (final label in [
+        find.textContaining('Your hand ('),
+        find.text('Red 5'),
+        find.textContaining('pond (').first,
+      ]) {
+        expect(chip(label).height, greaterThanOrEqualTo(44));
+        expect(chip(label).width, greaterThanOrEqualTo(44));
+      }
+
+      // Every ruleset's table still fits above the taller band — the
+      // Taiwanese side hands run longest.
+      for (final r in Ruleset.values) {
+        (tester.widget<TableView>(find.byType(TableView)).game
+                as ScenarioController)
+            .setRuleset(r);
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(tester.takeException(), isNull, reason: r.name);
+      }
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byKey(const Key('builderMenuRuleset_riichi')));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const Key('builderMenuRandom')));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // The calls slot's chi/pon/kan picker.
+      await tester.tap(find.textContaining('calls (').first);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(chip(find.text(Ruleset.riichi.ponLabel)).height,
+          greaterThanOrEqualTo(44));
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('the Menu sheet sets up the table at full size',
+        (tester) async {
+      await openBuilder(tester);
+      final page = tester.state(find.byType(ScenarioPage));
+      Scenario scenario() =>
+          (tester.widget<TableView>(find.byType(TableView)).game
+                  as ScenarioController)
+              .scenario;
+
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      for (final key in [
+        'builderMenuRandom',
+        'builderMenuBack',
+        'builderMenuWall_plus',
+      ]) {
+        expect(tester.getSize(find.byKey(Key(key))).height,
+            greaterThanOrEqualTo(48),
+            reason: key);
+      }
+
+      await tapInSheet(tester, 'builderMenuRuleset_riichi');
+      expect(scenario().ruleset, Ruleset.riichi);
+      await tapInSheet(tester, 'builderMenuSeatWind_east');
+      expect(scenario().seatWind, Wind.east);
+      await tapInSheet(tester, 'builderMenuRoundWind_south');
+      expect(scenario().roundWind, Wind.south);
+      final honba = scenario().honba;
+      await tapInSheet(tester, 'builderMenuHonba_plus');
+      expect(scenario().honba, honba + 1);
+
+      // Hong Kong has no honba or riichi sticks.
+      await tapInSheet(tester, 'builderMenuRuleset_hongKong');
+      expect(scenario().ruleset, Ruleset.hongKong);
+      expect(find.byKey(const Key('builderMenuHonba_plus')), findsNothing);
+      expect(find.byKey(const Key('builderMenuSticks_plus')), findsNothing);
+
+      // Random closes the sheet onto the table it just posed.
+      await tapInSheet(tester, 'builderMenuRandom');
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byKey(const Key('builderMenuDone')), findsNothing);
+      expect(find.textContaining('Scored:'), findsOneWidget);
+      expect(page.mounted, isTrue);
+      expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump();

@@ -10,13 +10,16 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
-import '../game/sfx.dart' show Character;
+import '../main.dart' show isPhoneLayout, openRules;
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart';
 import '../scenario/scenario.dart';
 import '../scenario/scenario_controller.dart';
 import 'efficiency_overlay.dart';
+import 'phone_menu.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
@@ -34,19 +37,14 @@ class ScenarioPage extends StatefulWidget {
     super.key,
     required this.onExit,
     this.initialRuleset = Ruleset.riichi,
-    this.seatCharacters,
     this.seatWind,
   });
 
   /// Back to the welcome screen.
   final VoidCallback onExit;
 
-  /// The rules the builder opens in; it can be switched from its tool bar.
+  /// The rules the builder opens in; it can be switched from its Menu.
   final Ruleset initialRuleset;
-
-  /// Who sits at each seat, from the character-select screen; the default
-  /// personas when null.
-  final List<Character>? seatCharacters;
 
   /// The wind you start on, from the character-select screen; East when null.
   final Wind? seatWind;
@@ -56,16 +54,29 @@ class ScenarioPage extends StatefulWidget {
 }
 
 class _ScenarioPageState extends State<ScenarioPage> {
-  late final ScenarioController _c = ScenarioController(
-      seatCharacters: widget.seatCharacters, seatWind: widget.seatWind);
+  late final ScenarioController _c =
+      ScenarioController(seatWind: widget.seatWind);
 
   _Slot _slot = _Slot.hand;
   int _slotSeat = kHumanSeat;
   _MeldKind _meldKind = _MeldKind.pon;
   bool _aka = false;
 
-  /// Height of the editor band below the table.
-  static const double _editorHeight = 214;
+  /// Height of the editor band below the table: taller on a phone, whose
+  /// tiles and chips are drawn big enough to tap.
+  double get _editorHeight => _phone ? 336 : 214;
+
+  /// A phone's minimum tap target in canvas pixels: 44pt at the ~0.48× a
+  /// landscape iPhone draws the canvas at.
+  static const double _phoneTarget = 92;
+
+  /// The editor band's chips: at least [_phoneTarget] each way on a phone,
+  /// label centred and big enough to read; as authored on a desktop.
+  BoxConstraints? get _chipBox => _phone
+      ? const BoxConstraints(minWidth: _phoneTarget, minHeight: _phoneTarget)
+      : null;
+  Alignment? get _chipAlign => _phone ? Alignment.center : null;
+  double get _chipFont => _phone ? 20 : 11;
 
   // The tool bar is built outside the body's AnimatedBuilder, so it needs its
   // own nudge to follow controller-side edits — the guide panel's play-style
@@ -212,6 +223,46 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   // --- build -----------------------------------------------------------
 
+  /// On a phone the editor band's tiles and chips are drawn big enough to
+  /// tap. The table setup lives in the Menu on every screen, phone or not.
+  bool get _phone => isPhoneLayout(context);
+
+  /// The table's editing hooks — shared by the felt and the app bar, which
+  /// carries the across seat as it does in the game.
+  TableEdits _tableEdits() => TableEdits(
+        area: switch (_slot) {
+          _Slot.pond => TableArea.pond,
+          _Slot.melds => TableArea.melds,
+          _Slot.dora => TableArea.dora,
+          _ => null,
+        },
+        seat: _slotSeat,
+        onSelect: (area, seat) => setState(() {
+          _slot = switch (area) {
+            TableArea.pond => _Slot.pond,
+            TableArea.melds => _Slot.melds,
+            TableArea.dora => _Slot.dora,
+          };
+          if (area != TableArea.dora) _slotSeat = seat;
+        }),
+        onRemovePondTile: (seat, i) => _edit((sc) {
+          final p = sc.seats[seat].pond;
+          if (i < 0 || i >= p.length) return;
+          p.removeAt(i);
+          final st = sc.seats[seat];
+          if (st.riichiPondIndex >= p.length) {
+            st.riichiPondIndex = p.length - 1;
+          }
+          if (p.isEmpty) {
+            st.riichi = false;
+            st.riichiPondIndex = -1;
+          }
+        }),
+        onRemoveDora: (i) => _edit((sc) {
+          if (sc.dora.length > 1) sc.dora.removeAt(i);
+        }),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,39 +277,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   Expanded(
                     child: TableView(
                       game: _c,
-                      edits: TableEdits(
-                        area: switch (_slot) {
-                          _Slot.pond => TableArea.pond,
-                          _Slot.melds => TableArea.melds,
-                          _Slot.dora => TableArea.dora,
-                          _ => null,
-                        },
-                        seat: _slotSeat,
-                        onSelect: (area, seat) => setState(() {
-                          _slot = switch (area) {
-                            TableArea.pond => _Slot.pond,
-                            TableArea.melds => _Slot.melds,
-                            TableArea.dora => _Slot.dora,
-                          };
-                          if (area != TableArea.dora) _slotSeat = seat;
-                        }),
-                        onRemovePondTile: (seat, i) => _edit((sc) {
-                          final p = sc.seats[seat].pond;
-                          if (i < 0 || i >= p.length) return;
-                          p.removeAt(i);
-                          final st = sc.seats[seat];
-                          if (st.riichiPondIndex >= p.length) {
-                            st.riichiPondIndex = p.length - 1;
-                          }
-                          if (p.isEmpty) {
-                            st.riichi = false;
-                            st.riichiPondIndex = -1;
-                          }
-                        }),
-                        onRemoveDora: (i) => _edit((sc) {
-                          if (sc.dora.length > 1) sc.dora.removeAt(i);
-                        }),
-                      ),
+                      edits: _tableEdits(),
+                      acrossInBar: true,
                     ),
                   ),
                   _editor(),
@@ -296,215 +316,287 @@ class _ScenarioPageState extends State<ScenarioPage> {
     return AppBar(
       toolbarHeight: 50,
       titleSpacing: 8,
-      leading: IconButton(
-        tooltip: 'Back to start',
-        icon: const Icon(Icons.arrow_back),
-        onPressed: widget.onExit,
-      ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TileSensorTooltip(
-            child: Image.asset(kTileSensorAsset,
-                height: 30,
-                filterQuality: FilterQuality.high,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.school, size: 30)),
-          ),
-          const SizedBox(width: 8),
-          // Truncates on a phone, where boosted text leaves the controls
-          // less room.
-          const Flexible(
-            child: Text('Custom Hand & Context Builder',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14)),
-          ),
-        ],
-      ),
-      actions: [
-        _rulesetToggle(),
-        const SizedBox(width: 8),
-        // Round and seat wind share one row so they sit level with each other.
-        Row(
+      title: TableBarTitle(
+        game: _c,
+        edits: _tableEdits(),
+        // No leading button, so just the titleSpacing above.
+        titleStart: 8,
+        leading: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [_windPicker(), _seatWindPicker()],
+          children: [
+            TileSensorTooltip(
+              child: Image.asset(kTileSensorAsset,
+                  height: 30,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.school, size: 30)),
+            ),
+            const SizedBox(width: 8),
+            // Truncates on a phone, where boosted text leaves the controls
+            // less room.
+            const Flexible(
+              child: Text('Custom Hand & Context Builder',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14)),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        _stepper('Wall', s.wallRemaining,
-            (v) => _edit((sc) => sc.wallRemaining = v.clamp(0, sc.maxWall))),
-        if (!_hk) ...[
-          const SizedBox(width: 8),
-          _stepper(
-              'Honba', s.honba, (v) => _edit((sc) => sc.honba = v.clamp(0, 9))),
-          const SizedBox(width: 8),
-          _stepper('Sticks', s.riichiSticks,
-              (v) => _edit((sc) => sc.riichiSticks = v.clamp(0, 9))),
-        ],
-        const SizedBox(width: 6),
-        TextButton.icon(
-          onPressed: _randomize,
-          icon: const Icon(Icons.casino, size: 16),
-          label: const Text('Random'),
-          style: _barButton(const Color(0xffe9d58f)),
-        ),
-        TextButton.icon(
-          onPressed: () => _edit((sc) => sc.clear()),
-          icon: const Icon(Icons.delete_outline, size: 16),
-          label: const Text('Clear'),
-          style: _barButton(Colors.white70),
-        ),
-        const SizedBox(width: 8),
-      ],
+      ),
     );
   }
 
-  /// The bar carries a lot of controls; every one is tightened so they fit
-  /// across the design width without wrapping.
-  static ButtonStyle _barButton(Color colour, {bool bold = false}) =>
-      TextButton.styleFrom(
-        foregroundColor: colour,
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: TextStyle(
-            fontSize: 12, fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
-      );
+  /// Switching rules clears the table, so the palette goes back to your hand.
+  void _setRuleset(Ruleset r) => setState(() {
+        _slot = _Slot.hand;
+        _slotSeat = kHumanSeat;
+        _aka = false;
+        _c.setRuleset(r);
+      });
 
-  /// Hong Kong, Taiwanese and Riichi, side by side; the active one is filled
-  /// and named, the others show just their flag (named on hover) so the three
-  /// fit the tool bar the two used to. Switching clears the table, since the
-  /// rule sets share no tile state.
-  Widget _rulesetToggle() {
-    Widget option(Ruleset r, String label) {
-      final selected = s.ruleset == r;
-      final chip = InkWell(
-        key: Key('builderRuleset_${r.name}'),
-        borderRadius: BorderRadius.circular(6),
-        onTap: selected
-            ? null
-            : () => setState(() {
-                  _slot = _Slot.hand;
-                  _slotSeat = kHumanSeat;
-                  _aka = false;
-                  _c.setRuleset(r);
-                }),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xff6d4c41) : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-                color: selected ? const Color(0xffe9d58f) : Colors.white24),
+  // --- the menu --------------------------------------------------------
+
+  /// The table setup, at full size, on phone and desktop alike — see
+  /// [showPhoneMenu], whose parts this sheet is built from. Round and seat
+  /// wind show all four winds at once rather than cycling on tap.
+  void _showBuilderMenu() {
+    const gold = Color(0xffe9d58f);
+    const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xff0c3030),
+      builder: (sheet) {
+        // Closes the sheet first, so the table it changed is in view.
+        VoidCallback closeThen(VoidCallback action) => () {
+              Navigator.pop(sheet);
+              action();
+            };
+        return SafeArea(
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (context, _) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Text('Menu',
+                          style: TextStyle(
+                              color: gold,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      TextButton(
+                        key: const Key('builderMenuDone'),
+                        onPressed: () => Navigator.pop(sheet),
+                        child:
+                            const Text('Done', style: TextStyle(fontSize: 16)),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: phoneMenuRows([
+                          [
+                            phoneMenuAction(
+                              key: const Key('builderMenuRandom'),
+                              icon: Icons.casino,
+                              label: 'Random',
+                              onTap: closeThen(_randomize),
+                            ),
+                            phoneMenuAction(
+                              key: const Key('builderMenuClear'),
+                              icon: Icons.delete_outline,
+                              label: 'Clear',
+                              onTap:
+                                  closeThen(() => _edit((sc) => sc.clear())),
+                            ),
+                          ],
+                          [
+                            phoneMenuAction(
+                              key: const Key('builderMenuBack'),
+                              icon: Icons.arrow_back,
+                              label: 'Back to start',
+                              onTap: closeThen(widget.onExit),
+                            ),
+                            phoneMenuAction(
+                              key: const Key('builderMenuRules'),
+                              icon: Icons.menu_book,
+                              label: 'Rules',
+                              onTap: () => openRules(s.ruleset),
+                            ),
+                          ],
+                          [
+                            _sheetStepper(
+                                'Wall',
+                                s.wallRemaining,
+                                (v) => _edit((x) =>
+                                    x.wallRemaining = v.clamp(0, x.maxWall))),
+                          ],
+                          if (!_hk) ...[
+                            [
+                              _sheetStepper('Honba', s.honba,
+                                  (v) => _edit((x) => x.honba = v.clamp(0, 9))),
+                            ],
+                            [
+                              _sheetStepper(
+                                  'Sticks',
+                                  s.riichiSticks,
+                                  (v) => _edit(
+                                      (x) => x.riichiSticks = v.clamp(0, 9))),
+                            ],
+                          ],
+                        ]),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: phoneMenuRows([
+                          [
+                            phoneMenuDial<Ruleset>(
+                              caption: 'Rules',
+                              keyPrefix: 'builderMenuRuleset',
+                              values: const [
+                                Ruleset.hongKong,
+                                Ruleset.taiwanese,
+                                Ruleset.riichi
+                              ],
+                              current: s.ruleset,
+                              label: (r) => r.flagLabel,
+                              colour: (_) => gold,
+                              onPick: _setRuleset,
+                            ),
+                          ],
+                          // The same choices the welcome screen offers.
+                          if (s.ruleset == Ruleset.hongKong)
+                            [
+                              phoneMenuDial<int>(
+                                caption: 'Min faan',
+                                keyPrefix: 'builderMenuMinFaan',
+                                values: HongKongRules.minimumFaanChoices,
+                                current: s.minimumFaan,
+                                label: (n) => '$n',
+                                colour: (_) => gold,
+                                onPick: (n) =>
+                                    _edit((x) => x.minimumFaan = n),
+                              ),
+                            ],
+                          if (s.ruleset == Ruleset.taiwanese)
+                            [
+                              phoneMenuDial<int>(
+                                caption: 'Min tai',
+                                keyPrefix: 'builderMenuMinTai',
+                                values: TaiwaneseRules.minimumPointsChoices,
+                                current: s.minimumPoints,
+                                label: (n) => '$n',
+                                colour: (_) => gold,
+                                onPick: (n) =>
+                                    _edit((x) => x.minimumPoints = n),
+                              ),
+                            ],
+                          [
+                            phoneMenuDial<Wind>(
+                              caption: 'Round',
+                              keyPrefix: 'builderMenuRoundWind',
+                              values: winds,
+                              current: s.roundWind,
+                              label: (w) => w.kanji,
+                              colour: (_) => gold,
+                              onPick: (w) => _edit((x) => x.roundWind = w),
+                            ),
+                          ],
+                          [
+                            // East deals, so its star marks the dealer seat.
+                            phoneMenuDial<Wind>(
+                              caption: 'Seat',
+                              keyPrefix: 'builderMenuSeatWind',
+                              values: winds,
+                              current: s.seatWind,
+                              label: (w) =>
+                                  w == Wind.east ? '${w.kanji} ★' : w.kanji,
+                              colour: (_) => gold,
+                              onPick: (w) => _edit((x) => x.seatWind = w),
+                            ),
+                          ],
+                        ]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          child: Text(selected ? label : r.flag,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : Colors.white60)),
-        ),
-      );
-      return selected
-          ? chip
-          : Tooltip(message: '${r.label} rules', child: chip);
-    }
+        );
+      },
+    );
+  }
 
+  /// A Wall/Honba/Sticks count with 48pt − and + either side of it.
+  Widget _sheetStepper(String label, int value, void Function(int) onChange) {
+    Widget step(String name, IconData icon, int to) => SizedBox(
+          width: 56,
+          height: 48,
+          child: OutlinedButton(
+            key: Key('builderMenu${label}_$name'),
+            onPressed: () => onChange(to),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white30),
+              padding: EdgeInsets.zero,
+            ),
+            child: Icon(icon, size: 22),
+          ),
+        );
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        option(Ruleset.hongKong, '🇭🇰 HK'),
-        const SizedBox(width: 4),
-        option(Ruleset.taiwanese, '🇹🇼 TW'),
-        const SizedBox(width: 4),
-        option(Ruleset.riichi, '🇯🇵 Riichi'),
-      ],
-    );
-  }
-
-  Widget _windPicker() {
-    const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
-    return Tooltip(
-      message: 'Round wind',
-      child: TextButton(
-        onPressed: () => _edit((sc) => sc.roundWind =
-            winds[(winds.indexOf(sc.roundWind) + 1) % winds.length]),
-        style: _barButton(const Color(0xffe9d58f)),
-        child: Text('Round ${s.roundWind.kanji}'),
-      ),
-    );
-  }
-
-  /// Your own seat wind — and with it the dealership, since East deals.
-  Widget _seatWindPicker() {
-    const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
-    final dealer = s.isDealer;
-    return Tooltip(
-      message: dealer
-          ? (_hk
-              ? 'You are the dealer: the button stays with you on a win or a '
-                  'draw'
-              : 'You are the dealer: wins pay half again, and the button '
-                  'passes if you lose it')
-          : 'Your seat wind — set it to East to play as the dealer',
-      child: TextButton(
-        key: const Key('seatWind'),
-        onPressed: () => _edit((sc) => sc.seatWind =
-            winds[(winds.indexOf(sc.seatWind) + 1) % winds.length]),
-        style: _barButton(
-            dealer ? const Color(0xffffdf76) : const Color(0xffe9d58f),
-            bold: dealer),
-        child: Text('Seat ${s.seatWind.kanji}${dealer ? ' ★' : ''}'),
-      ),
-    );
-  }
-
-  Widget _stepper(String label, int value, void Function(int) onChange) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('$label ',
-            style: const TextStyle(fontSize: 11, color: Colors.white70)),
-        _tinyButton(Icons.remove, () => onChange(value - 1)),
         SizedBox(
-          width: 26,
+          width: 64,
+          child: Text(label,
+              style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        ),
+        step('minus', Icons.remove, value - 1),
+        Expanded(
           child: Text('$value',
+              key: Key('builderMenu${label}Value'),
               textAlign: TextAlign.center,
               style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         ),
-        _tinyButton(Icons.add, () => onChange(value + 1)),
+        step('plus', Icons.add, value + 1),
       ],
     );
   }
-
-  Widget _tinyButton(IconData icon, VoidCallback onTap) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.all(2),
-          child: Icon(icon, size: 15, color: Colors.white70),
-        ),
-      );
 
   // --- the editor band -------------------------------------------------
 
   Widget _editor() {
+    final band = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _statusLine(),
+        const SizedBox(height: 4),
+        _slotChips(),
+        const SizedBox(height: 4),
+        Expanded(child: _slotContents()),
+        _palette(),
+      ],
+    );
     return Container(
       height: _editorHeight,
       width: double.infinity,
       color: const Color(0xff052726),
       padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          _statusLine(),
-          const SizedBox(height: 4),
-          _slotChips(),
-          const SizedBox(height: 4),
-          Expanded(child: _slotContents()),
-          _palette(),
+          Expanded(child: band),
+          const SizedBox(width: 14),
+          PhoneMenuButton(onTap: _showBuilderMenu),
+          // With the band's own padding, 26 off the screen's right edge,
+          // which a raised phone case can cover — as in the game.
+          const SizedBox(width: 16),
         ],
       ),
     );
@@ -518,7 +610,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
       (true, final b?) => (b, const Color(0xffffcc80)),
       _ => (
           'Scored: ${s.isDiscardRead ? "${s.concealedTarget(withDraw: true)} tiles — discard recommendation" : "${s.concealedTarget(withDraw: false)} tiles — call recommendation"}'
-              '${_c.safetyOpponentSeat != null ? " · safety vs ${kSeatNames[_c.safetyOpponentSeat!]}" : ""}',
+              '${_c.safetyOpponentSeat != null ? " · safety vs ${_c.seatLabel(_c.safetyOpponentSeat!)}" : ""}',
           const Color(0xffa5d6a7)
         ),
     };
@@ -551,6 +643,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
           child: Container(
+            constraints: _chipBox,
+            alignment: _chipAlign,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: selected
@@ -563,7 +657,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
             ),
             child: Text(label,
                 style: TextStyle(
-                    fontSize: 11,
+                    fontSize: _chipFont,
                     fontWeight: FontWeight.w600,
                     color: selected ? Colors.white : Colors.white60)),
           ),
@@ -572,7 +666,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
     }
 
     return SizedBox(
-      height: 26,
+      height: _phone ? _phoneTarget : 26,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -634,6 +728,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 }),
         borderRadius: BorderRadius.circular(6),
         child: Container(
+          constraints: _chipBox,
+          alignment: _chipAlign,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color:
@@ -643,7 +739,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           child: Text(
             st.riichi ? 'RIICHI on #${st.riichiPondIndex + 1}' : 'riichi',
             style: TextStyle(
-                fontSize: 11,
+                fontSize: _chipFont,
                 fontWeight: FontWeight.w700,
                 color: !canDeclare
                     ? Colors.white24
@@ -657,7 +753,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// The selected slot's current contents — tap any tile to take it back off.
   Widget _slotContents() {
     Widget tiles(List<Tile> list, void Function(int) remove,
-        {double scale = 1.25}) {
+        {double? scale}) {
       if (list.isEmpty) {
         return const Align(
           alignment: Alignment.centerLeft,
@@ -677,7 +773,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   child: InkWell(
                     onTap: () => remove(i),
                     child: TileFace(
-                        tile: list[i], size: TileSize.normal, scale: scale),
+                        tile: list[i],
+                        size: TileSize.normal,
+                        scale: scale ?? (_phone ? 2.0 : 1.25)),
                   ),
                 ),
             ],
@@ -720,7 +818,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
               InkWell(
                 onTap: () => _edit((sc) => sc.offered = null),
                 child: TileFace(
-                    tile: s.offered!, size: TileSize.normal, scale: 1.25),
+                    tile: s.offered!,
+                    size: TileSize.normal,
+                    scale: _phone ? 2.0 : 1.25),
               ),
               const SizedBox(width: 12),
               const Text('discarded by ',
@@ -731,6 +831,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   child: InkWell(
                     onTap: () => _edit((sc) => sc.offeredFrom = seat),
                     child: Container(
+                      constraints: _chipBox,
+                      alignment: _chipAlign,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
@@ -740,7 +842,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(_windOf(seat),
-                          style: const TextStyle(fontSize: 11)),
+                          style: TextStyle(fontSize: _chipFont)),
                     ),
                   ),
                 ),
@@ -756,6 +858,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 child: InkWell(
                   onTap: () => setState(() => _meldKind = k),
                   child: Container(
+                    constraints: _chipBox,
+                    alignment: _chipAlign,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -771,7 +875,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                         _MeldKind.openKan => '${s.ruleset.kanLabel} (open)',
                         _MeldKind.closedKan => '${s.ruleset.kanLabel} (closed)',
                       },
-                      style: const TextStyle(fontSize: 11),
+                      style: TextStyle(fontSize: _chipFont),
                     ),
                   ),
                 ),
@@ -791,7 +895,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
                           child: Row(
                             children: [
                               for (final t in s.seats[_slotSeat].melds[i].types)
-                                TileFace(type: t, size: TileSize.small),
+                                TileFace(
+                                    type: t,
+                                    size: TileSize.small,
+                                    scale: _phone ? 3.0 : 1),
                             ],
                           ),
                         ),
@@ -814,7 +921,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// inert, which is what keeps the table to four copies of anything.
   Widget _palette() {
     return SizedBox(
-      height: 62,
+      height: _phone ? 108 : 62,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -825,6 +932,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 onTap: () => setState(() => _aka = !_aka),
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
+                  constraints: _chipBox,
+                  alignment: _chipAlign,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
@@ -835,7 +944,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   ),
                   child: Text('Red 5',
                       style: TextStyle(
-                          fontSize: 11,
+                          fontSize: _chipFont,
                           fontWeight: FontWeight.w700,
                           color: _aka ? Colors.white : Colors.white54)),
                 ),
@@ -865,7 +974,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
     final left = s.remainingCopies(type);
     final enabled = left > 0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
+      padding: EdgeInsets.symmetric(horizontal: _phone ? 3 : 1),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -873,12 +982,15 @@ class _ScenarioPageState extends State<ScenarioPage> {
             opacity: enabled ? 1 : 0.25,
             child: InkWell(
               onTap: enabled ? () => _place(type) : null,
-              child: TileFace(type: type, size: TileSize.normal),
+              child: TileFace(
+                  type: type,
+                  size: TileSize.normal,
+                  scale: _phone ? 1.9 : 1),
             ),
           ),
           Text('$left',
               style: TextStyle(
-                  fontSize: 9,
+                  fontSize: _phone ? 12 : 9,
                   color: enabled ? Colors.white54 : Colors.white24)),
         ],
       ),

@@ -135,7 +135,7 @@ class TableLoop {
     _shuffleSeats();
     for (var i = 0; i < 4; i++) {
       if (room.seats[i] == null) {
-        final character = room.resolveCharacter();
+        final character = room.resolveCharacter(null, _rng);
         room.seats[i] = Seat(
           guestId: 'bot-$i',
           name: Room.characterName[character]!,

@@ -61,16 +61,16 @@ Future<void> showPhoneMenu(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: _rows([
+                        child: phoneMenuRows([
                           [
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuPause'),
                               icon:
                                   game.paused ? Icons.play_arrow : Icons.pause,
                               label: game.paused ? 'Resume' : 'Pause',
                               onTap: game.togglePause,
                             ),
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuNewGame'),
                               icon: Icons.add_circle_outline,
                               label: 'New game',
@@ -78,13 +78,13 @@ Future<void> showPhoneMenu(
                             ),
                           ],
                           [
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuMainMenu'),
                               icon: Icons.arrow_back,
                               label: 'Main menu',
                               onTap: closeThen(onMainMenu),
                             ),
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuRules'),
                               icon: Icons.menu_book,
                               label: 'Rules',
@@ -92,7 +92,7 @@ Future<void> showPhoneMenu(
                             ),
                           ],
                           [
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuSound'),
                               icon: game.soundOn
                                   ? Icons.volume_up
@@ -101,7 +101,7 @@ Future<void> showPhoneMenu(
                               on: game.soundOn,
                               onTap: () => game.setSoundOn(!game.soundOn),
                             ),
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuSpeed'),
                               icon: Icons.speed,
                               label: game.fastMode ? 'Bots 2x' : 'Bots 1x',
@@ -110,7 +110,7 @@ Future<void> showPhoneMenu(
                             ),
                           ],
                           [
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuLength'),
                               icon: Icons.timelapse,
                               label: game.hanchan ? 'Hanchan' : 'East only',
@@ -121,9 +121,9 @@ Future<void> showPhoneMenu(
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: _rows([
+                        child: phoneMenuRows([
                           [
-                            _action(
+                            phoneMenuAction(
                               key: const Key('phoneMenuAutoplay'),
                               icon: Icons.smart_toy_outlined,
                               label: game.autoplay
@@ -137,7 +137,7 @@ Future<void> showPhoneMenu(
                           // Taiwanese rules, as they are in the bar.
                           if (!game.ruleset.isChineseStyle)
                             [
-                              _dial<PlayStyle>(
+                              phoneMenuDial<PlayStyle>(
                                 caption: 'Style',
                                 keyPrefix: 'phoneMenuStyle',
                                 values: PlayStyle.values,
@@ -148,7 +148,7 @@ Future<void> showPhoneMenu(
                               ),
                             ],
                           [
-                            _dial<HandFocus>(
+                            phoneMenuDial<HandFocus>(
                               caption: 'Focus',
                               keyPrefix: 'phoneMenuFocus',
                               values: HandFocus.values,
@@ -160,7 +160,7 @@ Future<void> showPhoneMenu(
                           ],
                           if (!game.ruleset.isChineseStyle)
                             [
-                              _dial<Strategy>(
+                              phoneMenuDial<Strategy>(
                                 caption: 'Strategy',
                                 keyPrefix: 'phoneMenuStrategy',
                                 values: Strategy.values,
@@ -182,8 +182,52 @@ Future<void> showPhoneMenu(
       },
     );
 
+/// A phone's Menu: under the right thumb, mirroring the guide button under
+/// the left, and square enough to clear 44pt each way on a phone. Says when
+/// the game is [paused], since the phone's bar has no Pause of its own.
+class PhoneMenuButton extends StatelessWidget {
+  const PhoneMenuButton({super.key, required this.onTap, this.paused = false});
+
+  final VoidCallback onTap;
+  final bool paused;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: const Key('phoneMenu'),
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            width: 120,
+            height: 96,
+            decoration: BoxDecoration(
+              color: const Color(0x14ffffff),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.menu, size: 40, color: _gold),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(paused ? 'PAUSED' : 'MENU',
+                      style: const TextStyle(
+                          color: _gold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
 /// Rows of equal-width controls, 8pt apart each way.
-Widget _rows(List<List<Widget>> rows) => Column(
+Widget phoneMenuRows(List<List<Widget>> rows) => Column(
       children: [
         for (final (i, row) in rows.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
@@ -200,7 +244,7 @@ Widget _rows(List<List<Widget>> rows) => Column(
     );
 
 /// A 48pt button; [on] lights it gold for a toggle that is switched on.
-Widget _action({
+Widget phoneMenuAction({
   required Key key,
   required IconData icon,
   required String label,
@@ -227,8 +271,9 @@ Widget _action({
     );
 
 /// A guide dial with every setting showing, the current one lit in its own
-/// colour. Each setting's label carries `'${keyPrefix}_${value.name}'`.
-Widget _dial<T extends Enum>({
+/// colour. Each setting's label carries `'${keyPrefix}_${value.name}'` — or
+/// `'${keyPrefix}_$value'` for a number.
+Widget phoneMenuDial<T extends Object>({
   required String caption,
   required String keyPrefix,
   required List<T> values,
@@ -252,7 +297,7 @@ Widget _dial<T extends Enum>({
                 ButtonSegment(
                   value: v,
                   label: Text(label(v),
-                      key: Key('${keyPrefix}_${v.name}'),
+                      key: Key('${keyPrefix}_${v is Enum ? v.name : v}'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                 ),

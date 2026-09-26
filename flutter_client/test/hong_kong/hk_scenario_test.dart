@@ -91,8 +91,7 @@ void main() {
               .toPlainText(),
           isNot(contains('Esc')));
 
-      await tester.tap(find.text('Random'));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tapBuilderMenu(tester, 'builderMenuRandom');
       expect(find.textContaining('Scored:'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
@@ -109,8 +108,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.byKey(const Key('openBuilder')));
       await pumpLoadedPage(tester);
-      await tester.tap(find.text('Random'));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tapBuilderMenu(tester, 'builderMenuRandom');
 
       final page = tester.widget<TableView>(find.byType(TableView)).game;
       final posed = [
@@ -127,8 +125,7 @@ void main() {
       expect(after, posed, reason: 'no bot took a turn behind the builder');
 
       // Leaving drops back to the welcome screen with the game still unstarted.
-      await tester.tap(find.byTooltip('Back to start'));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tapBuilderMenu(tester, 'builderMenuBack');
       expect(find.text('Single Player'), findsOneWidget);
       expect(find.byType(ScenarioPage), findsNothing);
 

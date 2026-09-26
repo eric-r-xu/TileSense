@@ -11,8 +11,10 @@ import 'package:flutter/material.dart';
 
 import '../game/guide_host.dart' show GamePhase;
 import '../game/online_game_controller.dart';
+import '../main.dart' show isPhoneLayout;
 import 'client_id_text.dart';
 import 'hand_view.dart';
+import 'phone_menu.dart';
 import 'scoring_view.dart';
 import 'table_view.dart';
 import 'tilesensor.dart';
@@ -45,6 +47,103 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
     widget.onExit();
   }
 
+  /// Leave from the bar or a phone's Menu: asks first while the game is
+  /// still on, since a bot then plays your seat for the rest of it.
+  Future<void> _confirmLeave() async {
+    if (game.phase == GamePhase.playing) {
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('Leave this game?'),
+          content: const Text('A bot plays your seat for the rest of it.'),
+          actions: [
+            TextButton(
+              key: const Key('leaveStay'),
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('Stay'),
+            ),
+            FilledButton(
+              key: const Key('leaveConfirm'),
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('Leave'),
+            ),
+          ],
+        ),
+      );
+      if (!(go ?? false) || !mounted) return;
+    }
+    _leave();
+  }
+
+  /// A phone's Menu, under the right thumb as in the offline game: the bar's
+  /// controls at full size — see [showPhoneMenu].
+  void _showMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xff0c3030),
+      builder: (sheet) {
+        // Closes the sheet first, so whatever the action opens isn't under it.
+        VoidCallback closeThen(VoidCallback action) => () {
+              Navigator.pop(sheet);
+              action();
+            };
+        return SafeArea(
+          child: AnimatedBuilder(
+            animation: game,
+            builder: (_, __) => Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Text('Menu',
+                          style: TextStyle(
+                              color: Color(0xffe9d58f),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      TextButton(
+                        key: const Key('onlineMenuDone'),
+                        onPressed: () => Navigator.pop(sheet),
+                        child:
+                            const Text('Done', style: TextStyle(fontSize: 16)),
+                      ),
+                    ],
+                  ),
+                  phoneMenuRows([
+                    [
+                      phoneMenuAction(
+                        key: const Key('onlineMenuLeave'),
+                        icon: Icons.arrow_back,
+                        label: 'Leave room',
+                        onTap: closeThen(() => _confirmLeave()),
+                      ),
+                      phoneMenuAction(
+                        key: const Key('onlineMenuSound'),
+                        icon: game.soundOn ? Icons.volume_up : Icons.volume_off,
+                        label: game.soundOn ? 'Sound on' : 'Sound off',
+                        on: game.soundOn,
+                        onTap: () => game.setSoundOn(!game.soundOn),
+                      ),
+                      phoneMenuAction(
+                        key: const Key('onlineMenuClientId'),
+                        icon: Icons.badge_outlined,
+                        label: 'Client ID',
+                        onTap: closeThen(() => showClientIdDialog(context)),
+                      ),
+                    ],
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _maybeNotify(BuildContext context) {
     if (game.lastBotTakeoverSeat != null &&
         game.lastBotTakeoverSeat != _lastShownTakeoverSeat) {
@@ -75,27 +174,39 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
       animation: game,
       builder: (context, _) {
         _maybeNotify(context);
+        // On a phone every control in this bar is too small to tap, so, as
+        // in the offline game, the bar keeps only its information and the
+        // controls move to one Menu button under the right thumb.
+        final phone = isPhoneLayout(context);
         return Scaffold(
           appBar: AppBar(
             toolbarHeight: 50,
             titleSpacing: 12,
-            leadingWidth: 300,
-            // The client id sits right after the back arrow, top-left, in white.
-            leading: Row(
-              children: [
-                IconButton(
-                  tooltip: 'Leave room',
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: _leave,
-                ),
-                const Expanded(child: ClientIdText()),
-              ],
-            ),
+            leadingWidth: 132,
+            // A labelled Leave with nothing beside it to mis-tap: the client
+            // id is behind the ID chip at the other end of the bar.
+            leading: phone
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+                    child: Tooltip(
+                      message: 'Leave room',
+                      child: TextButton.icon(
+                        key: const Key('onlineLeave'),
+                        onPressed: _confirmLeave,
+                        icon: const Icon(Icons.arrow_back),
+                        label: const Text('Leave'),
+                        style: TextButton.styleFrom(
+                            foregroundColor: Colors.white),
+                      ),
+                    ),
+                  ),
             // The room's own details on the left, then the across seat — up
             // here rather than on the felt, so the ponds get that row's height.
             title: TableBarTitle(
               game: game,
-              titleStart: 300 + 12, // leadingWidth + titleSpacing
+              // leadingWidth, when there is a leading, + titleSpacing.
+              titleStart: phone ? 12 : 132 + 12,
               leading: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -131,9 +242,11 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 ],
               ),
             ),
-            // Sound sits top-right, where the solo table keeps its game
-            // controls too.
-            actions: [
+            // The client id and sound sit top-right, where the solo table
+            // keeps its game controls too.
+            actions: phone ? const [] : [
+              const ClientIdButton(),
+              const SizedBox(width: 8),
               IconButton(
                 key: const Key('soundToggle'),
                 tooltip: game.soundOn
@@ -159,7 +272,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                             game: game,
                             showRulesetInStatus: true,
                             acrossInBar: true)),
-                    HandView(game: game),
+                    HandView(game: game, onMenu: phone ? _showMenu : null),
                   ],
                 ),
                 if (game.phase != GamePhase.playing)
