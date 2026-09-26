@@ -481,7 +481,7 @@ class _ScoringViewState extends State<ScoringView> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('waits',
-                    style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    style: TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(width: 2),
                 for (final wt in waits)
                   TileFace(type: wt, size: TileSize.small, scale: _tileScale),

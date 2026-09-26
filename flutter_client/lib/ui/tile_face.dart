@@ -213,6 +213,7 @@ class TileFace extends StatelessWidget {
                 right: dims.$1 * 0.08,
                 child: Text(
                   t.redIndex,
+                  textScaler: TextScaler.noScaling,
                   style: TextStyle(
                     fontSize: (dims.$2 * 0.30).clamp(6.5, 15.0 * scale),
                     height: 1.0,
@@ -250,6 +251,7 @@ class TileFace extends StatelessWidget {
         // asset still shows something readable rather than a blank tile.
         Text(
           t.code,
+          textScaler: TextScaler.noScaling,
           style: TextStyle(
             fontSize: dims.$2 * 0.42,
             fontWeight: FontWeight.bold,

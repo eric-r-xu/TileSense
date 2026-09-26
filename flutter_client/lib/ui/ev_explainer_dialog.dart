@@ -317,7 +317,7 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
       return Text(
         'Tap or hover the charts for any turn. Total: '
         '${_pct(line.winProbability)} over ${b.turns.length} turns.',
-        style: const TextStyle(color: Colors.white54, fontSize: 11),
+        style: const TextStyle(color: Colors.white70, fontSize: 11),
       );
     }
     final t = b.turns[i];
@@ -624,7 +624,7 @@ class _ChartPainter extends CustomPainter {
       {bool right = false, bool center = false}) {
     final tp = TextPainter(
       text: TextSpan(
-          text: s, style: const TextStyle(color: _grey, fontSize: 9.5)),
+          text: s, style: const TextStyle(color: _grey, fontSize: 10.5)),
       textDirection: TextDirection.ltr,
     )..layout();
     final dx = right

@@ -691,7 +691,7 @@ class TableView extends StatelessWidget {
               height: 30,
               child: Center(
                   child: Text('calls',
-                      style: TextStyle(color: Colors.white38, fontSize: 9))))
+                      style: TextStyle(color: Colors.white54, fontSize: 10))))
           : group,
     );
   }

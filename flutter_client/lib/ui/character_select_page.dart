@@ -422,27 +422,35 @@ class CharacterSelectPage extends StatelessWidget {
                         const SizedBox(height: 12),
                         // The minimum shares the wind row: the style row below
                         // has no width to spare.
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _windChoice(),
-                            if (_minimumPicker() case final picker?) ...[
-                              const SizedBox(width: 28),
-                              picker,
+                        // Scaled down rather than overflowing once text is
+                        // boosted on a phone.
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _windChoice(),
+                              if (_minimumPicker() case final picker?) ...[
+                                const SizedBox(width: 28),
+                                picker,
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                         const SizedBox(height: 8),
                         // Style shares the length row: the screen is already
                         // tight against the design canvas's height.
                         if ((ruleset, onRuleset) case (final r?, final set?))
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _rulesetChoice(r, set),
-                              const SizedBox(width: 28),
-                              _lengthChoice(),
-                            ],
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _rulesetChoice(r, set),
+                                const SizedBox(width: 28),
+                                _lengthChoice(),
+                              ],
+                            ),
                           )
                         else
                           _lengthChoice(),

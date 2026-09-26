@@ -581,9 +581,12 @@ class _HandViewState extends State<HandView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(caption,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.fade,
                             style: TextStyle(
                                 color: ink.withValues(alpha: 0.7),
-                                fontSize: 8,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.6)),
                         const SizedBox(height: 2),
