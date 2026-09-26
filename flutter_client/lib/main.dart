@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'game/app_update.dart' as upd;
@@ -1020,49 +1021,6 @@ class _GamePageState extends State<GamePage> {
     if (go ?? false) _game.newGame();
   }
 
-  /// The phone bar's one control, standing in for all of the desktop bar's:
-  /// the full bar height and far wider than any of them, so it is hard to
-  /// miss. Says when the game is paused, since the Pause tile is gone.
-  Widget _phoneMenuButton() => AnimatedBuilder(
-        animation: _game,
-        builder: (context, _) => Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            key: const Key('phoneMenu'),
-            borderRadius: BorderRadius.circular(10),
-            onTap: () => showPhoneMenu(context, _game,
-                onMainMenu: _backToMenu, onNewGame: _confirmNewGame),
-            child: Container(
-              width: 220,
-              height: 46,
-              decoration: BoxDecoration(
-                color: const Color(0x14ffffff),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _autoPlayGold),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.menu, size: 26, color: _autoPlayGold),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(_game.paused ? 'MENU · PAUSED' : 'MENU',
-                          style: const TextStyle(
-                              color: _autoPlayGold,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
   // Leaving a game in progress for the welcome screen — the only way there to
   // reach the Custom Hand & Context Builder — pauses it so bots and autoplay
   // don't keep running unattended; Start un-pauses it again on the way back.
@@ -1210,8 +1168,9 @@ class _GamePageState extends State<GamePage> {
       );
     }
     _game.guideVisible = _showGuide; // read only by telemetry
-    // On a phone every control in this bar is too small to tap, so they all
-    // fold into one Menu button that opens them at full size.
+    // On a phone every control in this bar is too small to tap, so the bar
+    // keeps only its information and the controls move to one Menu button
+    // under the right thumb, beside your hand, which opens them at full size.
     final phone = isPhoneLayout(context);
     return Scaffold(
       appBar: AppBar(
@@ -1339,7 +1298,7 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
         ),
-        actions: phone ? [_phoneMenuButton(), const SizedBox(width: 10)] : [
+        actions: phone ? const [] : [
           // Auto-Play and the three guide dials in one panel: Auto-Play
           // plays from the guide's own scores, so these dials are what it
           // plays by. The panel's border lights up gold while it is on, which
@@ -1521,6 +1480,11 @@ class _GamePageState extends State<GamePage> {
                       game: _game,
                       showGuide: _showGuide,
                       onToggleGuide: _toggleGuide,
+                      onMenu: phone
+                          ? () => showPhoneMenu(context, _game,
+                              onMainMenu: _backToMenu,
+                              onNewGame: _confirmNewGame)
+                          : null,
                     ),
                   ],
                 ),
@@ -1670,7 +1634,7 @@ class _WelcomeScreen extends StatelessWidget {
     // Material ancestor: without one, Text on web can render with a stray
     // underline decoration (every other screen gets this for free via
     // Scaffold's own Material).
-    return Material(
+    final page = Material(
       color: kLetterboxColor,
       // Scrollable rather than fixed: this screen can be taller than the
       // design canvas leaves room for at some window sizes. At least as tall
@@ -1875,7 +1839,58 @@ class _WelcomeScreen extends StatelessWidget {
         ),
       ),
     );
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        page,
+        const Positioned(right: 16, bottom: 12, child: _Credits()),
+      ],
+    );
   }
+}
+
+/// The source on GitHub and the "Built with Flutter" logo, in the title
+/// screen's corner: links out of the app rather than controls of it, so they
+/// stay away from the table, where a phone's Menu button now sits.
+class _Credits extends StatelessWidget {
+  const _Credits();
+
+  @override
+  Widget build(BuildContext context) => Material(
+        type: MaterialType.transparency,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              key: const Key('githubLink'),
+              tooltip: 'View on GitHub',
+              iconSize: 22,
+              visualDensity: VisualDensity.compact,
+              icon: const FaIcon(FontAwesomeIcons.github, size: 22),
+              color: Colors.white38,
+              onPressed: () => launchUrl(
+                Uri.parse('https://github.com/eric-r-xu/TileSense'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+            Tooltip(
+              message: 'Built with Flutter',
+              child: InkWell(
+                key: const Key('flutterLink'),
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => launchUrl(
+                  Uri.parse('https://flutter.dev'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: FlutterLogo(size: 20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 /// Opens [ruleset]'s rules PDF in a new tab or the system browser.
