@@ -168,8 +168,8 @@ taken as more than one run — holding 34567p and offered 5p, you could make
 345p, 456p or 567p — the guide scores each and takes the best, so the CHI
 button stays a single tap.
 
-The opponents never call it. That's deliberate: `SimpleBot` is a port of the
-original desktop client's simplest bot, which has no chi logic, and keeping it
+The opponents never call it. That's deliberate: `SimpleBot` is a port of
+[OpenRiichi](https://github.com/FluffyStuff/OpenRiichi)'s simplest bot, which has no chi logic, and keeping it
 that way preserves the "they're a checklist, you have a calculator" gap this
 document describes. The practical effect is that chi discards sail past them,
 which makes the opponents a little slower than real players would be.

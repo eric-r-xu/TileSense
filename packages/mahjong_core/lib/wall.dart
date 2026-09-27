@@ -1,5 +1,8 @@
 /// The 136-tile wall: build, shuffle, deal, live-wall draws, and a dead wall
 /// with progressively revealed dora / ura-dora indicators.
+///
+/// Condensed from OpenRiichi's `RoundStateWall` (`RoundState.vala`):
+/// https://github.com/FluffyStuff/OpenRiichi
 library;
 
 import 'dart:math';

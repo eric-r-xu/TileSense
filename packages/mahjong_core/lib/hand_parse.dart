@@ -1,5 +1,8 @@
 /// Hand shape analysis: agari (win) detection, all standard decompositions,
 /// wait tiles, and furiten.
+///
+/// Adapted from OpenRiichi's `TileRules.vala`:
+/// https://github.com/FluffyStuff/OpenRiichi
 library;
 
 import 'meld.dart';

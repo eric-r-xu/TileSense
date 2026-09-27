@@ -6,6 +6,9 @@
 /// at an exhaustive draw. Hong Kong adds flowers and seasons (with the seventh
 /// and eighth flower wins), first-turn blessings and kong-replacement chains,
 /// and ends a drawn hand with no payments.
+///
+/// The general engine is adapted from OpenRiichi:
+/// https://github.com/FluffyStuff/OpenRiichi
 library;
 
 import 'hand_parse.dart';

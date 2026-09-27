@@ -28,8 +28,10 @@ This repo contains the cross-platform **Flutter** app (`flutter_client/`) for
 web, Android, and iOS, its shared pure-Dart core (`packages/mahjong_core/`),
 and the multiplayer game server (`server/mp/`) it plays online against.
 
-The shanten/ukeire math follows the Riichi-Trainer algorithm; the rules, bots,
-and 2D layout are maintained as part of TileSense.
+The shanten/ukeire math follows the Riichi-Trainer algorithm; the riichi core —
+round engine, tile model, wall, hand parsing, scoring and the opponents'
+`SimpleBot` — is adapted from OpenRiichi; the Hong Kong and
+Taiwanese rules and the 2D layout are maintained as part of TileSense.
 
 ---
 
@@ -395,6 +397,11 @@ TileSense owes a great deal to two fantastic, inspirational resources:
 
 - **[Riichi-Trainer](https://github.com/Euophrys/Riichi-Trainer)** by
   Euophrys, for the shanten, ukeire and defense calculations.
+- **[OpenRiichi](https://github.com/FluffyStuff/OpenRiichi)** by FluffyStuff,
+  an open-source, cross-platform riichi mahjong client (GPLv3). TileSense
+  began as a fork of it, and its riichi core was ported from OpenRiichi's
+  Vala source: the round engine, tile model, wall, hand parsing, yaku/han/fu
+  scoring, and the `SimpleBot` opponent logic.
 - **[Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html)**
   on Path of Houou, for the EV calculation comparisons (the guide's
   **EV (HMR)** column).
@@ -431,7 +438,8 @@ to be credited, please get in touch.
 ## License
 
 TileSense is licensed under GPLv3. Its efficiency calculations are adapted from
-the Riichi-Trainer algorithm. See
+the Riichi-Trainer algorithm, and its riichi core (round engine, tile model,
+wall, hand parsing, scoring and `SimpleBot`) from OpenRiichi (also GPLv3). See
 [`LICENSE`](LICENSE). Contributions welcome.
 
 The telemetry ingest's location lookup uses DB-IP's free "IP to City Lite"

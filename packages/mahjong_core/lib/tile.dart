@@ -2,6 +2,9 @@
 /// that the rules and efficiency code rely on:
 ///   BLANK = 0, MAN1..MAN9 = 1..9, PIN1..PIN9 = 10..18, SOU1..SOU9 = 19..27,
 ///   TON/NAN/SHAA/PEI = 28..31, HAKU/HATSU/CHUN = 32..34.
+///
+/// Ported from OpenRiichi's `Tile.vala`:
+/// https://github.com/FluffyStuff/OpenRiichi
 library;
 
 enum TileType {

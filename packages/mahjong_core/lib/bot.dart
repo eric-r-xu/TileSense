@@ -1,6 +1,8 @@
 /// SimpleBot — pure heuristics over the seat's public view plus a small
 /// "should I stay damaten?" value check. Under Hong Kong rules there is no
 /// riichi to consider and any complete hand wins, so it calls far more freely.
+///
+/// Adapted from OpenRiichi's simple bot: https://github.com/FluffyStuff/OpenRiichi
 library;
 
 import 'dart:math';

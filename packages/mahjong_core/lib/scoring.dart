@@ -3,6 +3,9 @@
 /// Covers the common yaku, the standard fu table, the yakuman set, and
 /// dora/ura/aka. Rare fu corner cases and some double-yakuman rules are
 /// approximated — this is a trainer, not a ruleset arbiter.
+///
+/// Adapted from OpenRiichi's `TileRules.vala` (`Yaku`, `Scoring`):
+/// https://github.com/FluffyStuff/OpenRiichi
 library;
 
 import 'hand_parse.dart';
