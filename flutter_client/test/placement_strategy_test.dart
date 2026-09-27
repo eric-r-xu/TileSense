@@ -283,7 +283,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(playingOf(), 'Aggressive · Speed · Points');
+    expect(playingOf(), 'Balanced · Speed · Points');
 
     // Style and Strategy are pinned under both Chinese rulesets, so PLAYING
     // shows the one dial the goal still moves there.
@@ -294,7 +294,7 @@ void main() {
     expect(playingOf(), 'Balanced', reason: '5-tai minimum by default');
 
     await switchViaMenu(tester, 'ruleset_riichi');
-    expect(playingOf(), 'Aggressive · Speed · Points');
+    expect(playingOf(), 'Balanced · Speed · Points');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

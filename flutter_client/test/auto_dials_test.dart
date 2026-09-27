@@ -8,7 +8,9 @@ void main() {
   for (final goal in Goal.values) {
     test('${goal.name} picks the measured best fixed arm', () {
       expect(autoDials(goal, Ruleset.riichi, minimumPoints: 5), (
-        style: PlayStyle.aggressive,
+        style: goal == Goal.placement
+            ? PlayStyle.balanced
+            : PlayStyle.aggressive,
         focus: HandFocus.speed,
         strategy: Strategy.points,
       ));

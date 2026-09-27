@@ -13,8 +13,8 @@ void main() {
       Sfx.i.enabled = false;
       final game = GameController(seed: 5, ruleset: initial);
       try {
-        expect(game.playStyle,
-            initial.isRiichi ? PlayStyle.aggressive : PlayStyle.balanced);
+        // The default goal is Placement, which plays Balanced everywhere.
+        expect(game.playStyle, PlayStyle.balanced);
         // Taiwanese starts at 5 tai, where Balanced focus measured ahead.
         expect(game.handFocus,
             initial.isTaiwanese ? HandFocus.balanced : HandFocus.speed);
@@ -26,8 +26,7 @@ void main() {
           Ruleset.riichi
         ]) {
           game.setRuleset(next);
-          expect(game.playStyle,
-              next.isRiichi ? PlayStyle.aggressive : PlayStyle.balanced);
+          expect(game.playStyle, PlayStyle.balanced);
           expect(game.handFocus,
               next.isTaiwanese ? HandFocus.balanced : HandFocus.speed);
           expect(game.strategy, Strategy.points);

@@ -70,7 +70,7 @@ void main() {
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
     expect(labelOf(tester, const Key('goal')), 'Placement');
-    expect(playingOf(tester), 'Aggressive · Speed · Points');
+    expect(playingOf(tester), 'Balanced · Speed · Points');
     expect(find.textContaining('Honba'), findsOneWidget);
     expect(find.text('DORA'), findsOneWidget);
 
