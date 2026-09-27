@@ -16,7 +16,7 @@ guide, so nobody gets an assist the others lack.
 
 Pick 🇯🇵 Riichi, 🇭🇰 Hong Kong or 🇹🇼 Taiwanese on the welcome screen, or switch
 at any time from the game's app bar (which deals a new game) or the builder's
-chip row. Riichi is the default. Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
+chip row. Riichi is the default; see [Riichi rules](docs/JAPANESE_RIICHI_RULES.md). Hong Kong follows *HKMJ Cheat Sheet 1.0* with a
 **0-faan minimum** by default, or 1, 2 or 3 faan; see [Hong Kong rules](docs/HONG_KONG_RULES.md). Taiwanese is
 16-tile mahjong (5 melds and a pair) with flat, additive points and a
 **5-point (tai) minimum** by default, or 1 or 3; see [Taiwanese rules](docs/TAIWANESE_RULES.md). One-page

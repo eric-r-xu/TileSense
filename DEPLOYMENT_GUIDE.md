@@ -1,4 +1,4 @@
-# Deployment cheatsheet
+# Deployment guide
 
 `deploy.sh` is the supported production deployment entrypoint. It delegates to
 `server/deploy/deploy.py` and a locked SSH worker, `server/deploy/remote.py`.

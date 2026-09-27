@@ -84,7 +84,8 @@ where a.decision_maker <> 'simple_bot'
       and c.decision_maker = 'simple_bot' and cg.seed = g.seed);
 
 -- Each guide and auto arm against its control on the same seeds. delta is the effect
--- to detect: 10 percentage points of stack for points_pct, 20% of the
+-- to detect: 0.2 control SDs for points_pct (stacks swing ~50% in Riichi but
+-- ~3% in Hong Kong and Taiwanese, so a fixed size fits neither), 20% of the
 -- control's mean for deal_in_rate (deal-ins are rare, so 10% of ~0.15 would
 -- need ~3,000 seeds), 10% of the control's mean otherwise. n_* are seeds per arm for a two-sided 5% test
 -- at 80% power: 7.849 = (1.960 + 0.842)^2; unpaired uses twice that on the
@@ -110,7 +111,7 @@ with pairs as (
   from pairs group by arm_id, control_arm_id, decision_maker, metric
 ), d as (
   select s.*,
-         case metric when 'points_pct' then 10.0
+         case metric when 'points_pct' then 0.20 * sd_control
                      when 'deal_in_rate' then 0.20 * abs(mean_control)
                      else 0.10 * abs(mean_control) end as delta,
          sd_diff * sqrt((n_pairs - 1) / sim_chi2_q20(n_pairs - 1)) as sd_diff_ucl,
