@@ -27,8 +27,10 @@ No firewall rules are replaced. `DROPLET_ID` and `SERVED_DIR` are no longer used
 
 Commit the source before deploying. The existing checkout may include locally
 modified compiled backend binaries: review those separately, never discard them
-blindly. `ALLOW_DIRTY_DEPLOY=1` explicitly allows a dirty checkout; release
-metadata records that exception, so a commit ID alone will not reproduce it.
+blindly. A dirty checkout asks whether to continue when run at a terminal;
+`ALLOW_DIRTY_DEPLOY=1` allows it up front, and is required without a terminal.
+Release metadata records that exception, so a commit ID alone will not
+reproduce it.
 
 ## One-time client hosting transition
 

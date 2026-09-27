@@ -212,7 +212,7 @@ audible, and both are worth fixing:
    elsewhere the clips are already local.
 
 **The trade-off:** with `max-age=86400`, a *regenerated* clip (say after
-re-running `tools/mkastaroth.py`) can take up to a day to reach someone who
+regenerating it locally) can take up to a day to reach someone who
 already has the old one, because the filename doesn't change. If you need it
 immediately, either shorten the `max-age` or rename the file so the URL is new.
 

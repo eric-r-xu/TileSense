@@ -6,6 +6,8 @@ deploy.env
 .idea/
 __pycache__/
 *.pyc
-# Raw voice recordings behind flutter_client/assets/*; local only.
-# tools/mkastaroth.py reads them from here.
+# Raw voice recordings behind flutter_client/assets/*, and the character
+# voice generators (tools/mk*.py) that read them; local only.
 flutter_client/tools/audio_sources/
+flutter_client/tools/mk*.py
+flutter_client/tools/matthew_assets.md
