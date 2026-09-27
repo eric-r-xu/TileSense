@@ -9,6 +9,7 @@ import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/tile.dart';
 
 import 'helpers.dart';
+import 'loading_helpers.dart';
 
 /// The hand-focus dial: which hand the guide chases when two are worth about
 /// the same. It is the second axis, independent of [PlayStyle] — that one says
@@ -380,22 +381,16 @@ void main() {
         reason: 'the honba never reached the call evaluator');
   });
 
-  testWidgets('the guide panel offers the dial, and it drives the report',
-      (tester) async {
+  // A game's guide shows its goal instead (play_style_test.dart); the
+  // builder's guide keeps the dials, to compare advice under each.
+  testWidgets('the builder\'s guide panel offers the dial, and it drives the '
+      'report', (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Single Player'));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
-    await tester.pump(); // Render the startup/loading frame.
-    // The table is created after a loading frame.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    // The guide is off by default; the TileSensor mascot opens it.
-    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('openBuilder')));
+    await pumpLoadedPage(tester);
 
     // Both dials are there, as two rows of the same kind of chip.
     expect(find.byKey(const Key('guidePlayStyle_balanced')), findsOneWidget);
@@ -419,7 +414,7 @@ void main() {
             ?.fontWeight ==
         FontWeight.w700;
 
-    // A riichi game starts on Speed.
+    // The builder starts on Speed, like a riichi game.
     expect(picked(HandFocus.speed), isTrue);
     expect(picked(HandFocus.balanced), isFalse);
 

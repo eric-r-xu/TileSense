@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/mahjong_core.dart';
 
+import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import '../net/guest_identity.dart';
 import '../net/mp_client.dart';
@@ -330,8 +331,42 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   bool get paused => false;
 
+  // Goal mode works as in `GameController`: the dials follow [goal] until
+  // one is set by hand, which keeps the other two where the goal had them.
   @override
-  PlayStyle playStyle = kDefaultPlayStyle;
+  Goal goal = kDefaultGoal;
+  @override
+  void setGoal(Goal value) {
+    if (goal == value && goalDriven) return;
+    goal = value;
+    goalDriven = true;
+    _refreshReport();
+    notifyListeners();
+  }
+
+  @override
+  bool goalDriven = true;
+
+  AutoDials get _goalDials =>
+      autoDials(goal, ruleset, minimumPoints: minimumPoints);
+
+  void _pinDials() {
+    if (!goalDriven) return;
+    final d = _goalDials;
+    _playStyle = d.style;
+    _handFocus = d.focus;
+    _strategy = d.strategy;
+    goalDriven = false;
+  }
+
+  PlayStyle _playStyle = kDefaultPlayStyle;
+  @override
+  PlayStyle get playStyle => goalDriven ? _goalDials.style : _playStyle;
+  set playStyle(PlayStyle value) {
+    _pinDials();
+    _playStyle = value;
+  }
+
   @override
   void setPlayStyle(PlayStyle value) {
     if (playStyle == value) return;
@@ -340,8 +375,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     notifyListeners();
   }
 
+  HandFocus _handFocus = kDefaultHandFocus;
   @override
-  HandFocus handFocus = kDefaultHandFocus;
+  HandFocus get handFocus => goalDriven ? _goalDials.focus : _handFocus;
+  set handFocus(HandFocus value) {
+    _pinDials();
+    _handFocus = value;
+  }
+
   @override
   void setHandFocus(HandFocus value) {
     if (handFocus == value) return;
@@ -352,8 +393,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   // Placement isn't wired up for online play yet — same as Hong Kong — so
   // this satisfies [GuideHost] but stays pinned to the reference model.
+  Strategy _strategy = kDefaultStrategy;
   @override
-  Strategy strategy = kDefaultStrategy;
+  Strategy get strategy => goalDriven ? _goalDials.strategy : _strategy;
+  set strategy(Strategy value) {
+    _pinDials();
+    _strategy = value;
+  }
+
   @override
   void setStrategy(Strategy value) {
     if (strategy == value) return;

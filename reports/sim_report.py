@@ -14,11 +14,28 @@ ENGINE = ["flutter_client/lib/game", "flutter_client/lib/logic", "flutter_client
 COMMIT = sys.argv[1] if len(sys.argv) > 1 else subprocess.check_output(
     ["git", "log", "-1", "--format=%h", "--", *ENGINE], text=True, cwd=HERE.parent).strip()
 QUERY = f"select * from sim_report where engine_commit = '{COMMIT}'"
+AUTO_QUERY = f"""select a.variant, a.game_length_label, a.ruleset, a.minimum, a.game_length,
+       v.goal, s.style, s.focus, s.strategy, v.n_pairs, v.mean_auto, v.mean_static,
+       v.mean_diff, v.sd_diff, v.p
+from sim_auto_vs_static v
+join sim_arm_label a on a.arm_id = v.arm_id
+join sim_arm s on s.arm_id = v.static_arm_id
+where a.engine_commit = '{COMMIT}' and v.is_goal_metric"""
 METRICS = {"win_rate": "Win Rate", "deal_in_rate": "Deal-in Rate",
            "points_pct": "Ending Points (% vs start)", "placement": "Ending Placement"}
 RULESETS = {"riichi": 0, "hongKong": 1, "taiwanese": 2}
 ORDER = {"defensive": 0, "balanced": 1, "aggressive": 2, "speed": 0, "points": 0,
-         "placement": 1, None: -1, "": -1}
+         "placement": 1, "goal:winRate": 0, "goal:points": 1, "goal:placement": 2,
+         None: -1, "": -1}
+DECIDERS = {"simple_bot": 0, "guide": 1, "auto": 2}
+GOALS = {"winRate": "Win Rate", "points": "Points", "placement": "Placement"}
+
+
+def label(v, empty=""):
+    """A style, focus or strategy cell; an auto arm's goal:<name> reads as its goal."""
+    if v and v.startswith("goal:"):
+        return "Goal: " + GOALS[v[5:]]
+    return (v or empty).capitalize()
 
 
 def num(x, d=3):
@@ -29,12 +46,16 @@ def main():
     env = {**os.environ, "PGHOST": "127.0.0.1", "PGPORT": "15439",
            "PGUSER": "postgres", "PGDATABASE": "postgres",
            "PGPASSWORD": os.environ["SIM_PGPASSWORD"]}
-    out = subprocess.check_output(["psql", "-X", "--csv", "-c", QUERY], env=env, text=True)
-    rows = list(csv.DictReader(io.StringIO(out)))
+    def query(sql):
+        out = subprocess.check_output(["psql", "-X", "--csv", "-c", sql], env=env, text=True)
+        return list(csv.DictReader(io.StringIO(out)))
+
+    rows = query(QUERY)
+    auto = query(AUTO_QUERY)
     if not rows:
         sys.exit(f"no results for engine commit {COMMIT}")
     rows.sort(key=lambda r: (RULESETS[r["ruleset"]], int(r["minimum"]),
-                             r["game_length"] != "east", r["decision_maker"] != "simple_bot",
+                             r["game_length"] != "east", DECIDERS[r["decision_maker"]],
                              ORDER[r["style"]], ORDER[r["focus"]], ORDER[r["strategy"]],
                              list(METRICS).index(r["metric"])))
     seeds = {(r["seed_min"], r["seed_max"], r["n"]) for r in rows}
@@ -53,7 +74,7 @@ def main():
         for r in rows:
             w.writerow([r["metric_label"], r["variant"], r["game_length_label"],
                         f"{lo}..{hi}", r["decision_maker_label"]] +
-                       [r[c].capitalize() for c in ("style", "focus", "strategy")] +
+                       [label(r[c]) for c in ("style", "focus", "strategy")] +
                        [r[c] for c in cols[8:]])
 
     worst = {}
@@ -85,7 +106,11 @@ def main():
         "differences. *Paired (UCL)* uses that SD's 80% upper confidence limit, so a CV "
         "estimated from a small sample does not under-power the plan; this is the one to use.",
         "- Hong Kong and Taiwanese pin Style to Balanced and Strategy to Points in the game, "
-        "so only Focus varies there.", "",
+        "so only Focus varies there.",
+        "- **Auto rows** play a goal (Win Rate, Points or Placement), and the guide picks "
+        "its own Style, Focus and Strategy for it (`flutter_client/lib/logic/auto_dials.dart`). "
+        "Their Holm p is adjusted among the auto rows only, so the guide rows' p does not "
+        "change.", "",
         "## Seeds needed per comparison (worst case across guide arms)", "",
         "| Metric | Paired (UCL) | Unpaired, same arm |", "|---|--:|--:|",
         *[f"| {k} | {v[0]:,} | {v[1]:,} |" for k, v in worst.items()], "",
@@ -98,12 +123,33 @@ def main():
         control = r["decision_maker"] == "simple_bot"
         md.append("| " + " | ".join([
             r["metric_label"], r["variant"], r["game_length_label"], r["decision_maker_label"],
-            *[(r[c] or "—").capitalize() for c in ("style", "focus", "strategy")],
+            *[label(r[c], "—") for c in ("style", "focus", "strategy")],
             num(r["mean"]), num(r["sd"]), num(r["se"]), num(r["cv"]), num(r["sd_ucl"]),
             num(r["rho"]), num(r["mean_diff"]),
             "" if control else f"{float(r['p_holm']):.2g}", num(r["delta"]),
             num(r["n_unpaired"], 0), num(r["n_paired"], 0), num(r["n_paired_ucl"], 0),
         ]) + " |")
+    if auto:
+        auto.sort(key=lambda r: (RULESETS[r["ruleset"]], int(r["minimum"]),
+                                 r["game_length"] != "east", ORDER["goal:" + r["goal"]]))
+        md += [
+            "", "## Auto vs best fixed arm", "",
+            "Each auto row against the fixed guide arm with the best mean on that goal's "
+            "metric (Win Rate, Ending Points or Ending Placement), paired on the same seeds. "
+            "**Δ** is auto − fixed; lower is better for Placement. The fixed arm is picked on "
+            "these same seeds, which favours it, so only a run on other seeds can show auto "
+            "beating it. **p** is two-sided and unadjusted; it is blank when every seed "
+            "played identically.", "",
+            "| Variant | Game Length | Goal | Best fixed arm | Auto | Fixed | Δ | SD of Δ | p |",
+            "|---|---|---|---|--:|--:|--:|--:|--:|",
+        ]
+        for r in auto:
+            fixed = " / ".join(label(r[c]) for c in ("style", "focus", "strategy"))
+            md.append("| " + " | ".join([
+                r["variant"], r["game_length_label"], GOALS[r["goal"]], fixed,
+                num(r["mean_auto"]), num(r["mean_static"]), num(r["mean_diff"]),
+                num(r["sd_diff"]), f"{float(r['p']):.2g}" if r["p"] else "",
+            ]) + " |")
     (HERE / "stats_report.md").write_text("\n".join(md) + "\n")
     print(f"{len(rows)} rows, seeds {lo}..{hi}")
 

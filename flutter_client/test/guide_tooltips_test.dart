@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/game/game_controller.dart';
+import 'package:tilesense/game/guide_host.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:tilesense/logic/placement_utility.dart';
+import 'package:tilesense/scenario/scenario_controller.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/ev_explainer_dialog.dart';
 
@@ -59,18 +61,27 @@ void main() {
     bool showGameControls = true,
     EfficiencyReport? report,
     Ruleset ruleset = Ruleset.riichi,
+    bool builder = false,
   }) async {
     Sfx.i.enabled = false;
     final game = GameController(seed: 1);
+    // The Style/Focus/Strategy dials are only on the builder's panel; a game's
+    // panel shows its goal instead.
+    final scenario = builder ? ScenarioController() : null;
+    GuideHost host = game;
+    if (scenario != null) host = scenario;
     try {
-      if (ruleset.isHongKong) game.setRuleset(ruleset);
+      if (ruleset.isHongKong) {
+        game.setRuleset(ruleset);
+        scenario?.setRuleset(ruleset);
+      }
       game.round.seats[1].riichi = true;
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
             child: EfficiencyOverlay(
-              game: game,
+              game: host,
               report: report ?? defending(),
               showGameControls: showGameControls,
             ),
@@ -82,6 +93,7 @@ void main() {
     } finally {
       await tester.pumpWidget(const SizedBox());
       game.dispose();
+      scenario?.dispose();
       Sfx.i.enabled = true;
     }
   }
@@ -252,6 +264,19 @@ void main() {
     });
   });
 
+  testWidgets('a game panel shows GOAL and PLAYING in place of the dials',
+      (tester) async {
+    await withPanel(tester, (_) async {
+      expect(find.text('STYLE'), findsNothing);
+      expect(find.text('FOCUS'), findsNothing);
+      expect(find.text('STRATEGY'), findsNothing);
+      await openTip(tester, 'GOAL');
+      expect(text('finish as high as it can'), findsOneWidget);
+      await openTip(tester, 'PLAYING');
+      expect(text('only Focus shows'), findsOneWidget);
+    });
+  });
+
   testWidgets('STYLE reads as bullets and a table, with the live numbers',
       (tester) async {
     await withPanel(tester, (_) async {
@@ -281,7 +306,7 @@ void main() {
       }
       expect(find.text('Risk weight'), findsWidgets);
       expect(find.text('Stays quiet from'), findsOneWidget);
-    });
+    }, builder: true);
   });
 
   testWidgets('FOCUS shows what Speed does as a table, in the live numbers',
@@ -303,7 +328,7 @@ void main() {
       // The exponent is a real superscript, not a caret in the text.
       expect(find.text('${speed.curve}'), findsOneWidget);
       expect(text('^${speed.curve}'), findsNothing);
-    });
+    }, builder: true);
   });
 
   testWidgets('formulas are one line each, with real sub- and superscripts',
@@ -340,7 +365,8 @@ void main() {
       expect(text('32 chips'), findsOneWidget, reason: 'the HK pivot');
       expect(text('5,000'), findsNothing);
       expect(find.text('Payout'), findsOneWidget);
-    }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong);
+    }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong,
+        builder: true);
   });
 
   testWidgets('STRATEGY is a small table plus bullets', (tester) async {
@@ -353,7 +379,7 @@ void main() {
       expect(text('finishing above each other seat'), findsOneWidget);
       expect(text('Style and Focus'), findsOneWidget);
       expect(text('always Points — this dial is hidden'), findsOneWidget);
-    });
+    }, builder: true);
   });
 
   testWidgets(
@@ -531,7 +557,8 @@ void main() {
       expect(find.text('Placement'), findsNothing);
       expect(find.text('FOCUS'), findsOneWidget);
       expect(find.textContaining('• '), findsNothing);
-    }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong);
+    }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong,
+        builder: true);
   });
 
   testWidgets('the tap-through page shows the payout heuristic before tenpai',

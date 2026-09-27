@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mahjong_core/bot.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
+import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/safety.dart';
@@ -73,8 +74,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
         seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
         _botFactory = botFactory ?? SimpleBot.new {
     if (ruleset.isChineseStyle) {
-      playStyle = PlayStyle.balanced;
-      strategy = Strategy.points;
+      _playStyle = PlayStyle.balanced;
+      _strategy = Strategy.points;
     }
     _startGame();
   }
@@ -107,16 +108,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
       // riichi style with the pinned Balanced/Points it is currently
       // showing.
       if (!ruleset.isChineseStyle) {
-        _preHongKongStyle = playStyle;
-        _preHongKongStrategy = strategy;
+        _preHongKongStyle = _playStyle;
+        _preHongKongStrategy = _strategy;
       }
-      playStyle = PlayStyle.balanced;
-      strategy = Strategy.points;
+      _playStyle = PlayStyle.balanced;
+      _strategy = Strategy.points;
     } else {
       // A game created directly in Hong Kong/Taiwanese has no saved riichi
       // preferences. Start riichi on its measured defaults in that case.
-      playStyle = _preHongKongStyle ?? kDefaultPlayStyle;
-      strategy = _preHongKongStrategy ?? kDefaultStrategy;
+      _playStyle = _preHongKongStyle ?? kDefaultPlayStyle;
+      _strategy = _preHongKongStrategy ?? kDefaultStrategy;
       _preHongKongStyle = null;
       _preHongKongStrategy = null;
     }
@@ -321,11 +322,50 @@ class GameController extends ChangeNotifier implements TableGameHost {
   Timer? _autoDiscardTimer;
   final _autoDiscardRng = Random();
 
+  /// What the player wants from the game. While [goalDriven], the three dials
+  /// below are picked from it by [autoDials] instead of set by hand.
+  @override
+  Goal goal = kDefaultGoal;
+  @override
+  void setGoal(Goal value) {
+    if (goal == value && goalDriven) return;
+    goal = value;
+    goalDriven = true;
+    _tel?.settingChange(matchId: _matchId, setting: 'goal', value: value.name);
+    _refreshReport();
+    notifyListeners();
+  }
+
+  /// Cleared the moment any dial is set by hand — through its setter, or by
+  /// assigning it, which is how the measurement harnesses pin a fixed arm.
+  @override
+  bool goalDriven = true;
+
+  AutoDials get _goalDials =>
+      autoDials(goal, ruleset, minimumPoints: minimumPoints);
+
+  /// Leaves goal mode with the dials it was playing, so setting one by hand
+  /// does not also snap the other two back to stale values.
+  void _pinDials() {
+    if (!goalDriven) return;
+    final d = _goalDials;
+    _playStyle = d.style;
+    _handFocus = d.focus;
+    _strategy = d.strategy;
+    goalDriven = false;
+  }
+
   /// How the guide weighs danger against value. Feeds every score it produces,
   /// so it steers Autoplay — which plays from those scores — as well as the
   /// panel.
+  PlayStyle _playStyle = kDefaultPlayStyle;
   @override
-  PlayStyle playStyle = kDefaultPlayStyle;
+  PlayStyle get playStyle => goalDriven ? _goalDials.style : _playStyle;
+  set playStyle(PlayStyle value) {
+    _pinDials();
+    _playStyle = value;
+  }
+
   @override
   void setPlayStyle(PlayStyle value) {
     if (playStyle == value) return;
@@ -339,8 +379,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// Which hand the guide chases when two are worth the same. Independent of
   /// [playStyle] — that one weighs danger, this one weighs speed against
   /// value — and it steers Autoplay the same way.
+  HandFocus _handFocus = kDefaultHandFocus;
   @override
-  HandFocus handFocus = kDefaultHandFocus;
+  HandFocus get handFocus => goalDriven ? _goalDials.focus : _handFocus;
+  set handFocus(HandFocus value) {
+    _pinDials();
+    _handFocus = value;
+  }
+
   @override
   void setHandFocus(HandFocus value) {
     if (handFocus == value) return;
@@ -354,8 +400,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// Points or placement — the third dial, independent of both the others.
   /// Riichi only: [setRuleset] pins it to [Strategy.points] under Hong Kong,
   /// the same way it pins [playStyle] to Balanced there.
+  Strategy _strategy = kDefaultStrategy;
   @override
-  Strategy strategy = kDefaultStrategy;
+  Strategy get strategy => goalDriven ? _goalDials.strategy : _strategy;
+  set strategy(Strategy value) {
+    _pinDials();
+    _strategy = value;
+  }
+
   @override
   void setStrategy(Strategy value) {
     if (strategy == value) return;

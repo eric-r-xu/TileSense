@@ -21,6 +21,12 @@ void main() {
           .first)
       .data!;
 
+  /// What the bar's PLAYING tile reads: the dials the goal has picked.
+  String playingOf(WidgetTester tester) => tester
+      .widget<Text>(find.byKey(const Key('goalDials')))
+      .textSpan!
+      .toPlainText();
+
   Future<void> boot(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -63,8 +69,8 @@ void main() {
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
-    expect(labelOf(tester, const Key('playStyle')), 'Aggressive');
-    expect(labelOf(tester, const Key('handFocus')), 'Speed');
+    expect(labelOf(tester, const Key('goal')), 'Placement');
+    expect(playingOf(tester), 'Aggressive · Speed · Points');
     expect(find.textContaining('Honba'), findsOneWidget);
     expect(find.text('DORA'), findsOneWidget);
 
@@ -94,10 +100,9 @@ void main() {
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
     // Style has nothing left to weigh under Hong Kong — no riichi, no
-    // damaten, and no measured placement effect either — so the chip is
-    // hidden rather than shown pinned on Balanced.
-    expect(find.byKey(const Key('playStyle')), findsNothing);
-    expect(labelOf(tester, const Key('handFocus')), 'Speed');
+    // damaten, and no measured placement effect either — so PLAYING shows
+    // Focus alone rather than Style pinned on Balanced.
+    expect(playingOf(tester), 'Speed');
     // Hong Kong has no dora panel — flowers show beside each seat's own
     // placard instead, empty (and invisible) until one is actually drawn.
     expect(find.text('DORA'), findsNothing);
@@ -179,29 +184,31 @@ void main() {
     // The table is created after a loading frame.
     await tester.pump();
 
-    // Style is a riichi-only dial; pick a non-default value so the
-    // Chinese-style-and-back round trip below can prove it survives.
-    await tester.tap(find.byKey(const Key('playStyle')));
+    // Pick a non-default goal so the Chinese-style-and-back round trip below
+    // can prove it survives.
+    await tester.tap(find.byKey(const Key('goal')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(tester, const Key('playStyle')), 'Defensive');
+    expect(labelOf(tester, const Key('goal')), 'Win Rate');
 
     await switchViaMenu(tester, Ruleset.hongKong);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
-    expect(find.byKey(const Key('playStyle')), findsNothing,
-        reason: 'Hong Kong pins style to Balanced and hides the dial');
+    expect(labelOf(tester, const Key('goal')), 'Win Rate');
+    expect(playingOf(tester), 'Speed',
+        reason: 'Hong Kong pins Style and Strategy, so only Focus shows');
 
     await switchViaMenu(tester, Ruleset.taiwanese);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.taiwanese.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
-    expect(find.byKey(const Key('playStyle')), findsNothing,
-        reason: 'Taiwanese pins style to Balanced and hides the dial too');
+    expect(playingOf(tester), 'Balanced',
+        reason: 'Taiwanese pins them too, and 5 tai plays Balanced focus');
 
     await switchViaMenu(tester, Ruleset.riichi);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(find.text('DORA'), findsOneWidget);
-    expect(labelOf(tester, const Key('playStyle')), 'Defensive',
-        reason: 'the riichi style from before the trip comes back');
+    expect(labelOf(tester, const Key('goal')), 'Win Rate',
+        reason: 'the goal from before the trip comes back');
+    expect(playingOf(tester), 'Aggressive · Speed · Points');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -318,8 +325,8 @@ void main() {
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.taiwanese.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
-    expect(find.byKey(const Key('playStyle')), findsNothing);
-    expect(labelOf(tester, const Key('handFocus')), 'Speed');
+    // 5-tai minimum by default, where Balanced focus measured ahead.
+    expect(playingOf(tester), 'Balanced');
     // Taiwanese has no dora panel either — flowers show beside each seat's
     // own placard instead, empty (and invisible) until one is drawn.
     expect(find.text('DORA'), findsNothing);

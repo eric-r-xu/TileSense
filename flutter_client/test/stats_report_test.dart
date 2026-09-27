@@ -10,6 +10,7 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/logic/auto_dials.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 
 /// Plays every variant, both game lengths and every decision maker the game
@@ -23,10 +24,11 @@ import 'package:tilesense/logic/efficiency_engine.dart';
 /// REPORT_SKIP names a file of `arm_key,seed` lines already stored; those
 /// games are not played again. The arm key matches `sim_arm.arm_key`.
 ///
-/// Seat 0 is either SimpleBot (control) or the guide on Autoplay with a
-/// (Style, Focus, Strategy) tuple; the other three seats are SimpleBot, as in
-/// the shipped game. Hong Kong and Taiwanese pin Style to Balanced and
-/// Strategy to Points, so only Focus varies there.
+/// Seat 0 is SimpleBot (control), the guide on Autoplay with a fixed
+/// (Style, Focus, Strategy) tuple, or the guide on Autoplay playing a [Goal]
+/// (`auto`, stored as strategy `goal:<name>`); the other three seats are
+/// SimpleBot, as in the shipped game. Hong Kong and Taiwanese pin Style to
+/// Balanced and Strategy to Points, so only Focus varies there.
 void main() {
   final env = Platform.environment;
   final out = env['REPORT_OUT'];
@@ -52,16 +54,18 @@ void main() {
     for (final (ruleset, minimum) in variants) {
       for (final east in [true, false]) {
         for (final dm in _deciders(ruleset)) {
+          // decision_maker, style, focus, strategy; empty is NULL in the CSV.
+          final cols = dm.goal != null
+              ? ['auto', '', '', 'goal:${dm.goal!.name}']
+              : dm.style == null
+                  ? ['simple_bot', '', '', '']
+                  : ['guide', dm.style!.name, dm.focus.name, dm.strategy.name];
           final arm = [
             ruleset.name,
             minimum,
             east ? 'east' : 'hanchan',
-            dm.style == null ? 'simple_bot' : 'guide',
-            if (dm.style != null) ...[
-              dm.style!.name,
-              dm.focus.name,
-              dm.strategy.name
-            ],
+            for (final c in cols)
+              if (c.isNotEmpty) c,
           ];
           final key = [commit, ...arm].join('|');
           final todo = [
@@ -82,10 +86,7 @@ void main() {
                 ruleset.name,
                 minimum,
                 east ? 'east' : 'hanchan',
-                dm.style == null ? 'simple_bot' : 'guide',
-                dm.style?.name ?? '',
-                dm.style == null ? '' : dm.focus.name,
-                dm.style == null ? '' : dm.strategy.name,
+                ...cols,
                 todo[i + j],
                 r.place,
                 ruleset.startingPoints,
@@ -112,15 +113,18 @@ void main() {
 typedef _Decider = ({
   PlayStyle? style,
   HandFocus focus,
-  Strategy strategy
+  Strategy strategy,
+  Goal? goal
 });
 
-/// SimpleBot, then every guide tuple the ruleset lets a player pick.
+/// SimpleBot, then every guide tuple the ruleset lets a player pick, then
+/// every goal.
 List<_Decider> _deciders(Ruleset ruleset) => [
       (
         style: null,
         focus: HandFocus.balanced,
-        strategy: Strategy.points
+        strategy: Strategy.points,
+        goal: null
       ),
       for (final s in ruleset.isChineseStyle
           ? [PlayStyle.balanced]
@@ -132,8 +136,16 @@ List<_Decider> _deciders(Ruleset ruleset) => [
             (
               style: s,
               focus: f,
-              strategy: t
+              strategy: t,
+              goal: null
             ),
+      for (final g in Goal.values)
+        (
+          style: null,
+          focus: HandFocus.balanced,
+          strategy: Strategy.points,
+          goal: g
+        ),
     ];
 
 typedef _Row = ({double place, int points, int hands, int wins, int dealIns});
@@ -153,7 +165,11 @@ _Row _playGame(
         minimumPoints: ruleset == Ruleset.taiwanese
             ? minimum
             : TaiwaneseRules.defaultMinimumPoints);
-    if (dm.style != null) {
+    final bot = dm.style == null && dm.goal == null;
+    if (dm.goal != null) {
+      game.setAutoplay(true);
+      game.setGoal(dm.goal!);
+    } else if (dm.style != null) {
       game.setAutoplay(true);
       game.playStyle = dm.style!;
       game.handFocus = dm.focus;
@@ -172,7 +188,7 @@ _Row _playGame(
         game.continueFromRoundEnd();
         continue;
       }
-      if (dm.style == null && !game.round.finished) {
+      if (bot && !game.round.finished) {
         final round = game.round;
         if (game.awaitingHumanCall) {
           game.answerCall(seat0Bot.decideCall(round, kHumanSeat,

@@ -12,7 +12,9 @@ import 'game/app_update.dart' as upd;
 import 'game/fullscreen.dart' as fs;
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
+import 'game/guide_host.dart' show GuideHost;
 import 'game/sfx.dart';
+import 'logic/auto_dials.dart' show Goal;
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -92,7 +94,7 @@ const TextStyle _barCaptionStyle = TextStyle(
 Widget _barTile({
   required String caption,
   required String tooltip,
-  required VoidCallback onTap,
+  required VoidCallback? onTap,
   required Widget value,
   Key? tapKey,
   double width = 84,
@@ -238,6 +240,44 @@ Color strategyColor(Strategy strategy) => switch (strategy) {
       Strategy.points => const Color(0xffe9d58f),
       Strategy.placement => const Color(0xffce93d8),
     };
+
+/// Colour for a goal: the same gold for Points and magenta for Placement as
+/// [strategyColor], and green for Win Rate.
+Color goalColor(Goal goal) => switch (goal) {
+      Goal.winRate => const Color(0xff81c784),
+      Goal.points => const Color(0xffe9d58f),
+      Goal.placement => const Color(0xffce93d8),
+    };
+
+/// The dials the goal has the guide playing right now, each in its own
+/// colour. Style and Strategy are left out under Hong Kong and Taiwanese
+/// rules, which pin them.
+Widget goalDialsText(GuideHost game, {Key? key, double fontSize = 12}) {
+  final style = TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700);
+  const dot = TextSpan(text: ' · ', style: TextStyle(color: Colors.white38));
+  return Text.rich(
+    key: key,
+    maxLines: 1,
+    softWrap: false,
+    TextSpan(style: style, children: [
+      if (!game.round.ruleset.isChineseStyle) ...[
+        TextSpan(
+            text: game.playStyle.label,
+            style: TextStyle(color: playStyleColor(game.playStyle))),
+        dot,
+      ],
+      TextSpan(
+          text: game.handFocus.label,
+          style: TextStyle(color: handFocusColor(game.handFocus))),
+      if (!game.round.ruleset.isChineseStyle) ...[
+        dot,
+        TextSpan(
+            text: game.strategy.label,
+            style: TextStyle(color: strategyColor(game.strategy))),
+      ],
+    ]),
+  );
+}
 
 /// The design resolution the UI is authored at. Everything is laid out in these
 /// logical pixels and then scaled as one unit. The ~2:1 ratio is deliberately
@@ -1296,65 +1336,34 @@ class _GamePageState extends State<GamePage> {
           ),
         ),
         actions: phone ? const [] : [
-          // Auto-Play and the three guide dials in one panel: Auto-Play
-          // plays from the guide's own scores, so these dials are what it
-          // plays by. The panel's border lights up gold while it is on, which
-          // is the cue that the dials are now steering your seat, not just
-          // the advice. The guide panel carries a synced copy of each dial.
-          //
-          // All three dials are kept rather than pruned to the ones that
-          // move the numbers most: a decision-level sweep (self-play,
-          // live-riichi threat included for Style, since its whole effect is
-          // gated behind one) found every dial changes the top
-          // recommendation on a comparable, non-trivial share of decisions —
-          // Style 0.6-1.3% of discards and dozens of riichi/damaten calls
-          // under a live threat, Focus 0.6% of discards and a ~50% median
-          // swing in the EV number itself, Strategy 0.2% of discards and over
-          // a hundred riichi/damaten calls in a placement-sensitive sample.
-          // None of the three is a null next to the others.
+          // Auto-Play and the goal in one panel: Auto-Play plays from the
+          // guide's own scores, and the goal picks the dials those scores are
+          // weighed on (see autoDials). The panel's border lights up gold
+          // while it is on, which is the cue that the goal is now steering
+          // your seat, not just the advice. PLAYING shows the dials the goal
+          // has picked.
           AnimatedBuilder(
             animation: _game,
             builder: (context, _) {
               final on = _game.autoplay;
               final dials = <Widget>[
-                // Style has nothing left to weigh under Hong Kong or
-                // Taiwanese rules — no riichi, no damaten, and the sweep in
-                // policy_sweep_test.dart found no placement effect from it
-                // either — so it is hidden rather than shown pinned on
-                // Balanced.
-                if (!_game.ruleset.isChineseStyle)
-                  _barDial(
-                    caption: 'STYLE',
-                    buttonKey: const Key('playStyle'),
-                    label: _game.playStyle.label,
-                    colour: playStyleColor(_game.playStyle),
-                    tooltip: 'How hard the guide (and Auto-Play) pushes: '
-                        'when to fold, when to riichi, when to call',
-                    onTap: () => _game.setPlayStyle(_game.playStyle.next),
-                  ),
                 _barDial(
-                  caption: 'FOCUS',
-                  buttonKey: const Key('handFocus'),
-                  label: _game.handFocus.label,
-                  colour: handFocusColor(_game.handFocus),
-                  tooltip: 'What the guide (and Auto-Play) chases: '
-                      'a quicker cheaper hand, or a slower bigger one',
-                  onTap: () => _game.setHandFocus(_game.handFocus.next),
+                  caption: 'GOAL',
+                  buttonKey: const Key('goal'),
+                  label: _game.goal.label,
+                  colour: goalColor(_game.goal),
+                  tooltip: 'What the guide (and Auto-Play) plays for: '
+                      'winning hands, points, or final placement',
+                  onTap: () => _game.setGoal(_game.goal.next),
                 ),
-                // Placement isn't wired up for Hong Kong or Taiwanese yet, so
-                // the dial is hidden there rather than shown pinned on
-                // Points — same treatment as Style just above.
-                if (!_game.ruleset.isChineseStyle)
-                  _barDial(
-                    caption: 'STRATEGY',
-                    buttonKey: const Key('strategy'),
-                    label: _game.strategy.label,
-                    colour: strategyColor(_game.strategy),
-                    tooltip: 'What the guide (and Auto-Play) optimises for: '
-                        'the points a line is worth, or how it moves final '
-                        'placement given the scores on the table right now',
-                    onTap: () => _game.setStrategy(_game.strategy.next),
-                  ),
+                _barTile(
+                  caption: 'PLAYING',
+                  width: 160,
+                  tooltip: 'The style, focus and strategy the guide is '
+                      'using for your goal',
+                  onTap: null,
+                  value: goalDialsText(_game, key: const Key('goalDials')),
+                ),
               ];
               return AnimatedContainer(
                 key: const Key('autoplayGroup'),
@@ -1383,11 +1392,11 @@ class _GamePageState extends State<GamePage> {
                       width: 92,
                       tooltip: on
                           ? 'Auto-Play is on — TileSensor plays your seat by '
-                              'the guide, using the dials beside it.\n'
+                              'the guide, for the goal beside it.\n'
                               'Tap to take your seat back.'
                           : 'Auto-Play is off — you play your seat.\n'
                               'Tap to let TileSensor play it by the guide, '
-                              'using the dials beside it.',
+                              'for the goal beside it.',
                       onTap: () => _game.setAutoplay(!on),
                       value: Row(
                         mainAxisSize: MainAxisSize.min,

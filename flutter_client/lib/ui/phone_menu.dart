@@ -11,9 +11,8 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
-import '../logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
-import '../main.dart'
-    show handFocusColor, openRules, playStyleColor, strategyColor;
+import '../logic/auto_dials.dart' show Goal;
+import '../main.dart' show goalColor, goalDialsText, openRules;
 
 const Color _gold = Color(0xffe9d58f);
 
@@ -133,43 +132,32 @@ Future<void> showPhoneMenu(
                               onTap: () => game.setAutoplay(!game.autoplay),
                             ),
                           ],
-                          // Style and Strategy are hidden under Hong Kong and
-                          // Taiwanese rules, as they are in the bar.
-                          if (!game.ruleset.isChineseStyle)
-                            [
-                              phoneMenuDial<PlayStyle>(
-                                caption: 'Style',
-                                keyPrefix: 'phoneMenuStyle',
-                                values: PlayStyle.values,
-                                current: game.playStyle,
-                                label: (v) => v.label,
-                                colour: playStyleColor,
-                                onPick: game.setPlayStyle,
-                              ),
-                            ],
                           [
-                            phoneMenuDial<HandFocus>(
-                              caption: 'Focus',
-                              keyPrefix: 'phoneMenuFocus',
-                              values: HandFocus.values,
-                              current: game.handFocus,
+                            phoneMenuDial<Goal>(
+                              caption: 'Goal',
+                              keyPrefix: 'phoneMenuGoal',
+                              values: Goal.values,
+                              current: game.goal,
                               label: (v) => v.label,
-                              colour: handFocusColor,
-                              onPick: game.setHandFocus,
+                              colour: goalColor,
+                              onPick: game.setGoal,
                             ),
                           ],
-                          if (!game.ruleset.isChineseStyle)
-                            [
-                              phoneMenuDial<Strategy>(
-                                caption: 'Strategy',
-                                keyPrefix: 'phoneMenuStrategy',
-                                values: Strategy.values,
-                                current: game.strategy,
-                                label: (v) => v.label,
-                                colour: strategyColor,
-                                onPick: game.setStrategy,
+                          [
+                            Row(children: [
+                              const SizedBox(
+                                width: 64,
+                                child: Text('Playing',
+                                    style: TextStyle(
+                                        color: Colors.white70, fontSize: 13)),
                               ),
-                            ],
+                              Flexible(
+                                child: goalDialsText(game,
+                                    key: const Key('phoneMenuGoalDials'),
+                                    fontSize: 14),
+                              ),
+                            ]),
+                          ],
                         ]),
                       ),
                     ],

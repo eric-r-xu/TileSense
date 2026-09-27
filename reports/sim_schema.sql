@@ -11,7 +11,8 @@ create table if not exists sim_arm (
   ruleset        text     not null check (ruleset in ('riichi', 'hongKong', 'taiwanese')),
   minimum        smallint not null,  -- faan (HK) or tai (TW) minimum; 0 for riichi
   game_length    text     not null check (game_length in ('east', 'hanchan')),
-  decision_maker text     not null check (decision_maker in ('simple_bot', 'guide')),
+  -- auto: the guide playing a goal, stored as strategy 'goal:<name>'.
+  decision_maker text     not null check (decision_maker in ('simple_bot', 'guide', 'auto')),
   style          text,
   focus          text,
   strategy       text,
@@ -24,6 +25,11 @@ create table if not exists sim_arm (
   unique nulls not distinct (engine_commit, ruleset, minimum, game_length,
                              decision_maker, style, focus, strategy)
 );
+
+-- Widens the check on tables created before auto arms existed.
+alter table sim_arm drop constraint if exists sim_arm_decision_maker_check;
+alter table sim_arm add constraint sim_arm_decision_maker_check
+  check (decision_maker in ('simple_bot', 'guide', 'auto'));
 
 -- One row per game. Raw counts only: every rate and statistic is derived in
 -- the views below, so nothing is stored twice or can go stale.
@@ -64,28 +70,30 @@ from (select arm_id, metric, count(*) as n, avg(value) as mean,
              stddev_samp(value) as sd
       from sim_game_metric group by arm_id, metric) s;
 
--- Guide games whose seed has no control game in the same family. Must be
--- empty, or the paired join below silently drops those games.
+-- Guide and auto games whose seed has no control game in the same family.
+-- Must be empty, or the paired join below silently drops those games.
 create or replace view sim_unpaired_games as
 select a.arm_key, g.seed
 from sim_game g
 join sim_arm a using (arm_id)
-where a.decision_maker = 'guide'
+where a.decision_maker <> 'simple_bot'
   and not exists (
     select 1 from sim_arm c join sim_game cg on cg.arm_id = c.arm_id
     where c.engine_commit = a.engine_commit and c.ruleset = a.ruleset
       and c.minimum = a.minimum and c.game_length = a.game_length
       and c.decision_maker = 'simple_bot' and cg.seed = g.seed);
 
--- Each guide arm against its control on the same seeds. delta is the effect
+-- Each guide and auto arm against its control on the same seeds. delta is the effect
 -- to detect: 10 percentage points of stack for points_pct, 20% of the
 -- control's mean for deal_in_rate (deal-ins are rare, so 10% of ~0.15 would
 -- need ~3,000 seeds), 10% of the control's mean otherwise. n_* are seeds per arm for a two-sided 5% test
 -- at 80% power: 7.849 = (1.960 + 0.842)^2; unpaired uses twice that on the
--- pooled SD. Holm p is adjusted within each (control, metric) family.
+-- pooled SD. Holm p is adjusted within each (control, decision maker,
+-- metric) family, so adding auto arms leaves the guide arms' p unchanged.
 create or replace view sim_paired_stats as
 with pairs as (
-  select a.arm_id, c.arm_id as control_arm_id, gm.metric, gm.value as g, cm.value as c
+  select a.arm_id, c.arm_id as control_arm_id, a.decision_maker, gm.metric,
+         gm.value as g, cm.value as c
   from sim_arm a
   join sim_arm c on c.engine_commit = a.engine_commit and c.ruleset = a.ruleset
                 and c.minimum = a.minimum and c.game_length = a.game_length
@@ -93,13 +101,13 @@ with pairs as (
   join sim_game_metric gm on gm.arm_id = a.arm_id
   join sim_game_metric cm on cm.arm_id = c.arm_id and cm.seed = gm.seed
                          and cm.metric = gm.metric
-  where a.decision_maker = 'guide'
+  where a.decision_maker <> 'simple_bot'
 ), s as (
-  select arm_id, control_arm_id, metric, count(*) as n_pairs,
+  select arm_id, control_arm_id, decision_maker, metric, count(*) as n_pairs,
          avg(g) as mean_guide, avg(c) as mean_control,
          stddev_samp(g) as sd_guide, stddev_samp(c) as sd_control,
          avg(g - c) as mean_diff, stddev_samp(g - c) as sd_diff, corr(g, c) as rho
-  from pairs group by arm_id, control_arm_id, metric
+  from pairs group by arm_id, control_arm_id, decision_maker, metric
 ), d as (
   select s.*,
          case metric when 'points_pct' then 10.0
@@ -111,17 +119,52 @@ with pairs as (
 ), r as (
   select d.*,
          row_number() over w as k,
-         count(*) over (partition by control_arm_id, metric) as m
-  from d window w as (partition by control_arm_id, metric order by p)
+         count(*) over (partition by control_arm_id, decision_maker, metric) as m
+  from d window w as (partition by control_arm_id, decision_maker, metric order by p)
 )
 select arm_id, control_arm_id, metric, n_pairs, mean_guide, mean_control,
        mean_diff, sd_diff, sd_diff_ucl, rho, delta, p,
-       max(least(1, (m - k + 1) * p)) over (partition by control_arm_id, metric
-         order by p rows unbounded preceding) as p_holm,
+       max(least(1, (m - k + 1) * p)) over (partition by control_arm_id, decision_maker,
+         metric order by p rows unbounded preceding) as p_holm,
        ceil(15.697758 * ((sd_guide ^ 2 + sd_control ^ 2) / 2) / nullif(delta, 0) ^ 2) as n_unpaired,
        ceil(7.848879 * (sd_diff / nullif(delta, 0)) ^ 2)     as n_paired,
        ceil(7.848879 * (sd_diff_ucl / nullif(delta, 0)) ^ 2) as n_paired_ucl
 from r;
+
+-- Each auto arm against the fixed guide arm that did best on its goal's
+-- metric (highest win rate or points, lowest placement) in the same family,
+-- paired by seed on every metric. The best arm is picked on these same
+-- seeds, which favours it: only a run on other seeds can show an auto arm
+-- beating it.
+create or replace view sim_auto_vs_static as
+with auto as (
+  select a.*, split_part(a.strategy, ':', 2) as goal,
+         case split_part(a.strategy, ':', 2) when 'winRate' then 'win_rate'
+              when 'points' then 'points_pct' else 'placement' end as goal_metric
+  from sim_arm a where a.decision_maker = 'auto'
+), best as (
+  select distinct on (u.arm_id) u.arm_id, u.goal, u.goal_metric,
+         g.arm_id as static_arm_id
+  from auto u
+  join sim_arm g on g.engine_commit = u.engine_commit and g.ruleset = u.ruleset
+                and g.minimum = u.minimum and g.game_length = u.game_length
+                and g.decision_maker = 'guide'
+  join sim_arm_stats st on st.arm_id = g.arm_id and st.metric = u.goal_metric
+  order by u.arm_id,
+           case when u.goal_metric = 'placement' then st.mean else -st.mean end,
+           g.arm_id
+), pairs as (
+  select b.*, am.metric, am.value as a, sm.value as s
+  from best b
+  join sim_game_metric am on am.arm_id = b.arm_id
+  join sim_game_metric sm on sm.arm_id = b.static_arm_id and sm.seed = am.seed
+                         and sm.metric = am.metric
+)
+select arm_id, static_arm_id, goal, metric, metric = goal_metric as is_goal_metric,
+       count(*) as n_pairs, avg(a) as mean_auto, avg(s) as mean_static,
+       avg(a - s) as mean_diff, stddev_samp(a - s) as sd_diff,
+       erfc(abs(avg(a - s)) / nullif(stddev_samp(a - s) / sqrt(count(*)), 0) / sqrt(2)) as p
+from pairs group by arm_id, static_arm_id, goal, goal_metric, metric;
 
 -- Flat, labeled views for Metabase, which cannot join views by itself (views
 -- carry no foreign keys). sim_report is also what sim_report.py reads.
@@ -132,6 +175,7 @@ select a.*,
                       else 'Taiwanese ' || a.minimum || '-tai min' end as variant,
        case a.game_length when 'east' then 'East only' else 'Hanchan' end as game_length_label,
        case a.decision_maker when 'simple_bot' then 'Simple Bot (control)'
+                             when 'auto' then 'TileSense Auto (goal)'
                              else 'TileSense Guide' end as decision_maker_label
 from sim_arm a;
 

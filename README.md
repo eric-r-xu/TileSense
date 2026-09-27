@@ -399,6 +399,33 @@ TileSense owes a great deal to two fantastic, inspirational resources:
   on Path of Houou, for the EV calculation comparisons (the guide's
   **EV (HMR)** column).
 
+### Playtesting and feedback
+
+Thank you to the friends and players whose testing, suggestions, and bug reports
+helped improve TileSense.
+
+- **Jesse C** — For identifying riichi exhaustive draws that incorrectly advanced
+  the dealer despite the dealer being in tenpai, and introducing me to two valuable
+  resources: [Hitori Mahjong Renshuuki (HMR)](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html),
+  used to validate baseline EV calculations, and
+  [Euophrys’s Mahjong Efficiency Trainer](https://euophrys.itch.io/mahjong-efficiency-trainer),
+  which underpins TileSense’s shanten and ukeire calculations.
+- **Raymond M** — For identifying errors in pinfu scoring, illegal closed kans
+  after declaring riichi, and missing choices when multiple chi combinations were
+  available.
+- **Sherman L** — For suggesting a single-player rewind feature that lets players
+  revisit a decision, try a different action, and explore the outcome.
+- **Melissa R** — For suggesting larger buttons and more space between controls,
+  especially on mobile.
+- **Helen W** — For testing multiplayer from China and identifying slow
+  home-screen loading, which prompted audio caching improvements to reduce startup
+  time.
+- **Vilay K** — For suggesting a slower pace of play, which inspired pauses
+  between calls and an adjustable bot-speed setting.
+
+Thank you to everyone else who shared feedback. If I’ve missed you and you’d like
+to be credited, please get in touch.
+
 ---
 
 ## License

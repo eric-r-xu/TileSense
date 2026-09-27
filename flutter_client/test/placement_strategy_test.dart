@@ -253,61 +253,6 @@ void main() {
         reason: 'placement keeps the lead flexible instead of locking in');
   });
 
-  testWidgets('the game exposes the dial and it drives the guide',
-      (tester) async {
-    await tester.binding.setSurfaceSize(kDesignSize);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(const TileSenseApp());
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Single Player'));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
-    await tester.pump(); // Render the startup/loading frame.
-    // The table is created after a loading frame.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(labelOf(const Key('strategy')), 'Points');
-    await tester.tap(find.byKey(const Key('strategy')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('strategy')), 'Placement');
-    await tester.tap(find.byKey(const Key('strategy')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('strategy')), 'Points');
-
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump();
-  });
-
-  testWidgets('the guide carries a synced copy of the dial', (tester) async {
-    await tester.binding.setSurfaceSize(kDesignSize);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(const TileSenseApp());
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Single Player'));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('charactersContinue')));
-    await tester.pump(); // Render the startup/loading frame.
-    // The table is created after a loading frame.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('bottomGuideToggle')));
-    await tester.pump(const Duration(milliseconds: 100));
-
-    await tester.tap(find.byKey(const Key('guideStrategy_placement')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('strategy')), 'Placement');
-
-    await tester.tap(find.byKey(const Key('strategy')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('strategy')), 'Points');
-    expect(guideChipPicked(tester, Strategy.points), isTrue);
-    expect(guideChipPicked(tester, Strategy.placement), isFalse);
-
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump();
-  });
-
   /// The style is fixed mid-game: back to the menu, pick [rulesetKey], and
   /// start again.
   Future<void> switchViaMenu(WidgetTester tester, String rulesetKey) async {
@@ -324,7 +269,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets('Hong Kong hides and pins the dial, riichi restores it',
+  testWidgets('Hong Kong and Taiwanese play Focus alone, riichi all three',
       (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -338,21 +283,18 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.byKey(const Key('strategy')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('strategy')), 'Placement');
+    expect(playingOf(), 'Aggressive · Speed · Points');
 
+    // Style and Strategy are pinned under both Chinese rulesets, so PLAYING
+    // shows the one dial the goal still moves there.
     await switchViaMenu(tester, 'ruleset_hongKong');
-    expect(find.byKey(const Key('strategy')), findsNothing);
+    expect(playingOf(), 'Speed');
 
-    // Hong Kong -> Taiwanese: still Chinese-style, so the dial stays hidden
-    // and pinned rather than being restored here.
     await switchViaMenu(tester, 'ruleset_taiwanese');
-    expect(find.byKey(const Key('strategy')), findsNothing);
+    expect(playingOf(), 'Balanced', reason: '5-tai minimum by default');
 
     await switchViaMenu(tester, 'ruleset_riichi');
-    expect(labelOf(const Key('strategy')), 'Placement',
-        reason: 'restored on the way back to riichi');
+    expect(playingOf(), 'Aggressive · Speed · Points');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -382,20 +324,9 @@ void main() {
   });
 }
 
-/// The label a cycling dial button is currently showing.
-String labelOf(Key key) => (find
-        .descendant(of: find.byKey(key), matching: find.byType(Text))
-        .evaluate()
-        .first
-        .widget as Text)
-    .data!;
-
-/// Whether the guide panel's chip for [strategy] is rendering as the picked
-/// one — mirrors the equivalent [PlayStyle] helper in play_style_test.dart.
-bool guideChipPicked(WidgetTester tester, Strategy strategy) {
-  final text = tester.widget<Text>(find.descendant(
-    of: find.byKey(Key('guideStrategy_${strategy.name}')),
-    matching: find.byType(Text),
-  ));
-  return text.style?.color == strategyColor(strategy);
-}
+/// What the bar's PLAYING tile reads — mirrors the helper in
+/// play_style_test.dart.
+String playingOf() =>
+    (find.byKey(const Key('goalDials')).evaluate().single.widget as Text)
+        .textSpan!
+        .toPlainText();
