@@ -179,7 +179,7 @@ the ingest service.
 
 **This is scripted — don't follow a procedure by hand.** `deploy.sh` at the
 repo root builds and ships the web client, and the runbook for it is
-[`DEPLOYMENT_CHEATSHEET.md`](../DEPLOYMENT_CHEATSHEET.md) §2. First-time
+[`DEPLOYMENT_GUIDE.md`](../DEPLOYMENT_GUIDE.md) §2. First-time
 server setup (droplet, Nginx, TLS, the `deploy.env` this all reads) is in
 [`server/DEPLOYMENT.md`](../server/DEPLOYMENT.md) §2.
 
