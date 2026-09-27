@@ -263,19 +263,23 @@ void main() {
 
     // The bar carries one dial, the goal, and beside it the dials that goal
     // has the guide playing: a riichi game starts on Placement, played
-    // Aggressive / Speed / Points.
+    // Balanced / Speed / Points.
     expect(labelOf(const Key('goal')), 'Placement');
-    expect(playingOf(), 'Aggressive · Speed · Points');
+    expect(playingOf(), 'Balanced · Speed · Points');
     expect(find.byKey(const Key('playStyle')), findsNothing);
     expect(find.byKey(const Key('handFocus')), findsNothing);
     expect(find.byKey(const Key('strategy')), findsNothing);
 
     // Cycling the goal walks all three and comes back round.
-    for (final label in ['Win Rate', 'Points', 'Placement']) {
+    for (final (label, playing) in [
+      ('Win Rate', 'Aggressive · Speed · Points'),
+      ('Points', 'Aggressive · Speed · Points'),
+      ('Placement', 'Balanced · Speed · Points'),
+    ]) {
       await tester.tap(find.byKey(const Key('goal')));
       await tester.pump(const Duration(milliseconds: 100));
       expect(labelOf(const Key('goal')), label);
-      expect(playingOf(), 'Aggressive · Speed · Points');
+      expect(playingOf(), playing);
     }
 
     await tester.pumpWidget(const SizedBox());
@@ -356,7 +360,7 @@ void main() {
             .widget<Text>(find.byKey(const Key('guideGoalDials')))
             .textSpan!
             .toPlainText(),
-        'Aggressive · Speed · Points');
+        'Balanced · Speed · Points');
 
     // Guide -> app bar.
     await tester.tap(find.byKey(const Key('guideGoal_winRate')));

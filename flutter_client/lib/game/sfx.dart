@@ -61,6 +61,7 @@ enum Character {
   sherman,
   saeko,
   matthew,
+  smurf,
 }
 
 /// The personas a human can pick from online. `resolveCharacter`
@@ -79,6 +80,7 @@ const List<Character> kSelectableCharacters = [
   Character.sherman,
   Character.saeko,
   Character.matthew,
+  Character.smurf,
 ];
 
 const Map<Character, String> kCharacterName = {
@@ -93,6 +95,7 @@ const Map<Character, String> kCharacterName = {
   Character.sherman: 'Sherman',
   Character.saeko: 'Saeko',
   Character.matthew: 'Matthew',
+  Character.smurf: 'Smurf',
 };
 
 const Map<Character, String> kCharacterPortrait = {
@@ -107,6 +110,7 @@ const Map<Character, String> kCharacterPortrait = {
   Character.sherman: 'assets/sherman/sherman.png',
   Character.saeko: 'assets/saeko/saeko.png',
   Character.matthew: 'assets/matthew/matthew.png',
+  Character.smurf: 'assets/smurf/smurf.png',
 };
 
 /// Fire-and-forget sound player.
@@ -163,6 +167,17 @@ class Sfx {
   /// Per-character voice assets. `null` means that character has no recording
   /// for that line, so it is silently skipped.
   static const Map<Character, Map<VoiceKind, String?>> _voiceAsset = {
+    Character.smurf: {
+      VoiceKind.chi: 'smurf/Smurf_Chi.wav',
+      VoiceKind.pon: 'smurf/Smurf_Pon.wav',
+      VoiceKind.kan: 'smurf/Smurf_Kan.wav',
+      VoiceKind.riichi: 'smurf/Smurf_Riichi.wav',
+      VoiceKind.ron: 'smurf/Smurf_ron.wav',
+      VoiceKind.tsumo: 'smurf/Smurf_Tsumo.wav',
+      VoiceKind.yeah: 'smurf/Smurf_Yeah.wav',
+      VoiceKind.acquiescement: 'smurf/Smurf_Acquiescement.wav',
+      VoiceKind.win: 'smurf/Smurf_Win.wav',
+    },
     Character.matthew: {
       VoiceKind.chi: 'matthew/Matthew_Chi.wav',
       VoiceKind.pon: 'matthew/Matthew_Pon.wav',

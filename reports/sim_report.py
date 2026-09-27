@@ -8,9 +8,11 @@ import csv, io, os, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).parent
-# Same key as sim_run.sh: the last commit that changed the engine.
+# Same key as sim_run.sh: the last commit that changed the engine. Sound
+# effects never change play, so a sound-only commit keeps the stored games.
 ENGINE = ["flutter_client/lib/game", "flutter_client/lib/logic", "flutter_client/lib/net",
-          "flutter_client/lib/telemetry", "packages/mahjong_core/lib"]
+          "flutter_client/lib/telemetry", "packages/mahjong_core/lib",
+          ":(exclude)flutter_client/lib/game/sfx.dart"]
 COMMIT = sys.argv[1] if len(sys.argv) > 1 else subprocess.check_output(
     ["git", "log", "-1", "--format=%h", "--", *ENGINE], text=True, cwd=HERE.parent).strip()
 QUERY = f"select * from sim_report where engine_commit = '{COMMIT}'"
@@ -99,8 +101,8 @@ def main():
         "on the same seeds (paired). **ρ**: correlation between the guide's and the bot's "
         "value on each seed. **Δ**: mean of guide − bot. **Holm p**: two-sided, Holm-adjusted "
         "within each variant, length and metric.",
-        "- **Seeds needed** to detect an effect δ (two-sided α = 0.05, power 0.80). δ is 10 "
-        "percentage points of stack for Ending Points, 20% of the bot's mean for Deal-in "
+        "- **Seeds needed** to detect an effect δ (two-sided α = 0.05, power 0.80). δ is 0.2 "
+        "× the bot's SD for Ending Points, 20% of the bot's mean for Deal-in "
         "Rate, and 10% of the bot's mean otherwise. "
         "*Unpaired* ignores the shared seeds. *Paired* uses the SD of the per-seed "
         "differences. *Paired (UCL)* uses that SD's 80% upper confidence limit, so a CV "

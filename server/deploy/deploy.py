@@ -205,7 +205,17 @@ def source_state():
     revision = output(['git', 'rev-parse', 'HEAD'], cwd=REPO)
     dirty = bool(output(['git', 'status', '--porcelain'], cwd=REPO))
     if dirty and os.environ.get('ALLOW_DIRTY_DEPLOY') != '1':
-        raise ValueError('Source checkout has changes. Commit them, or explicitly set ALLOW_DIRTY_DEPLOY=1; releases record this exception.')
+        # Without a terminal to ask at (a script, cron, CI) it still refuses.
+        if not sys.stdin.isatty():
+            raise ValueError('Source checkout has changes. Commit them, or explicitly set ALLOW_DIRTY_DEPLOY=1; releases record this exception.')
+        print('Warning: source checkout has changes; releases record this exception.', file=sys.stderr)
+        try:
+            answer = input('Continue anyway? [y/N]: ')
+        except (EOFError, KeyboardInterrupt):
+            print(file=sys.stderr)
+            answer = ''
+        if answer.strip().lower() not in ('y', 'yes'):
+            raise ValueError('Dirty checkout not confirmed; nothing was built or deployed.')
     return revision, dirty
 
 

@@ -15,9 +15,11 @@ export PGPASSWORD=$SIM_PGPASSWORD POSTGRES_PASSWORD=$SIM_PGPASSWORD
 psql_() { psql -X -q -v ON_ERROR_STOP=1 "$@"; }
 
 # Results are keyed by the last commit that changed the engine, so a UI-only
-# commit reuses stored games; the engine must be exactly that commit.
+# commit reuses stored games; the engine must be exactly that commit. Sound
+# effects never change play, so sfx.dart is left out.
 ENGINE=(flutter_client/lib/game flutter_client/lib/logic flutter_client/lib/net
-        flutter_client/lib/telemetry packages/mahjong_core/lib)
+        flutter_client/lib/telemetry packages/mahjong_core/lib
+        ':(exclude)flutter_client/lib/game/sfx.dart')
 if ! git diff --quiet HEAD -- "${ENGINE[@]}"; then
   echo "engine sources differ from HEAD; commit or stash them first" >&2
   exit 1

@@ -179,7 +179,7 @@ the ingest service.
 
 **This is scripted — don't follow a procedure by hand.** `deploy.sh` at the
 repo root builds and ships the web client, and the runbook for it is
-[`DEPLOYMENT_CHEATSHEET.md`](../DEPLOYMENT_CHEATSHEET.md) §2. First-time
+[`DEPLOYMENT_GUIDE.md`](../DEPLOYMENT_GUIDE.md) §2. First-time
 server setup (droplet, Nginx, TLS, the `deploy.env` this all reads) is in
 [`server/DEPLOYMENT.md`](../server/DEPLOYMENT.md) §2.
 
@@ -212,7 +212,7 @@ audible, and both are worth fixing:
    elsewhere the clips are already local.
 
 **The trade-off:** with `max-age=86400`, a *regenerated* clip (say after
-re-running `tools/mkastaroth.py`) can take up to a day to reach someone who
+regenerating it locally) can take up to a day to reach someone who
 already has the old one, because the filename doesn't change. If you need it
 immediately, either shorten the `max-age` or rename the file so the URL is new.
 

@@ -94,7 +94,7 @@ cd server && docker compose down          # add -v to also wipe the data volume
 
 ---
 
-## 2. DigitalOcean — Droplet + Nginx (matches `DEPLOYMENT_CHEATSHEET.md` §2, which `deploy.sh` runs)
+## 2. DigitalOcean — Droplet + Nginx (matches `DEPLOYMENT_GUIDE.md` §2, which `deploy.sh` runs)
 
 The site is served at `https://app.ericrxu.com/tilesense/` by nginx on the one
 Droplet. This adds a sidecar ingest service on that Droplet and a managed

@@ -77,7 +77,7 @@ flutter_client/
 See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the web, Android and iOS build and
 release notes. The production web deploy is scripted — `deploy.sh` at the repo
 root, with the runbook in
-[`DEPLOYMENT_CHEATSHEET.md`](../DEPLOYMENT_CHEATSHEET.md).
+[`DEPLOYMENT_GUIDE.md`](../DEPLOYMENT_GUIDE.md).
 
 ## How the guide and bots decide
 
