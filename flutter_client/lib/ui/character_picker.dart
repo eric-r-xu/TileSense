@@ -27,7 +27,7 @@ class CharacterRow extends StatelessWidget {
   /// widget key without collisions. Left unkeyed when null.
   final String? keyPrefix;
 
-  /// Narrow dialogs use four; the wider offline seat cards use five.
+  /// Narrow dialogs use four; the wider offline seat cards use six.
   final int columns;
 
   @override

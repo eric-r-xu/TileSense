@@ -171,6 +171,26 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('Matthew can be selected for a new online room', (tester) async {
+    final game = OnlineGameController();
+    await pump(tester, game);
+    await tester.tap(find.descendant(
+      of: find.byType(CharacterRow),
+      matching: find.text('Matthew'),
+    ));
+    await tester.pump();
+    expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        'Matthew');
+    await tester.tap(find.byKey(const Key('createRoom')));
+    await tester.pump();
+    expect(game.myCharacter, Character.matthew);
+    expect(tester.takeException(), isNull);
+    game.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   group('the online table', () {
     /// [phone] boosts the text the way the fitted canvas does on a phone,
     /// which is what `isPhoneLayout` reads.
