@@ -429,6 +429,8 @@ helped improve TileSense.
   time.
 - **Vilay K** — For suggesting a slower pace of play, which inspired pauses
   between calls and an adjustable bot-speed setting.
+- **Mark G** — For recommending Flutter, which helps TileSense stay compatible
+  across all screen sizes.
 
 Thank you to everyone else who shared feedback. If I’ve missed you and you’d like
 to be credited, please get in touch.
