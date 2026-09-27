@@ -5,6 +5,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 echo "Before: $(du -sh . | cut -f1)"
 (cd flutter_client && flutter clean)
 rm -rf server/.dart_tool server/mp/.dart_tool packages/mahjong_core/.dart_tool
-rm -f server/tilesense-ingest
+rm -f server/tilesense-ingest server/mp/tilesense-mp
 find . -name .DS_Store -not -path './.git/*' -delete
 echo "After: $(du -sh . | cut -f1)"
