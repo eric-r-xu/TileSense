@@ -341,9 +341,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   Widget _characterPicker() {
     return _card(
       title: 'Choose your character',
-      // All nine in the one row the right column is wide enough for, rather
-      // than [CharacterRow]'s default four-per-row wrap — that's most of the
-      // height this rework saves.
+      // Keep the roster in one row to leave room for the setup controls.
       child: CharacterRow(
         options: kSelectableCharacters,
         columns: kSelectableCharacters.length,
