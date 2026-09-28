@@ -7,3 +7,6 @@ deploy.env
 __pycache__/
 *.pyc
 flutter_client/tools/audio_sources/
+mortal_sidecar/.venv/
+mortal_sidecar/libriichi.so
+mortal_sidecar/*.onnx

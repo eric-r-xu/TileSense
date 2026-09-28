@@ -5,6 +5,9 @@
 # larger SEED_COUNT plays only the new seeds.
 #
 #   SIM_PGPASSWORD=<local-only> SEED_START=500000 SEED_COUNT=200 reports/sim_run.sh
+#
+# If the load fails (e.g. the container stopped mid-run), the played games are
+# kept and their path printed; GAMES_CSV=<that path> loads them without replaying.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${SIM_PGPASSWORD:?set SIM_PGPASSWORD, a local-only password for the sim container}"
@@ -36,14 +39,18 @@ until pg_isready -q; do sleep 1; done
 psql_ -f reports/sim_schema.sql
 
 WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+trap 'echo "games not loaded; kept in $WORK/games.csv" >&2' EXIT
 psql_ -At -F, -c "select a.arm_key, g.seed from sim_game g join sim_arm a using (arm_id)" \
   > "$WORK/skip.txt"
 
 status=0
-(cd flutter_client && REPORT_OUT="$WORK/games.csv" REPORT_SKIP="$WORK/skip.txt" \
-  REPORT_COMMIT="$COMMIT" REPORT_SEED="$SEED_START" REPORT_GAMES="$SEED_COUNT" \
-  flutter test test/stats_report_test.dart) || status=$?
+if [ -n "${GAMES_CSV:-}" ]; then
+  cp "$GAMES_CSV" "$WORK/games.csv"
+else
+  (cd flutter_client && REPORT_OUT="$WORK/games.csv" REPORT_SKIP="$WORK/skip.txt" \
+    REPORT_COMMIT="$COMMIT" REPORT_SEED="$SEED_START" REPORT_GAMES="$SEED_COUNT" \
+    flutter test test/stats_report_test.dart) || status=$?
+fi
 
 # Load whatever finished, even after a failure: rows are appended per arm.
 psql_ <<SQL
@@ -73,6 +80,8 @@ on conflict do nothing;
 commit;
 select format('stored games: %s in %s arms', count(*), count(distinct arm_id)) from sim_game;
 SQL
+trap - EXIT
+rm -rf "$WORK"
 
 unpaired=$(psql_ -At -c "select count(*) from sim_unpaired_games")
 if [ "$unpaired" != 0 ]; then

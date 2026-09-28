@@ -9,6 +9,7 @@ export 'hong_kong/hong_kong_safety.dart';
 export 'hong_kong/hong_kong_scoring.dart';
 export 'hong_kong/hong_kong_wall.dart';
 export 'meld.dart';
+export 'mjai.dart';
 export 'protocol.dart';
 export 'round.dart';
 export 'ruleset.dart';

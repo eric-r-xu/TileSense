@@ -13,6 +13,7 @@ import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
+import 'mortal_advisor.dart' show MortalAdvice;
 import 'sfx.dart' show Character;
 
 /// A hanchan/game's lifecycle, independent of any one round's [RoundPhase] —
@@ -52,6 +53,10 @@ abstract class GuideHost implements Listenable {
 
   /// The kan the guide would take right now, if any.
   ({TileType type, bool isAdded, ActionAdvice advice})? get kanAdvice;
+
+  /// What Mortal would do in your seat, for the panel's "Mortal decision"
+  /// column; null hides the column (no MORTAL_URL, not riichi, not offline).
+  MortalAdvice? get mortalAdvice;
 
   /// The opponent the safety scores refer to — null when nobody is in riichi.
   int? get safetyOpponentSeat;

@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
+import '../game/mortal_advisor.dart' show MortalAdvice;
 import '../game/sfx.dart' show Character;
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
@@ -149,6 +150,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   @override
   CallOption? humanCallOption;
   CallAdvice? _callAdvice;
+
+  @override
+  MortalAdvice? get mortalAdvice => null; // offline games only
 
   @override
   bool get awaitingHumanCall => humanCallOption != null;

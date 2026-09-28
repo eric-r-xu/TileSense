@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../game/guide_host.dart';
+import '../game/mortal_advisor.dart';
 import '../logic/auto_dials.dart' show Goal;
 import '../logic/efficiency_engine.dart';
 import '../logic/placement_utility.dart';
+import 'package:mahjong_core/mjai.dart' show mjaiTile;
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
 import '../main.dart'
     show goalColor, goalDialsText, handFocusColor, playStyleColor, strategyColor;
 import 'ev_explainer_dialog.dart';
@@ -86,6 +89,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _kanReason(),
+                      if (!widget.game.awaitingHumanCall) _mortalLine(),
                       if (r.lines.isEmpty)
                         Text(r.headline ?? 'Waiting…',
                             style: const TextStyle(color: Colors.white70))
@@ -480,6 +484,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           const SizedBox(height: 2),
           Text('Options: $offered',
               style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          _mortalLine(),
           if (widget.game.recommendedCallReason case final why?
               when why.isNotEmpty) ...[
             const SizedBox(height: 3),
@@ -1371,15 +1376,29 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     // The safety columns are always there, even with nobody to defend against
     // (their cells then read "—"): the headings are where Safety, Risk and
     // Detail are explained, so they must be reachable on any turn.
-    const evHmrCol = 3;
-    const evCol = 4;
+    // Mortal's column sits right after the tile, so it stays in view when the
+    // wider table scrolls sideways.
+    final mortal = widget.game.mortalAdvice;
+    final m = mortal == null ? 0 : 1;
+    // Once Mortal has answered, rows follow its order of preference (its pick
+    // on top); the green tile is still the guide's own recommendation.
+    final lines = [...r.lines];
+    if (mortal?.status == MortalStatus.ready) {
+      // Unranked rows keep the guide's order below the ranked ones.
+      int rank(DiscardLine l) =>
+          mortal!.rankOf(l.discard) ?? 99 + r.lines.indexOf(l);
+      lines.sort((a, b) => rank(a).compareTo(rank(b)));
+    }
+    final evHmrCol = 3 + m;
+    final evCol = 4 + m;
     final placementCol = evCol + 1;
     final firstSafetyCol = placementCol + (showPlacement ? 1 : 0);
-    return Table(
+    final table = Table(
       columnWidths: {
         0: const FixedColumnWidth(34),
-        1: const FixedColumnWidth(52),
-        2: const FixedColumnWidth(48),
+        if (mortal != null) 1: const FixedColumnWidth(50),
+        1 + m: const FixedColumnWidth(52),
+        2 + m: const FixedColumnWidth(48),
         evHmrCol: const FixedColumnWidth(50),
         // Wide enough for "TileSense" on one line at the 9px heading size.
         evCol: const FixedColumnWidth(58),
@@ -1397,6 +1416,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       children: [
         _headerRow([
           '',
+          if (mortal != null) 'Mortal decision',
           _hk ? 'Away' : 'Shanten',
           _hk ? 'Accepts' : 'Ukeire',
           'EV (HMR)',
@@ -1406,7 +1426,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           'Risk',
           'Detail',
         ]),
-        for (final line in r.lines)
+        for (final line in lines)
           TableRow(
             decoration: BoxDecoration(
               color: line.recommended
@@ -1416,10 +1436,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                       : null,
             ),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(3),
+              Container(
+                margin: const EdgeInsets.all(1),
+                padding: const EdgeInsets.all(2),
+                // Mortal's pick is ringed in blue.
+                decoration: _isMortalPick(mortal, line.discard)
+                    ? BoxDecoration(
+                        border: Border.all(color: _mortalBlue, width: 2),
+                        borderRadius: BorderRadius.circular(4))
+                    : null,
                 child: TileFace(type: line.discard, size: TileSize.small),
               ),
+              if (mortal != null) _mortalCell(mortal, line.discard),
               _cell(line.shanten == -1 ? 'win' : line.shanten.toString()),
               _cell(line.ukeire.toString(),
                   bold: line.bestUkeire, color: const Color(0xffffdf76)),
@@ -1495,7 +1523,85 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           ),
       ],
     );
+    // The table already fills the panel; Mortal's column scrolls it sideways
+    // rather than squeezing the others.
+    return mortal == null
+        ? table
+        : SingleChildScrollView(scrollDirection: Axis.horizontal, child: table);
   }
+
+  static const _mortalColour = Color(0xffffab91);
+  static const _mortalBlue = Color(0xff42a5f5);
+
+  static bool _isMortalPick(MortalAdvice? a, TileType type) =>
+      a?.status == MortalStatus.ready &&
+      a!.discard != null &&
+      a.discard == mjaiTile(Tile(-1, type));
+
+  /// ★ on Mortal's discard (★R: after declaring riichi), otherwise its order
+  /// of preference; … while it thinks, — when it has nothing to say.
+  Widget _mortalCell(MortalAdvice a, TileType type) {
+    final rank = a.status == MortalStatus.ready ? a.rankOf(type) : null;
+    final picked = rank != null && a.discard == mjaiTile(Tile(-1, type));
+    return _cell(
+      picked
+          ? (a.riichi ? '★R' : '★')
+          : rank?.toString() ?? (a.status == MortalStatus.thinking ? '…' : '—'),
+      bold: picked,
+      color: rank == null ? Colors.white38 : _mortalColour,
+    );
+  }
+
+  /// Mortal's move when it is more than a discard the column can star — a
+  /// win, call, pass, kan, riichi or nine terminals — or its state while
+  /// there is nothing to star yet.
+  Widget _mortalLine() {
+    final a = widget.game.mortalAdvice;
+    final text = switch (a?.status) {
+      MortalStatus.thinking => 'thinking…',
+      MortalStatus.failed => 'unavailable',
+      MortalStatus.ready when a!.riichi => 'RIICHI, cut ${a.discard}',
+      MortalStatus.ready => a!.action,
+      _ => null,
+    };
+    if (text == null) return const SizedBox.shrink();
+    final picked = a!.status == MortalStatus.ready;
+    return _tipBox(
+      Container(
+        margin: const EdgeInsets.only(top: 3, bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        // Mortal's chosen action is ringed in blue, like its tile.
+        decoration: picked
+            ? BoxDecoration(
+                border: Border.all(color: _mortalBlue, width: 2),
+                borderRadius: BorderRadius.circular(4))
+            : null,
+        child: Text('Mortal: $text',
+            key: const ValueKey('mortal-line'),
+            style: const TextStyle(
+                color: _mortalColour,
+                fontSize: 10,
+                fontWeight: FontWeight.w700)),
+      ),
+      _mortalTip,
+    );
+  }
+
+  static const _mortalTip = <InlineSpan>[
+    TextSpan(text: 'Mortal decision\n', style: _tipTitle),
+    TextSpan(
+        text: 'What Mortal, an open-source deep-learning mahjong AI, would do '
+            'in your seat, seeing only what your seat can see. ★ marks its '
+            'discard (★R: it would declare riichi first); the numbers are its '
+            'order of preference among the rest.\n\n',
+        style: _tipBody),
+    TextSpan(
+        text: 'A second opinion only: it never changes the green tile or '
+            'Autoplay. Riichi, single player. Mortal and its weights are '
+            'AGPL-3.0 — source: github.com/Equim-chan/Mortal; the service that '
+            'runs it: github.com/eric-r-xu/TileSense (mortal_sidecar).',
+        style: _tipDim),
+  ];
 
   /// The columns that rank the discards, in the order they are compared, each
   /// with whether higher (true) or lower (false) is better: the value column
@@ -1558,6 +1664,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 GuideConstants.chineseStyleDealInCost(
                     widget.game.round.ruleset)),
             'Detail' => _detailTip(),
+            'Mortal decision' => _mortalTip,
             _ => null,
           };
           // A ranking column's arrow: up where higher is better, down where
@@ -1567,11 +1674,13 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               .where((c) => c.$1 == l)
               .map((c) => c.$2)
               .firstOrNull;
-          final colour = l == 'TileSense EV'
-              ? const Color(0xffbfe6e0)
-              : l == 'EV (HMR)'
-                  ? const Color(0xff9fb0b8)
-                  : Colors.white70;
+          final colour = l == 'Mortal decision'
+              ? _mortalColour
+              : l == 'TileSense EV'
+                  ? const Color(0xffbfe6e0)
+                  : l == 'EV (HMR)'
+                      ? const Color(0xff9fb0b8)
+                      : Colors.white70;
           final label = Text(l,
               textAlign: TextAlign.center,
               style: TextStyle(
