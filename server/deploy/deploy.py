@@ -241,7 +241,7 @@ def deploy(target, host, droplet, rollback=None):
     needs_ingest = target in ('all', 'ingest')
     needs_mp = target in ('all', 'mp')
     needs_geoip = target == 'geoip'
-    if needs_mp:
+    if needs_mp or target == 'rollback-mp':
         confirm_mp_restart()
     rid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-') + uuid.uuid4().hex[:8]
     with tempfile.TemporaryDirectory(prefix='tilesense-deploy-') as directory:
@@ -283,6 +283,12 @@ def deploy(target, host, droplet, rollback=None):
                 check_release(host, rollback)
                 remote.call('commit')
                 return
+            if target in ('rollback-ingest', 'rollback-mp'):
+                # Reinstalls the binary a previous deploy staged; a failed health check restores the current one.
+                remote.call('service', id=rollback, name='tilesense-' + target.split('-')[1])
+                remote.call('commit')
+                print('Rollback verified: ' + rollback)
+                return
             if needs_client:
                 remote.call('preflight-client')
             if needs_client or needs_ingest or needs_mp or needs_geoip:
@@ -314,11 +320,11 @@ def deploy(target, host, droplet, rollback=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('target', nargs='?', default='all', choices=[
-        'all', 'client', 'ingest', 'mp', 'migrate', 'geoip', 'setup-client', 'rollback-client'])
+        'all', 'client', 'ingest', 'mp', 'migrate', 'geoip', 'setup-client', 'rollback-client', 'rollback-ingest', 'rollback-mp'])
     parser.add_argument('release', nargs='?')
     args = parser.parse_args()
-    if (args.target == 'rollback-client') != (args.release is not None):
-        parser.error('Only rollback-client accepts and requires a release ID')
+    if args.target.startswith('rollback-') != (args.release is not None):
+        parser.error('Only rollback targets accept and require a release ID')
     host, droplet = config(args.target)
     # Serialize local builds as well as remote activation; kernel releases locks after crashes.
     lock_path = Path(tempfile.gettempdir()) / ('tilesense-' + hashlib.sha256(str(REPO).encode()).hexdigest()[:16] + '.lock')

@@ -69,3 +69,43 @@ jobs:
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
         env:
           GH_TOKEN: ${{ github.token }}
+
+  # Builds release artifacts with deploy.py's own build steps, so what CI builds matches a real deploy.
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DART_IMAGE: dart:3.13.3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build client and services
+        run: |
+          rid="$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::8}"
+          echo "RID=$rid" >> "$GITHUB_ENV"
+          mkdir -p out
+          python3 - "$rid" <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'server/deploy')
+          import deploy
+          rid, work = sys.argv[1], Path('out').resolve()
+          deploy.build_client(work, rid, deploy.output(['git', 'rev-parse', 'HEAD']).strip(), False)
+          deploy.build_service(work, 'tilesense-ingest')
+          deploy.build_service(work, 'tilesense-mp')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ env.RID }}
+          path: out/
+          retention-days: 14
+      - if: failure()
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
