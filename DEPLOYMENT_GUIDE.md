@@ -91,7 +91,14 @@ and manual rsync commands bypass these locks and must no longer be used.
 
 ```sh
 ./deploy.sh rollback-client <previous-release-id>
+./deploy.sh rollback-ingest <previous-release-id>
+./deploy.sh rollback-mp <previous-release-id>   # drops active rooms, like deploy.sh mp
 ```
+
+Service rollbacks reinstall the binary (and, for mp, the unit) that an earlier
+`ingest`/`mp` deploy left in `/srv/tilesense/.staging/<release-id>/`, so the ID
+must be one printed by a deploy that included that service. They do not touch
+the database.
 
 Releases are immutable. The script never prunes the legacy snapshot, old
 releases, or backend backups. Monitor disk usage and retain versions needed by

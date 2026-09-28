@@ -238,6 +238,8 @@ def install_service(stage, name):
     dest = BIN_DIR / name
     unit = UNIT_DIR / (name + '.service')
     backup = stage / 'backup'
+    if not binary.is_file():
+        raise ValueError('No staged ' + name + ' binary for this release')
     backup.mkdir(exist_ok=True)
     if not dest.is_file() or not unit.is_file():
         raise ValueError('Existing service required; provision new services separately')

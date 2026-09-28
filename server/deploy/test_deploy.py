@@ -189,6 +189,19 @@ location / { proxy_pass http://unix:/run/myproject/myproject.sock; }
             with self.assertRaises(subprocess.CalledProcessError): remote.install_service(stage, 'tilesense-mp')
         self.assertEqual((bins / 'tilesense-mp').read_bytes(), b'old')
 
+    def test_service_without_staged_binary_leaves_service_untouched(self):
+        stage = self.root / 'stage'
+        bins = self.root / 'bin'
+        units = self.root / 'units'
+        for directory in (stage, bins, units): directory.mkdir()
+        (bins / 'tilesense-mp').write_bytes(b'current')
+        (units / 'tilesense-mp.service').write_text('current')
+        with patch.object(remote, 'BIN_DIR', bins), patch.object(remote, 'UNIT_DIR', units), \
+             patch.object(remote, 'run') as run:
+            with self.assertRaises(ValueError): remote.install_service(stage, 'tilesense-mp')
+        run.assert_not_called()
+        self.assertEqual((bins / 'tilesense-mp').read_bytes(), b'current')
+
     def test_worker_signal_restores_uncommitted_release(self):
         artifact(self.root / 'legacy', 'legacy')
         artifact(self.root / 'releases/new', 'new')
@@ -294,6 +307,22 @@ class DriverTests(unittest.TestCase):
             with self.assertRaises(ValueError): deploy.deploy('client', 'host', 'ip')
         self.assertNotIn('commit', [c.args[0] for c in worker.call.call_args_list])
         worker.close.assert_called_once()
+
+    def test_service_rollback_reinstalls_staged_release_without_building(self):
+        worker = MagicMock()
+        worker.call.return_value = {}
+        with patch.dict(os.environ, {'ALLOW_MP_RESTART': '1'}), \
+             patch.object(deploy, 'build_service') as build, patch.object(deploy, 'Remote', return_value=worker):
+            deploy.deploy('rollback-mp', 'host', 'ip', 'old-release')
+        build.assert_not_called()
+        self.assertEqual([c.args[0] for c in worker.call.call_args_list], ['service', 'commit'])
+        self.assertEqual(worker.call.call_args_list[0].kwargs, {'id': 'old-release', 'name': 'tilesense-mp'})
+
+    def test_mp_rollback_requires_explicit_acknowledgement(self):
+        with patch.dict(os.environ, {}, clear=True), patch.object(deploy, 'Remote') as remote, \
+             patch.object(deploy.sys, 'stdin', MagicMock(**{'isatty.return_value': False})):
+            with self.assertRaises(ValueError): deploy.deploy('rollback-mp', 'host', 'ip', 'old-release')
+        remote.assert_not_called()
 
     def test_all_builds_precede_remote_and_client_activates_last(self):
         events = []
