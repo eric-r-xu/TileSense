@@ -51,7 +51,9 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
-      - run: flutter test
+      # A closed local port, so the online lobby tests are refused at once
+      # instead of dialling the production server (lib/net/mp_client.dart).
+      - run: flutter test --dart-define=MP_ENDPOINT=ws://127.0.0.1:9
       - if: failure()
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
         env:
