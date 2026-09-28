@@ -80,6 +80,7 @@ Everything else — shanten and acceptance, win-probability modelling, call
 mechanics, the table and hand widgets — is the same code for both. Riichi tests
 live in `flutter_client/test/`, Hong Kong tests in
 `flutter_client/test/hong_kong/`, Taiwanese coverage in
+`flutter_client/test/taiwanese_test.dart`,
 `flutter_client/test/taiwanese_tuning_sweep_test.dart` and the shared
 ruleset tests in `packages/mahjong_core/test/`;
 `flutter_client/test/ruleset_toggle_test.dart` covers the switch itself.
@@ -121,26 +122,26 @@ ruleset tests in `packages/mahjong_core/test/`;
   riichi) and other players' discards they passed after declaring riichi.
 - End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
   yakuman, and the point transfers.
-- An **Autoplay** toggle that plays your seat with the recommended discard.
-- A **play style** — defensive, balanced or aggressive — that changes how
-  dearly the guide prices danger and how readily it keeps a hand quiet rather
-  than declaring riichi, and a **focus** — Speed or Balanced — that tilts
-  chance of finishing against payout. Neither changes what a hand is worth, and
-  both steer Autoplay through the same scores. Both start on
-  **Aggressive / Speed** under riichi, chosen from the sweeps below. Hong Kong
-  has no riichi or damaten for play style to weigh, and a sweep found no
-  placement effect from it either, so that dial is hidden and pinned to
-  Balanced under **both** Hong Kong and Taiwanese — only focus (**Speed**) is
-  exposed there.
-- A third dial, **strategy** — Points or Placement, riichi only, starting on
-  Points — that changes what "worth" means rather than how danger is priced:
-  Placement runs every points-flavoured number through a heuristic model of
-  how it moves the chance of finishing above each other seat, given the
-  scores on the table right now, and can take a damaten a hand would riichi
-  for the points, or the reverse. Opt-in and not yet swept against the bots
-  the way style and focus's defaults were; hidden and pinned to Points under
-  Hong Kong and Taiwanese alike, same as style. Details:
-  [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
+- An **Auto-Play** toggle that plays your seat with the recommended discard.
+- A **goal** — Win Rate, Points or Placement, starting on **Placement** —
+  that the guide and Auto-Play play for. The goal picks three underlying dials
+  from simulated games against the bots (`logic/auto_dials.dart`), and the
+  panel shows them read-only as PLAYING:
+  - **play style** — defensive, balanced or aggressive — how dearly the guide
+    prices danger and how readily it keeps a hand quiet rather than declaring
+    riichi;
+  - **focus** — Speed or Balanced — which tilts chance of finishing against
+    payout;
+  - **strategy** — Points or Placement — what "worth" means: Placement runs
+    every points-flavoured number through a heuristic model of how it moves
+    the chance of finishing above each other seat. Details:
+    [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
+
+  Under riichi, Win Rate and Points play **Aggressive / Speed / Points** and
+  Placement plays **Balanced / Speed / Points**. Hong Kong and Taiwanese pin
+  style to Balanced and strategy to Points; focus is Speed, except Balanced at
+  Taiwanese's 5-tai minimum. The Custom Hand & Context Builder has no game to
+  win, so it keeps the three dials to set by hand.
 - **🇯🇵 Riichi, 🇭🇰 Hong Kong and 🇹🇼 Taiwanese rules**, chosen on the welcome
   screen or from the app bar, each with a one-page rules PDF
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
@@ -313,29 +314,34 @@ packages/mahjong_core/lib/   pure Dart core, unit-tested, shared by the app
 flutter_client/lib/
   logic/    efficiency_engine.dart — the guide's scoring-aware discard EV
             placement_utility.dart — the model behind Strategy: Placement
+            auto_dials.dart — the dials each Goal plays
   game/     game_controller.dart (offline) / online_game_controller.dart
   net/      multiplayer client (WebSocket)
   scenario/ the Custom Hand & Context Builder's state
+  telemetry/ gameplay telemetry client
   ui/       table, hand, efficiency overlay, scoring screen, tile widget
 
 server/mp/lib/   the multiplayer game server (table_loop.dart)
+server/bin/      the telemetry ingest (server.dart)
+reports/         bot-simulation runs and the stats report
 ```
 
 ### Languages
 
-The app, its shared core, and the multiplayer server are a single **Dart**
-codebase. Everything else is either Flutter-generated platform glue or
-offline tooling, not hand-maintained app code:
+The app, its shared core, the multiplayer server and the telemetry ingest are
+a single **Dart** codebase. Everything else is either Flutter-generated
+platform glue or offline and deploy tooling, not part of the running app:
 
 | Language | Where | Purpose |
 |---|---|---|
-| Dart | `flutter_client/lib/`, `packages/mahjong_core/lib/`, `server/mp/lib/` | The app, its shared core, and the multiplayer server |
+| Dart | `flutter_client/lib/`, `packages/mahjong_core/lib/`, `server/mp/lib/`, `server/bin/` | The app, its shared core, the multiplayer server and the telemetry ingest |
 | Kotlin | `android/app/.../MainActivity.kt` | Thin Android host shim, generated by `flutter create` |
 | Swift | `ios/Runner/` | Thin iOS host shim, generated by `flutter create` |
 | Java | `android/.../GeneratedPluginRegistrant.java` | Auto-generated Android plugin registration |
 | HTML | `web/index.html` | Static shell the Flutter web build mounts into |
-| Python | `flutter_client/tools/render_tiles.py` | Offline asset generation (tile art; the voice-clip generators are kept local) — not part of the running app |
-| Shell | `ios/Flutter/flutter_export_environment.sh` | Flutter-generated iOS build env script |
+| Python | `flutter_client/tools/`, `reports/sim_report.py`, `server/deploy/` | Offline tooling — tile art, font fingerprinting, web precompression, the HK win-model fit, the sim report, and deploy scripts (the voice-clip generators are kept local) |
+| Shell | `deploy.sh`, `clean.sh`, `reports/*.sh`, `server/deploy/` | Deploy, cleanup and sim-run scripts |
+| SQL | `server/migrations/`, `reports/sim_schema.sql` | Telemetry and sim-results database schemas |
 
 ---
 
@@ -392,8 +398,6 @@ version: 0.2.1+4     # 0.2.1 = version name, 4 = build number — bump +N on eve
 ---
 
 ## Credits
-
-TileSense owes a great deal to two fantastic, inspirational resources:
 
 - **[Riichi-Trainer](https://github.com/Euophrys/Riichi-Trainer)** by
   Euophrys, for the shanten, ukeire and defense calculations.
