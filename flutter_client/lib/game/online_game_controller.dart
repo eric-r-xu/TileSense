@@ -21,6 +21,7 @@ import '../net/mp_client.dart';
 import 'call_callout.dart';
 import 'game_controller.dart' show kHumanSeat, riichiAutoDiscardDelay;
 import 'guide_host.dart';
+import 'mortal_advisor.dart' show MortalAdvice;
 import 'sfx.dart';
 
 /// The room's own lifecycle, as the server reports it — separate from
@@ -413,6 +414,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   EfficiencyReport report = EfficiencyReport.waiting();
 
   CallOption? _humanCallOption;
+  @override
+  MortalAdvice? get mortalAdvice => null; // offline games only
+
   @override
   bool get awaitingHumanCall => _humanCallOption != null;
   @override

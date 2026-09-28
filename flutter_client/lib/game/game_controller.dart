@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/bot.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
+import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
@@ -19,6 +20,7 @@ import 'package:mahjong_core/tile.dart';
 import '../telemetry/telemetry.dart';
 import 'call_callout.dart';
 import 'guide_host.dart';
+import 'mortal_advisor.dart';
 import 'sfx.dart';
 
 export 'guide_host.dart' show GamePhase;
@@ -152,6 +154,15 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// Every change made to [round] this hand, in order. Replaying a prefix of
   /// it onto [_dealRound] rebuilds the table as it stood at that point.
   final List<_Move> _log = [];
+
+  final MortalAdvisor? _mortal =
+      kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl);
+
+  /// The round and move count Mortal was last asked about; see [_askMortal].
+  (Round, int)? _mortalAsked;
+
+  @override
+  MortalAdvice? mortalAdvice;
 
   /// Your decisions this hand, newest last: where [_log] stood just before
   /// each one, and what to call it on the take-back button.
@@ -899,6 +910,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     for (final opt in round.callOptions) {
       if (opt.seat == kHumanSeat && !autoplay) {
         _humanCallOption = opt;
+        _askMortal();
         if (autoWin && opt.types.contains(CallType.ron)) {
           answerCall(CallType.ron); // settles the bot seats' calls too
           return;
@@ -1306,9 +1318,54 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (value) _scheduleLoop();
   }
 
+  // --- Mortal's second opinion -----------------------------------------
+
+  /// Asks Mortal about your turn or call, once per position, for the guide
+  /// panel. Riichi only, and not under Autoplay (nobody is reading the panel
+  /// move by move, and it would cost the sidecar a request a turn).
+  void _askMortal() {
+    if (_mortal == null || !ruleset.isRiichi) {
+      mortalAdvice = null;
+      return;
+    }
+    final call = awaitingHumanCall;
+    if (autoplay || !(isHumanTurn || call)) {
+      mortalAdvice = MortalAdvice.idle;
+      _mortalAsked = null;
+      return;
+    }
+    final key = (round, _log.length);
+    if (_mortalAsked == key) return;
+    _mortalAsked = key;
+    mortalAdvice = MortalAdvice.thinking;
+    _mortal.advise(mjaiView(_mjaiEvents(), kHumanSeat), call: call).then(
+        (advice) => advice, onError: (Object e) {
+      debugPrint('Mortal advice unavailable: $e');
+      return MortalAdvice.failed;
+    }).then((advice) {
+      // Dropped if the table has moved on (a move, undo, or a new hand).
+      if (_disposed || _mortalAsked != key) return;
+      mortalAdvice = advice;
+      notifyListeners();
+    });
+  }
+
+  /// This hand as mjai events, nothing hidden: the deal replayed move by
+  /// move, the same way [undo] rebuilds the table.
+  List<MjaiEvent> _mjaiEvents() {
+    final replay = _dealRound();
+    final recorder = MjaiRecorder(replay, kyoku: handInWind);
+    for (final move in _log) {
+      move.applyTo(replay);
+      recorder.sync();
+    }
+    return recorder.events;
+  }
+
   // --- efficiency report -------------------------------------------
 
   void _refreshReport() {
+    _askMortal();
     // Paused on a flower win, there is no discard to advise on.
     if (round.canFlowerWin(kHumanSeat)) {
       report = EfficiencyReport.waiting();
