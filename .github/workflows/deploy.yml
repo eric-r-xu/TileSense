@@ -1,0 +1,119 @@
+# Deploys to production with ./deploy.sh. See DEPLOYMENT_GUIDE.md, "Automatic
+# deploys (GitHub Actions)".
+#
+# Automatically: the web client, once CI has passed on a push to ericrxu_dev.
+# By hand (Actions tab -> Deploy -> Run workflow): mp, which drops live online
+# rooms, and the rollbacks. ingest, migrate, geoip and all need doctl and
+# database credentials, so they stay on the laptop.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [ericrxu_dev]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        type: choice
+        options: [client, mp, rollback-client, rollback-ingest, rollback-mp]
+        default: client
+      release:
+        description: Release ID (rollbacks only)
+        required: false
+
+permissions:
+  contents: read
+
+# Queue, never cancel: a deploy stopped midway is left for remote.py to undo.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # Deploys automatically only what CI tested on a push, and only while it is
+  # still the tip of ericrxu_dev; a newer push's own CI run deploys that one.
+  check:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.tip.outputs.go }}
+      sha: ${{ steps.tip.outputs.sha }}
+    steps:
+      - id: tip
+        env:
+          TESTED: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          echo "sha=$TESTED" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            echo go=true >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          tip="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" refs/heads/ericrxu_dev | cut -f1)"
+          if [[ "$tip" == "$TESTED" ]]; then
+            echo go=true >> "$GITHUB_OUTPUT"
+          else
+            echo "ericrxu_dev moved on to $tip; skipping $TESTED." >> "$GITHUB_STEP_SUMMARY"
+            echo go=false >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      TARGET: ${{ inputs.target || 'client' }}
+      RELEASE: ${{ inputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
+      # Same pins as ci.yml, so production is built by the toolchain CI tested.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: SSH key and pinned host key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      # deploy.env is git-ignored, so the checkout still counts as clean.
+      - name: deploy.env
+        env:
+          HOST: ${{ secrets.HOST }}
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}
+          DART_IMAGE: ${{ secrets.DART_IMAGE }}
+        run: |
+          {
+            echo "export HOST=$HOST"
+            echo "export DROPLET_IP=$DROPLET_IP"
+            echo "export BASE_HREF=/tilesense/"
+            echo "export DART_IMAGE=$DART_IMAGE"
+          } > deploy.env
+      - name: ./deploy.sh ${{ env.TARGET }}
+        run: |
+          set -o pipefail  # or tee would hide a failed deploy
+          case "$TARGET" in
+            mp) export ALLOW_MP_RESTART=1 ;;  # choosing mp here is the acknowledgement
+            rollback-*)
+              [[ -n "$RELEASE" ]] || { echo 'Rollbacks need a release ID.' >&2; exit 1; }
+              [[ "$TARGET" == rollback-mp ]] && export ALLOW_MP_RESTART=1 ;;
+          esac
+          ./deploy.sh "$TARGET" ${RELEASE:+"$RELEASE"} 2>&1 | tee deploy.log
+          grep -E '^(Deployment|Rollback) verified' deploy.log >> "$GITHUB_STEP_SUMMARY" || true
+      - if: always()
+        run: rm -f ~/.ssh/id_ed25519 deploy.env

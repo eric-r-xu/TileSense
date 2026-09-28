@@ -87,6 +87,64 @@ ID, HTML base and core assets before and after activation. Local and remote
 locks prevent overlapping deployments using this script. Legacy deploy aliases
 and manual rsync commands bypass these locks and must no longer be used.
 
+## Automatic deploys (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs this same `./deploy.sh` from GitHub:
+
+- **Automatically:** `client`, after the CI workflow passes on a push to
+  `ericrxu_dev`. It deploys exactly the commit CI tested, and skips it if
+  `ericrxu_dev` has already moved on (the newer push's own CI run deploys that).
+  Pull requests never deploy.
+- **By hand** (Actions tab → Deploy → Run workflow): `mp`, which drops live
+  online rooms (choosing it is the `ALLOW_MP_RESTART=1` acknowledgement), and
+  `rollback-client`, `rollback-ingest` and `rollback-mp` with a release ID.
+- **Laptop only:** `ingest`, `migrate`, `geoip`, `all` and `setup-client`. The
+  first four need doctl and database credentials, which are kept off GitHub.
+
+Deploys queue and are never cancelled midway. The droplet's own lock still
+serializes them against a deploy started from the laptop. Each run's release ID
+is shown in the run's summary, for a later `rollback-client`.
+
+### One-time setup
+
+1. Make a key used only for deploys, and authorize it on the droplet:
+
+   ```sh
+   ssh-keygen -t ed25519 -f tilesense_deploy -N "" -C tilesense-github-deploy
+   ssh root@$DROPLET_IP 'cat >> /root/.ssh/authorized_keys' < tilesense_deploy.pub
+   ```
+
+2. Pin the droplet's host key. Check the fingerprint of the scan against the
+   droplet's own before trusting it:
+
+   ```sh
+   ssh-keyscan -t ed25519 $DROPLET_IP > known_hosts_droplet
+   ssh-keygen -lf known_hosts_droplet
+   ssh root@$DROPLET_IP 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'
+   ```
+
+3. In GitHub, Settings → Environments → **New environment** `production`:
+   - **Deployment branches:** selected branches, `ericrxu_dev` only.
+   - **Secrets:** `DEPLOY_SSH_KEY` (the contents of `tilesense_deploy`, the
+     private key), `SSH_KNOWN_HOSTS` (the contents of `known_hosts_droplet`),
+     `HOST`, `DROPLET_IP` and `DART_IMAGE` (the same values as `deploy.env`).
+   - **Required reviewers** (optional): approve each deploy with one click.
+
+   Then delete the local copies of `tilesense_deploy` and `known_hosts_droplet`.
+
+4. Firewall: GitHub's runners have no fixed IP. If a DigitalOcean firewall
+   limits SSH to your own address, runners are blocked. Either allow SSH from
+   anywhere (key-only; password login must stay off), or add Tailscale to the
+   workflow so the runner joins your private network (more secure).
+
+The workflow runs once it is on `ericrxu_dev`: GitHub only reads
+`workflow_run` workflows from the default branch. Try it first with a manual
+run of `client`.
+
+**To pause it:** Actions → Deploy → ⋯ → Disable workflow. **To revoke it:**
+delete the `tilesense-github-deploy` line from `/root/.ssh/authorized_keys` on
+the droplet.
+
 ## Recovery and retention
 
 ```sh
