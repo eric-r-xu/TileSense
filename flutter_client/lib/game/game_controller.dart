@@ -35,7 +35,7 @@ Duration riichiAutoDiscardDelay(Random rng) =>
 /// The default personality per seat — 0 self (Orderic), 1 right (Grant),
 /// 2 across (Hubert), 3 left (Astaroth) — and what a fresh [GameController]
 /// starts with. Every seat, including the human's, can be changed to any of
-/// the five personas afterward; see [GameController.setSeatCharacter].
+/// the personas afterward; see [GameController.setSeatCharacter].
 const List<Character> kSeatCharacters = [
   Character.orderic,
   Character.grant,
