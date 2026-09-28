@@ -38,8 +38,7 @@ Taiwanese rules and the 2D layout are maintained as part of TileSense.
 ## Quick start
 
 Install the
-[Flutter SDK](https://docs.flutter.dev/get-started/install) (≥ 3.3, tested on
-3.47), then from `flutter_client/` run `flutter pub get` once and:
+[Flutter SDK](https://docs.flutter.dev/get-started/install), then from `flutter_client/` run `flutter pub get` once and:
 
 | Platform | Command | Prerequisites |
 |---|---|---|
@@ -80,6 +79,7 @@ Everything else — shanten and acceptance, win-probability modelling, call
 mechanics, the table and hand widgets — is the same code for both. Riichi tests
 live in `flutter_client/test/`, Hong Kong tests in
 `flutter_client/test/hong_kong/`, Taiwanese coverage in
+`flutter_client/test/taiwanese_test.dart`,
 `flutter_client/test/taiwanese_tuning_sweep_test.dart` and the shared
 ruleset tests in `packages/mahjong_core/test/`;
 `flutter_client/test/ruleset_toggle_test.dart` covers the switch itself.
@@ -121,26 +121,26 @@ ruleset tests in `packages/mahjong_core/test/`;
   riichi) and other players' discards they passed after declaring riichi.
 - End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
   yakuman, and the point transfers.
-- An **Autoplay** toggle that plays your seat with the recommended discard.
-- A **play style** — defensive, balanced or aggressive — that changes how
-  dearly the guide prices danger and how readily it keeps a hand quiet rather
-  than declaring riichi, and a **focus** — Speed or Balanced — that tilts
-  chance of finishing against payout. Neither changes what a hand is worth, and
-  both steer Autoplay through the same scores. Both start on
-  **Aggressive / Speed** under riichi, chosen from the sweeps below. Hong Kong
-  has no riichi or damaten for play style to weigh, and a sweep found no
-  placement effect from it either, so that dial is hidden and pinned to
-  Balanced under **both** Hong Kong and Taiwanese — only focus (**Speed**) is
-  exposed there.
-- A third dial, **strategy** — Points or Placement, riichi only, starting on
-  Points — that changes what "worth" means rather than how danger is priced:
-  Placement runs every points-flavoured number through a heuristic model of
-  how it moves the chance of finishing above each other seat, given the
-  scores on the table right now, and can take a damaten a hand would riichi
-  for the points, or the reverse. Opt-in and not yet swept against the bots
-  the way style and focus's defaults were; hidden and pinned to Points under
-  Hong Kong and Taiwanese alike, same as style. Details:
-  [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
+- An **Auto-Play** toggle that plays your seat with the recommended discard.
+- A **goal** — Win Rate, Points or Placement, starting on **Placement** —
+  that the guide and Auto-Play play for. The goal picks three underlying dials
+  from simulated games against the bots (`logic/auto_dials.dart`), and the
+  panel shows them read-only as PLAYING:
+  - **play style** — defensive, balanced or aggressive — how dearly the guide
+    prices danger and how readily it keeps a hand quiet rather than declaring
+    riichi;
+  - **focus** — Speed or Balanced — which tilts chance of finishing against
+    payout;
+  - **strategy** — Points or Placement — what "worth" means: Placement runs
+    every points-flavoured number through a heuristic model of how it moves
+    the chance of finishing above each other seat. Details:
+    [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
+
+  Under riichi, Win Rate and Points play **Aggressive / Speed / Points** and
+  Placement plays **Balanced / Speed / Points**. Hong Kong and Taiwanese pin
+  style to Balanced and strategy to Points; focus is Speed, except Balanced at
+  Taiwanese's 5-tai minimum. The Custom Hand & Context Builder has no game to
+  win, so it keeps the three dials to set by hand.
 - **🇯🇵 Riichi, 🇭🇰 Hong Kong and 🇹🇼 Taiwanese rules**, chosen on the welcome
   screen or from the app bar, each with a one-page rules PDF
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
@@ -164,96 +164,14 @@ ruleset tests in `packages/mahjong_core/test/`;
   four copies, and it runs no game behind it: no bots, no turn timer, no
   autoplay.
 
-### How the guide does against the bots
-
-Every figure below is Autoplay (the guide on Aggressive / Speed) sitting in
-your seat, compared game-by-game with a **control** — `SimpleBot` itself in
-your seat — on identical seeds. The Hong Kong and Taiwanese runs use three
-`SimpleBot` opponents; the riichi runs use `FoldingBot`, which gets out of the
-way of a riichi instead of feeding it (`SIM_FOLD=1`), so the two are not
-directly comparable. Placement
-is 1–4, lower is better; "better" below means the guide finishes that much
-higher, on average, than the bot would have. Method, tables and re-run commands:
-[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up).
-
-**🇯🇵 Riichi — the guide wins.**
-
-| Measurement | Guide vs. bot |
-|---|---|
-| 3000 paired hanchan | **0.211 of a placement better**, p = 4e-16 |
-| Style × Focus sweep, 2000 East games and 800 hanchan, Holm-corrected | Every Speed and Balanced pairing **0.11–0.26 better** |
-
-Measured at `e850241`, 2026-09-12. Since then `ca4d8ee` (2026-09-24) taught the
-guide to price every live riichi rather than only the first; re-measuring the
-same configuration put it at **0.279** of a placement ahead, with deal-ins down
-0.0515 per hanchan (p = 5e-13).
-
-**🇭🇰 Hong Kong — the guide wins clearly.** On 6000 held-out East-only games
-(seeds 300000+, 2026-09-24) it finishes **0.270 ± 0.036 of a placement ahead
-of the bot** (p < 1e-6), and 0.492 ahead at a 3-faan minimum. It wins 0.310
-hands per hand played to the bot's 0.253 and deals in less. What changed:
-while no opponent is a threat it no longer breaks a hand up to get further
-from ready, and it takes any call that brings the hand closer — the bot's
-speed — while its own valuation and defence still pick among those lines.
-That alone was worth 0.163 of a placement over the previous guide; six other
-ideas measured at nothing and were left off
-([`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#round-6-8-the-bots-speed-the-guides-judgement)).
-
-The earlier result, before that change, on three sets of seeds that no tuning
-round used (East-only games, 0-faan minimum), measured at `df2627a` /
-`91b989a`, 2026-09-15:
-
-| Held-out run | Guide avg place | Bot avg place | Guide vs. bot | Wins / hand (guide · bot) |
-|---|---|---|---|---|
-| 2000 games, seeds 13000+ | 2.369 | 2.486 | 0.116 better, p = 4.2e-4 | 0.259 · 0.264 |
-| 2000 games, seeds 60000+ | 2.428 | 2.514 | 0.086 better, p = 9.0e-3 | 0.253 · 0.258 |
-| 6000 games, seeds 100000+ | 2.437 | 2.473 | 0.036 better, p = 0.059 | 0.250 · 0.262 |
-| **All three, pooled (10,000 games)** | | | **0.062 ± 0.029 better, p = 2.6e-5** | |
-
-The edge is real but modest — about 0.06 of a placement; the first run
-overstated it. Before its Hong Kong tuning the same guide placed *behind* the
-bot (by 0.063 and 0.050 on the first two seed sets): riichi's pre-ready model
-kept breaking up close hands for wider ones, and it treated almost every
-opponent as a threat, so it defended and refused calls. A softer narrow-hand
-penalty and a three-set threat fixed both. It now wins about as often as the
-bot while dealing in about 15% less.
-
-*Tried and not adopted:* a win model that also counts pung and chow
-acceptance, with its constants fitted to 159k guide decisions. It predicts
-outcomes far better, but in a 6000-game head-to-head it finished only 0.014
-of a placement ahead of the shipped guide (± 0.033, p = 0.40) — no measurable
-gain — so the shipped model stays.
-
-**🇹🇼 Taiwanese — the guide wins**, held out on seeds no tuning run used
-(800 paired hanchan, `SimpleBot` opponents). Measured at `9f04de9`, 2026-09-23:
-
-| Measurement | Guide vs. bot |
-|---|---|
-| Placement | **0.146 better**, ± 0.108, p = 0.008 |
-| Final points | **+4.3**, ± 2.9, p = 0.004 |
-| Against the table (2.5 = even) | 2.313, p = 2e-6; 1st 31.1%, 4th 20.3% |
-
-The confidence interval is nearly as wide as the effect — 800 games is a
-thinner base than the other two rulesets rest on. Before the Taiwanese fixes
-the guide was 0.26 of a placement *behind* the bot: `_assessValue` only priced
-13-tile hands, so every 16-tile line scored zero, which tied every discard and
-made it refuse every call. Interestingly, the call-aware win model Hong Kong
-measured and rejected is the one Taiwanese ships — a five-set hand leans on
-calls far more than a four-set one.
-
-*Play style, measured and dropped:* a 14,000-game sweep found style has no
-placement effect under Hong Kong, so the dial is hidden and pinned to Balanced
-there — focus still matters. Numbers and method:
-[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
-
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No replays
 yet.
 
 ### Run
 
-Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) (≥ 3.3,
-tested on 3.47). One-time setup:
+Install the [Flutter SDK](https://docs.flutter.dev/get-started/install).
+One-time setup:
 
 ```sh
 cd flutter_client
@@ -313,29 +231,34 @@ packages/mahjong_core/lib/   pure Dart core, unit-tested, shared by the app
 flutter_client/lib/
   logic/    efficiency_engine.dart — the guide's scoring-aware discard EV
             placement_utility.dart — the model behind Strategy: Placement
+            auto_dials.dart — the dials each Goal plays
   game/     game_controller.dart (offline) / online_game_controller.dart
   net/      multiplayer client (WebSocket)
   scenario/ the Custom Hand & Context Builder's state
+  telemetry/ gameplay telemetry client
   ui/       table, hand, efficiency overlay, scoring screen, tile widget
 
 server/mp/lib/   the multiplayer game server (table_loop.dart)
+server/bin/      the telemetry ingest (server.dart)
+reports/         bot-simulation runs and the stats report
 ```
 
 ### Languages
 
-The app, its shared core, and the multiplayer server are a single **Dart**
-codebase. Everything else is either Flutter-generated platform glue or
-offline tooling, not hand-maintained app code:
+The app, its shared core, the multiplayer server and the telemetry ingest are
+a single **Dart** codebase. Everything else is either Flutter-generated
+platform glue or offline and deploy tooling, not part of the running app:
 
 | Language | Where | Purpose |
 |---|---|---|
-| Dart | `flutter_client/lib/`, `packages/mahjong_core/lib/`, `server/mp/lib/` | The app, its shared core, and the multiplayer server |
+| Dart | `flutter_client/lib/`, `packages/mahjong_core/lib/`, `server/mp/lib/`, `server/bin/` | The app, its shared core, the multiplayer server and the telemetry ingest |
 | Kotlin | `android/app/.../MainActivity.kt` | Thin Android host shim, generated by `flutter create` |
 | Swift | `ios/Runner/` | Thin iOS host shim, generated by `flutter create` |
 | Java | `android/.../GeneratedPluginRegistrant.java` | Auto-generated Android plugin registration |
 | HTML | `web/index.html` | Static shell the Flutter web build mounts into |
-| Python | `flutter_client/tools/render_tiles.py` | Offline asset generation (tile art; the voice-clip generators are kept local) — not part of the running app |
-| Shell | `ios/Flutter/flutter_export_environment.sh` | Flutter-generated iOS build env script |
+| Python | `flutter_client/tools/`, `reports/sim_report.py`, `server/deploy/` | Offline tooling — tile art, font fingerprinting, web precompression, the HK win-model fit, the sim report, and deploy scripts (the voice-clip generators are kept local) |
+| Shell | `deploy.sh`, `clean.sh`, `reports/*.sh`, `server/deploy/` | Deploy, cleanup and sim-run scripts |
+| SQL | `server/migrations/`, `reports/sim_schema.sql` | Telemetry and sim-results database schemas |
 
 ---
 
@@ -392,8 +315,6 @@ version: 0.2.1+4     # 0.2.1 = version name, 4 = build number — bump +N on eve
 ---
 
 ## Credits
-
-TileSense owes a great deal to two fantastic, inspirational resources:
 
 - **[Riichi-Trainer](https://github.com/Euophrys/Riichi-Trainer)** by
   Euophrys, for the shanten, ukeire and defense calculations.
