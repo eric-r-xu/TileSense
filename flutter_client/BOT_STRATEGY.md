@@ -1,17 +1,18 @@
 # Bot Strategy vs. You
 
-A plain-language breakdown of how Grant, Hubert, and Astaroth decide what to
-do — and how that compares to how your own seat plays. Based on
+A plain-language breakdown of how the bot opponents decide what to do — and
+how that compares to how your own seat plays. Based on
 `packages/mahjong_core/lib/bot.dart` (the opponents' brain) and
 `flutter_client/lib/logic/efficiency_engine.dart` +
 `packages/mahjong_core/lib/safety.dart` (your guide).
 
 ## The short version
 
-- **There is only one opponent "brain," used for all three of them.** Grant,
-  Hubert, and Astaroth are not three different strategies — they're the exact
-  same simple rulebook, just with different portraits and voice lines glued on
-  top.
+- **There is only one opponent "brain," `SimpleBot`, whoever sits in the
+  seat.** Every bot seat runs it, offline and online. A seat can show any of
+  the characters (Grant, Hubert and Astaroth are just the defaults, and
+  offline seats may repeat one), but the character is only a portrait and a
+  voice, not a strategy.
 - **Your seat is played by the guide, never by that rulebook.** Whether you're
   tapping tiles yourself or you've flipped Autoplay on, your seat's decisions
   come from the efficiency / expected-value / safety analysis. The opponents
@@ -51,11 +52,11 @@ validates that model with these dials. These are evidence-backed defaults,
 not a claim that every alternative has been beaten. Switching into riichi
 restores the player's previous dials, or its default preset if none existed.
 
-## Same brain, three costumes
+## Same brain, any costume
 
-All three opponents are built from one piece of code, with only the
-random-number seed differing so their tie-breaking coin flips don't all land
-the same way:
+Every bot seat is built from one piece of code, whichever character it shows,
+with only the random-number seed differing so their tie-breaking coin flips
+don't all land the same way:
 
 ```dart
 _bots = [
@@ -157,7 +158,7 @@ dora along with it.
 | Chi / pon / kan / ron | Simple fixed rules; never chis | Every option scored on expected value, then three hard rules |
 | Plays defense vs. a riichi | Never | Yes — safety ratings, and it folds when behind |
 | Explains itself | — | Yes, in plain English, in the guide panel |
-| Different per character? | No — one shared brain in three costumes | — |
+| Different per character? | No — one shared brain whatever the character | — |
 
 ## About chi
 
