@@ -38,8 +38,7 @@ Taiwanese rules and the 2D layout are maintained as part of TileSense.
 ## Quick start
 
 Install the
-[Flutter SDK](https://docs.flutter.dev/get-started/install) (≥ 3.3, tested on
-3.47), then from `flutter_client/` run `flutter pub get` once and:
+[Flutter SDK](https://docs.flutter.dev/get-started/install), then from `flutter_client/` run `flutter pub get` once and:
 
 | Platform | Command | Prerequisites |
 |---|---|---|
@@ -165,96 +164,14 @@ ruleset tests in `packages/mahjong_core/test/`;
   four copies, and it runs no game behind it: no bots, no turn timer, no
   autoplay.
 
-### How the guide does against the bots
-
-Every figure below is Autoplay (the guide on Aggressive / Speed) sitting in
-your seat, compared game-by-game with a **control** — `SimpleBot` itself in
-your seat — on identical seeds. The Hong Kong and Taiwanese runs use three
-`SimpleBot` opponents; the riichi runs use `FoldingBot`, which gets out of the
-way of a riichi instead of feeding it (`SIM_FOLD=1`), so the two are not
-directly comparable. Placement
-is 1–4, lower is better; "better" below means the guide finishes that much
-higher, on average, than the bot would have. Method, tables and re-run commands:
-[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#how-the-guide-measures-up).
-
-**🇯🇵 Riichi — the guide wins.**
-
-| Measurement | Guide vs. bot |
-|---|---|
-| 3000 paired hanchan | **0.211 of a placement better**, p = 4e-16 |
-| Style × Focus sweep, 2000 East games and 800 hanchan, Holm-corrected | Every Speed and Balanced pairing **0.11–0.26 better** |
-
-Measured at `e850241`, 2026-09-12. Since then `ca4d8ee` (2026-09-24) taught the
-guide to price every live riichi rather than only the first; re-measuring the
-same configuration put it at **0.279** of a placement ahead, with deal-ins down
-0.0515 per hanchan (p = 5e-13).
-
-**🇭🇰 Hong Kong — the guide wins clearly.** On 6000 held-out East-only games
-(seeds 300000+, 2026-09-24) it finishes **0.270 ± 0.036 of a placement ahead
-of the bot** (p < 1e-6), and 0.492 ahead at a 3-faan minimum. It wins 0.310
-hands per hand played to the bot's 0.253 and deals in less. What changed:
-while no opponent is a threat it no longer breaks a hand up to get further
-from ready, and it takes any call that brings the hand closer — the bot's
-speed — while its own valuation and defence still pick among those lines.
-That alone was worth 0.163 of a placement over the previous guide; six other
-ideas measured at nothing and were left off
-([`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#round-6-8-the-bots-speed-the-guides-judgement)).
-
-The earlier result, before that change, on three sets of seeds that no tuning
-round used (East-only games, 0-faan minimum), measured at `df2627a` /
-`91b989a`, 2026-09-15:
-
-| Held-out run | Guide avg place | Bot avg place | Guide vs. bot | Wins / hand (guide · bot) |
-|---|---|---|---|---|
-| 2000 games, seeds 13000+ | 2.369 | 2.486 | 0.116 better, p = 4.2e-4 | 0.259 · 0.264 |
-| 2000 games, seeds 60000+ | 2.428 | 2.514 | 0.086 better, p = 9.0e-3 | 0.253 · 0.258 |
-| 6000 games, seeds 100000+ | 2.437 | 2.473 | 0.036 better, p = 0.059 | 0.250 · 0.262 |
-| **All three, pooled (10,000 games)** | | | **0.062 ± 0.029 better, p = 2.6e-5** | |
-
-The edge is real but modest — about 0.06 of a placement; the first run
-overstated it. Before its Hong Kong tuning the same guide placed *behind* the
-bot (by 0.063 and 0.050 on the first two seed sets): riichi's pre-ready model
-kept breaking up close hands for wider ones, and it treated almost every
-opponent as a threat, so it defended and refused calls. A softer narrow-hand
-penalty and a three-set threat fixed both. It now wins about as often as the
-bot while dealing in about 15% less.
-
-*Tried and not adopted:* a win model that also counts pung and chow
-acceptance, with its constants fitted to 159k guide decisions. It predicts
-outcomes far better, but in a 6000-game head-to-head it finished only 0.014
-of a placement ahead of the shipped guide (± 0.033, p = 0.40) — no measurable
-gain — so the shipped model stays.
-
-**🇹🇼 Taiwanese — the guide wins**, held out on seeds no tuning run used
-(800 paired hanchan, `SimpleBot` opponents). Measured at `9f04de9`, 2026-09-23:
-
-| Measurement | Guide vs. bot |
-|---|---|
-| Placement | **0.146 better**, ± 0.108, p = 0.008 |
-| Final points | **+4.3**, ± 2.9, p = 0.004 |
-| Against the table (2.5 = even) | 2.313, p = 2e-6; 1st 31.1%, 4th 20.3% |
-
-The confidence interval is nearly as wide as the effect — 800 games is a
-thinner base than the other two rulesets rest on. Before the Taiwanese fixes
-the guide was 0.26 of a placement *behind* the bot: `_assessValue` only priced
-13-tile hands, so every 16-tile line scored zero, which tied every discard and
-made it refuse every call. Interestingly, the call-aware win model Hong Kong
-measured and rejected is the one Taiwanese ships — a five-set hand leans on
-calls far more than a four-set one.
-
-*Play style, measured and dropped:* a 14,000-game sweep found style has no
-placement effect under Hong Kong, so the dial is hidden and pinned to Balanced
-there — focus still matters. Numbers and method:
-[`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md#style-does-nothing-under-hong-kong).
-
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No replays
 yet.
 
 ### Run
 
-Install the [Flutter SDK](https://docs.flutter.dev/get-started/install) (≥ 3.3,
-tested on 3.47). One-time setup:
+Install the [Flutter SDK](https://docs.flutter.dev/get-started/install).
+One-time setup:
 
 ```sh
 cd flutter_client
