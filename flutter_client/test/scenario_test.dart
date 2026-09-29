@@ -689,6 +689,27 @@ void main() {
       c.dispose();
     });
 
+    testWidgets('works out rows two and three steps out after it draws',
+        (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = ScenarioController();
+      c.edit((s) => fill(s, s.hand, '13m 46m 79m 25p 58p 34s 5s N'));
+      await showGuide(tester, c);
+      await tester.tap(find.byKey(const ValueKey('yaku-pick-1m')));
+      await tester.pump();
+      expect(section('≈ …'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(section('rough, 3 from tenpai'), findsOneWidget);
+      expect(section('Riichi'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('yaku-pick-N')));
+      await tester.pumpAndSettle();
+      expect(section('rough, 2 from tenpai'), findsOneWidget);
+      c.dispose();
+    });
+
     testWidgets('is not shown under Hong Kong', (tester) async {
       await tester.binding.setSurfaceSize(kDesignSize);
       addTearDown(() => tester.binding.setSurfaceSize(null));

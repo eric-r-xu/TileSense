@@ -2,15 +2,21 @@ import 'dart:io';
 
 import 'loading_helpers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/tile.dart';
+import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/guide_host.dart';
+import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
+
+import 'helpers.dart';
 
 /// The status (round / wall / honba / riichi, or dealer repeat) is one line in
 /// a pill dead centre of the table, with your pond below it, the across pond
@@ -442,5 +448,95 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
+  });
+
+  group('guide headings at a phone\'s text size', () {
+    // Facing a riichi, so every column (the safety ones too) has a heading.
+    final hand = parseTiles('1m 234m 567m 99s 78p 3p W 5s');
+    final defending = EfficiencyEngine().analyze(
+      hand: hand,
+      defenseHand: hand,
+      visibleCounts34: toCounts34(hand),
+      canRiichi: false,
+      opponentRiichi: true,
+      opponentDiscards: const [TileType.man1],
+      valueContext: EfficiencyValueContext(
+        melds: const [],
+        roundWind: Wind.east,
+        seatWind: Wind.east,
+        isDealer: true,
+        inRiichi: false,
+        wallTilesRemaining: 40,
+        doraIndicators: const [],
+      ),
+    );
+
+    /// Shows the guide at [scale]; the game is disposed by [done].
+    Future<GameController> showAt(WidgetTester tester, double scale) async {
+      Sfx.i.enabled = false;
+      final game = GameController(seed: 1);
+      await tester.pumpWidget(MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(
+              size: kDesignSize, textScaler: TextScaler.linear(scale)),
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: EfficiencyOverlay(game: game, report: defending),
+            ),
+          ),
+        ),
+      ));
+      return game;
+    }
+
+    Future<void> done(WidgetTester tester, GameController game) async {
+      await tester.pumpWidget(const SizedBox());
+      game.dispose();
+      Sfx.i.enabled = true;
+    }
+
+    testWidgets('no heading is broken inside a word', (tester) async {
+      final game = await showAt(tester, 1.35);
+      for (final heading in [
+        'Shanten',
+        'Ukeire',
+        'EV (HMR)',
+        'TileSense EV',
+        'Placement',
+        'Safety',
+        'Risk',
+        'Detail',
+      ]) {
+        final paragraph =
+            tester.renderObject<RenderParagraph>(find.text(heading).first);
+        for (final word in heading.split(' ')) {
+          final painter = TextPainter(
+            text: TextSpan(
+                text: word, style: (paragraph.text as TextSpan).style),
+            textDirection: TextDirection.ltr,
+            textScaler: paragraph.textScaler,
+          )..layout();
+          expect(paragraph.constraints.maxWidth,
+              greaterThanOrEqualTo(painter.width),
+              reason: '"$word" of $heading');
+          painter.dispose();
+        }
+      }
+      expect(tester.takeException(), isNull);
+      await done(tester, game);
+    });
+
+    testWidgets('at the desktop size the columns keep their widths',
+        (tester) async {
+      final game = await showAt(tester, 1);
+      final widths = tester
+          .widget<Table>(find.byType(Table))
+          .columnWidths!
+          .values
+          .map((w) => (w as FixedColumnWidth).value);
+      expect(widths, [34, 52, 48, 50, 58, 66, 34, 40, 72]);
+      await done(tester, game);
+    });
   });
 }
