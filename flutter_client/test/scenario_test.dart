@@ -682,8 +682,10 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('yaku-pick-2m')));
       await tester.pump();
+      // One step from tenpai: an estimate.
       expect(section('cut 2m'), findsOneWidget);
-      expect(section('once this line is tenpai'), findsOneWidget);
+      expect(section('once tenpai'), findsOneWidget);
+      expect(section('≈'), findsWidgets);
       c.dispose();
     });
 

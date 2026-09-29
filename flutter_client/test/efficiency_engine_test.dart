@@ -809,6 +809,7 @@ void main() {
   });
 
   group('yaku odds', () {
+    late EfficiencyReport lastReport;
     DiscardLine tenpaiLine(String hand,
         {List<Meld> melds = const [],
         List<TileType> dora = const [],
@@ -832,9 +833,10 @@ void main() {
           doraIndicators: dora,
         ),
       );
+      lastReport = report;
       final line = report.lines.firstWhere((l) => l.shanten == 0);
-      for (final l in report.lines.where((l) => l.shanten > 0)) {
-        expect(l.yakuOdds, isEmpty, reason: '${l.discard.code} is not tenpai');
+      for (final l in report.lines.where((l) => l.shanten > 1)) {
+        expect(l.yakuOdds, isEmpty, reason: '${l.discard.code} is too far out');
       }
       return line;
     }
@@ -871,6 +873,20 @@ void main() {
       expect(line.yakuOdds.keys.where((k) => k.endsWith('Dora')), isEmpty);
       // 2p ×2, 4m and 4s.
       expect(line.doraPerWin, 4);
+    });
+
+    test('one step from tenpai: estimated over the tenpais its draws reach',
+        () {
+      tenpaiLine('234m 567p 345s 66s 78m 9p');
+      // Cutting 2m leaves 34m 78m: either side's draw makes a riichi tenpai.
+      final line =
+          lastReport.lines.firstWhere((l) => l.discard == TileType.man2);
+      expect(line.shanten, 1);
+      expect(line.yakuOdds['Riichi']?.chance, 1);
+      expect(line.yakuOdds['Menzen Tsumo']?.chance, closeTo(0.35, 1e-9));
+      for (final y in line.yakuOdds.values) {
+        expect(y.chance, inInclusiveRange(0, 1));
+      }
     });
 
     test('no yaku on ron without riichi: every win is a tsumo', () {

@@ -648,21 +648,33 @@ class DiscardLine {
     this.riichiLockCost = 0,
     this.valueTilt = 0,
     this.winBonus = 0,
-    this.yakuOdds = const {},
-    this.doraPerWin = 0,
+    ({Map<String, ({double chance, int han, int yakuman})> yaku, double dora})
+            Function()?
+        yakuOddsOf,
     this.bestUkeire = false,
     this.bestExpectedValue = false,
     this.recommended = false,
-  });
+  }) : _yakuOddsOf = yakuOddsOf;
 
   final TileType discard;
 
-  /// Riichi, on a line that leaves you tenpai: the chance each yaku is in the
-  /// hand when it wins, by name. Empty on any other line.
-  final Map<String, ({double chance, int han, int yakuman})> yakuOdds;
+  // Worked out only when first read: it scores every wait of every tenpai
+  // the line can reach, and only the row the guide panel shows needs it.
+  final ({
+    Map<String, ({double chance, int han, int yakuman})> yaku,
+    double dora
+  })
+      Function()? _yakuOddsOf;
+  late final _yakuOdds = _yakuOddsOf?.call();
+
+  /// Riichi, on a line tenpai or one step from it: the chance each yaku is in
+  /// the hand when it wins, by name (estimated from the tenpais its improving
+  /// draws reach, one step out). Empty on any other line.
+  Map<String, ({double chance, int han, int yakuman})> get yakuOdds =>
+      _yakuOdds?.yaku ?? const {};
 
   /// Dora han (dora and red fives) an average win on this line carries.
-  final double doraPerWin;
+  double get doraPerWin => _yakuOdds?.dora ?? 0;
   final int shanten;
   final int ukeire;
   final List<TileType> accepts;
@@ -1098,16 +1110,28 @@ class EfficiencyEngine {
           : math.min(value.turnsExposed, _riichiPushHorizon);
       final laterTurns = math.max(0.0, exposed - 1);
       final commitmentCost = dealInCost * laterTurns * _pushCommitment;
-      final odds =
-          ruleset.isRiichi && r.shanten == 0 && value.winProbability > 0
-              ? _yakuOdds(
-                  waits: r.accepts,
-                  remaining: remaining,
-                  concealed: afterDiscard,
-                  riichi: value.recommendRiichi || valueContext.inRiichi,
-                  context: valueContext,
-                )
-              : null;
+      final live = List<int>.of(remaining);
+      final yakuOddsOf = !ruleset.isRiichi || value.winProbability <= 0
+          ? null
+          : switch (r.shanten) {
+              0 => () => _yakuOdds(
+                    [
+                      (
+                        waits: r.accepts,
+                        concealed: afterDiscard,
+                        remaining: live,
+                        weight: 1.0,
+                      )
+                    ],
+                    riichi: value.recommendRiichi || valueContext.inRiichi,
+                    context: valueContext,
+                  ),
+              // A closed hand heading for tenpai means to riichi there.
+              1 => () => _yakuOdds(_tenpaisReached(afterDiscard, r, live),
+                  riichi: canRiichi && valueContext.closed,
+                  context: valueContext),
+              _ => null,
+            };
       return DiscardLine(
         discard: r.discard,
         shanten: r.shanten,
@@ -1141,8 +1165,7 @@ class EfficiencyEngine {
         riichiLockCost: value.riichiLockCost,
         valueTilt: value.valueTilt,
         winBonus: valueContext.winBonus.toDouble(),
-        yakuOdds: odds?.yaku ?? const {},
-        doraPerWin: odds?.dora ?? 0,
+        yakuOddsOf: yakuOddsOf,
       );
     }).toList();
 
@@ -3264,13 +3287,44 @@ class EfficiencyEngine {
     );
   }
 
+  /// The tenpai each improving draw on 1-shanten [line] reaches, cutting for
+  /// the widest wait as [TileEfficiencyCalculator.bestTenpaiWait] does, and
+  /// weighted by the draw's live copies.
+  List<_Tenpai> _tenpaisReached(
+      List<Tile> concealed, TileEfficiencyResult line, List<int> remaining) {
+    final out = <_Tenpai>[];
+    for (final draw in line.improvingTiles) {
+      final live = remaining[draw];
+      if (live <= 0) continue;
+      final hand = [
+        ...concealed,
+        Tile(-2000 - draw, typeFromTrainerIndex(draw)),
+      ];
+      final left = List<int>.of(remaining);
+      left[draw]--;
+      TileEfficiencyResult? best;
+      for (final r in _calc.calculate(toTrainerCounts(hand), left)) {
+        if (r.shanten == 0 && (best == null || r.ukeire > best.ukeire)) {
+          best = r;
+        }
+      }
+      if (best == null) continue;
+      out.add((
+        waits: best.accepts,
+        concealed: _handAfterDiscard(hand, best.discard),
+        remaining: left,
+        weight: live.toDouble(),
+      ));
+    }
+    return out;
+  }
+
   /// Weighted as [_assessTenpaiValue] weights points: live copies, then 65%
-  /// ron / 35% tsumo. Wins that don't score (no yaku) are left out.
+  /// ron / 35% tsumo, and by each tenpai's own weight. Wins that don't score
+  /// (no yaku) are left out.
   ({Map<String, ({double chance, int han, int yakuman})> yaku, double dora})
-      _yakuOdds({
-    required List<TileType> waits,
-    required List<int> remaining,
-    required List<Tile> concealed,
+      _yakuOdds(
+    List<_Tenpai> tenpais, {
     required bool riichi,
     required EfficiencyValueContext context,
   }) {
@@ -3278,21 +3332,23 @@ class EfficiencyEngine {
     final han = <String, ({int han, int yakuman})>{};
     var total = 0.0;
     var dora = 0.0;
-    for (final wait in waits) {
-      final copies = remaining[trainerIndexOf(wait)];
-      if (copies <= 0) continue;
-      for (final (isTsumo, share) in [(false, 0.65), (true, 0.35)]) {
-        final score = _scoreWait(concealed, Tile(-1000 - wait.index, wait),
-            isTsumo: isTsumo, assumeRiichi: riichi, context: context);
-        if (!score.valid) continue;
-        final w = copies * share;
-        total += w;
-        for (final y in score.yaku) {
-          if (y.name.endsWith('Dora')) {
-            dora += w * y.han;
-          } else {
-            weight[y.name] = (weight[y.name] ?? 0) + w;
-            han[y.name] = (han: y.han, yakuman: y.yakuman);
+    for (final (:waits, :concealed, :remaining, weight: odds) in tenpais) {
+      for (final wait in waits) {
+        final copies = remaining[trainerIndexOf(wait)];
+        if (copies <= 0) continue;
+        for (final (isTsumo, share) in [(false, 0.65), (true, 0.35)]) {
+          final score = _scoreWait(concealed, Tile(-1000 - wait.index, wait),
+              isTsumo: isTsumo, assumeRiichi: riichi, context: context);
+          if (!score.valid) continue;
+          final w = odds * copies * share;
+          total += w;
+          for (final y in score.yaku) {
+            if (y.name.endsWith('Dora')) {
+              dora += w * y.han;
+            } else {
+              weight[y.name] = (weight[y.name] ?? 0) + w;
+              han[y.name] = (han: y.han, yakuman: y.yakuman);
+            }
           }
         }
       }
@@ -3413,6 +3469,13 @@ class EfficiencyEngine {
             meld.low == context.roundWind.tile));
   }
 }
+
+typedef _Tenpai = ({
+  List<TileType> waits,
+  List<Tile> concealed,
+  List<int> remaining,
+  double weight,
+});
 
 class _ValueAssessment {
   const _ValueAssessment({

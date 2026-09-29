@@ -1336,7 +1336,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final odds = line.yakuOdds.entries.toList()
       ..sort((a, b) => b.value.chance.compareTo(a.value.chance));
     const muted = TextStyle(color: Colors.white54, fontSize: 9);
-    String pct(double p) => '${(p * 100).round()}%';
+    // One step from tenpai, the odds are over the tenpais its draws reach.
+    final estimate = line.shanten > 0;
+    String pct(double p) => '${estimate ? '≈' : ''}${(p * 100).round()}%';
     final dora = line.doraPerWin;
     final doraText = dora == 0
         ? ''
@@ -1353,7 +1355,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             Flexible(
               child: Text(
                   ' · cut ${line.discard.code}'
-                  '${odds.isEmpty ? '' : ' · ${line.valuePlan.toLowerCase()}'
+                  '${odds.isEmpty ? '' : ' · ${estimate ? 'once tenpai' : line.valuePlan.toLowerCase()}'
                       ' · ${pct(line.winProbability)} to win'}',
                   style: muted),
             ),
@@ -1361,8 +1363,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           const SizedBox(height: 4),
           if (odds.isEmpty)
             Text(
-                line.shanten > 0
-                    ? 'Yaku appear once this line is tenpai.'
+                line.shanten > 1
+                    ? 'Yaku show once this line is one step from tenpai.'
                     : 'No win to score on this line.',
                 style: muted)
           else
@@ -1392,7 +1394,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                     ),
                   ),
                   SizedBox(
-                    width: 40,
+                    width: 44,
                     child: Text(pct(y.chance),
                         textAlign: TextAlign.right,
                         style:
@@ -1421,8 +1423,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'weighted as the guide weights points. Multiply by the line\'s '
             'win chance for the odds overall.\n\n'
             'Riichi and Menzen Tsumo follow the line\'s plan. Dora are not '
-            'yaku, so they are counted apart. Rows not yet tenpai have no '
-            'finished hand to score.',
+            'yaku, so they are counted apart.\n\n'
+            '≈ One step from tenpai: every draw that makes tenpai, cutting '
+            'for the widest wait, weighted by its copies left, riichi '
+            'assumed on a closed hand. Further out there is no finished hand '
+            'to score yet.',
         style: _tipBody),
   ];
 
