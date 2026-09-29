@@ -113,7 +113,7 @@ jobs:
               [[ -n "$RELEASE" ]] || { echo 'Rollbacks need a release ID.' >&2; exit 1; }
               [[ "$TARGET" == rollback-mp ]] && export ALLOW_MP_RESTART=1 ;;
           esac
-          ./deploy.sh "$TARGET" ${RELEASE:+"$RELEASE"} 2>&1 | tee deploy.log
-          grep -E '^(Deployment|Rollback) verified' deploy.log >> "$GITHUB_STEP_SUMMARY" || true
+          ./deploy.sh "$TARGET" ${RELEASE:+"$RELEASE"} 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          grep -E '^(Deployment|Rollback) verified' "$RUNNER_TEMP/deploy.log" >> "$GITHUB_STEP_SUMMARY" || true
       - if: always()
         run: rm -f ~/.ssh/id_ed25519 deploy.env
