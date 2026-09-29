@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../game/game_controller.dart' show kHumanSeat;
 import '../game/guide_host.dart';
+import '../main.dart' show isPhoneLayout;
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
@@ -374,14 +375,19 @@ class _HandViewState extends State<HandView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          _sortToggle(),
+                          const SizedBox(width: 10),
+                          // The two call toggles as a pair, a second column
+                          // rather than a third row: the pair fits the tile
+                          // row's height, so the hand bar never grows.
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              _sortToggle(),
+                              _autoWinToggle(),
                               // Apart, so a thumb on a phone lands on the one
                               // it meant.
                               const SizedBox(height: 10),
-                              _autoWinToggle(),
+                              _autoPassToggle(),
                             ],
                           ),
                           const SizedBox(width: 14),
@@ -531,10 +537,31 @@ class _HandViewState extends State<HandView> {
     );
   }
 
-  /// One of the two toggles stacked left of the hand, in the same
+  /// Auto-pass: passes every meld call (chi/pon/kan) on another player's
+  /// discard. An offer that includes a ron is left to Auto-win, or to you.
+  Widget _autoPassToggle() {
+    final on = game.autoPass;
+    return _handToggle(
+      key: const Key('autoPass'),
+      caption: 'AUTO-PASS',
+      value: on ? 'On' : 'Off',
+      icon: Icons.skip_next,
+      on: on,
+      activeColor: const Color(0xff1565c0),
+      tooltip: on
+          ? 'Auto-pass: on — chi, pon and kan on other players\' discards '
+              'are passed for you. A ron is still yours to take.\n'
+              'Tap to decide calls yourself.'
+          : 'Auto-pass: off — you are asked about every call.\n'
+              'Tap to pass chi, pon and kan automatically.',
+      onTap: () => game.setAutoPass(!on),
+    );
+  }
+
+  /// One of the toggles left of the hand, in the same
   /// caption-over-value grammar as the top bar's tiles. 120×46 each (wide
   /// enough for "Hand+draw" and "AUTO-WIN" without fading out) with a
-  /// 10px gap: the pair still fits inside the tile row's height, so it
+  /// 10px gap: a stacked pair still fits inside the tile row's height, so it
   /// covers nothing, while each is big enough to hit on a phone — where the
   /// whole canvas is drawn at about half size. Filled in its colour when on,
   /// an outline when off, so the state reads without the label.
@@ -561,47 +588,53 @@ class _HandViewState extends State<HandView> {
           key: key,
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
-          child: SizedBox(
-            width: 120,
-            height: 46,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  Icon(icon, size: 20, color: ink),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          // On a phone, icon only (46×46): three labelled toggles would
+          // push the last tiles of the hand off-screen. The fill still shows
+          // on/off, and the tooltip names it.
+          child: isPhoneLayout(context)
+              ? SizedBox.square(
+                  dimension: 46, child: Icon(icon, size: 22, color: ink))
+              : SizedBox(
+                  width: 120,
+                  height: 46,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
                       children: [
-                        Text(caption,
-                            maxLines: 1,
-                            softWrap: false,
-                            overflow: TextOverflow.fade,
-                            style: TextStyle(
-                                color: ink.withValues(alpha: 0.7),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.6)),
-                        const SizedBox(height: 2),
-                        Text(
-                          value,
-                          maxLines: 1,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                          style: TextStyle(
-                              color: ink,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700),
+                        Icon(icon, size: 20, color: ink),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(caption,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.fade,
+                                  style: TextStyle(
+                                      color: ink.withValues(alpha: 0.7),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.6)),
+                              const SizedBox(height: 2),
+                              Text(
+                                value,
+                                maxLines: 1,
+                                overflow: TextOverflow.fade,
+                                softWrap: false,
+                                style: TextStyle(
+                                    color: ink,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
         ),
       ),
     );

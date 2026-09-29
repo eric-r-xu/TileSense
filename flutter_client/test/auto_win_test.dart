@@ -110,4 +110,74 @@ void main() {
       Sfx.i.enabled = true;
     }
   });
+
+  group('Auto-pass', () {
+    /// Seat 3 discards 5p to you holding 55p: a pon, and no ron (the hand
+    /// isn't ready).
+    GameController awaitingPon({required bool autoPass}) {
+      final game = GameController(seed: 4)..setAutoPass(autoPass);
+      final round = game.round;
+      final fed = Tile(902, TileType.pin5);
+      round.seats[kHumanSeat]
+        ..hand = parseTiles('55p 123m 456m 789m 19s')
+        ..drawn = null
+        ..melds = [];
+      round.seats[3]
+        ..hand = [...parseTiles('123m 456m 789m 111s 2p'), fed]
+        ..drawn = fed;
+      round.turn = 3;
+      round.phase = RoundPhase.discarding;
+      round.discard(3, fed);
+      return game;
+    }
+
+    testWidgets('is off by default', (tester) async {
+      final game = GameController(seed: 4);
+      expect(game.autoPass, isFalse);
+      game.dispose();
+    });
+
+    testWidgets('passes a meld call on its own', (tester) async {
+      Sfx.i.enabled = false;
+      final game = awaitingPon(autoPass: true);
+      try {
+        for (var i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(game.awaitingHumanCall, isFalse);
+        }
+        expect(game.round.seats[kHumanSeat].melds, isEmpty);
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('off, the call waits for you — and turning it on passes it',
+        (tester) async {
+      Sfx.i.enabled = false;
+      final game = awaitingPon(autoPass: false);
+      try {
+        await pumpUntil(tester, () => game.awaitingHumanCall);
+        game.setAutoPass(true);
+        expect(game.awaitingHumanCall, isFalse);
+        expect(game.round.seats[kHumanSeat].melds, isEmpty);
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('never passes a ron', (tester) async {
+      Sfx.i.enabled = false;
+      final game = awaitingRon(autoWin: false)..setAutoPass(true);
+      try {
+        await pumpUntil(tester, () => game.awaitingHumanCall);
+        expect(game.round.finished, isFalse);
+        expect(game.awaitingHumanCall, isTrue);
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+  });
 }

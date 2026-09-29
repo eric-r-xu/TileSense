@@ -294,6 +294,22 @@ class GameController extends ChangeNotifier implements TableGameHost {
     notifyListeners();
   }
 
+  /// Pass meld-only calls automatically — see [_resolveCallPhase]. Turning it
+  /// on with such a call already waiting passes that one too.
+  @override
+  bool autoPass = false;
+  @override
+  void setAutoPass(bool value) {
+    if (autoPass == value) return;
+    autoPass = value;
+    _tel?.settingChange(matchId: _matchId, setting: 'auto_pass', value: value);
+    notifyListeners();
+    final opt = _humanCallOption;
+    if (value && opt != null && !opt.types.contains(CallType.ron)) {
+      answerCall(CallType.none);
+    }
+  }
+
   /// Returns true if it fired (and so already ended the round/notified
   /// listeners itself via [humanTsumo]).
   bool _maybeAutoTsumo() {
@@ -913,6 +929,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
         _askMortal();
         if (autoWin && opt.types.contains(CallType.ron)) {
           answerCall(CallType.ron); // settles the bot seats' calls too
+          return;
+        }
+        if (autoPass && !opt.types.contains(CallType.ron)) {
+          answerCall(CallType.none); // likewise
           return;
         }
         // Worked out once here rather than per rebuild: adviseCall runs a full

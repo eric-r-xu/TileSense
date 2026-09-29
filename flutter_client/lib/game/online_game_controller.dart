@@ -228,6 +228,34 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     if (value && _roundReady && !round.finished) _maybeAutoWin();
   }
 
+  /// Pass meld-only calls automatically — purely client-side, like
+  /// [autoWin]: it sends the pass the button would have. See [_maybeAutoPass].
+  @override
+  bool autoPass = false;
+  @override
+  void setAutoPass(bool value) {
+    if (autoPass == value) return;
+    autoPass = value;
+    notifyListeners();
+    if (value && _roundReady && !round.finished) _maybeAutoPass();
+  }
+
+  /// The `discardSerial` [_maybeAutoPass] last passed on, so a repeat `state`
+  /// broadcast for the same discard doesn't send the pass twice.
+  int? _autoPassedSerial;
+
+  /// Returns true if it passed. Never passes an offer that includes a ron.
+  bool _maybeAutoPass() {
+    final opt = _humanCallOption;
+    if (!autoPass || opt == null || opt.types.contains(CallType.ron)) {
+      return false;
+    }
+    if (_autoPassedSerial == _discardSerial) return true;
+    _autoPassedSerial = _discardSerial;
+    answerCall(CallType.none);
+    return true;
+  }
+
   /// The `discardSerial` (ron) or drawn tile id (tsumo) [_maybeAutoWin] last
   /// won on, so a repeat `state` broadcast for the same moment (e.g. after a
   /// reconnect) doesn't send the win twice.
@@ -548,7 +576,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     } else {
       _playTurnSfx();
       _playCallSfx(previousRound);
-      if (!_maybeAutoWin()) _maybeAutoDiscardInRiichi();
+      if (!_maybeAutoWin() && !_maybeAutoPass()) _maybeAutoDiscardInRiichi();
     }
     notifyListeners();
   }

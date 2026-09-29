@@ -38,6 +38,12 @@ class _ScoringViewState extends State<ScoringView> {
   /// highlight, the efficiency dial) so a winning tile reads the same way.
   static const Color _winGreen = Color(0xff43a047);
 
+  /// The panel's border gold, shared by its two buttons.
+  static const Color _gold = Color(0xffcaa24e);
+
+  /// Continue and Pause match, and each clears a phone thumb.
+  static const Size _buttonSize = Size(120, 44);
+
   int _page = 0;
   bool _autoEnabled = true;
   // When true the panel drops to 25% opacity (and its scrim clears) so the
@@ -188,42 +194,59 @@ class _ScoringViewState extends State<ScoringView> {
                         const SizedBox(height: 12),
                         _transfers(round, r),
                         const SizedBox(height: 16),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xffcaa24e),
-                            foregroundColor: Colors.black,
-                          ),
-                          onPressed: () {
-                            _timer?.cancel();
-                            if (hasMore) {
-                              setState(() => _page = page + 1);
-                              _startCountdown();
-                            } else if (gameOver) {
-                              (widget.onGameEnd ?? game.newGame)();
-                            } else {
-                              game.continueFromRoundEnd();
-                            }
-                          },
-                          child: Text(label),
+                        // Continue on the left, Pause on the right, the same
+                        // size and gold; the countdown they control sits
+                        // underneath both.
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              key: const Key('scoreContinue'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _gold,
+                                foregroundColor: Colors.black,
+                                minimumSize: _buttonSize,
+                              ),
+                              onPressed: () {
+                                _timer?.cancel();
+                                if (hasMore) {
+                                  setState(() => _page = page + 1);
+                                  _startCountdown();
+                                } else if (gameOver) {
+                                  (widget.onGameEnd ?? game.newGame)();
+                                } else {
+                                  game.continueFromRoundEnd();
+                                }
+                              },
+                              child: Text(label),
+                            ),
+                            if (!gameOver) ...[
+                              const SizedBox(width: 12),
+                              OutlinedButton(
+                                key: const Key('scorePause'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _gold,
+                                  side: const BorderSide(color: _gold),
+                                  minimumSize: _buttonSize,
+                                ),
+                                onPressed: _toggleAuto,
+                                child: Text(_autoEnabled ? 'Pause' : 'Resume'),
+                              ),
+                            ],
+                          ],
                         ),
                         if (!gameOver)
                           Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: TextButton(
-                              onPressed: _toggleAuto,
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white70,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 4),
-                              ),
-                              child: Text(
-                                !_autoEnabled
-                                    ? 'Auto Continue paused  ·  tap to resume'
-                                    : game.paused
-                                        ? 'Auto Continue held — game paused'
-                                        : 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s  ·  tap to pause',
-                                style: const TextStyle(fontSize: 12),
-                              ),
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              !_autoEnabled
+                                  ? 'Auto Continue paused'
+                                  : game.paused
+                                      ? 'Auto Continue held — game paused'
+                                      : 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s',
+                              key: const Key('scoreCountdown'),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12),
                             ),
                           ),
                         if (gameOver)
