@@ -379,8 +379,8 @@ class WinModel {
 /// keeping Speed focus. Hong Kong's measured focus sweep favours Speed;
 /// Taiwanese's held-out validation uses these dials with [WinModel.taiwanese].
 /// These are validated defaults, not proof of a globally optimal policy.
-/// A live game plays the dials `autoDials` picks for its goal until one is
-/// set by hand.
+/// A live game plays the dials `autoDials` picks for the point in the game
+/// (points early, placement in the final hands) until one is set by hand.
 /// [EfficiencyValueContext] itself still defaults to Balanced / Balanced,
 /// the unweighted reference model.
 const PlayStyle kDefaultPlayStyle = PlayStyle.aggressive;

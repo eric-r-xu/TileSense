@@ -4,7 +4,6 @@ import 'package:mahjong_core/round.dart';
 
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/auto_dials.dart' show Goal;
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -58,11 +57,11 @@ void main() {
     await tearDownApp(tester);
   });
 
-  testWidgets('Auto-Play and its goal share one panel, lit while it plays',
+  testWidgets('Auto-Play and its dials share one panel, lit while it plays',
       (tester) async {
     await startGame(tester);
     final group = find.byKey(const Key('autoplayGroup'));
-    for (final key in ['autoplay', 'goal', 'goalDials']) {
+    for (final key in ['autoplay', 'playingDials']) {
       expect(find.descendant(of: group, matching: find.byKey(Key(key))),
           findsOneWidget,
           reason: '$key sits in the Auto-Play panel');
@@ -235,15 +234,12 @@ void main() {
       await tearDownApp(tester);
     });
 
-    testWidgets('a goal is picked with one tap', (tester) async {
+    testWidgets('the menu shows the dials in play, with no goal to pick',
+        (tester) async {
       await startGame(tester, size: iPhone);
-      final game = gameOf(tester);
       await openMenu(tester);
-      expect(find.byKey(const Key('phoneMenuGoalDials')), findsOneWidget);
-      final target = Goal.values.firstWhere((g) => g != game.goal);
-      await tester.tap(find.byKey(Key('phoneMenuGoal_${target.name}')));
-      await tester.pump();
-      expect(game.goal, target);
+      expect(find.byKey(const Key('phoneMenuPlayingDials')), findsOneWidget);
+      expect(find.byKey(const Key('phoneMenuGoal_points')), findsNothing);
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
     });

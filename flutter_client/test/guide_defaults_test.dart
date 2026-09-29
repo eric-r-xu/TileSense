@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/game_controller.dart';
@@ -13,8 +15,10 @@ void main() {
       Sfx.i.enabled = false;
       final game = GameController(seed: 5, ruleset: initial);
       try {
-        // The default goal is Placement, which plays Balanced everywhere.
-        expect(game.playStyle, PlayStyle.balanced);
+        // A new game's first hand plays for points: Aggressive under riichi;
+        // Hong Kong and Taiwanese pin Balanced.
+        expect(game.playStyle,
+            initial.isRiichi ? PlayStyle.aggressive : PlayStyle.balanced);
         // Taiwanese starts at 5 tai, where Balanced focus measured ahead.
         expect(game.handFocus,
             initial.isTaiwanese ? HandFocus.balanced : HandFocus.speed);
@@ -26,7 +30,8 @@ void main() {
           Ruleset.riichi
         ]) {
           game.setRuleset(next);
-          expect(game.playStyle, PlayStyle.balanced);
+          expect(game.playStyle,
+              next.isRiichi ? PlayStyle.aggressive : PlayStyle.balanced);
           expect(game.handFocus,
               next.isTaiwanese ? HandFocus.balanced : HandFocus.speed);
           expect(game.strategy, Strategy.points);
@@ -60,28 +65,26 @@ void main() {
     }
   });
 
-  testWidgets('a hand-set dial leaves goal mode and setGoal resumes it',
+  testWidgets('a hand-set dial leaves automatic mode, keeping the others',
       (tester) async {
     Sfx.i.enabled = false;
     final game = GameController(
         seed: 5, ruleset: Ruleset.taiwanese, minimumPoints: 5);
     try {
-      expect(game.goalDriven, isTrue);
+      expect(game.dialsAuto, isTrue);
       game.setStrategy(Strategy.placement);
-      expect(game.goalDriven, isFalse);
-      // The other two keep what the goal was playing, not the raw defaults.
+      expect(game.dialsAuto, isFalse);
+      // The other two keep what automatic mode was playing, not the raw
+      // defaults.
       expect(game.handFocus, HandFocus.balanced);
       expect(game.strategy, Strategy.placement);
-      game.setGoal(Goal.points);
-      expect(game.goalDriven, isTrue);
-      expect(game.strategy, Strategy.points);
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
     }
   });
 
-  testWidgets('online play follows the goal the same way', (tester) async {
+  testWidgets('online play sets its dials the same way', (tester) async {
     final game = OnlineGameController()
       ..ruleset = Ruleset.taiwanese
       ..minimumPoints = 5;
@@ -89,14 +92,42 @@ void main() {
       expect(game.playStyle, PlayStyle.balanced);
       expect(game.handFocus, HandFocus.balanced);
       game.setPlayStyle(PlayStyle.defensive);
-      expect(game.goalDriven, isFalse);
+      expect(game.dialsAuto, isFalse);
       expect(game.handFocus, HandFocus.balanced);
-      game.setGoal(Goal.placement);
-      expect(game.goalDriven, isTrue);
-      expect(game.playStyle, PlayStyle.balanced);
     } finally {
       game.dispose();
       await tester.pump(const Duration(seconds: 3));
     }
+  });
+
+  test('riichi switches to placement for the final two hands', () {
+    Sfx.i.enabled = false;
+    fakeAsync((fa) {
+      final game = GameController(seed: 3, hanchan: false)..setAutoplay(true);
+      // The dials each hand of an East-only game was played with.
+      final byHand = <int, (PlayStyle, Strategy)>{};
+      for (var guard = 0; game.phase != GamePhase.gameEnd; guard++) {
+        if (guard > 100000) fail('never finished');
+        byHand.putIfAbsent(
+            game.roundNumber, () => (game.playStyle, game.strategy));
+        if (game.phase == GamePhase.roundEnd) {
+          game.continueFromRoundEnd();
+          continue;
+        }
+        fa.elapse(const Duration(milliseconds: 1104));
+      }
+      game.dispose();
+      for (final entry in byHand.entries) {
+        final end = entry.key >= 4 - kPlacementHands;
+        expect(entry.value,
+            end
+                ? (PlayStyle.balanced, Strategy.placement)
+                : (PlayStyle.aggressive, Strategy.points),
+            reason: 'hand ${entry.key + 1}');
+      }
+      expect(byHand.keys, containsAll([0, 3]),
+          reason: 'played into the final hands');
+    });
+    Sfx.i.enabled = true;
   });
 }

@@ -11,8 +11,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
-import '../logic/auto_dials.dart' show Goal;
-import '../main.dart' show goalColor, goalDialsText, openRules;
+import '../main.dart' show playingDialsText, openRules;
 
 const Color _gold = Color(0xffe9d58f);
 
@@ -133,17 +132,6 @@ Future<void> showPhoneMenu(
                             ),
                           ],
                           [
-                            phoneMenuDial<Goal>(
-                              caption: 'Goal',
-                              keyPrefix: 'phoneMenuGoal',
-                              values: Goal.values,
-                              current: game.goal,
-                              label: (v) => v.label,
-                              colour: goalColor,
-                              onPick: game.setGoal,
-                            ),
-                          ],
-                          [
                             Row(children: [
                               const SizedBox(
                                 width: 64,
@@ -152,8 +140,8 @@ Future<void> showPhoneMenu(
                                         color: Colors.white70, fontSize: 13)),
                               ),
                               Flexible(
-                                child: goalDialsText(game,
-                                    key: const Key('phoneMenuGoalDials'),
+                                child: playingDialsText(game,
+                                    key: const Key('phoneMenuPlayingDials'),
                                     fontSize: 14),
                               ),
                             ]),

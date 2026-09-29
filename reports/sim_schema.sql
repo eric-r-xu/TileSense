@@ -11,7 +11,8 @@ create table if not exists sim_arm (
   ruleset        text     not null check (ruleset in ('riichi', 'hongKong', 'taiwanese')),
   minimum        smallint not null,  -- faan (HK) or tai (TW) minimum; 0 for riichi
   game_length    text     not null check (game_length in ('east', 'hanchan')),
-  -- auto: the guide playing a goal, stored as strategy 'goal:<name>'.
+  -- auto: the guide playing a goal, stored as strategy 'goal:<name>'; since
+  -- the goal was removed, 'goal:dynamic' (compared on placement).
   decision_maker text     not null check (decision_maker in ('simple_bot', 'guide', 'auto')),
   style          text,
   focus          text,

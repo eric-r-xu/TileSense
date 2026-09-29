@@ -64,9 +64,10 @@ the recommended discard or call.
   the guide's numbers against. It never drives the recommendation. HMR is a
   separate solo trainer with no code or data shared with this project.
 - **Auto-Play** plays your seat with the guide's recommendations.
-- **Goal**: Win Rate, Points or Placement (the default). The guide and Auto-Play
-  play for it by setting three dials, chosen from simulated games against the bots
-  (`flutter_client/lib/logic/auto_dials.dart`):
+- **The guide sets its own dials as the game goes**: under riichi it plays for
+  points early and for placement in the final two hands, with no goal to pick
+  (`flutter_client/lib/logic/auto_dials.dart`). The **PLAYING** readout shows the
+  three dials in use:
   - **Play Style** (defensive, balanced or aggressive): how dearly danger is
     priced, and how readily a ready hand stays quiet rather than declaring riichi.
   - **Focus** (Speed or Balanced): how much finishing fast counts against payout.
@@ -74,12 +75,16 @@ the recommended discard or call.
     your chance of finishing above each other seat, using a heuristic model. See
     [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
 
-  | Rules | Goal | Style | Focus | Strategy |
+  | Rules | Hands | Style | Focus | Strategy |
   |---|---|---|---|---|
-  | Riichi | Win Rate, Points | Aggressive | Speed | Points |
-  | Riichi | Placement | Balanced | Speed | Points |
-  | Hong Kong | any | Balanced | Speed | Points |
-  | Taiwanese | any | Balanced | Speed (Balanced at the 5-tai minimum) | Points |
+  | Riichi | all but the last two | Aggressive | Speed | Points |
+  | Riichi | the last two | Balanced | Speed | Placement |
+  | Hong Kong | all | Balanced | Speed | Points |
+  | Taiwanese | all | Balanced | Speed (Balanced at the 5-tai minimum) | Points |
+
+  In 2,400 paired games per length against the bots, this placed the same as the
+  fixed Balanced / Speed / Points it replaced (East +0.008 ± 0.020, hanchan
+  +0.007 ± 0.023 of a place; no difference in points either).
 
 How the guide measures up against the bots, and how the bots play, is in
 [`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md).
@@ -188,7 +193,7 @@ packages/mahjong_core/lib/   pure-Dart core shared by the app and the multiplaye
 flutter_client/lib/
   logic/      efficiency_engine.dart (the guide's discard EV),
               placement_utility.dart (Strategy: Placement),
-              auto_dials.dart (the dials each Goal plays)
+              auto_dials.dart (the dials for each point in the game)
   game/       game_controller.dart (single player), online_game_controller.dart,
               mortal_advisor.dart
   net/        multiplayer client (WebSocket)

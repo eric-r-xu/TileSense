@@ -283,10 +283,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(playingOf(), 'Balanced · Speed · Points');
+    // A riichi game's first hand plays for points.
+    expect(playingOf(), 'Aggressive · Speed · Points');
 
     // Style and Strategy are pinned under both Chinese rulesets, so PLAYING
-    // shows the one dial the goal still moves there.
+    // shows the one dial that still moves there.
     await switchViaMenu(tester, 'ruleset_hongKong');
     expect(playingOf(), 'Speed');
 
@@ -294,7 +295,7 @@ void main() {
     expect(playingOf(), 'Balanced', reason: '5-tai minimum by default');
 
     await switchViaMenu(tester, 'ruleset_riichi');
-    expect(playingOf(), 'Balanced · Speed · Points');
+    expect(playingOf(), 'Aggressive · Speed · Points');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -327,6 +328,6 @@ void main() {
 /// What the bar's PLAYING tile reads — mirrors the helper in
 /// play_style_test.dart.
 String playingOf() =>
-    (find.byKey(const Key('goalDials')).evaluate().single.widget as Text)
+    (find.byKey(const Key('playingDials')).evaluate().single.widget as Text)
         .textSpan!
         .toPlainText();

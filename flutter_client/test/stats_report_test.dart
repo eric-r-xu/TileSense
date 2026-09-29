@@ -10,7 +10,6 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
-import 'package:tilesense/logic/auto_dials.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 
 /// Plays every variant, both game lengths and every decision maker the game
@@ -25,8 +24,9 @@ import 'package:tilesense/logic/efficiency_engine.dart';
 /// games are not played again. The arm key matches `sim_arm.arm_key`.
 ///
 /// Seat 0 is SimpleBot (control), the guide on Autoplay with a fixed
-/// (Style, Focus, Strategy) tuple, or the guide on Autoplay playing a [Goal]
-/// (`auto`, stored as strategy `goal:<name>`); the other three seats are
+/// (Style, Focus, Strategy) tuple, or the guide on Autoplay with its dials
+/// set by the game (`auto`, stored as strategy `goal:dynamic`: points early,
+/// placement in the final hands; see `autoDials`); the other three seats are
 /// SimpleBot, as in the shipped game. Hong Kong and Taiwanese pin Style to
 /// Balanced and Strategy to Points, so only Focus varies there.
 void main() {
@@ -55,8 +55,8 @@ void main() {
       for (final east in [true, false]) {
         for (final dm in _deciders(ruleset)) {
           // decision_maker, style, focus, strategy; empty is NULL in the CSV.
-          final cols = dm.goal != null
-              ? ['auto', '', '', 'goal:${dm.goal!.name}']
+          final cols = dm.auto
+              ? ['auto', '', '', 'goal:dynamic']
               : dm.style == null
                   ? ['simple_bot', '', '', '']
                   : ['guide', dm.style!.name, dm.focus.name, dm.strategy.name];
@@ -114,17 +114,17 @@ typedef _Decider = ({
   PlayStyle? style,
   HandFocus focus,
   Strategy strategy,
-  Goal? goal
+  bool auto
 });
 
 /// SimpleBot, then every guide tuple the ruleset lets a player pick, then
-/// every goal.
+/// the guide with its dials set by the game.
 List<_Decider> _deciders(Ruleset ruleset) => [
       (
         style: null,
         focus: HandFocus.balanced,
         strategy: Strategy.points,
-        goal: null
+        auto: false
       ),
       for (final s in ruleset.isChineseStyle
           ? [PlayStyle.balanced]
@@ -137,15 +137,14 @@ List<_Decider> _deciders(Ruleset ruleset) => [
               style: s,
               focus: f,
               strategy: t,
-              goal: null
+              auto: false
             ),
-      for (final g in Goal.values)
-        (
-          style: null,
-          focus: HandFocus.balanced,
-          strategy: Strategy.points,
-          goal: g
-        ),
+      (
+        style: null,
+        focus: HandFocus.balanced,
+        strategy: Strategy.points,
+        auto: true
+      ),
     ];
 
 typedef _Row = ({double place, int points, int hands, int wins, int dealIns});
@@ -165,10 +164,9 @@ _Row _playGame(
         minimumPoints: ruleset == Ruleset.taiwanese
             ? minimum
             : TaiwaneseRules.defaultMinimumPoints);
-    final bot = dm.style == null && dm.goal == null;
-    if (dm.goal != null) {
-      game.setAutoplay(true);
-      game.setGoal(dm.goal!);
+    final bot = dm.style == null && !dm.auto;
+    if (dm.auto) {
+      game.setAutoplay(true); // dialsAuto is on by default
     } else if (dm.style != null) {
       game.setAutoplay(true);
       game.playStyle = dm.style!;

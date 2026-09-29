@@ -14,7 +14,6 @@ import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/guide_host.dart' show GuideHost;
 import 'game/sfx.dart';
-import 'logic/auto_dials.dart' show Goal;
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -241,18 +240,10 @@ Color strategyColor(Strategy strategy) => switch (strategy) {
       Strategy.placement => const Color(0xffce93d8),
     };
 
-/// Colour for a goal: the same gold for Points and magenta for Placement as
-/// [strategyColor], and green for Win Rate.
-Color goalColor(Goal goal) => switch (goal) {
-      Goal.winRate => const Color(0xff81c784),
-      Goal.points => const Color(0xffe9d58f),
-      Goal.placement => const Color(0xffce93d8),
-    };
-
-/// The dials the goal has the guide playing right now, each in its own
-/// colour. Style and Strategy are left out under Hong Kong and Taiwanese
+/// The dials the guide is playing right now, each in its own colour: points
+/// early, placement in the final hands (see `autoDials`). Style and Strategy are left out under Hong Kong and Taiwanese
 /// rules, which pin them.
-Widget goalDialsText(GuideHost game, {Key? key, double fontSize = 12}) {
+Widget playingDialsText(GuideHost game, {Key? key, double fontSize = 12}) {
   final style = TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700);
   const dot = TextSpan(text: ' · ', style: TextStyle(color: Colors.white38));
   return Text.rich(
@@ -1336,33 +1327,24 @@ class _GamePageState extends State<GamePage> {
           ),
         ),
         actions: phone ? const [] : [
-          // Auto-Play and the goal in one panel: Auto-Play plays from the
-          // guide's own scores, and the goal picks the dials those scores are
-          // weighed on (see autoDials). The panel's border lights up gold
-          // while it is on, which is the cue that the goal is now steering
-          // your seat, not just the advice. PLAYING shows the dials the goal
-          // has picked.
+          // Auto-Play and the dials it plays in one panel: Auto-Play plays
+          // from the guide's own scores, weighed on the dials the game sets
+          // as it goes (points early, placement in the final hands; see
+          // autoDials). The panel's border lights up gold while it is on,
+          // the cue that the guide is now playing your seat, not just
+          // advising. PLAYING shows the dials in use.
           AnimatedBuilder(
             animation: _game,
             builder: (context, _) {
               final on = _game.autoplay;
               final dials = <Widget>[
-                _barDial(
-                  caption: 'GOAL',
-                  buttonKey: const Key('goal'),
-                  label: _game.goal.label,
-                  colour: goalColor(_game.goal),
-                  tooltip: 'What the guide (and Auto-Play) plays for: '
-                      'winning hands, points, or final placement',
-                  onTap: () => _game.setGoal(_game.goal.next),
-                ),
                 _barTile(
                   caption: 'PLAYING',
                   width: 160,
-                  tooltip: 'The style, focus and strategy the guide is '
-                      'using for your goal',
+                  tooltip: 'The style, focus and strategy the guide is using '
+                      'now: points early, placement in the final two hands',
                   onTap: null,
-                  value: goalDialsText(_game, key: const Key('goalDials')),
+                  value: playingDialsText(_game, key: const Key('playingDials')),
                 ),
               ];
               return AnimatedContainer(
@@ -1392,11 +1374,11 @@ class _GamePageState extends State<GamePage> {
                       width: 92,
                       tooltip: on
                           ? 'Auto-Play is on — TileSensor plays your seat by '
-                              'the guide, for the goal beside it.\n'
+                              'the guide: points early, placement in the '
+                              'final two hands.\n'
                               'Tap to take your seat back.'
                           : 'Auto-Play is off — you play your seat.\n'
-                              'Tap to let TileSensor play it by the guide, '
-                              'for the goal beside it.',
+                              'Tap to let TileSensor play it by the guide.',
                       onTap: () => _game.setAutoplay(!on),
                       value: Row(
                         mainAxisSize: MainAxisSize.min,

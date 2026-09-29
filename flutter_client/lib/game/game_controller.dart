@@ -358,37 +358,28 @@ class GameController extends ChangeNotifier implements TableGameHost {
   Timer? _autoDiscardTimer;
   final _autoDiscardRng = Random();
 
-  /// What the player wants from the game. While [goalDriven], the three dials
-  /// below are picked from it by [autoDials] instead of set by hand.
-  @override
-  Goal goal = kDefaultGoal;
-  @override
-  void setGoal(Goal value) {
-    if (goal == value && goalDriven) return;
-    goal = value;
-    goalDriven = true;
-    _tel?.settingChange(matchId: _matchId, setting: 'goal', value: value.name);
-    _refreshReport();
-    notifyListeners();
-  }
+  /// While true, the three dials below follow the game — points early,
+  /// placement in the final hands — through [autoDials]. Cleared the moment
+  /// any dial is set by hand, through its setter or by assigning it, which is
+  /// how the measurement harnesses pin a fixed arm.
+  bool dialsAuto = true;
 
-  /// Cleared the moment any dial is set by hand — through its setter, or by
-  /// assigning it, which is how the measurement harnesses pin a fixed arm.
-  @override
-  bool goalDriven = true;
+  /// Hands left in the game, counting this one; a dealer repeat in the final
+  /// hand still leaves one.
+  int get _handsLeft => max(1, _handsPerGame - _roundNumber);
 
-  AutoDials get _goalDials =>
-      autoDials(goal, ruleset, minimumPoints: minimumPoints);
+  AutoDials get _autoDials =>
+      autoDials(ruleset, minimumPoints: minimumPoints, handsLeft: _handsLeft);
 
-  /// Leaves goal mode with the dials it was playing, so setting one by hand
-  /// does not also snap the other two back to stale values.
+  /// Leaves automatic mode with the dials it was playing, so setting one by
+  /// hand does not also snap the other two back to stale values.
   void _pinDials() {
-    if (!goalDriven) return;
-    final d = _goalDials;
+    if (!dialsAuto) return;
+    final d = _autoDials;
     _playStyle = d.style;
     _handFocus = d.focus;
     _strategy = d.strategy;
-    goalDriven = false;
+    dialsAuto = false;
   }
 
   /// How the guide weighs danger against value. Feeds every score it produces,
@@ -396,7 +387,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// panel.
   PlayStyle _playStyle = kDefaultPlayStyle;
   @override
-  PlayStyle get playStyle => goalDriven ? _goalDials.style : _playStyle;
+  PlayStyle get playStyle => dialsAuto ? _autoDials.style : _playStyle;
   set playStyle(PlayStyle value) {
     _pinDials();
     _playStyle = value;
@@ -417,7 +408,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// value — and it steers Autoplay the same way.
   HandFocus _handFocus = kDefaultHandFocus;
   @override
-  HandFocus get handFocus => goalDriven ? _goalDials.focus : _handFocus;
+  HandFocus get handFocus => dialsAuto ? _autoDials.focus : _handFocus;
   set handFocus(HandFocus value) {
     _pinDials();
     _handFocus = value;
@@ -438,7 +429,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// the same way it pins [playStyle] to Balanced there.
   Strategy _strategy = kDefaultStrategy;
   @override
-  Strategy get strategy => goalDriven ? _goalDials.strategy : _strategy;
+  Strategy get strategy => dialsAuto ? _autoDials.strategy : _strategy;
   set strategy(Strategy value) {
     _pinDials();
     _strategy = value;
