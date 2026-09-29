@@ -13,7 +13,7 @@ Wants=network-online.target
 [Service]
 Environment=OMP_NUM_THREADS=1
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/opt/tilesense-mortal/venv/bin/python /opt/tilesense-mortal/current/server.py --model /opt/tilesense-mortal/current/mortal.onnx --host 127.0.0.1 --port 8790
+ExecStart=/opt/tilesense-mortal/current/venv/bin/python /opt/tilesense-mortal/current/server.py --model /opt/tilesense-mortal/current/mortal.onnx --host 127.0.0.1 --port 8790
 Restart=always
 RestartSec=2
 DynamicUser=yes

@@ -362,7 +362,8 @@ def setup_mortal(stage):
     """One-time: directories, the unit, and the nginx route and limits. The
     service is enabled but first started by the first `mortal` release."""
     unit = UNIT_DIR / MORTAL_UNIT
-    run(['systemd-analyze', 'verify', str(stage / MORTAL_UNIT)])
+    # Verified before each restart instead (switch_mortal): its program, the
+    # release's venv, doesn't exist until the first release.
     for name in ('releases', 'models', 'venvs'):
         (MORTAL / name).mkdir(parents=True, exist_ok=True)
     shutil.copy2(stage / MORTAL_UNIT, unit)
@@ -447,6 +448,7 @@ def switch_mortal(target):
     temporary.unlink(missing_ok=True)
     temporary.symlink_to(target)
     os.replace(temporary, current)
+    run(['systemd-analyze', 'verify', str(UNIT_DIR / MORTAL_UNIT)])
     run(['systemctl', 'restart', MORTAL_UNIT])
     # Loading the model takes a few seconds.
     for attempt in range(30):
