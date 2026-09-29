@@ -4,7 +4,9 @@ import 'package:flutter/scheduler.dart';
 
 import '../game/game_controller.dart' show kHumanSeat;
 import '../game/guide_host.dart';
+import '../game/mortal_advisor.dart' show MortalStatus;
 import '../main.dart' show isPhoneLayout;
+import 'package:mahjong_core/mjai.dart' show mjaiTile;
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
@@ -55,9 +57,11 @@ class HandView extends StatefulWidget {
   /// Height of the bar's bottom band: the tile row (now set by a `large` face
   /// at [_HandViewState._handScale], which is taller than the 104px TileSense
   /// button beside it) plus the bar's 10px bottom padding, plus the headroom
-  /// every tile reserves above itself to raise into on a first tap. The
-  /// efficiency overlay stops above this band so it never covers a tile.
-  static const double tileRowBandHeight = 116 + _HandViewState._liftHeight;
+  /// every tile reserves above itself to raise into on a first tap, plus the
+  /// lane above each tile for Mortal's ★. The efficiency overlay stops above
+  /// this band so it never covers a tile.
+  static const double tileRowBandHeight =
+      116 + _HandViewState._liftHeight + _HandViewState._starLane;
 
   @override
   State<HandView> createState() => _HandViewState();
@@ -84,6 +88,9 @@ class _HandViewState extends State<HandView> {
   /// so it never survives past the turn it was raised on.
   int? _selectedTileId;
 
+  /// When on, a tap discards a tile straight away instead of raising it first.
+  bool _singleTapDiscard = false;
+
   /// [Tile.drawn]'s id as of the last build, so [build] can tell a fresh draw
   /// apart from a rebuild mid-turn and drop a stale raise exactly once, at
   /// the turn boundary.
@@ -100,6 +107,11 @@ class _HandViewState extends State<HandView> {
 
   /// How far a raised tile lifts off the row, in logical pixels.
   static const double _liftHeight = 12;
+
+  /// The lane above every tile that holds Mortal's ★ on its pick — reserved
+  /// on all of them, so the star never shifts or covers anything.
+  static const double _starLane = 14;
+  static const _mortalRed = Color(0xffffab91);
 
   /// How much bigger the human hand (and its open melds) render than the
   /// authored `TileSize.large` / `TileSize.normal` steps. 1.65 = the base
@@ -216,6 +228,12 @@ class _HandViewState extends State<HandView> {
         for (final l in game.report.lines)
           if (l.recommended) l.discard,
     };
+    // Mortal's pick gets a red ★ above it, under the same rule as the green.
+    final mortal = game.mortalAdvice;
+    final mortalPick =
+        canPlay && showGuide && mortal?.status == MortalStatus.ready
+            ? mortal!.discard
+            : null;
 
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
@@ -226,6 +244,9 @@ class _HandViewState extends State<HandView> {
       final Color? hc = isTop ? _green : (isDrawn ? _yellow : null);
       final Color? border = (isDrawn && isTop) ? _yellow : null;
       final raised = tappable && tile.id == _selectedTileId;
+      final starred = tappable &&
+          mortalPick != null &&
+          mjaiTile(Tile(-1, tile.type)) == mortalPick;
       return Padding(
         // The top inset is reserved on every tile, raised or not, so a raise
         // is just the tile moving up into space that was already there —
@@ -236,21 +257,35 @@ class _HandViewState extends State<HandView> {
           duration: const Duration(milliseconds: 110),
           curve: Curves.easeOut,
           transform: Matrix4.translationValues(0, raised ? -_liftHeight : 0, 0),
-          child: InkWell(
-            onTap: tappable ? () => _tapTile(context, tile) : null,
-            onHover: tappable
-                ? (h) => setState(() => _hoveredTileId = h ? tile.id : null)
-                : null,
-            borderRadius: BorderRadius.circular(6),
-            child: TileFace(
-              tile: tile,
-              size: TileSize.large,
-              scale: _handScale,
-              highlightColor: hc,
-              borderColorOverride: border,
-              dimmed: riichiLocked && !isDrawn,
-              hovered: _hoveredTileId == tile.id,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: _starLane,
+                child: starred
+                    ? const Text('★',
+                        key: ValueKey('mortalStar'),
+                        style: TextStyle(
+                            color: _mortalRed, fontSize: 13, height: 1))
+                    : null,
+              ),
+              InkWell(
+                onTap: tappable ? () => _tapTile(context, tile) : null,
+                onHover: tappable
+                    ? (h) => setState(() => _hoveredTileId = h ? tile.id : null)
+                    : null,
+                borderRadius: BorderRadius.circular(6),
+                child: TileFace(
+                  tile: tile,
+                  size: TileSize.large,
+                  scale: _handScale,
+                  highlightColor: hc,
+                  borderColorOverride: border,
+                  dimmed: riichiLocked && !isDrawn,
+                  hovered: _hoveredTileId == tile.id,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -375,7 +410,16 @@ class _HandViewState extends State<HandView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _sortToggle(),
+                          // Sort and the discard mode as a pair, like the
+                          // call toggles beside them.
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _sortToggle(),
+                              const SizedBox(height: 10),
+                              _discardModeToggle(),
+                            ],
+                          ),
                           const SizedBox(width: 10),
                           // The two call toggles as a pair, a second column
                           // rather than a third row: the pair fits the tile
@@ -518,6 +562,29 @@ class _HandViewState extends State<HandView> {
     );
   }
 
+  /// Discard mode: Double (tap to raise, tap again to discard) or Single
+  /// (a tap discards straight away).
+  Widget _discardModeToggle() {
+    final on = _singleTapDiscard;
+    return _handToggle(
+      key: const Key('discardMode'),
+      caption: 'DISCARD',
+      value: on ? 'Single' : 'Double',
+      emoji: '👆',
+      on: on,
+      activeColor: const Color(0xff6a1b9a),
+      tooltip: on
+          ? 'Discard: single tap — tapping a tile discards it.\n'
+              'Tap to raise a tile first and tap again to discard.'
+          : 'Discard: double tap — the first tap raises a tile, a second '
+              'discards it.\nTap to discard with a single tap.',
+      onTap: () => setState(() {
+        _singleTapDiscard = !on;
+        _selectedTileId = null;
+      }),
+    );
+  }
+
   /// Auto-win: declares ron/tsumo the moment one is legal.
   Widget _autoWinToggle() {
     final on = game.autoWin;
@@ -569,13 +636,18 @@ class _HandViewState extends State<HandView> {
     required Key key,
     required String caption,
     required String value,
-    required IconData icon,
+    IconData? icon,
+    String? emoji,
     required bool on,
     required Color activeColor,
     required String tooltip,
     required VoidCallback onTap,
   }) {
     final ink = on ? Colors.white : Colors.white60;
+    // [emoji], when given, stands in for [icon].
+    Widget glyph(double size) => emoji != null
+        ? Text(emoji, style: TextStyle(fontSize: size - 2, height: 1))
+        : Icon(icon, size: size, color: ink);
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -592,8 +664,7 @@ class _HandViewState extends State<HandView> {
           // push the last tiles of the hand off-screen. The fill still shows
           // on/off, and the tooltip names it.
           child: isPhoneLayout(context)
-              ? SizedBox.square(
-                  dimension: 46, child: Icon(icon, size: 22, color: ink))
+              ? SizedBox.square(dimension: 46, child: Center(child: glyph(22)))
               : SizedBox(
                   width: 120,
                   height: 46,
@@ -601,7 +672,7 @@ class _HandViewState extends State<HandView> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Row(
                       children: [
-                        Icon(icon, size: 20, color: ink),
+                        glyph(20),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Column(
@@ -643,8 +714,9 @@ class _HandViewState extends State<HandView> {
   /// A tile tap: the first one just raises it (staging it for discard), and
   /// a second tap on that same raised tile discards it. Tapping a different
   /// tile moves the raise there instead, without discarding anything.
+  /// With [_singleTapDiscard] on, the first tap discards.
   void _tapTile(BuildContext context, Tile tile) {
-    if (_selectedTileId == tile.id) {
+    if (_singleTapDiscard || _selectedTileId == tile.id) {
       setState(() => _selectedTileId = null);
       _discard(context, tile);
     } else {

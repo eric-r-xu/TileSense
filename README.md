@@ -99,8 +99,8 @@ bots.
 
 The guide also adds a **Mortal bot** column: what Mortal, an open-source
 deep-learning mahjong AI, would do in your seat, seeing only what your seat can
-see. Its pick is highlighted in red and the guide's in green; where they pick
-the same tile or move, the highlight is red and green stripes.
+see. Its pick is outlined in red and the guide's filled green; where they pick
+the same tile or move, it is filled green with a red outline.
 
 **Auto-Play can follow either one** (the FOLLOWS dial in the top bar, the
 AUTO-PLAY chips in the guide panel, or the phone menu):
