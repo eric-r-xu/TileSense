@@ -37,17 +37,21 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Sort, Auto-win and Auto-pass are thumb-sized and apart',
+  testWidgets('Sort, Discard, Auto-win and Auto-pass are thumb-sized and apart',
       (tester) async {
     await startGame(tester);
     final sort = tester.getRect(find.byKey(const Key('sortHand')));
     final autoWin = tester.getRect(find.byKey(const Key('autoWin')));
     final autoPass = tester.getRect(find.byKey(const Key('autoPass')));
-    for (final r in [sort, autoWin, autoPass]) {
+    final discard = tester.getRect(find.byKey(const Key('discardMode')));
+    for (final r in [sort, discard, autoWin, autoPass]) {
       expect(r.width, greaterThanOrEqualTo(96));
       expect(r.height, greaterThanOrEqualTo(46));
     }
-    // Sort on its own, then the two call toggles stacked beside it.
+    // Sort over Discard, then the two call toggles stacked beside them.
+    expect(discard.top - sort.bottom, greaterThanOrEqualTo(10),
+        reason: 'far enough apart to hit the one you meant');
+    expect(discard.left, sort.left);
     expect(autoWin.left - sort.right, greaterThanOrEqualTo(10),
         reason: 'far enough apart to hit the one you meant');
     expect(autoPass.top - autoWin.bottom, greaterThanOrEqualTo(10),
@@ -170,7 +174,7 @@ void main() {
         (tester) async {
       await startGame(tester, size: iPhone);
       final toggles = [
-        for (final key in ['sortHand', 'autoWin', 'autoPass'])
+        for (final key in ['sortHand', 'discardMode', 'autoWin', 'autoPass'])
           tester.getRect(find.byKey(Key(key)))
       ];
       // Square icons, all the same size (46 design units: the canvas is

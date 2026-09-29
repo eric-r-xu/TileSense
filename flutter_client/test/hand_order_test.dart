@@ -319,4 +319,25 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });
+
+  testWidgets('with Discard on Single, the first tap discards', (tester) async {
+    await startGame(tester);
+    final before = strip(tester).length;
+
+    await tester.tap(find.byKey(const Key('discardMode')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('discardMode')),
+            matching: find.text('Single')),
+        findsOneWidget);
+
+    await tester.tap(handTiles.first, warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(strip(tester).length, lessThan(before),
+        reason: 'a single tap should discard straight away');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
 }

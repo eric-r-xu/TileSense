@@ -140,15 +140,17 @@ void main() {
             .first
             .type!));
 
-    /// The fill of the row for [tile]: a [Color], a [LinearGradient] for
-    /// stripes, or null.
-    Object? fillOf(WidgetTester tester, String tile) {
+    const green = Color(0x3343a047);
+    final redBorder = Border.all(color: const Color(0xffffab91), width: 2);
+
+    /// The highlight of the row for [tile]: a green fill, a red border, both,
+    /// or null.
+    BoxDecoration? fillOf(WidgetTester tester, String tile) {
       final table = tester.widget<Table>(find.byType(Table));
       for (final row in table.children.skip(1)) {
         final face = (row.children.first as Padding).child! as TileFace;
         if (mjaiTile(Tile(-1, face.type!)) != tile) continue;
-        final d = row.decoration as BoxDecoration?;
-        return d?.gradient ?? d?.color;
+        return row.decoration as BoxDecoration?;
       }
       fail('no row for $tile');
     }
@@ -184,32 +186,29 @@ void main() {
         expect(find.text('★R'), findsOneWidget);
         expect(find.text('2'), findsWidgets);
         expect(find.text('Mortal: RIICHI, cut 9s'), findsOneWidget);
-        // The guide and Mortal both pick 9s: its row is striped.
-        expect(fillOf(tester, '9s'), isA<LinearGradient>());
-        // The riichi line: striped if the guide also says riichi on 9s,
-        // Mortal's red otherwise.
+        // The guide and Mortal both pick 9s: green, outlined in red.
+        expect(fillOf(tester, '9s')!.color, green);
+        expect(fillOf(tester, '9s')!.border, redBorder);
+        // The riichi line: outlined in red, filled green only if the guide
+        // also says riichi on 9s.
         final top = report.lines.firstWhere((l) => l.recommended);
         final line = tester
             .widget<Container>(find.byKey(const ValueKey('mortal-line-box')))
             .decoration! as BoxDecoration;
-        if (top.recommendRiichi && top.discard == TileType.sou9) {
-          expect(line.gradient, isA<LinearGradient>());
-        } else {
-          expect(line.gradient, isNull);
-          expect(line.color, isNotNull);
-        }
+        expect(line.border, redBorder);
+        expect(line.color == green,
+            top.recommendRiichi && top.discard == TileType.sou9);
       });
     });
 
-    testWidgets("the guide's pick is green, Mortal's red, when they differ",
+    testWidgets("the guide's pick is filled green, Mortal's outlined red, when they differ",
         (tester) async {
       await show(tester, cuts3p, () {
-        expect(fillOf(tester, '9s'), const Color(0x3343a047));
-        final red = fillOf(tester, '3p');
-        expect(red, isA<Color>());
-        expect((red as Color).r, greaterThan(red.g),
-            reason: "Mortal's red, not the guide's green");
-        expect(fillOf(tester, '4p'), isNot(isA<LinearGradient>()));
+        expect(fillOf(tester, '9s')!.color, green);
+        expect(fillOf(tester, '9s')!.border, isNull);
+        expect(fillOf(tester, '3p')!.color, isNull);
+        expect(fillOf(tester, '3p')!.border, redBorder);
+        expect(fillOf(tester, '4p')?.border, isNull);
       });
     });
 
@@ -274,7 +273,7 @@ void main() {
       }
     });
 
-    testWidgets("a call's line is striped exactly when the guide agrees",
+    testWidgets("a call's line is filled green exactly when the guide agrees",
         (tester) async {
       Sfx.i.enabled = false;
       // Seat 3 discards 5p to you holding 55p: a pon (no ron).
@@ -312,7 +311,8 @@ void main() {
           final line = tester
               .widget<Container>(find.byKey(const ValueKey('mortal-line-box')))
               .decoration! as BoxDecoration;
-          expect(line.gradient != null, call == guide,
+          expect(line.border, redBorder);
+          expect(line.color != null, call == guide,
               reason: 'Mortal $call vs guide $guide');
         }
       } finally {
