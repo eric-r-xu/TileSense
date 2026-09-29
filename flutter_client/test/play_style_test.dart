@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:mahjong_core/round.dart';
-import 'package:tilesense/logic/auto_dials.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
@@ -247,7 +246,7 @@ void main() {
     });
   });
 
-  testWidgets('the bar shows the goal and the dials it plays',
+  testWidgets('the bar shows the dials the guide is playing',
       (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -261,26 +260,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // The bar carries one dial, the goal, and beside it the dials that goal
-    // has the guide playing: a riichi game starts on Placement, played
-    // Balanced / Speed / Points.
-    expect(labelOf(const Key('goal')), 'Placement');
-    expect(playingOf(), 'Balanced · Speed · Points');
+    // No goal to pick any more: the bar just shows the dials the guide is
+    // playing, and a riichi game's first hand plays for points.
+    expect(find.byKey(const Key('goal')), findsNothing);
+    expect(playingOf(), 'Aggressive · Speed · Points');
     expect(find.byKey(const Key('playStyle')), findsNothing);
     expect(find.byKey(const Key('handFocus')), findsNothing);
     expect(find.byKey(const Key('strategy')), findsNothing);
-
-    // Cycling the goal walks all three and comes back round.
-    for (final (label, playing) in [
-      ('Win Rate', 'Aggressive · Speed · Points'),
-      ('Points', 'Aggressive · Speed · Points'),
-      ('Placement', 'Balanced · Speed · Points'),
-    ]) {
-      await tester.tap(find.byKey(const Key('goal')));
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(labelOf(const Key('goal')), label);
-      expect(playingOf(), playing);
-    }
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -336,7 +322,8 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('the guide carries a synced copy of the goal', (tester) async {
+  testWidgets('the guide shows the same dials, with no goal to pick',
+      (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
@@ -352,26 +339,15 @@ void main() {
     await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    // A game's guide shows the goal, not the three dials it picks.
+    // A game's guide shows the dials in play, read-only, as the bar does.
     expect(find.byKey(const Key('guidePlayStyle_defensive')), findsNothing);
-    expect(goalChipPicked(tester, Goal.placement), isTrue);
+    expect(find.byKey(const Key('guideGoal_placement')), findsNothing);
     expect(
         tester
-            .widget<Text>(find.byKey(const Key('guideGoalDials')))
+            .widget<Text>(find.byKey(const Key('guidePlayingDials')))
             .textSpan!
             .toPlainText(),
-        'Balanced · Speed · Points');
-
-    // Guide -> app bar.
-    await tester.tap(find.byKey(const Key('guideGoal_winRate')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('goal')), 'Win Rate');
-
-    // App bar -> guide: the guide's own chip has to follow.
-    await tester.tap(find.byKey(const Key('goal')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(goalChipPicked(tester, Goal.points), isTrue);
-    expect(goalChipPicked(tester, Goal.winRate), isFalse);
+        playingOf());
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -394,11 +370,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Move the dial off its default so we can tell a surviving match from a
+    // Move a setting off its default so we can tell a surviving match from a
     // freshly built one.
-    await tester.tap(find.byKey(const Key('goal')));
+    await tester.tap(find.byKey(const Key('fastMode')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(const Key('goal')), 'Win Rate');
+    expect(labelOf(const Key('fastMode')), '2x');
 
     // Portrait: the rotate prompt covers the table, and the welcome screen
     // must not come back.
@@ -411,7 +387,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Rotate your device'), findsNothing);
     expect(find.text('Single Player'), findsNothing);
-    expect(labelOf(const Key('goal')), 'Win Rate');
+    expect(labelOf(const Key('fastMode')), '2x');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -428,16 +404,7 @@ String labelOf(Key key) => (find
 
 /// What the bar's PLAYING tile reads: the dials the guide is playing.
 String playingOf() =>
-    (find.byKey(const Key('goalDials')).evaluate().single.widget as Text)
+    (find.byKey(const Key('playingDials')).evaluate().single.widget as Text)
         .textSpan!
         .toPlainText();
 
-/// Whether the guide panel's chip for [goal] is rendering as the picked one —
-/// picked chips draw their label in the goal's own colour, the rest grey out.
-bool goalChipPicked(WidgetTester tester, Goal goal) {
-  final text = tester.widget<Text>(find.descendant(
-    of: find.byKey(Key('guideGoal_${goal.name}')),
-    matching: find.byType(Text),
-  ));
-  return text.style?.color == goalColor(goal);
-}

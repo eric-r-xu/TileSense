@@ -9,7 +9,6 @@ library;
 
 import 'package:flutter/foundation.dart';
 
-import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
@@ -105,14 +104,6 @@ abstract class GuideHost implements Listenable {
 /// multiplayer server) both implement it; the scenario builder does not — it
 /// has no turn loop for these methods to act on.
 abstract class TableGameHost implements GuideHost {
-  /// What the player wants from the game. While [goalDriven], the guide and
-  /// Auto-Play play the dials `autoDials` picks for it; setting any dial by
-  /// hand clears [goalDriven], and [setGoal] sets it again. The scenario
-  /// builder has no game to win, so it keeps the three dials alone.
-  Goal get goal;
-  void setGoal(Goal value);
-  bool get goalDriven;
-
   bool get isHumanTurn;
 
   /// Wall-clock deadline (epoch ms) for answering the call (chi / pon / kan /

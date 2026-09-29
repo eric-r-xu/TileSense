@@ -21,9 +21,9 @@ void main() {
           .first)
       .data!;
 
-  /// What the bar's PLAYING tile reads: the dials the goal has picked.
+  /// What the bar's PLAYING tile reads: the dials the guide is playing.
   String playingOf(WidgetTester tester) => tester
-      .widget<Text>(find.byKey(const Key('goalDials')))
+      .widget<Text>(find.byKey(const Key('playingDials')))
       .textSpan!
       .toPlainText();
 
@@ -69,8 +69,8 @@ void main() {
 
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
-    expect(labelOf(tester, const Key('goal')), 'Placement');
-    expect(playingOf(tester), 'Balanced · Speed · Points');
+    expect(find.byKey(const Key('goal')), findsNothing);
+    expect(playingOf(tester), 'Aggressive · Speed · Points');
     expect(find.textContaining('Honba'), findsOneWidget);
     expect(find.text('DORA'), findsOneWidget);
 
@@ -184,16 +184,9 @@ void main() {
     // The table is created after a loading frame.
     await tester.pump();
 
-    // Pick a non-default goal so the Chinese-style-and-back round trip below
-    // can prove it survives.
-    await tester.tap(find.byKey(const Key('goal')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(labelOf(tester, const Key('goal')), 'Win Rate');
-
     await switchViaMenu(tester, Ruleset.hongKong);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
     expect(find.byType(TableView), findsOneWidget);
-    expect(labelOf(tester, const Key('goal')), 'Win Rate');
     expect(playingOf(tester), 'Speed',
         reason: 'Hong Kong pins Style and Strategy, so only Focus shows');
 
@@ -206,9 +199,8 @@ void main() {
     await switchViaMenu(tester, Ruleset.riichi);
     expect(labelOf(tester, const Key('ruleset')), Ruleset.riichi.flagLabel);
     expect(find.text('DORA'), findsOneWidget);
-    expect(labelOf(tester, const Key('goal')), 'Win Rate',
-        reason: 'the goal from before the trip comes back');
-    expect(playingOf(tester), 'Aggressive · Speed · Points');
+    expect(playingOf(tester), 'Aggressive · Speed · Points',
+        reason: 'back to riichi, a new game plays for points first');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

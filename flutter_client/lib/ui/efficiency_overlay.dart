@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../game/guide_host.dart';
 import '../game/mortal_advisor.dart';
-import '../logic/auto_dials.dart' show Goal;
 import '../logic/efficiency_engine.dart';
 import '../logic/placement_utility.dart';
 import 'package:mahjong_core/mjai.dart' show mjaiTile;
@@ -12,7 +11,7 @@ import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import '../main.dart'
-    show goalColor, goalDialsText, handFocusColor, playStyleColor, strategyColor;
+    show handFocusColor, playStyleColor, playingDialsText, strategyColor;
 import 'ev_explainer_dialog.dart';
 import 'tile_face.dart';
 
@@ -70,11 +69,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           children: [
             _header(r),
             if (!_minimized) ...[
-              // A game has a goal that picks the dials; the scenario builder
+              // A game sets the dials itself as it goes; the scenario builder
               // has no game to win, so it keeps the three dials to compare
               // advice under each.
-              if (widget.game case final TableGameHost game) ...[
-                _goalDial(game),
+              if (widget.game is TableGameHost) ...[
                 _playingRow(),
               ] else ...[
                 if (!_hk) _styleDial(),
@@ -119,31 +117,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  /// The goal, mirrored here from the app bar: both read and write the one
-  /// [TableGameHost.goal].
-  Widget _goalDial(TableGameHost game) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          _dialLabel('GOAL', _goalTip()),
-          const SizedBox(width: 8),
-          for (final goal in Goal.values)
-            Expanded(
-              child: _dialChip(
-                label: goal.label,
-                colour: goalColor(goal),
-                active: game.goalDriven && goal == game.goal,
-                chipKey: Key('guideGoal_${goal.name}'),
-                onTap: () => game.setGoal(goal),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// The dials the goal has the guide playing, read-only.
+  /// The dials the guide is playing right now, read-only.
   Widget _playingRow() {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
@@ -152,8 +126,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           _dialLabel('PLAYING', _playingTip()),
           const SizedBox(width: 12),
           Flexible(
-            child: goalDialsText(widget.game,
-                key: const Key('guideGoalDials'), fontSize: 10),
+            child: playingDialsText(widget.game,
+                key: const Key('guidePlayingDials'), fontSize: 10),
           ),
         ],
       ),
@@ -1126,33 +1100,17 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     ];
   }
 
-  List<InlineSpan> _goalTip() => [
-        const TextSpan(text: 'GOAL\n', style: _tipTitle),
-        const TextSpan(
-            text: 'What the guide (and Auto-Play) plays for.\n',
-            style: _tipBody),
-        _tipTable(
-          ['Goal', 'Plays to'],
-          const [
-            ['Win Rate', 'win as many hands as it can'],
-            ['Points', 'finish with the most points'],
-            ['Placement', 'finish as high as it can'],
-          ],
-          left: const {0, 1},
-        ),
-        ..._bullets(const [
-          ('Style, Focus, Strategy', 'picked for you — see PLAYING'),
-        ]),
-      ];
-
   List<InlineSpan> _playingTip() => [
         const TextSpan(text: 'PLAYING\n', style: _tipTitle),
         const TextSpan(
             text: 'The style, focus and strategy the guide is weighing '
-                'every line with, picked for your goal from simulated '
-                'games against the bots.\n',
+                'every line with, set for you as the game goes.\n',
             style: _tipBody),
         ..._bullets(const [
+          ('Riichi, early hands', 'Aggressive · Speed · Points: '
+              'build a lead'),
+          ('Riichi, final two hands', 'Balanced · Speed · Placement: '
+              'protect or climb the standings'),
           ('Hong Kong, Taiwanese', 'Style and Strategy are fixed; only '
               'Focus shows'),
         ]),

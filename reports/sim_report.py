@@ -28,9 +28,11 @@ METRICS = {"win_rate": "Win Rate", "deal_in_rate": "Deal-in Rate",
 RULESETS = {"riichi": 0, "hongKong": 1, "taiwanese": 2}
 ORDER = {"defensive": 0, "balanced": 1, "aggressive": 2, "speed": 0, "points": 0,
          "placement": 1, "goal:winRate": 0, "goal:points": 1, "goal:placement": 2,
+         "goal:dynamic": 3,
          None: -1, "": -1}
 DECIDERS = {"simple_bot": 0, "guide": 1, "auto": 2}
-GOALS = {"winRate": "Win Rate", "points": "Points", "placement": "Placement"}
+GOALS = {"winRate": "Win Rate", "points": "Points", "placement": "Placement",
+         "dynamic": "Dynamic (points early, placement in the final hands)"}
 
 
 def label(v, empty=""):

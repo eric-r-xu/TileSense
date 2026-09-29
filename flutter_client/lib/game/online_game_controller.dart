@@ -360,37 +360,34 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   bool get paused => false;
 
-  // Goal mode works as in `GameController`: the dials follow [goal] until
-  // one is set by hand, which keeps the other two where the goal had them.
-  @override
-  Goal goal = kDefaultGoal;
-  @override
-  void setGoal(Goal value) {
-    if (goal == value && goalDriven) return;
-    goal = value;
-    goalDriven = true;
-    _refreshReport();
-    notifyListeners();
+  // The dials follow the game as in `GameController`, points early and
+  // placement in the final hands, until one is set by hand. Strategy stays
+  // on Points: Placement isn't wired up for online play (see [strategy]).
+  bool dialsAuto = true;
+
+  int get _handsLeft {
+    final played = (round.roundWind == Wind.east ? 0 : 4) + _handInWind - 1;
+    return max(1, ruleset.handsPerGame(fullGame: hanchan) - played);
   }
 
-  @override
-  bool goalDriven = true;
-
-  AutoDials get _goalDials =>
-      autoDials(goal, ruleset, minimumPoints: minimumPoints);
+  AutoDials get _autoDials {
+    final d = autoDials(ruleset,
+        minimumPoints: minimumPoints, handsLeft: _handsLeft);
+    return (style: d.style, focus: d.focus, strategy: Strategy.points);
+  }
 
   void _pinDials() {
-    if (!goalDriven) return;
-    final d = _goalDials;
+    if (!dialsAuto) return;
+    final d = _autoDials;
     _playStyle = d.style;
     _handFocus = d.focus;
     _strategy = d.strategy;
-    goalDriven = false;
+    dialsAuto = false;
   }
 
   PlayStyle _playStyle = kDefaultPlayStyle;
   @override
-  PlayStyle get playStyle => goalDriven ? _goalDials.style : _playStyle;
+  PlayStyle get playStyle => dialsAuto ? _autoDials.style : _playStyle;
   set playStyle(PlayStyle value) {
     _pinDials();
     _playStyle = value;
@@ -406,7 +403,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   HandFocus _handFocus = kDefaultHandFocus;
   @override
-  HandFocus get handFocus => goalDriven ? _goalDials.focus : _handFocus;
+  HandFocus get handFocus => dialsAuto ? _autoDials.focus : _handFocus;
   set handFocus(HandFocus value) {
     _pinDials();
     _handFocus = value;
@@ -424,7 +421,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   // this satisfies [GuideHost] but stays pinned to the reference model.
   Strategy _strategy = kDefaultStrategy;
   @override
-  Strategy get strategy => goalDriven ? _goalDials.strategy : _strategy;
+  Strategy get strategy => dialsAuto ? _autoDials.strategy : _strategy;
   set strategy(Strategy value) {
     _pinDials();
     _strategy = value;
