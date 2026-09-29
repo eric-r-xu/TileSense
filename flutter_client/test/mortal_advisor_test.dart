@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/mjai.dart' show MjaiEvent, mjaiTile;
+import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/guide_host.dart' show AutoplayBrain;
@@ -139,6 +140,19 @@ void main() {
             .first
             .type!));
 
+    /// The fill of the row for [tile]: a [Color], a [LinearGradient] for
+    /// stripes, or null.
+    Object? fillOf(WidgetTester tester, String tile) {
+      final table = tester.widget<Table>(find.byType(Table));
+      for (final row in table.children.skip(1)) {
+        final face = (row.children.first as Padding).child! as TileFace;
+        if (mjaiTile(Tile(-1, face.type!)) != tile) continue;
+        final d = row.decoration as BoxDecoration?;
+        return d?.gradient ?? d?.color;
+      }
+      fail('no row for $tile');
+    }
+
     /// Renders the panel with [advice], runs [check], then disposes the game
     /// (inside the test, so its turn timer is cancelled before the test ends).
     Future<void> show(WidgetTester tester, MortalAdvice? advice,
@@ -170,13 +184,32 @@ void main() {
         expect(find.text('★R'), findsOneWidget);
         expect(find.text('2'), findsWidgets);
         expect(find.text('Mortal: RIICHI, cut 9s'), findsOneWidget);
-        // Blue rings: one on the tile, one on the riichi line.
-        final rings = find.byWidgetPredicate((w) =>
-            w is Container &&
-            w.decoration is BoxDecoration &&
-            (w.decoration as BoxDecoration).border ==
-                Border.all(color: const Color(0xff42a5f5), width: 2));
-        expect(rings, findsNWidgets(2));
+        // The guide and Mortal both pick 9s: its row is striped.
+        expect(fillOf(tester, '9s'), isA<LinearGradient>());
+        // The riichi line: striped if the guide also says riichi on 9s,
+        // Mortal's red otherwise.
+        final top = report.lines.firstWhere((l) => l.recommended);
+        final line = tester
+            .widget<Container>(find.byKey(const ValueKey('mortal-line-box')))
+            .decoration! as BoxDecoration;
+        if (top.recommendRiichi && top.discard == TileType.sou9) {
+          expect(line.gradient, isA<LinearGradient>());
+        } else {
+          expect(line.gradient, isNull);
+          expect(line.color, isNotNull);
+        }
+      });
+    });
+
+    testWidgets("the guide's pick is green, Mortal's red, when they differ",
+        (tester) async {
+      await show(tester, cuts3p, () {
+        expect(fillOf(tester, '9s'), const Color(0x3343a047));
+        final red = fillOf(tester, '3p');
+        expect(red, isA<Color>());
+        expect((red as Color).r, greaterThan(red.g),
+            reason: "Mortal's red, not the guide's green");
+        expect(fillOf(tester, '4p'), isNot(isA<LinearGradient>()));
       });
     });
 
@@ -238,6 +271,53 @@ void main() {
         expect(game.autoplayBrain, AutoplayBrain.tilesense);
       } finally {
         game.dispose();
+      }
+    });
+
+    testWidgets("a call's line is striped exactly when the guide agrees",
+        (tester) async {
+      Sfx.i.enabled = false;
+      // Seat 3 discards 5p to you holding 55p: a pon (no ron).
+      final game = GameController(seed: 4);
+      try {
+        final round = game.round;
+        final fed = Tile(902, TileType.pin5);
+        round.seats[kHumanSeat]
+          ..hand = parseTiles('55p 123m 456m 789m 19s')
+          ..drawn = null
+          ..melds = [];
+        round.seats[3]
+          ..hand = [...parseTiles('123m 456m 789m 111s 2p'), fed]
+          ..drawn = fed;
+        round.turn = 3;
+        round.phase = RoundPhase.discarding;
+        round.discard(3, fed);
+        await pumpUntil(tester, () => game.awaitingHumanCall);
+        final guide = game.recommendedCall ?? CallType.none;
+        for (final (reaction, call) in [
+          ({'type': 'pon', 'actor': 0}, CallType.pon),
+          (null, CallType.none),
+        ]) {
+          game.mortalAdvice = MortalAdvice.fromReply(
+              {'reaction': reaction, 'riichi_discard': null},
+              call: true);
+          await tester.pumpWidget(MaterialApp(
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: EfficiencyOverlay(game: game, report: game.report),
+              ),
+            ),
+          ));
+          final line = tester
+              .widget<Container>(find.byKey(const ValueKey('mortal-line-box')))
+              .decoration! as BoxDecoration;
+          expect(line.gradient != null, call == guide,
+              reason: 'Mortal $call vs guide $guide');
+        }
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
       }
     });
   });

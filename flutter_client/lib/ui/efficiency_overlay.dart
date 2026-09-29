@@ -1434,23 +1434,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         ]),
         for (final line in lines)
           TableRow(
-            decoration: BoxDecoration(
-              color: line.recommended
-                  ? const Color(0x3343a047)
-                  : line.bestUkeire
-                      ? const Color(0x22caa24e)
-                      : null,
-            ),
+            // The guide's pick in green, Mortal's in its column's red, and
+            // the two interwoven when they pick the same tile.
+            decoration: _pickFill(
+                  guide: line.recommended,
+                  mortal: _isMortalPick(mortal, line.discard),
+                ) ??
+                BoxDecoration(
+                  color: line.bestUkeire ? const Color(0x22caa24e) : null,
+                ),
             children: [
-              Container(
-                margin: const EdgeInsets.all(1),
-                padding: const EdgeInsets.all(2),
-                // Mortal's pick is ringed in blue.
-                decoration: _isMortalPick(mortal, line.discard)
-                    ? BoxDecoration(
-                        border: Border.all(color: _mortalBlue, width: 2),
-                        borderRadius: BorderRadius.circular(4))
-                    : null,
+              Padding(
+                padding: const EdgeInsets.all(3),
                 child: TileFace(type: line.discard, size: TileSize.small),
               ),
               if (mortal != null) _mortalCell(mortal, line.discard),
@@ -1537,7 +1532,58 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   }
 
   static const _mortalColour = Color(0xffffab91);
-  static const _mortalBlue = Color(0xff42a5f5);
+
+  /// A pick's highlight: the guide's green, Mortal's red (the Mortal column's
+  /// hue), or both interwoven in diagonal stripes when they agree. Null when
+  /// neither picked it.
+  static Decoration? _pickFill({required bool guide, required bool mortal}) {
+    const green = Color(0x3343a047);
+    final red = _mortalColour.withValues(alpha: 0.4);
+    if (guide && mortal) {
+      return BoxDecoration(
+        gradient: LinearGradient(
+          begin: const Alignment(-1, -1),
+          end: const Alignment(-0.93, -0.55),
+          tileMode: TileMode.repeated,
+          colors: [green, green, red, red],
+          stops: const [0, 0.5, 0.5, 1],
+        ),
+      );
+    }
+    if (guide) return const BoxDecoration(color: green);
+    if (mortal) return BoxDecoration(color: red);
+    return null;
+  }
+
+  /// Whether the guide recommends the move Mortal's action line names: the
+  /// same call, the same riichi discard, a kan it would take, or a win (which
+  /// the guide always takes).
+  bool _guideAgrees(MortalAdvice a) {
+    final game = widget.game;
+    if (game.awaitingHumanCall) {
+      final guide = game.recommendedCall ?? CallType.none;
+      final mortal = switch (a.action) {
+        'PASS' => CallType.none,
+        'PON' => CallType.pon,
+        'KAN' => CallType.kan,
+        'RON' => CallType.ron,
+        final chi? when chi.startsWith('CHI') => CallType.chi,
+        _ => null,
+      };
+      return mortal == guide;
+    }
+    if (a.riichi) {
+      final top = widget.report.lines.where((l) => l.recommended).firstOrNull;
+      return top != null &&
+          top.recommendRiichi &&
+          mjaiTile(Tile(-1, top.discard)) == a.discard;
+    }
+    return switch (a.action) {
+      'TSUMO' => true,
+      'KAN' => game.kanAdvice?.advice.eligible ?? false,
+      _ => false,
+    };
+  }
 
   static bool _isMortalPick(MortalAdvice? a, TileType type) =>
       a?.status == MortalStatus.ready &&
@@ -1574,18 +1620,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final picked = a!.status == MortalStatus.ready;
     return _tipBox(
       Container(
+        key: const ValueKey('mortal-line-box'),
         margin: const EdgeInsets.only(top: 3, bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-        // Mortal's chosen action is ringed in blue, like its tile.
+        // Mortal's chosen action in its red, like its row; interwoven with
+        // the guide's green when the guide recommends the same move.
         decoration: picked
-            ? BoxDecoration(
-                border: Border.all(color: _mortalBlue, width: 2),
-                borderRadius: BorderRadius.circular(4))
+            ? _pickFill(guide: _guideAgrees(a), mortal: true)
             : null,
         child: Text('Mortal: $text',
             key: const ValueKey('mortal-line'),
-            style: const TextStyle(
-                color: _mortalColour,
+            style: TextStyle(
+                color: picked ? Colors.white : _mortalColour,
                 fontSize: 10,
                 fontWeight: FontWeight.w700)),
       ),
@@ -1599,7 +1645,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         text: 'What Mortal, an open-source deep-learning mahjong AI, would do '
             'in your seat, seeing only what your seat can see. ★ marks its '
             'discard (★R: it would declare riichi first); the numbers are its '
-            'order of preference among the rest.\n\n',
+            'order of preference among the rest. Its pick is highlighted in '
+            'red, the guide\'s in green, and red-and-green stripes mean they '
+            'agree.\n\n',
         style: _tipBody),
     TextSpan(
         text: 'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the '
