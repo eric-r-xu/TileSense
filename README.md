@@ -116,7 +116,7 @@ bar (which deals a new game) or the builder's chip row. Riichi is the default.
 | Rules | Tiles | Minimum to win | Rules page | One-page PDF |
 |---|---|---|---|---|
 | 🇯🇵 Riichi | 136, 13-tile hands | one yaku | [Riichi rules](docs/JAPANESE_RIICHI_RULES.md) | [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf) |
-| 🇭🇰 Hong Kong (*HKMJ Cheat Sheet 1.0*) | 144 with flowers | **0 faan** by default; 1, 2 or 3 | [Hong Kong rules](docs/HONG_KONG_RULES.md) | [HK.pdf](https://app.ericrxu.com/static/HK.pdf) |
+| 🇭🇰 Hong Kong | 144 with flowers | **0 faan** by default; 1, 2 or 3 | [Hong Kong rules](docs/HONG_KONG_RULES.md) | [HK.pdf](https://app.ericrxu.com/static/HK.pdf) |
 | 🇹🇼 Taiwanese | 144 with flowers, 16-tile hands (5 melds and a pair) | **5 tai** by default; 1 or 3 | [Taiwanese rules](docs/TAIWANESE_RULES.md) | [Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf) |
 
 Taiwanese scores flat, additive points and adds a dealer win-streak bonus.
