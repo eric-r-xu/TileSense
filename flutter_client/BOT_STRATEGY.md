@@ -13,6 +13,13 @@ how that compares to how your own seat plays. Based on
   the characters (Grant, Hubert and Astaroth are just the defaults, and
   offline seats may repeat one), but the character is only a portrait and a
   voice, not a strategy.
+- **Except Saeko under riichi, in a Mortal build.** Built with `MORTAL_URL`,
+  a bot seat showing Saeko plays the moves of
+  [Mortal](https://github.com/Equim-chan/Mortal), a deep-learning mahjong AI,
+  seeing only what her seat can see. Any decision Mortal can't answer (the
+  sidecar is down or slow, or it names a move the table doesn't offer) falls
+  back to `SimpleBot`. Every other character, Saeko under Hong Kong or
+  Taiwanese rules, and every online bot stay on `SimpleBot`.
 - **Your seat is played by the guide, never by that rulebook.** Whether you're
   tapping tiles yourself or you've flipped Autoplay on, your seat's decisions
   come from the efficiency / expected-value / safety analysis. The opponents

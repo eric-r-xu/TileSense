@@ -20,12 +20,17 @@ class BotTurn {
       this.closedKan,
       this.addedKan,
       this.discard,
-      this.riichi = false});
+      this.riichi = false,
+      this.kyuushu = false});
   final bool tsumo;
   final TileType? closedKan;
   final TileType? addedKan;
   final Tile? discard;
   final bool riichi;
+
+  /// Abort the hand on kyuushu kyuuhai. SimpleBot never does; Saeko on
+  /// Mortal may.
+  final bool kyuushu;
 }
 
 class SimpleBot {
@@ -100,8 +105,8 @@ class SimpleBot {
         totalMelds: totalMelds);
     bool improves(List<Tile> rest) {
       final remaining = List<int>.filled(38, 4);
-      final lines =
-          calc.calculate(toTrainerCounts(rest), remaining, totalMelds: totalMelds);
+      final lines = calc.calculate(toTrainerCounts(rest), remaining,
+          totalMelds: totalMelds);
       return lines.any((line) => line.shanten < before);
     }
 

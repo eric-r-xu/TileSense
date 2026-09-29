@@ -24,6 +24,8 @@ multiplayer server (`server/mp/`) and the telemetry ingest (`server/`).
 - **Single player** against three bots: a full game with draws, discards,
   **chi**, **pon** and **kan**, riichi, tsumo, ron and exhaustive draws with
   tenpai payments. A hanchan (East and South) by default, or East only.
+  Seat **Saeko** and, under riichi, she plays Mortal's moves (see below);
+  every other bot plays the same simple rulebook.
 - **Play Online**: a private room for up to four people, with bots filling any
   empty seat. There is no guide or Auto-Play online, by design: nobody gets help
   the others don't.
@@ -82,16 +84,20 @@ the recommended discard or call.
 How the guide measures up against the bots, and how the bots play, is in
 [`BOT_STRATEGY.md`](flutter_client/BOT_STRATEGY.md).
 
-### Mortal's second opinion (optional)
+### Mortal (optional)
 
-In single-player riichi, the guide can add a **Mortal decision** column: what
-[Mortal](https://github.com/Equim-chan/Mortal), an open-source deep-learning
-mahjong AI, would do in your seat, seeing only what your seat can see. Its pick is
-ringed in blue, and the rows follow its order of preference; the guide's own
-recommendation stays highlighted in green. It is display only: it never plays a
-move.
+In single-player riichi, the **Saeko** bot plays
+[Mortal](https://github.com/Equim-chan/Mortal)'s moves, seeing only what her
+seat can see; if Mortal can't answer a decision, she plays it like the other
+bots.
 
-It is off unless the app is built with `--dart-define=MORTAL_URL=<address>`. Mortal
+The guide can also add a **Mortal decision** column: what Mortal, an
+open-source deep-learning mahjong AI, would do in your seat, seeing only what
+your seat can see. Its pick is ringed in blue, and the rows follow its order of
+preference; the guide's own recommendation stays highlighted in green. The
+column is a second opinion only: it never plays your seat.
+
+Both are off unless the app is built with `--dart-define=MORTAL_URL=<address>`. Mortal
 runs on ONNX Runtime in a small sidecar (`mortal_sidecar/server.py`, setup steps in
 its header).
 

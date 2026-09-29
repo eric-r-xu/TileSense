@@ -1,16 +1,19 @@
-/// The guide's second opinion: asks the Mortal sidecar (mortal_sidecar/
-/// server.py) what Mortal would do in your seat, seeing only what your seat
-/// can see, for the panel's "Mortal decision" column. Display only — it
-/// never plays a move.
+/// Asks the Mortal sidecar (mortal_sidecar/server.py) what Mortal would do in
+/// one seat, seeing only what that seat can see: for your seat, the guide
+/// panel's Mortal column ([MortalAdvice]); for the Saeko bot, her moves
+/// ([MortalMove]).
 ///
 /// Off unless the app is built with `--dart-define=MORTAL_URL=<address>`
 /// (`/tilesense/mortal` in production); then only offline riichi games ask.
 library;
 
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
+import 'package:mahjong_core/bot.dart';
 import 'package:mahjong_core/mjai.dart';
+import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 
 /// The Mortal sidecar's address, fixed at build time. Empty (the default)
@@ -53,7 +56,8 @@ class MortalAdvice {
   int? rankOf(TileType type) => ranks[mjaiTile(Tile(-1, type))];
 
   /// Reads the sidecar's reply; see server.py.
-  factory MortalAdvice.fromReply(Map<String, Object?> body, {required bool call}) {
+  factory MortalAdvice.fromReply(Map<String, Object?> body,
+      {required bool call}) {
     final reaction = body['reaction'] as Map<String, Object?>?;
     final riichiDiscard = body['riichi_discard'] as Map<String, Object?>?;
     final type = reaction?['type'];
@@ -103,7 +107,8 @@ class MortalAdvice {
       final name = _discardNames[i].replaceFirst('r', '');
       if (value > (best[name] ?? double.negativeInfinity)) best[name] = value;
     }
-    final order = best.keys.toList()..sort((a, b) => best[b]!.compareTo(best[a]!));
+    final order = best.keys.toList()
+      ..sort((a, b) => best[b]!.compareTo(best[a]!));
     return {for (var i = 0; i < order.length; i++) order[i]: i + 1};
   }
 }
@@ -112,15 +117,99 @@ class MortalAdvisor {
   MortalAdvisor(String url) : _url = Uri.base.resolve('$url/react');
   final Uri _url;
 
-  /// [events] must already be your seat's view ([mjaiView] for seat 0).
-  Future<MortalAdvice> advise(List<MjaiEvent> events, {required bool call}) async {
+  /// Mortal's reply for [seat]. [events] is the hand with nothing hidden
+  /// ([MjaiRecorder]); only [seat]'s own view of it ([mjaiView]) is sent.
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
     final res = await http
         .post(_url,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'player_id': 0, 'events': events}))
+            body: jsonEncode(
+                {'player_id': seat, 'events': mjaiView(events, seat)}))
         .timeout(const Duration(seconds: 3));
     final body = jsonDecode(res.body) as Map<String, Object?>;
     if (res.statusCode != 200) throw StateError('Mortal: ${body['error']}');
-    return MortalAdvice.fromReply(body, call: call);
+    return body;
   }
+
+  /// Mortal's advice for your seat, for the guide panel.
+  Future<MortalAdvice> advise(List<MjaiEvent> events,
+          {required bool call}) async =>
+      MortalAdvice.fromReply(await ask(0, events), call: call);
+}
+
+/// A reply from [MortalAdvisor.ask] as a move the table can play. Each
+/// throws a [StateError] when Mortal names a move this table doesn't offer;
+/// the caller then falls back to another player (SimpleBot, for Saeko).
+abstract final class MortalMove {
+  /// [seat]'s turn: discard (after riichi, if Mortal declares it), tsumo,
+  /// closed or added kan, or nine terminals.
+  static BotTurn turn(Map<String, Object?> reply, Round round, int seat) {
+    var reaction = reply['reaction'] as Map<String, Object?>?;
+    final riichi = reaction?['type'] == 'reach';
+    if (riichi) {
+      if (!round.canRiichi(seat)) throw _unplayable(reaction);
+      // The sidecar asks for the discard that goes with the riichi.
+      reaction = reply['riichi_discard'] as Map<String, Object?>?;
+    }
+    switch (reaction?['type']) {
+      case 'dahai':
+        final pai = reaction!['pai'];
+        final drawn = round.seats[seat].drawn;
+        final matches =
+            round.legalDiscards(seat).where((t) => mjaiTile(t) == pai);
+        // Cut the drawn tile itself when Mortal does, so the table shows it.
+        final tile = reaction['tsumogiri'] == true && matches.contains(drawn)
+            ? drawn
+            : matches.firstOrNull;
+        if (tile != null) return BotTurn(discard: tile, riichi: riichi);
+      case 'hora' when round.canTsumo(seat):
+        return BotTurn(tsumo: true);
+      case 'ankan':
+        final type = _kanType(
+            round.closedKanTypes(seat), (reaction!['consumed'] as List).first);
+        if (type != null) return BotTurn(closedKan: type);
+      case 'kakan':
+        final type = _kanType(round.addedKanTypes(seat), reaction!['pai']);
+        if (type != null) return BotTurn(addedKan: type);
+      case 'ryukyoku' when round.canDeclareKyuushu(seat):
+        return BotTurn(kyuushu: true);
+    }
+    throw _unplayable(reaction);
+  }
+
+  /// Whether [seat] takes the pending discard, out of the calls [offered];
+  /// a chi names its run by the run's lowest tile ([Round.resolveCalls]).
+  static ({CallType call, TileType? chiLow}) call(Map<String, Object?> reply,
+      Round round, int seat, Set<CallType> offered) {
+    final reaction = reply['reaction'] as Map<String, Object?>?;
+    final call = switch (reaction?['type']) {
+      null || 'none' => CallType.none,
+      'hora' => CallType.ron,
+      'pon' => CallType.pon,
+      'daiminkan' => CallType.kan,
+      'chi' => CallType.chi,
+      _ => null,
+    };
+    if (call == null || (call != CallType.none && !offered.contains(call))) {
+      throw _unplayable(reaction);
+    }
+    if (call != CallType.chi) return (call: call, chiLow: null);
+    final low = [reaction!['pai'], ...reaction['consumed'] as List]
+        .map((t) => int.parse('$t'[0]))
+        .reduce(min);
+    final run = round
+        .chiSequences(seat, round.pendingDiscard!)
+        .where((t) => t.number == low)
+        .firstOrNull;
+    if (run == null) throw _unplayable(reaction);
+    return (call: CallType.chi, chiLow: run);
+  }
+
+  /// The kan in [legal] that Mortal's tile [pai] names (red or not).
+  static TileType? _kanType(List<TileType> legal, Object? pai) => legal
+      .where((t) => mjaiTile(Tile(-1, t)) == '$pai'.replaceFirst('r', ''))
+      .firstOrNull;
+
+  static StateError _unplayable(Object? reaction) =>
+      StateError('Mortal reply not playable here: $reaction');
 }
