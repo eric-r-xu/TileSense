@@ -361,7 +361,11 @@ void main() {
       expect(tester.getSize(seat).height, greaterThanOrEqualTo(28),
           reason: 'drawn at full size, not squeezed by the bar');
 
-      expect(find.byTooltip('Back to start'), findsNothing);
+      // Back sits at the bar's left end, by the mascot.
+      expect(
+          find.descendant(
+              of: bar, matching: find.byKey(const Key('builderBack'))),
+          findsOneWidget);
       expect(tester.getRect(find.byKey(const Key('phoneMenu'))).top,
           greaterThan(table.bottom),
           reason: 'the Menu is in the editor band');
@@ -430,7 +434,6 @@ void main() {
       await openBuilder(tester);
       expect(find.byKey(const Key('seatWind')), findsNothing);
       expect(find.byKey(const Key('builderRuleset_riichi')), findsNothing);
-      expect(find.byTooltip('Back to start'), findsNothing);
 
       final menu = tester.getRect(find.byKey(const Key('phoneMenu')));
       expect(menu.width, greaterThanOrEqualTo(44));

@@ -9,6 +9,7 @@ import 'package:mahjong_core/round.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/ui/table_view.dart';
 
 import 'helpers.dart';
 
@@ -246,7 +247,7 @@ void main() {
     });
   });
 
-  testWidgets('the bar shows the dials the guide is playing',
+  testWidgets('the bar hides the dials the guide is playing',
       (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -260,9 +261,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // No goal to pick any more: the bar just shows the dials the guide is
-    // playing, and a riichi game's first hand plays for points.
+    // No goal to pick, and the dials the guide plays are not shown in the
+    // bar; a riichi game's first hand still plays for points.
     expect(find.byKey(const Key('goal')), findsNothing);
+    expect(find.byKey(const Key('playingDials')), findsNothing);
     expect(playingOf(), 'Aggressive · Speed · Points');
     expect(find.byKey(const Key('playStyle')), findsNothing);
     expect(find.byKey(const Key('handFocus')), findsNothing);
@@ -402,9 +404,12 @@ String labelOf(Key key) => (find
         .widget as Text)
     .data!;
 
-/// What the bar's PLAYING tile reads: the dials the guide is playing.
-String playingOf() =>
-    (find.byKey(const Key('playingDials')).evaluate().single.widget as Text)
-        .textSpan!
-        .toPlainText();
+/// The dials the guide is playing, as its PLAYING row words them — read off
+/// the table's game, since the bar no longer shows them and the guide panel
+/// starts hidden.
+String playingOf() => (playingDialsText(
+            (find.byType(TableView).evaluate().single.widget as TableView).game)
+        as Text)
+    .textSpan!
+    .toPlainText();
 

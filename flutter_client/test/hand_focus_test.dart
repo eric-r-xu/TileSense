@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/scenario/scenario_controller.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:mahjong_core/meld.dart';
@@ -381,10 +382,9 @@ void main() {
         reason: 'the honba never reached the call evaluator');
   });
 
-  // A game's guide shows its goal instead (play_style_test.dart); the
-  // builder's guide keeps the dials, to compare advice under each.
-  testWidgets('the builder\'s guide panel offers the dial, and it drives the '
-      'report', (tester) async {
+  // The builder has no dials: it plays what a live game's guide would.
+  testWidgets('the builder\'s guide panel shows the dials it plays, read-only',
+      (tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
@@ -392,38 +392,46 @@ void main() {
     await tester.tap(find.byKey(const Key('openBuilder')));
     await pumpLoadedPage(tester);
 
-    // Both dials are there, as two rows of the same kind of chip.
-    expect(find.byKey(const Key('guidePlayStyle_balanced')), findsOneWidget);
     for (final focus in HandFocus.values) {
-      expect(find.byKey(Key('guideHandFocus_${focus.name}')), findsOneWidget);
+      expect(find.byKey(Key('guideHandFocus_${focus.name}')), findsNothing);
     }
     expect(
         find.descendant(
           of: find.byType(EfficiencyOverlay),
           matching: find.text('FOCUS'),
         ),
-        findsOneWidget);
-
-    // Which one is picked is read the way a player reads it — off the chip.
-    bool picked(HandFocus focus) => tester
-            .widget<Text>(find.descendant(
-              of: find.byKey(Key('guideHandFocus_${focus.name}')),
-              matching: find.byType(Text),
-            ))
-            .style
-            ?.fontWeight ==
-        FontWeight.w700;
-
-    // The builder starts on Speed, like a riichi game.
-    expect(picked(HandFocus.speed), isTrue);
-    expect(picked(HandFocus.balanced), isFalse);
-
-    await tester.tap(find.byKey(const Key('guideHandFocus_balanced')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(picked(HandFocus.balanced), isTrue);
-    expect(picked(HandFocus.speed), isFalse);
+        findsNothing);
+    // East 1, you dealing: early in the game, so it plays for points.
+    expect(
+        tester
+            .widget<Text>(find.byKey(const Key('guidePlayingDials')))
+            .textSpan!
+            .toPlainText(),
+        'Aggressive · Speed · Points');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
+  });
+
+  test('the builder reads the hand off the winds, as a hanchan you dealt first',
+      () {
+    final c = ScenarioController();
+    PlayStyle styleAt(Wind round, Wind seat) {
+      c.scenario
+        ..roundWind = round
+        ..seatWind = seat;
+      return c.playStyle;
+    }
+
+    // East 1 (you deal) through South 2: points, so Aggressive.
+    expect(styleAt(Wind.east, Wind.east), PlayStyle.aggressive);
+    expect(styleAt(Wind.south, Wind.north), PlayStyle.aggressive);
+    // South 3 and 4 (you sit West, then South): placement hands, Balanced.
+    expect(styleAt(Wind.south, Wind.west), PlayStyle.balanced);
+    expect(styleAt(Wind.south, Wind.south), PlayStyle.balanced);
+    // Overtime.
+    expect(styleAt(Wind.west, Wind.east), PlayStyle.balanced);
+    // No scores in the builder, so never Placement.
+    expect(c.strategy, Strategy.points);
   });
 }

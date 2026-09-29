@@ -67,8 +67,8 @@ the recommended discard or call.
   under riichi when you choose it (see below).
 - **The guide sets its own dials as the game goes**: under riichi it plays for
   points early and for placement in the final two hands, with no goal to pick
-  (`flutter_client/lib/logic/auto_dials.dart`). The **PLAYING** readout shows the
-  three dials in use:
+  (`flutter_client/lib/logic/auto_dials.dart`). The guide panel's **PLAYING**
+  row shows the three dials in use:
   - **Play Style** (defensive, balanced or aggressive): how dearly danger is
     priced, and how readily a ready hand stays quiet rather than declaring riichi.
   - **Focus** (Speed or Balanced): how much finishing fast counts against payout.
@@ -124,7 +124,9 @@ From the start page, pose any table by hand and the same guide scores it:
 - the dora indicators, and who is in riichi (riichi only)
 - the wall count, and your seat wind (East deals).
 
-There is no game behind it, so it keeps the three dials for you to set by hand.
+It plays the dials a game's guide would at that point, reading the hand off the
+round and seat wind as a hanchan in which you dealt first; with no scores to
+weigh, Strategy stays Points.
 
 ---
 

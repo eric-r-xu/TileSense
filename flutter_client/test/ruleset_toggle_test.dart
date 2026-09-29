@@ -21,11 +21,13 @@ void main() {
           .first)
       .data!;
 
-  /// What the bar's PLAYING tile reads: the dials the guide is playing.
-  String playingOf(WidgetTester tester) => tester
-      .widget<Text>(find.byKey(const Key('playingDials')))
-      .textSpan!
-      .toPlainText();
+  /// The dials the guide is playing, as its PLAYING row words them — read
+  /// off the table's game, since the bar no longer shows them.
+  String playingOf(WidgetTester tester) =>
+      (playingDialsText(tester.widget<TableView>(find.byType(TableView)).game)
+              as Text)
+          .textSpan!
+          .toPlainText();
 
   Future<void> boot(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(kDesignSize);

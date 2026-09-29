@@ -1339,7 +1339,7 @@ class _GamePageState extends State<GamePage> {
           // as it goes (points early, placement in the final hands; see
           // autoDials). The panel's border lights up gold while it is on,
           // the cue that the guide is now playing your seat, not just
-          // advising. PLAYING shows the dials in use.
+          // advising. The dials themselves are not shown here.
           AnimatedBuilder(
             animation: _game,
             builder: (context, _) {
@@ -1363,14 +1363,6 @@ class _GamePageState extends State<GamePage> {
                             ? AutoplayBrain.tilesense
                             : AutoplayBrain.mortal),
                   ),
-                _barTile(
-                  caption: 'PLAYING',
-                  width: 160,
-                  tooltip: 'The style, focus and strategy the guide is using '
-                      'now: points early, placement in the final two hands',
-                  onTap: null,
-                  value: playingDialsText(_game, key: const Key('playingDials')),
-                ),
               ];
               return AnimatedContainer(
                 key: const Key('autoplayGroup'),
