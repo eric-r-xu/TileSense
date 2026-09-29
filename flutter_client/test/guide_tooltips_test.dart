@@ -237,14 +237,20 @@ void main() {
     testWidgets('the table still fits the panel with all three columns',
         (tester) async {
       await withPanel(tester, (_) async {
-        // The table's fixed columns must fit inside the panel's padding, or it
-        // spills over the panel's border.
+        // The table must stay inside the panel's padding, or it spills over
+        // the panel's border. Wider than that (a phone's larger headings) it
+        // scrolls sideways within it; table_layout_test.dart checks the
+        // columns keep their widths, and so fit, at the desktop text size.
         final panel = tester.getSize(find
             .descendant(
                 of: find.byType(EfficiencyOverlay),
                 matching: find.byType(Container))
             .first);
-        final table = tester.getSize(find.byType(Table).first);
+        final table = tester.getSize(find.ancestor(
+            of: find.byType(Table),
+            matching: find.byWidgetPredicate((w) =>
+                w is SingleChildScrollView &&
+                w.scrollDirection == Axis.horizontal)));
         // The panel pads 12px each side.
         expect(panel.width, greaterThan(400), reason: 'measured the panel');
         expect(table.width, lessThanOrEqualTo(panel.width - 24 + 0.01),

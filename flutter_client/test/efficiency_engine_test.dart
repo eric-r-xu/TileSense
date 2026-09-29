@@ -889,6 +889,37 @@ void main() {
       }
     });
 
+    test('two and three steps out: a rough estimate, worked out later',
+        () async {
+      final hand = parseTiles('13m 46m 79m 25p 58p 34s 5s N');
+      final report = EfficiencyEngine().analyze(
+        hand: hand,
+        visibleCounts34: toCounts34(hand),
+        canRiichi: true,
+        valueContext: EfficiencyValueContext(
+          melds: const [],
+          roundWind: Wind.east,
+          seatWind: Wind.south,
+          isDealer: false,
+          inRiichi: false,
+          wallTilesRemaining: 60,
+          doraIndicators: const [],
+        ),
+      );
+      for (final (tile, steps) in [(TileType.pei, 2), (TileType.man1, 3)]) {
+        final line = report.lines.firstWhere((l) => l.discard == tile);
+        expect(line.shanten, steps);
+        expect(line.yakuOdds, isEmpty);
+        final odds = await line
+            .yakuOddsLater(() => Future<void>.delayed(Duration.zero))!;
+        expect(odds.yaku['Riichi']?.chance, 1, reason: '$steps out');
+        expect(odds.yaku['Menzen Tsumo']?.chance, closeTo(0.35, 1e-9));
+        for (final y in odds.yaku.values) {
+          expect(y.chance, inInclusiveRange(0, 1));
+        }
+      }
+    });
+
     test('no yaku on ron without riichi: every win is a tsumo', () {
       final line = tenpaiLine('123m 456m 789p 35p 11s 9s', canRiichi: false);
       expect(line.yakuOdds['Menzen Tsumo']?.chance, 1);

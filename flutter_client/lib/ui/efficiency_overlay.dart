@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../game/guide_host.dart';
@@ -1182,23 +1185,42 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final evCol = 4 + m;
     final placementCol = evCol + 1;
     final firstSafetyCol = placementCol + (showPlacement ? 1 : 0);
+    // Never narrower than a heading's widest word at the text size in use: a
+    // phone boosts text up to 1.35x, and a word too wide for its column is
+    // broken mid-word. Where that widens the table, it scrolls sideways.
+    final scaler = MediaQuery.textScalerOf(context);
+    final headingStyle = DefaultTextStyle.of(context).style.merge(
+        const TextStyle(
+            fontSize: 9, height: 1.15, fontWeight: FontWeight.w700));
+    FixedColumnWidth fit(String heading, double authored) {
+      var widest = 0.0;
+      for (final word in heading.split(' ')) {
+        final painter = TextPainter(
+          text: TextSpan(text: word, style: headingStyle),
+          textDirection: TextDirection.ltr,
+          textScaler: scaler,
+        )..layout();
+        widest = math.max(widest, painter.width);
+        painter.dispose();
+      }
+      // The header cell's 3px padding either side.
+      return FixedColumnWidth(math.max(authored, widest.ceilToDouble() + 6));
+    }
+
     final table = Table(
       columnWidths: {
         0: const FixedColumnWidth(34),
-        if (mortal != null) 1: const FixedColumnWidth(50),
-        1 + m: const FixedColumnWidth(52),
-        2 + m: const FixedColumnWidth(48),
-        evHmrCol: const FixedColumnWidth(50),
-        // Wide enough for "TileSense" on one line at the 9px heading size.
-        evCol: const FixedColumnWidth(58),
-        // Wide enough for the header word "Placement" on one line — at 50 it
-        // wrapped mid-word ("Placemen" / "t").
-        if (showPlacement) placementCol: const FixedColumnWidth(66),
+        if (mortal != null) 1: fit('Mortal bot', 50),
+        1 + m: fit(_hk ? 'Away' : 'Shanten', 52),
+        2 + m: fit(_hk ? 'Accepts' : 'Ukeire', 48),
+        evHmrCol: fit('EV (HMR)', 50),
+        evCol: fit('TileSense EV', 58),
+        if (showPlacement) placementCol: fit('Placement', 66),
         // 80 rather than the old 92 for Detail: with all three always shown
         // the table has to fit the panel's 456px inside its padding.
-        firstSafetyCol: const FixedColumnWidth(34),
-        firstSafetyCol + 1: const FixedColumnWidth(40),
-        firstSafetyCol + 2: const FixedColumnWidth(72),
+        firstSafetyCol: fit('Safety', 34),
+        firstSafetyCol + 1: fit('Risk', 40),
+        firstSafetyCol + 2: fit('Detail', 72),
       },
       border: TableBorder.all(color: const Color(0x33ffffff)),
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -1317,11 +1339,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           ),
       ],
     );
-    // The table already fills the panel; Mortal's column scrolls it sideways
-    // rather than squeezing the others.
-    return mortal == null
-        ? table
-        : SingleChildScrollView(scrollDirection: Axis.horizontal, child: table);
+    // The table already fills the panel; Mortal's column, or headings widened
+    // for a phone's larger text, scroll it sideways rather than squeezing it.
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal, child: table);
   }
 
   static const _mortalColour = Color(0xffffab91);
@@ -1333,13 +1354,29 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// The yaku the chosen row's wins score, and how often each.
   Widget _yakuSection(EfficiencyReport r) {
     final line = _yakuLine(r);
-    final odds = line.yakuOdds.entries.toList()
+    // Worked on between frames, so it stops once no frames are drawn.
+    final later =
+        line.yakuOddsLater(() => SchedulerBinding.instance.endOfFrame);
+    if (later == null) {
+      return _yakuBody(line, line.yakuOdds, line.doraPerWin);
+    }
+    return FutureBuilder(
+      future: later,
+      builder: (context, snapshot) => _yakuBody(
+          line, snapshot.data?.yaku ?? const {}, snapshot.data?.dora ?? 0,
+          working: !snapshot.hasData),
+    );
+  }
+
+  Widget _yakuBody(DiscardLine line,
+      Map<String, ({double chance, int han, int yakuman})> yaku, double dora,
+      {bool working = false}) {
+    final odds = yaku.entries.toList()
       ..sort((a, b) => b.value.chance.compareTo(a.value.chance));
     const muted = TextStyle(color: Colors.white54, fontSize: 9);
-    // One step from tenpai, the odds are over the tenpais its draws reach.
+    // Short of tenpai, the odds are over the tenpais its draws reach.
     final estimate = line.shanten > 0;
     String pct(double p) => '${estimate ? '≈' : ''}${(p * 100).round()}%';
-    final dora = line.doraPerWin;
     final doraText = dora == 0
         ? ''
         : '+${dora == dora.roundToDouble() ? dora.round() : dora.toStringAsFixed(1)}'
@@ -1355,17 +1392,23 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             Flexible(
               child: Text(
                   ' · cut ${line.discard.code}'
-                  '${odds.isEmpty ? '' : ' · ${estimate ? 'once tenpai' : line.valuePlan.toLowerCase()}'
-                      ' · ${pct(line.winProbability)} to win'}',
+                  '${odds.isEmpty ? '' : ' · ${switch (line.shanten) {
+                      0 => line.valuePlan.toLowerCase(),
+                      1 => 'once tenpai',
+                      final n => 'rough, $n from tenpai',
+                    }} · ${pct(line.winProbability)} to win'}',
                   style: muted),
             ),
           ]),
           const SizedBox(height: 4),
           if (odds.isEmpty)
             Text(
-                line.shanten > 1
-                    ? 'Yaku show once this line is one step from tenpai.'
-                    : 'No win to score on this line.',
+                working
+                    ? '≈ …'
+                    : line.shanten > 3
+                        ? 'Yaku show once this line is within three steps '
+                            'of tenpai.'
+                        : 'No win to score on this line.',
                 style: muted)
           else
             for (final MapEntry(key: name, value: y) in odds)
@@ -1426,8 +1469,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'yaku, so they are counted apart.\n\n'
             '≈ One step from tenpai: every draw that makes tenpai, cutting '
             'for the widest wait, weighted by its copies left, riichi '
-            'assumed on a closed hand. Further out there is no finished hand '
-            'to score yet.',
+            'assumed on a closed hand.\n\n'
+            '≈ Two or three steps out, rough: the same, followed only down '
+            'the likeliest draws. Further out there is no finished hand to '
+            'score yet.',
         style: _tipBody),
   ];
 
