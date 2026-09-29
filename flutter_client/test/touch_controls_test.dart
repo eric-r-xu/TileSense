@@ -61,15 +61,15 @@ void main() {
     await tearDownApp(tester);
   });
 
-  testWidgets('Auto-Play and its dials share one panel, lit while it plays',
+  testWidgets('Auto-Play sits in its panel, lit while it plays',
       (tester) async {
     await startGame(tester);
     final group = find.byKey(const Key('autoplayGroup'));
-    for (final key in ['autoplay', 'playingDials']) {
-      expect(find.descendant(of: group, matching: find.byKey(Key(key))),
-          findsOneWidget,
-          reason: '$key sits in the Auto-Play panel');
-    }
+    expect(
+        find.descendant(of: group, matching: find.byKey(const Key('autoplay'))),
+        findsOneWidget);
+    // The dials it plays are not shown in the bar.
+    expect(find.byKey(const Key('playingDials')), findsNothing);
     expect(find.byKey(const Key('autoplaySeatBadge')), findsNothing);
 
     await tester.tap(find.byKey(const Key('autoplay')));

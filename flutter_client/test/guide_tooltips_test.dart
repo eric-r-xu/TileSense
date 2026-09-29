@@ -115,17 +115,6 @@ void main() {
 
   Finder text(String s) => find.textContaining(s);
 
-  String thousands(num v) {
-    final n = v.round();
-    final digits = n.abs().toString();
-    final buf = StringBuffer(n < 0 ? '-' : '');
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
-      buf.write(digits[i]);
-    }
-    return buf.toString();
-  }
-
   String rate(double v) => '${(v * 100).toStringAsFixed(1)}%';
   String signed(double v) =>
       '${v < 0 ? '−' : '+'}${v.abs().toStringAsFixed(2)}';
@@ -277,60 +266,6 @@ void main() {
     });
   });
 
-  testWidgets('STYLE reads as bullets and a table, with the live numbers',
-      (tester) async {
-    await withPanel(tester, (_) async {
-      await openTip(tester, 'STYLE');
-      expect(text('How much danger the guide will take on'), findsOneWidget);
-      // Bullets.
-      expect(text('folds sooner, and stays quiet on cheaper hands'),
-          findsOneWidget);
-      expect(text('pushes further, and declares riichi more often'),
-          findsOneWidget);
-      expect(
-          text('this dial is hidden and pinned to Balanced'), findsOneWidget);
-      // Table: every style, its weights, and what it works out to.
-      for (final style in PlayStyle.values) {
-        // At least the dial's chip and the table row ('Balanced' is also a
-        // Focus chip).
-        expect(find.text(style.label), findsAtLeastNWidgets(2));
-        // ('×2.00' is both Defensive's risk weight and Aggressive's bar.)
-        expect(
-            find.text('×${style.riskWeight.toStringAsFixed(2)}'), findsWidgets);
-        expect(
-            find.text('×${style.damatenBar.toStringAsFixed(2)}'), findsWidgets);
-        final quietFrom =
-            '${thousands(GuideConstants.damatenMinPoints * style.damatenBar)} '
-            '(${thousands(GuideConstants.dealerDamatenMinPoints * style.damatenBar)} dealer)';
-        expect(find.text(quietFrom), findsOneWidget);
-      }
-      expect(find.text('Risk weight'), findsWidgets);
-      expect(find.text('Stays quiet from'), findsOneWidget);
-    }, builder: true);
-  });
-
-  testWidgets('FOCUS shows what Speed does as a table, in the live numbers',
-      (tester) async {
-    await withPanel(tester, (_) async {
-      await openTip(tester, 'FOCUS');
-      expect(
-          text('Which hand to chase when two lines are close'), findsOneWidget);
-      expect(text('prefers the likelier cheap hand'), findsOneWidget);
-      expect(text('no tilt: plain chance × payout'), findsOneWidget);
-      const speed = HandFocus.speed;
-      for (final pts in [2000.0, 5000.0, 8000.0, 16000.0]) {
-        expect(find.text(thousands(speed.worth(pts))), findsWidgets,
-            reason: 'Speed counts $pts as ${speed.worth(pts)}');
-      }
-      for (final chance in [0.05, 0.15, 0.25, 0.5]) {
-        expect(find.text(rate(speed.chanceWorth(chance))), findsWidgets);
-      }
-      // The exponent is a real superscript, not a caret in the text.
-      expect(find.text('${speed.curve}'), findsOneWidget);
-      expect(text('^${speed.curve}'), findsNothing);
-    }, builder: true);
-  });
-
   testWidgets('formulas are one line each, with real sub- and superscripts',
       (tester) async {
     await withPanel(tester, (_) async {
@@ -357,29 +292,6 @@ void main() {
       expect(text, isNot(contains('Higher')));
       expect(text, isNot(contains('win')));
     });
-  });
-
-  testWidgets('FOCUS uses chips under Hong Kong', (tester) async {
-    await withPanel(tester, (_) async {
-      await openTip(tester, 'FOCUS');
-      expect(text('32 chips'), findsOneWidget, reason: 'the HK pivot');
-      expect(text('5,000'), findsNothing);
-      expect(find.text('Payout'), findsOneWidget);
-    }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong,
-        builder: true);
-  });
-
-  testWidgets('STRATEGY is a small table plus bullets', (tester) async {
-    await withPanel(tester, (_) async {
-      await openTip(tester, 'STRATEGY');
-      // Once as the dial's chip, once as the table row.
-      expect(find.text('Points'), findsNWidgets(2));
-      expect(find.text('Placement'), findsWidgets);
-      expect(find.text('what it pays, on average'), findsOneWidget);
-      expect(text('finishing above each other seat'), findsOneWidget);
-      expect(text('Style and Focus'), findsOneWidget);
-      expect(text('always Points — this dial is hidden'), findsOneWidget);
-    }, builder: true);
   });
 
   testWidgets(
@@ -538,7 +450,7 @@ void main() {
     }, showGameControls: false);
   });
 
-  testWidgets('Hong Kong words its headings and hides the riichi-only dials',
+  testWidgets('Hong Kong words its headings, and the builder shows no dials',
       (tester) async {
     await withPanel(tester, (_) async {
       for (final entry in {'Away': 'AWAY', 'Accepts': 'ACCEPTS'}.entries) {
@@ -550,12 +462,12 @@ void main() {
                 .toPlainText(),
             startsWith('${entry.value}\n'));
       }
-      // Style and Strategy have nothing to weigh under Hong Kong rules;
-      // Placement is not wired up for it either.
+      // The builder plays the dials the guide would, so none are shown;
+      // Placement is not wired up for Hong Kong either.
       expect(find.text('STYLE'), findsNothing);
       expect(find.text('STRATEGY'), findsNothing);
       expect(find.text('Placement'), findsNothing);
-      expect(find.text('FOCUS'), findsOneWidget);
+      expect(find.text('FOCUS'), findsNothing);
       expect(find.textContaining('• '), findsNothing);
     }, report: quiet(ruleset: Ruleset.hongKong), ruleset: Ruleset.hongKong,
         builder: true);

@@ -7,6 +7,7 @@ import 'package:tilesense/logic/placement_utility.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/ui/table_view.dart';
 
 import 'helpers.dart';
 
@@ -325,9 +326,11 @@ void main() {
   });
 }
 
-/// What the bar's PLAYING tile reads — mirrors the helper in
-/// play_style_test.dart.
-String playingOf() =>
-    (find.byKey(const Key('playingDials')).evaluate().single.widget as Text)
-        .textSpan!
-        .toPlainText();
+/// The dials the guide is playing, as its PLAYING row words them — read off
+/// the table's game, since the bar no longer shows them and the guide panel
+/// starts hidden.
+String playingOf() => (playingDialsText(
+            (find.byType(TableView).evaluate().single.widget as TableView).game)
+        as Text)
+    .textSpan!
+    .toPlainText();

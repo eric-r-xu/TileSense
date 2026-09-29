@@ -10,13 +10,7 @@ import 'package:mahjong_core/mjai.dart' show mjaiTile;
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
-import '../main.dart'
-    show
-        brainColor,
-        handFocusColor,
-        playStyleColor,
-        playingDialsText,
-        strategyColor;
+import '../main.dart' show brainColor, playingDialsText;
 import 'ev_explainer_dialog.dart';
 import 'tile_face.dart';
 
@@ -74,17 +68,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           children: [
             _header(r),
             if (!_minimized) ...[
-              // A game sets the dials itself as it goes; the scenario builder
-              // has no game to win, so it keeps the three dials to compare
-              // advice under each.
-              if (widget.game case final TableGameHost game) ...[
-                _playingRow(),
-                if (game.mortalAvailable) _brainRow(game),
-              ] else ...[
-                if (!_hk) _styleDial(),
-                _focusDial(),
-                if (!_hk) _strategyDial(),
-              ],
+              // The dials are set for you, in a game as it goes and in the
+              // scenario builder by where the table sits in one.
+              _playingRow(),
+              if (widget.game case final TableGameHost game
+                  when game.mortalAvailable)
+                _brainRow(game),
               const SizedBox(height: 8),
               if (widget.game.awaitingHumanCall) _callAdvice(),
               Flexible(
@@ -176,88 +165,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       ),
     );
   }
-
-  /// The play-style dial, mirrored here from the tool bar (scenario
-  /// builder). It is not a second setting: both read and
-  /// write the one [GuideHost.playStyle], so moving either moves the other.
-  ///
-  /// Riichi only — `GameController.setRuleset` pins [GuideHost.playStyle] to
-  /// Balanced under Hong Kong rules, where it has nothing left to weigh, so
-  /// callers skip this when [_hk] is true rather than show a chip that does
-  /// nothing.
-  Widget _styleDial() {
-    final current = widget.game.playStyle;
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          _dialLabel('STYLE', _styleTip()),
-          const SizedBox(width: 8),
-          for (final style in PlayStyle.values)
-            Expanded(child: _styleChip(style, style == current)),
-        ],
-      ),
-    );
-  }
-
-  /// The hand-focus dial, the second and independent axis: [_styleDial] says
-  /// how much danger is worth taking, this says which hand to take it for.
-  Widget _focusDial() {
-    final current = widget.game.handFocus;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          _dialLabel('FOCUS', _focusTip()),
-          const SizedBox(width: 8),
-          for (final focus in HandFocus.values)
-            Expanded(
-              child: _dialChip(
-                label: focus.label,
-                colour: handFocusColor(focus),
-                active: focus == current,
-                chipKey: Key('guideHandFocus_${focus.name}'),
-                onTap: () => widget.game.setHandFocus(focus),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// The strategy dial, the third and independent axis: points a line is
-  /// worth versus how it moves final placement given the scores on the table
-  /// right now. Riichi only — see [GameController._preHongKongStrategy].
-  Widget _strategyDial() {
-    final current = widget.game.strategy;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          _dialLabel('STRATEGY', _strategyTip()),
-          const SizedBox(width: 8),
-          for (final strategy in Strategy.values)
-            Expanded(
-              child: _dialChip(
-                label: strategy.label,
-                colour: strategyColor(strategy),
-                active: strategy == current,
-                chipKey: Key('guideStrategy_${strategy.name}'),
-                onTap: () => widget.game.setStrategy(strategy),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _styleChip(PlayStyle style, bool active) => _dialChip(
-        label: style.label,
-        colour: playStyleColor(style),
-        active: active,
-        chipKey: Key('guidePlayStyle_${style.name}'),
-        onTap: () => widget.game.setPlayStyle(style),
-      );
 
   /// One chip of either dial — same shape, same hit target, so the two rows
   /// read as two settings of a kind rather than two different controls.
@@ -1036,112 +943,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     ];
   }
 
-  List<InlineSpan> _styleTip() {
-    final dealer = GuideConstants.dealerDamatenMinPoints;
-    final normal = GuideConstants.damatenMinPoints;
-    return [
-      const TextSpan(text: 'STYLE\n', style: _tipTitle),
-      const TextSpan(
-          text: 'How much danger the guide will take on.\n', style: _tipBody),
-      const TextSpan(text: '\n', style: _tipBody),
-      ..._bullets(const [
-        ('Defensive', 'folds sooner, and stays quiet on cheaper hands'),
-        ('Balanced', 'the reference setting'),
-        ('Aggressive', 'pushes further, and declares riichi more often'),
-      ]),
-      _tipSection('THE NUMBERS'),
-      _tipTable(
-        ['Style', 'Risk weight', 'Damaten bar', 'Stays quiet from'],
-        [
-          for (final st in PlayStyle.values)
-            [
-              st.label,
-              '×${st.riskWeight.toStringAsFixed(2)}',
-              '×${st.damatenBar.toStringAsFixed(2)}',
-              '${_pts(normal * st.damatenBar)} '
-                  '(${_pts(dealer * st.damatenBar)} dealer)',
-            ],
-        ],
-        left: const {0},
-      ),
-      const TextSpan(text: '\n', style: _tipBody),
-      ..._bullets(const [
-        (
-          'Risk weight',
-          'multiplies every deal-in and commitment charge in Risk'
-        ),
-        (
-          'Damaten bar',
-          'scales the least a hand must pay to stay quiet instead of '
-              'declaring riichi'
-        ),
-        (
-          'Hong Kong',
-          'this dial is hidden and pinned to Balanced — there is '
-              'no riichi to weigh'
-        ),
-      ]),
-    ];
-  }
-
-  List<InlineSpan> _focusTip() {
-    final hk = _hk;
-    const speed = HandFocus.speed;
-    final ruleset = widget.game.round.ruleset;
-    final pivot = hk
-        ? GuideConstants.focusHongKongPointsPivot
-        : GuideConstants.focusPointsPivot;
-    final chance = GuideConstants.focusChancePivot;
-    final unit = ruleset.unit;
-    String n(double v) => v == v.roundToDouble() ? _pts(v) : v.toString();
-    final payouts = hk
-        ? const [8.0, 16.0, 32.0, 64.0]
-        : const [2000.0, 5000.0, 8000.0, 16000.0];
-    const chances = [0.05, 0.15, 0.25, 0.5];
-    return [
-      const TextSpan(text: 'FOCUS\n', style: _tipTitle),
-      const TextSpan(
-          text: 'Which hand to chase when two lines are close.\n',
-          style: _tipBody),
-      const TextSpan(text: '\n', style: _tipBody),
-      ..._bullets(const [
-        (
-          'Speed',
-          'prefers the likelier cheap hand over the unlikelier big one'
-        ),
-        ('Balanced', 'no tilt: plain chance × payout'),
-      ]),
-      _tipSection('WHAT SPEED DOES'),
-      TextSpan(
-          text: 'Big payouts count for less than face value and small ones '
-              'for more; likely chances count for more and unlikely ones '
-              'for less. Nothing moves at exactly ${n(pivot)} $unit or '
-              '${(chance * 100).round()}%.\n',
-          style: _tipBody),
-      _tipTable(
-        ['Payout', 'Counts as', 'Chance', 'Counts as'],
-        [
-          for (var i = 0; i < payouts.length; i++)
-            [
-              n(payouts[i]),
-              n(speed.worth(payouts[i], ruleset: ruleset).roundToDouble()),
-              '${(chances[i] * 100).round()}%',
-              _rate(speed.chanceWorth(chances[i])),
-            ],
-        ],
-        left: const {},
-      ),
-      _tipSection('FORMULA'),
-      _math('payout_{worth} = ${n(pivot)} × (payout / ${n(pivot)})'
-          '^{${speed.curve}}'),
-      _math('chance_{worth} = $chance × (chance / $chance)'
-          '^{${(2 - speed.curve).toStringAsFixed(2)}}'),
-      const TextSpan(
-          text: '\nThe "Speed tilt" row in a TileSense EV tooltip is the '
-              'difference this makes.',
-          style: _tipDim),
-    ];
-  }
 
   List<InlineSpan> _playingTip() => [
         const TextSpan(text: 'PLAYING\n', style: _tipTitle),
@@ -1156,29 +957,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               'protect or climb the standings'),
           ('Hong Kong, Taiwanese', 'Style and Strategy are fixed; only '
               'Focus shows'),
-        ]),
-      ];
-
-  List<InlineSpan> _strategyTip() => [
-        const TextSpan(text: 'STRATEGY\n', style: _tipTitle),
-        const TextSpan(
-            text: 'What a line\'s "worth" means.\n', style: _tipBody),
-        _tipTable(
-          ['Strategy', 'A line is worth'],
-          const [
-            ['Points', 'what it pays, on average'],
-            [
-              'Placement',
-              'what it does to your chance of finishing above each other '
-                  'seat, given the scores and hands left'
-            ],
-          ],
-          left: const {0, 1},
-        ),
-        ..._bullets(const [
-          ('Style and Focus', 'still apply under either'),
-          ('Hong Kong', 'always Points — this dial is hidden'),
-          ('The working', 'hover Placement in the table'),
         ]),
       ];
 

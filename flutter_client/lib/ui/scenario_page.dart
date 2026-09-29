@@ -324,6 +324,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            IconButton(
+              key: const Key('builderBack'),
+              icon: const Icon(Icons.arrow_back),
+              tooltip: 'Back to start',
+              onPressed: widget.onExit,
+            ),
             TileSensorTooltip(
               child: Image.asset(kTileSensorAsset,
                   height: 30,
@@ -343,6 +349,16 @@ class _ScenarioPageState extends State<ScenarioPage> {
           ],
         ),
       ),
+      // The rules in play, named in its tooltip.
+      actions: [
+        Tooltip(
+          message: s.ruleset.label,
+          child: Text(s.ruleset.flag,
+              key: const Key('builderRulesFlag'),
+              style: const TextStyle(fontSize: 22)),
+        ),
+        const SizedBox(width: 12),
+      ],
     );
   }
 
@@ -465,7 +481,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 Ruleset.riichi
                               ],
                               current: s.ruleset,
-                              label: (r) => r.flagLabel,
+                              // Flags only, so none is cut off; the
+                              // tooltip names the rules.
+                              label: (r) => r.flag,
+                              tooltip: (r) => r.label,
                               colour: (_) => gold,
                               onPick: _setRuleset,
                             ),
@@ -503,7 +522,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               keyPrefix: 'builderMenuRoundWind',
                               values: winds,
                               current: s.roundWind,
-                              label: (w) => w.kanji,
+                              label: (w) => '${w.kanji} ${w.initial}',
                               colour: (_) => gold,
                               onPick: (w) => _edit((x) => x.roundWind = w),
                             ),
@@ -515,8 +534,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               keyPrefix: 'builderMenuSeatWind',
                               values: winds,
                               current: s.seatWind,
-                              label: (w) =>
-                                  w == Wind.east ? '${w.kanji} ★' : w.kanji,
+                              label: (w) => w == Wind.east
+                                  ? '${w.kanji} ${w.initial} ★'
+                                  : '${w.kanji} ${w.initial}',
                               colour: (_) => gold,
                               onPick: (w) => _edit((x) => x.seatWind = w),
                             ),

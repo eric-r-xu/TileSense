@@ -12,6 +12,7 @@ import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../game/mortal_advisor.dart' show MortalAdvice;
 import '../game/sfx.dart' show Character;
+import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
 import 'package:mahjong_core/meld.dart';
@@ -40,78 +41,46 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   /// Why the guide has nothing to say, when it has nothing to say.
   String? blockedReason;
 
-  // The dial lives on the scenario itself, so the tool bar's button and the
-  // guide panel's copy are two views of the same value.
+  /// The dials a live game would play at this point, as [autoDials] picks
+  /// them: the hand is read off the round and seat wind as a hanchan in which
+  /// you dealt first (East 1), as single player seats you. Past South 4 is
+  /// overtime, one hand at a time.
+  AutoDials get _autoDials => autoDials(ruleset,
+      minimumPoints: scenario.minimumPoints,
+      handsLeft: switch (scenario.roundWind) {
+        Wind.east => 8 - scenario.dealer,
+        Wind.south => 4 - scenario.dealer,
+        _ => 1,
+      });
+
+  // The builder has no dials of its own — it plays what the guide would.
   @override
-  PlayStyle get playStyle => scenario.style;
+  PlayStyle get playStyle => _autoDials.style;
 
   @override
-  void setPlayStyle(PlayStyle value) {
-    if (scenario.style == value) return;
-    scenario.style = value;
-    rebuild();
-  }
+  void setPlayStyle(PlayStyle value) {}
 
   @override
-  HandFocus get handFocus => scenario.focus;
+  HandFocus get handFocus => _autoDials.focus;
 
   @override
-  void setHandFocus(HandFocus value) {
-    if (scenario.focus == value) return;
-    scenario.focus = value;
-    rebuild();
-  }
+  void setHandFocus(HandFocus value) {}
 
-  // Carried for [GuideHost] completeness — see [Scenario.strategy]. Not
-  // exposed as a toolbar toggle: the builder has no score inputs for the
-  // other three seats, so Placement would have nothing to weigh here.
+  // Always Points: the builder has no score inputs for the other three
+  // seats, so Placement would have nothing to weigh here.
   @override
-  Strategy get strategy => scenario.strategy;
+  Strategy get strategy => Strategy.points;
 
   @override
-  void setStrategy(Strategy value) {
-    if (scenario.strategy == value) return;
-    scenario.strategy = value;
-    rebuild();
-  }
+  void setStrategy(Strategy value) {}
 
   Ruleset get ruleset => scenario.ruleset;
 
-  /// The style in effect when Hong Kong last pinned it, mirroring
-  /// [GameController]'s equivalent stash — the builder has its own
-  /// [Scenario] rather than sharing state with the live game.
-  PlayStyle? _preHongKongStyle;
-
-  /// Mirrors [_preHongKongStyle] for [Strategy] — see
-  /// [GameController._preHongKongStrategy].
-  Strategy? _preHongKongStrategy;
-
   /// Switches the posed table's rules. The tiles are cleared: dora, riichi
-  /// and flowers mean nothing under the other game. Style is pinned to
-  /// Balanced under Hong Kong, which has nothing left for it to weigh, and
-  /// Strategy to Points, which isn't wired up for Hong Kong yet — both
-  /// restored on the way back to riichi.
+  /// and flowers mean nothing under the other game. The dials follow the
+  /// rules on their own (see [_autoDials]).
   void setRuleset(Ruleset value) {
     if (scenario.ruleset == value) return;
-    if (value.isChineseStyle) {
-      // Only save on the way in from riichi — see
-      // GameController.setRuleset's matching guard.
-      if (!scenario.ruleset.isChineseStyle) {
-        _preHongKongStyle = scenario.style;
-        _preHongKongStrategy = scenario.strategy;
-      }
-      scenario.style = PlayStyle.balanced;
-      scenario.strategy = Strategy.points;
-    } else {
-      if (_preHongKongStyle != null) {
-        scenario.style = _preHongKongStyle!;
-        _preHongKongStyle = null;
-      }
-      if (_preHongKongStrategy != null) {
-        scenario.strategy = _preHongKongStrategy!;
-        _preHongKongStrategy = null;
-      }
-    }
     scenario.ruleset = value;
     scenario.clear();
     rebuild();
@@ -226,9 +195,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       doraIndicators: scenario.dora,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
-      style: scenario.style,
-      focus: scenario.focus,
-      strategy: scenario.strategy,
+      style: playStyle,
+      focus: handFocus,
+      strategy: strategy,
       ruleset: ruleset,
       flowers: human.flowers.map((t) => t.type).toList(),
       minimumFaan: scenario.minimumFaan,

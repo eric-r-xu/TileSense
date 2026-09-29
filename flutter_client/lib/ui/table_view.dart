@@ -208,8 +208,8 @@ class TableView extends StatelessWidget {
           // The across seat's open melds, on the line of their hand and just
           // left of it: out over empty felt, since they stand taller than the
           // hand's row and the pond below starts at the middle.
-          // The builder shows them even empty: somewhere to tap to add one.
-          if (acrossInBar && (edits != null || round.seats[2].melds.isNotEmpty))
+          // Only once they have one; the builder adds them from its editor.
+          if (acrossInBar && round.seats[2].melds.isNotEmpty)
             Positioned(
               top: 0,
               // Clear of the side seats' columns below, whose tops they

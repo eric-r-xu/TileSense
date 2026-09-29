@@ -8,14 +8,6 @@
 library;
 
 import '../game/game_controller.dart' show kHumanSeat;
-import '../logic/efficiency_engine.dart'
-    show
-        HandFocus,
-        PlayStyle,
-        Strategy,
-        kDefaultHandFocus,
-        kDefaultPlayStyle,
-        kDefaultStrategy;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -74,18 +66,6 @@ class Scenario {
   /// Revealed dora indicators — the *indicator*, not the dora itself, exactly
   /// as the dead wall shows them.
   final List<TileType> dora = [TileType.man1];
-
-  /// How the guide weighs danger against value when scoring this table.
-  PlayStyle style = kDefaultPlayStyle;
-
-  /// Whether the guide chases the faster hand or the bigger one here.
-  HandFocus focus = kDefaultHandFocus;
-
-  /// Points or placement. The builder has no score inputs for the other three
-  /// seats, so this stays Points here — there is nothing for Placement to
-  /// weigh without them. Carried for [ScenarioController]'s [GuideHost]
-  /// implementation, not exposed as a toolbar toggle.
-  Strategy strategy = kDefaultStrategy;
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;
@@ -280,7 +260,7 @@ class Scenario {
     wallRemaining = ruleset.isChineseStyle ? 84 : 70;
     honba = 0;
     riichiSticks = 0;
-    // Round wind, seat wind and play style are settings, not table state —
+    // Round wind and seat wind are settings, not table state —
     // clearing the tiles leaves them where you put them.
   }
 }

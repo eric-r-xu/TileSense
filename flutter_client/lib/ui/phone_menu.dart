@@ -272,6 +272,7 @@ Widget phoneMenuDial<T extends Object>({
   required String Function(T) label,
   required Color Function(T) colour,
   required ValueChanged<T> onPick,
+  String Function(T)? tooltip,
 }) =>
     Row(
       children: [
@@ -287,6 +288,7 @@ Widget phoneMenuDial<T extends Object>({
               for (final v in values)
                 ButtonSegment(
                   value: v,
+                  tooltip: tooltip?.call(v),
                   label: Text(label(v),
                       key: Key('${keyPrefix}_${v is Enum ? v.name : v}'),
                       maxLines: 1,
