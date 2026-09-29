@@ -94,11 +94,13 @@ and manual rsync commands bypass these locks and must no longer be used.
 - **Automatically:** `client`, after the CI workflow passes on a push to
   `ericrxu_dev`. It deploys exactly the commit CI tested, and skips it if
   `ericrxu_dev` has already moved on (the newer push's own CI run deploys that).
-  Pull requests never deploy.
-- **By hand** (Actions tab → Deploy → Run workflow): `mp`, which drops live
+  Pull requests never deploy. With the `MORTAL` variable set to `1`, `mortal`
+  runs first, and only when `mortal_sidecar/` or the pinned model changed.
+- **By hand** (Actions tab → Deploy → Run workflow): `mortal`, `mp`, which drops live
   online rooms (choosing it is the `ALLOW_MP_RESTART=1` acknowledgement), and
   `rollback-client`, `rollback-ingest` and `rollback-mp` with a release ID.
-- **Laptop only:** `ingest`, `migrate`, `geoip`, `all` and `setup-client`. The
+- **Laptop only:** `ingest`, `migrate`, `geoip`, `all`, `setup-client` and
+  `setup-mortal`. The
   first four need doctl and database credentials, which are kept off GitHub.
 
 Deploys queue and are never cancelled midway. The droplet's own lock still
@@ -144,6 +146,43 @@ run of `client`.
 **To pause it:** Actions → Deploy → ⋯ → Disable workflow. **To revoke it:**
 delete the `tilesense-github-deploy` line from `/root/.ssh/authorized_keys` on
 the droplet.
+
+## Mortal (the guide's Mortal column)
+
+The column asks a small sidecar on the droplet, `tilesense-mortal`, what
+[Mortal](https://github.com/Equim-chan/Mortal) would do in the player's seat.
+It is display only, stateless, and capped hard (40% CPU, 250 MB soft / 300 MB
+hard memory), so restarting or losing it only turns the column to "—".
+
+What gets deployed is pinned in `mortal_sidecar/model.json`: the ONNX model's
+GitHub release URL and SHA-256, and the Mortal commit `libriichi` is built from
+(in Docker, by `mortal_sidecar/deploy/build_libriichi.sh`). The model and the
+`libriichi` build are cached in `~/.cache/tilesense-mortal` (on the runner, by
+the workflow), so each is fetched or built once per pin.
+
+On the droplet, `/opt/tilesense-mortal/releases/<id>/` holds each release, and
+`current` points at the live one. A deploy health-checks the new release with a
+real hand and switches back to the previous one if it fails.
+
+### First rollout
+
+1. Publish the model as a GitHub release matching the URL in `model.json`.
+2. `./deploy.sh setup-mortal` (once): installs the service and adds the
+   `/tilesense/mortal/` route and its per-IP limits to nginx, restoring the old
+   config if `nginx -t` fails.
+3. `./deploy.sh mortal`, or Run workflow → `mortal`. Then check on the droplet:
+   `systemctl status tilesense-mortal` and
+   `systemctl show -p MemoryCurrent tilesense-mortal` (well under 250 MB).
+4. Set the column on: `MORTAL=1` in `deploy.env`, and the repository variable
+   `MORTAL` = `1` (Settings → Secrets and variables → Actions → Variables) for
+   GitHub. The next client deploy shows it, and pushes deploy Mortal too.
+
+**To turn it off:** set `MORTAL` to anything but `1` and redeploy the client,
+which hides the column; `systemctl stop tilesense-mortal` stops the sidecar.
+**To change the model:** publish a new release, update `model.json`, and merge.
+
+Mortal and its weights are AGPL-3.0: serving them to players means offering
+them Mortal's source, which the column's tooltip and the README link to.
 
 ## Recovery and retention
 

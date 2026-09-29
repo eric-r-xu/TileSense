@@ -1,0 +1,4 @@
+# What server.py runs on in production (the droplet's Python 3.12, x86-64).
+# No PyTorch: Mortal runs from the ONNX export pinned in model.json.
+numpy==2.5.3
+onnxruntime==1.30.0

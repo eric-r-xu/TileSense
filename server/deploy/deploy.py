@@ -152,7 +152,10 @@ def build_client(work, rid, revision, dirty):
     run(['flutter', 'build', 'web', '--release', '--pwa-strategy=none',
          '--base-href', BASE + 'releases/' + rid + '/',
          '--dart-define=BUILD_ID=' + rid, '--dart-define=APP_VERSION=' + version,
-         '--dart-define=UPDATE_BASE_HREF=' + BASE], cwd=client)
+         '--dart-define=UPDATE_BASE_HREF=' + BASE,
+         # MORTAL=1 shows the guide's Mortal column; the sidecar must be live.
+         *(['--dart-define=MORTAL_URL=' + BASE + 'mortal'] if os.environ.get('MORTAL') == '1' else [])],
+        cwd=client)
     web = work / 'web'
     shutil.copytree(client / 'build/web', web)
     stamp_client(web, rid, revision, dirty, toolchain)
@@ -179,6 +182,88 @@ def build_service(work, name):
         raise ValueError('Expected a Linux x86-64 ELF binary')
     if name == 'tilesense-mp':
         shutil.copy2(REPO / 'server/mp/deploy/tilesense-mp.service', work / (name + '.service'))
+
+
+MORTAL_DIR = REPO / 'mortal_sidecar'
+
+
+def mortal_cache():
+    # CI points MORTAL_CACHE at a cached directory; locally it persists too.
+    return Path(os.environ.get('MORTAL_CACHE') or Path.home() / '.cache/tilesense-mortal')
+
+
+def fetch_model(pin):
+    """The pinned .onnx from the GitHub release, verified, cached by hash."""
+    model = mortal_cache() / 'models' / (pin['sha256'] + '.onnx')
+    if model.is_file() and hashlib.sha256(model.read_bytes()).hexdigest() == pin['sha256']:
+        return model
+    model.parent.mkdir(parents=True, exist_ok=True)
+    partial = model.with_suffix('.part')
+    with urllib.request.urlopen(pin['url'], timeout=300) as response, partial.open('wb') as target:
+        shutil.copyfileobj(response, target)
+    if hashlib.sha256(partial.read_bytes()).hexdigest() != pin['sha256']:
+        partial.unlink()
+        raise ValueError('Downloaded Mortal model does not match the SHA-256 in model.json')
+    os.replace(partial, model)
+    return model
+
+
+def build_mortal(work, rid, revision, dirty):
+    pin = json.loads((MORTAL_DIR / 'model.json').read_text())
+    libriichi = mortal_cache() / 'libriichi'
+    run(['docker', 'info'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    run([str(MORTAL_DIR / 'deploy/build_libriichi.sh'), str(libriichi)])
+    shutil.copy2(libriichi / 'libriichi.so', work / 'libriichi.so')
+    shutil.copy2(fetch_model(pin), work / 'mortal.onnx')
+    for name in ('server.py', 'requirements.txt'):
+        shutil.copy2(MORTAL_DIR / name, work / name)
+    record = {'build_id': rid, 'git_commit': revision, 'dirty': dirty,
+              'model_sha256': pin['sha256'], 'mortal_commit': pin['mortal_commit']}
+    (work / 'release.json').write_text(json.dumps(record))
+    return record
+
+
+def mortal_unchanged(current, record):
+    """Whether the deployed release already runs this model and this
+    mortal_sidecar/ source, so an automatic deploy can skip it."""
+    if record['dirty'] or current.get('dirty') or current.get('model_sha256') != record['model_sha256']:
+        return False
+    try:
+        run(['git', 'diff', '--quiet', current['git_commit'], 'HEAD', '--', 'mortal_sidecar'],
+            cwd=REPO, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except (KeyError, subprocess.CalledProcessError):
+        return False  # unknown or unreachable commit: deploy to be safe
+
+
+def deploy_mortal(target, droplet):
+    rid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-') + uuid.uuid4().hex[:8]
+    with tempfile.TemporaryDirectory(prefix='tilesense-mortal-') as directory:
+        work = Path(directory)
+        # Build everything before connecting, like every other target.
+        if target == 'mortal':
+            revision, dirty = source_state()
+            record = build_mortal(work, rid, revision, dirty)
+        else:
+            for name in ('tilesense-mortal.service', 'nginx-mortal.conf', 'nginx-mortal-limits.conf'):
+                shutil.copy2(MORTAL_DIR / 'deploy' / name, work / name)
+        remote = Remote(droplet)
+        try:
+            if target == 'mortal':
+                current = remote.call('mortal-status')
+                if os.environ.get('MORTAL_IF_CHANGED') == '1' and mortal_unchanged(current, record):
+                    remote.call('commit')
+                    print('Mortal unchanged since release ' + current['build_id'] + '; skipped.')
+                    return
+                if current.get('model_sha256') == record['model_sha256']:
+                    (work / 'mortal.onnx').unlink()  # already on the server
+            stage = remote.call('stage', id=rid)['path']
+            remote.upload(str(work) + '/', stage + '/')
+            remote.call(target, id=rid)
+            remote.call('commit')
+            print('Mortal set up.' if target == 'setup-mortal' else 'Deployment verified: ' + rid)
+        finally:
+            remote.close()
 
 
 def download_geoip(work):
@@ -237,6 +322,8 @@ def confirm_mp_restart():
 
 
 def deploy(target, host, droplet, rollback=None):
+    if target in ('setup-mortal', 'mortal'):
+        return deploy_mortal(target, droplet)
     needs_client = target in ('all', 'client')
     needs_ingest = target in ('all', 'ingest')
     needs_mp = target in ('all', 'mp')
@@ -320,7 +407,8 @@ def deploy(target, host, droplet, rollback=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('target', nargs='?', default='all', choices=[
-        'all', 'client', 'ingest', 'mp', 'migrate', 'geoip', 'setup-client', 'rollback-client', 'rollback-ingest', 'rollback-mp'])
+        'all', 'client', 'ingest', 'mp', 'migrate', 'geoip', 'setup-client', 'rollback-client', 'rollback-ingest', 'rollback-mp',
+        'setup-mortal', 'mortal'])
     parser.add_argument('release', nargs='?')
     args = parser.parse_args()
     if args.target.startswith('rollback-') != (args.release is not None):
