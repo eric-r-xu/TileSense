@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mahjong_core/mjai.dart' show mjaiTile;
+import 'package:mahjong_core/mjai.dart' show MjaiEvent, mjaiTile;
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/game/game_controller.dart';
+import 'package:tilesense/game/guide_host.dart' show AutoplayBrain;
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
@@ -31,6 +32,15 @@ const _reply = {
   },
   'riichi_discard': null,
 };
+
+/// Mortal configured, but its sidecar never answers.
+class _NoSidecar extends MortalAdvisor {
+  _NoSidecar() : super('http://unused');
+
+  @override
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) =>
+      Future.error(StateError('sidecar down'));
+}
 
 void main() {
   test("ranks every legal discard by Mortal's q-values", () {
@@ -108,12 +118,36 @@ void main() {
       },
     }, call: false);
 
+    // Mortal would rather cut 3p, where the guide cuts 9s.
+    final cuts3p = MortalAdvice.fromReply({
+      'reaction': {
+        'type': 'dahai',
+        'pai': '3p',
+        'meta': {
+          'q_values': [3.0, 0.2, 0.1],
+          'mask_bits': (1 << 11) | (1 << 12) | (1 << 26), // 3p 4p 9s
+        },
+      },
+      'riichi_discard': null,
+    }, call: false);
+
+    String topRow(WidgetTester tester) => mjaiTile(Tile(
+        -1,
+        tester
+            .widgetList<TileFace>(find.descendant(
+                of: find.byType(Table), matching: find.byType(TileFace)))
+            .first
+            .type!));
+
     /// Renders the panel with [advice], runs [check], then disposes the game
     /// (inside the test, so its turn timer is cancelled before the test ends).
     Future<void> show(WidgetTester tester, MortalAdvice? advice,
-        void Function() check) async {
+        void Function() check,
+        {AutoplayBrain brain = AutoplayBrain.tilesense}) async {
       Sfx.i.enabled = false;
-      final game = GameController(seed: 1)..mortalAdvice = advice;
+      final game = GameController(seed: 1)
+        ..mortalAdvice = advice
+        ..autoplayBrain = brain;
       try {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
@@ -132,14 +166,10 @@ void main() {
     testWidgets("stars Mortal's pick, ranks the rest, and names the riichi",
         (tester) async {
       await show(tester, riichi9s, () {
-        expect(find.text('Mortal decision'), findsOneWidget);
+        expect(find.text('Mortal bot'), findsOneWidget);
         expect(find.text('★R'), findsOneWidget);
         expect(find.text('2'), findsWidgets);
         expect(find.text('Mortal: RIICHI, cut 9s'), findsOneWidget);
-        // Rows follow Mortal's order, so its pick (9s) is the top row.
-        final rows = tester.widgetList<TileFace>(find.descendant(
-            of: find.byType(Table), matching: find.byType(TileFace)));
-        expect(mjaiTile(Tile(-1, rows.first.type!)), '9s');
         // Blue rings: one on the tile, one on the riichi line.
         final rings = find.byWidgetPredicate((w) =>
             w is Container &&
@@ -150,9 +180,19 @@ void main() {
       });
     });
 
+    testWidgets("rows follow the guide by default, Mortal's order when chosen",
+        (tester) async {
+      await show(tester, cuts3p, () => expect(topRow(tester), '9s'));
+      await show(tester, cuts3p, () => expect(topRow(tester), '3p'),
+          brain: AutoplayBrain.mortal);
+      // Mortal chosen but still thinking: the guide's order is the fallback.
+      await show(tester, MortalAdvice.thinking, () => expect(topRow(tester), '9s'),
+          brain: AutoplayBrain.mortal);
+    });
+
     testWidgets('shows … while Mortal thinks', (tester) async {
       await show(tester, MortalAdvice.thinking, () {
-        expect(find.text('Mortal decision'), findsOneWidget);
+        expect(find.text('Mortal bot'), findsOneWidget);
         expect(find.text('…'), findsWidgets);
         expect(find.text('Mortal: thinking…'), findsOneWidget);
       });
@@ -160,9 +200,45 @@ void main() {
 
     testWidgets('has no Mortal column without MORTAL_URL', (tester) async {
       await show(tester, null, () {
-        expect(find.text('Mortal decision'), findsNothing);
+        expect(find.text('Mortal bot'), findsNothing);
         expect(find.byKey(const ValueKey('mortal-line')), findsNothing);
       });
+    });
+
+    testWidgets('the AUTO-PLAY chips show with Mortal, and switch who it follows',
+        (tester) async {
+      Sfx.i.enabled = false;
+      Future<GameController> render(MortalAdvisor? mortal) async {
+        final game = GameController(seed: 1, mortal: mortal);
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: EfficiencyOverlay(game: game, report: game.report),
+            ),
+          ),
+        ));
+        return game;
+      }
+
+      final without = await render(null);
+      expect(find.byKey(const Key('guideBrain_mortal')), findsNothing);
+      without.dispose();
+
+      // Mortal configured but failing: the column just reads "—", and the
+      // chips still show.
+      final game = await render(_NoSidecar());
+      try {
+        expect(game.autoplayBrain, AutoplayBrain.tilesense);
+        await tester.tap(find.byKey(const Key('guideBrain_mortal')));
+        await tester.pump();
+        expect(game.autoplayBrain, AutoplayBrain.mortal);
+        await tester.tap(find.byKey(const Key('guideBrain_tilesense')));
+        await tester.pump();
+        expect(game.autoplayBrain, AutoplayBrain.tilesense);
+      } finally {
+        game.dispose();
+      }
     });
   });
 }

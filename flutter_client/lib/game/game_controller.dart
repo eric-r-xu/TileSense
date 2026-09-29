@@ -173,6 +173,35 @@ class GameController extends ChangeNotifier implements TableGameHost {
   final Map<(Round, int, int), Object?> _mortalMoves = {};
   final Set<(Round, int, int)> _mortalMovesAsked = {};
 
+  /// Mortal's replies this hand, one request per seat and position, shared
+  /// by the guide column's advice and the moves Mortal plays from it.
+  final Map<(Round, int, int), Future<Map<String, Object?>>> _mortalReplies =
+      {};
+
+  Future<Map<String, Object?>> _mortalReply(int seat) =>
+      _mortalReplies.putIfAbsent((round, _log.length, seat),
+          () => _mortal!.ask(seat, _mjaiEvents()));
+
+  @override
+  bool get mortalAvailable => _mortal != null && ruleset.isRiichi;
+
+  @override
+  AutoplayBrain autoplayBrain = AutoplayBrain.tilesense;
+  @override
+  void setAutoplayBrain(AutoplayBrain value) {
+    if (autoplayBrain == value) return;
+    autoplayBrain = value;
+    _tel?.settingChange(
+        matchId: _matchId, setting: 'autoplay_brain', value: value.name);
+    _refreshReport();
+    notifyListeners();
+    if (autoplay) _scheduleLoop();
+  }
+
+  /// Whether Auto-Play is playing your seat on Mortal's moves right now.
+  bool get _mortalPlaysYou =>
+      autoplay && autoplayBrain == AutoplayBrain.mortal && mortalAvailable;
+
   /// Your decisions this hand, newest last: where [_log] stood just before
   /// each one, and what to call it on the take-back button.
   final List<({int logLength, String label})> _undoStack = [];
@@ -679,6 +708,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     ];
     _mortalMoves.clear();
     _mortalMovesAsked.clear();
+    _mortalReplies.clear();
     _humanCallOption = null;
     _humanCallAdvice = null;
     phase = GamePhase.playing;
@@ -888,10 +918,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // autoplay follows the same efficiency / expected-value / safety analysis
     // the panel shows you. Seats 1-3 stay on [SimpleBot], except Saeko under
     // riichi, who plays Mortal's moves (see [_playsMortal]).
-    final decision = (seat == kHumanSeat && autoplay)
-        ? _guidedTurnDecision()
-        : _botTurn(seat);
-    // Saeko is still waiting on Mortal; the loop comes back when it answers.
+    final decision =
+        (seat == kHumanSeat && autoplay) ? _autoTurn() : _botTurn(seat);
+    // Mortal is still thinking (Saeko's seat, or yours on Auto-Play); the
+    // loop comes back when it answers.
     if (decision == null) return;
     if (decision.kyuushu) {
       _apply(_Kyuushu(seat));
@@ -930,11 +960,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void _resolveCallPhase() {
     // Saeko's call comes from Mortal: ask before anyone else decides, you
     // included, and come back once she has answered.
-    final saekoThinking = [
+    final mortalThinking = [
       for (final opt in round.callOptions)
-        if (_playsMortal(opt.seat)) _botCall(opt, {}),
+        if (_playsMortal(opt.seat))
+          _botCall(opt, {})
+        else if (opt.seat == kHumanSeat && _mortalPlaysYou)
+          _autoCall(opt, {}),
     ].contains(null);
-    if (saekoThinking) return;
+    if (mortalThinking) return;
 
     final choices = <int, CallType>{};
     final chiLow = <int, TileType>{};
@@ -958,10 +991,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       }
       CallType c;
       if (autoplay && opt.seat == kHumanSeat) {
-        final advice = _guidedCallAdvice(opt);
-        c = _callTypeFor(advice?.recommended);
-        final low = _chiLowFor(advice);
-        if (low != null) chiLow[opt.seat] = low;
+        c = _autoCall(opt, chiLow)!;
       } else {
         c = _botCall(opt, chiLow)!;
       }
@@ -1361,8 +1391,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
       mortalAdvice = null;
       return;
     }
-    final call = awaitingHumanCall;
-    if (autoplay || !(isHumanTurn || call)) {
+    final call = awaitingHumanCall || _pendingHumanCall();
+    // Under Auto-Play nobody reads the column move by move, so it only asks
+    // when Mortal is playing your seat (and the request is shared anyway).
+    if ((autoplay && !_mortalPlaysYou) || !(isHumanTurn || call)) {
       mortalAdvice = MortalAdvice.idle;
       _mortalAsked = null;
       return;
@@ -1371,8 +1403,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (_mortalAsked == key) return;
     _mortalAsked = key;
     mortalAdvice = MortalAdvice.thinking;
-    _mortal.advise(_mjaiEvents(), call: call).then((advice) => advice,
-        onError: (Object e) {
+    Future.sync(() async =>
+            MortalAdvice.fromReply(await _mortalReply(kHumanSeat), call: call))
+        .then((advice) => advice, onError: (Object e) {
       debugPrint('Mortal advice unavailable: $e');
       return MortalAdvice.failed;
     }).then((advice) {
@@ -1416,6 +1449,41 @@ class GameController extends ChangeNotifier implements TableGameHost {
     return answer?.call;
   }
 
+  /// A call your seat is being offered while Auto-Play answers it (so it
+  /// never shows as [awaitingHumanCall]).
+  bool _pendingHumanCall() =>
+      autoplay &&
+      !round.finished &&
+      round.callOptions.any((o) => o.seat == kHumanSeat);
+
+  /// Your turn on Auto-Play: the guide's, or Mortal's when it plays you (the
+  /// guide's if Mortal can't answer). Null while Mortal is still thinking.
+  BotTurn? _autoTurn() {
+    if (!_mortalPlaysYou) return _guidedTurnDecision();
+    return _askMortalMove(
+        kHumanSeat,
+        (reply) => MortalMove.turn(reply, round, kHumanSeat),
+        _guidedTurnDecision);
+  }
+
+  /// Your answer to a call on Auto-Play, like [_autoTurn]. A chi names its
+  /// run in [chiLow]. Null while Mortal is still thinking.
+  CallType? _autoCall(CallOption opt, Map<int, TileType> chiLow) {
+    ({CallType call, TileType? chiLow}) guided() {
+      final advice = _guidedCallAdvice(opt);
+      return (call: _callTypeFor(advice?.recommended), chiLow: _chiLowFor(advice));
+    }
+
+    final answer = _mortalPlaysYou
+        ? _askMortalMove(
+            kHumanSeat,
+            (reply) => MortalMove.call(reply, round, kHumanSeat, opt.types),
+            guided)
+        : guided();
+    if (answer?.chiLow != null) chiLow[opt.seat] = answer!.chiLow!;
+    return answer?.call;
+  }
+
   /// Mortal's move for [seat] at this point in the hand, or null while the
   /// question is out: the loop runs again once it is answered. If Mortal
   /// fails, or names a move this table doesn't offer, [fallback]
@@ -1427,12 +1495,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
       return _mortalMoves[key] as T? ?? fallback();
     }
     if (_mortalMovesAsked.add(key)) {
-      final events = _mjaiEvents();
       // Reading the reply inside the future, so an unplayable move falls back
       // the same way a network failure does instead of stalling the seat.
-      Future(() async => read(await _mortal!.ask(seat, events)))
+      Future.sync(() async => read(await _mortalReply(seat)))
           .then<Object?>((answer) => answer, onError: (Object e) {
-        debugPrint('Saeko (Mortal) fell back to SimpleBot: $e');
+        debugPrint(seat == kHumanSeat
+            ? 'Mortal fell back to the guide for your seat: $e'
+            : 'Saeko (Mortal) fell back to SimpleBot: $e');
         return null;
       }).then((answer) {
         // An answer for a table that has moved on (undo, new hand) is dropped.

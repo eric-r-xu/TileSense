@@ -228,6 +228,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     if (value && _roundReady && !round.finished) _maybeAutoWin();
   }
 
+  // Online play has no Auto-Play or guide choice, and no Mortal.
+  @override
+  AutoplayBrain get autoplayBrain => AutoplayBrain.tilesense;
+  @override
+  void setAutoplayBrain(AutoplayBrain value) {}
+  @override
+  bool get mortalAvailable => false;
+
   /// Pass meld-only calls automatically — purely client-side, like
   /// [autoWin]: it sends the pass the button would have. See [_maybeAutoPass].
   @override
