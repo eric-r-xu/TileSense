@@ -72,7 +72,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     List<Character>? seatCharacters,
+    @visibleForTesting MortalAdvisor? mortal,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
+        _mortal =
+            mortal ?? (kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl)),
         seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
         _botFactory = botFactory ?? SimpleBot.new {
     if (ruleset.isChineseStyle) {
@@ -155,14 +158,20 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// it onto [_dealRound] rebuilds the table as it stood at that point.
   final List<_Move> _log = [];
 
-  final MortalAdvisor? _mortal =
-      kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl);
+  /// Mortal, when the app is built with MORTAL_URL (tests may pass one).
+  final MortalAdvisor? _mortal;
 
   /// The round and move count Mortal was last asked about; see [_askMortal].
   (Round, int)? _mortalAsked;
 
   @override
   MortalAdvice? mortalAdvice;
+
+  /// Saeko's moves from Mortal this hand, and the questions still out, keyed
+  /// by the round, how far into [_log] it was asked, and the seat. A null
+  /// answer means Mortal failed and her [SimpleBot] decides instead.
+  final Map<(Round, int, int), Object?> _mortalMoves = {};
+  final Set<(Round, int, int)> _mortalMovesAsked = {};
 
   /// Your decisions this hand, newest last: where [_log] stood just before
   /// each one, and what to call it on the take-back button.
@@ -677,6 +686,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _bots = [
       for (var i = 0; i < 4; i++) _botFactory(_seed + i * 7 + _roundNumber)
     ];
+    _mortalMoves.clear();
+    _mortalMovesAsked.clear();
     _humanCallOption = null;
     _humanCallAdvice = null;
     phase = GamePhase.playing;
@@ -884,11 +895,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void _botOrAutoTurn(int seat) {
     // Your own seat is played by the guide, never by the opponents' heuristic:
     // autoplay follows the same efficiency / expected-value / safety analysis
-    // the panel shows you. Seats 1-3 stay on [SimpleBot].
+    // the panel shows you. Seats 1-3 stay on [SimpleBot], except Saeko under
+    // riichi, who plays Mortal's moves (see [_playsMortal]).
     final decision = (seat == kHumanSeat && autoplay)
         ? _guidedTurnDecision()
-        : _bots[seat].decideTurn(round, seat);
-    if (decision.tsumo) {
+        : _botTurn(seat);
+    // Saeko is still waiting on Mortal; the loop comes back when it answers.
+    if (decision == null) return;
+    if (decision.kyuushu) {
+      _apply(_Kyuushu(seat));
+    } else if (decision.tsumo) {
       _apply(_Tsumo(seat));
     } else if (decision.closedKan != null) {
       Sfx.i.play(SfxKind.kan);
@@ -921,6 +937,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   }
 
   void _resolveCallPhase() {
+    // Saeko's call comes from Mortal: ask before anyone else decides, you
+    // included, and come back once she has answered.
+    final saekoThinking = [
+      for (final opt in round.callOptions)
+        if (_playsMortal(opt.seat)) _botCall(opt, {}),
+    ].contains(null);
+    if (saekoThinking) return;
+
     final choices = <int, CallType>{};
     final chiLow = <int, TileType>{};
     for (final opt in round.callOptions) {
@@ -941,7 +965,6 @@ class GameController extends ChangeNotifier implements TableGameHost {
         notifyListeners();
         return; // wait for the human
       }
-      final bot = _bots[opt.seat];
       CallType c;
       if (autoplay && opt.seat == kHumanSeat) {
         final advice = _guidedCallAdvice(opt);
@@ -949,7 +972,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         final low = _chiLowFor(advice);
         if (low != null) chiLow[opt.seat] = low;
       } else {
-        c = bot.decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
+        c = _botCall(opt, chiLow)!;
       }
       if (c != CallType.none) choices[opt.seat] = c;
     }
@@ -1298,8 +1321,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // Let the remaining bot seats decide too.
     for (final other in round.callOptions) {
       if (other.seat == opt.seat) continue;
-      final c = _bots[other.seat]
-          .decideCall(round, other.seat, round.pendingDiscard!, other.types);
+      final c = _botCall(other, chiLows)!;
       if (c != CallType.none) choices[other.seat] = c;
     }
     if (_tel != null) {
@@ -1358,8 +1380,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (_mortalAsked == key) return;
     _mortalAsked = key;
     mortalAdvice = MortalAdvice.thinking;
-    _mortal.advise(mjaiView(_mjaiEvents(), kHumanSeat), call: call).then(
-        (advice) => advice, onError: (Object e) {
+    _mortal.advise(_mjaiEvents(), call: call).then((advice) => advice,
+        onError: (Object e) {
       debugPrint('Mortal advice unavailable: $e');
       return MortalAdvice.failed;
     }).then((advice) {
@@ -1368,6 +1390,67 @@ class GameController extends ChangeNotifier implements TableGameHost {
       mortalAdvice = advice;
       notifyListeners();
     });
+  }
+
+  // --- Saeko on Mortal ---------------------------------------------------
+
+  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi game,
+  /// in an app built with MORTAL_URL. Every other character, and Saeko under
+  /// Hong Kong or Taiwanese rules or online, stays on [SimpleBot].
+  bool _playsMortal(int seat) =>
+      _mortal != null &&
+      ruleset.isRiichi &&
+      seat != kHumanSeat &&
+      _characterForSeat(seat) == Character.saeko;
+
+  /// [seat]'s turn from its bot, or null while Mortal is still thinking.
+  BotTurn? _botTurn(int seat) {
+    final bot = _bots[seat];
+    if (!_playsMortal(seat)) return bot.decideTurn(round, seat);
+    return _askMortalMove(seat, (reply) => MortalMove.turn(reply, round, seat),
+        () => bot.decideTurn(round, seat));
+  }
+
+  /// [opt]'s seat's answer from its bot, or null while Mortal is still
+  /// thinking. A Mortal chi names its run in [chiLow].
+  CallType? _botCall(CallOption opt, Map<int, TileType> chiLow) {
+    CallType simple() => _bots[opt.seat]
+        .decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
+    if (!_playsMortal(opt.seat)) return simple();
+    final answer = _askMortalMove(
+        opt.seat,
+        (reply) => MortalMove.call(reply, round, opt.seat, opt.types),
+        () => (call: simple(), chiLow: null));
+    if (answer?.chiLow != null) chiLow[opt.seat] = answer!.chiLow!;
+    return answer?.call;
+  }
+
+  /// Mortal's move for [seat] at this point in the hand, or null while the
+  /// question is out: the loop runs again once it is answered. If Mortal
+  /// fails, or names a move this table doesn't offer, [fallback]
+  /// ([SimpleBot]) decides instead.
+  T? _askMortalMove<T>(int seat, T Function(Map<String, Object?> reply) read,
+      T Function() fallback) {
+    final key = (round, _log.length, seat);
+    if (_mortalMoves.containsKey(key)) {
+      return _mortalMoves[key] as T? ?? fallback();
+    }
+    if (_mortalMovesAsked.add(key)) {
+      final events = _mjaiEvents();
+      // Reading the reply inside the future, so an unplayable move falls back
+      // the same way a network failure does instead of stalling the seat.
+      Future(() async => read(await _mortal!.ask(seat, events)))
+          .then<Object?>((answer) => answer, onError: (Object e) {
+        debugPrint('Saeko (Mortal) fell back to SimpleBot: $e');
+        return null;
+      }).then((answer) {
+        // An answer for a table that has moved on (undo, new hand) is dropped.
+        if (_disposed || !identical(key.$1, round)) return;
+        _mortalMoves[key] = answer;
+        if (key.$2 == _log.length && !(_loopTimer?.isActive ?? false)) _tick();
+      });
+    }
+    return null;
   }
 
   /// This hand as mjai events, nothing hidden: the deal replayed move by

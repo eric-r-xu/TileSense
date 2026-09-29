@@ -1,9 +1,9 @@
-"""Mortal sidecar: Mortal's opinion for the guide's "Mortal decision" column.
+"""Mortal sidecar: Mortal's moves for offline riichi games.
 
-Offline riichi games ask it, for your seat only, what Mortal would do with
-exactly what your seat can see (the app sends mjai events already reduced to
-that view; see packages/mahjong_core/lib/mjai.dart). It is display only: no
-seat is played by it.
+The guide's Mortal column asks it what Mortal would do in your seat, and the
+Saeko bot plays its answers in hers. Each request is for one seat, and the app
+sends mjai events already reduced to what that seat can see (see
+packages/mahjong_core/lib/mjai.dart), so Mortal never sees hidden tiles.
 
 Mortal runs on ONNX Runtime, not PyTorch, to fit the droplet: about 170 MB
 peak and ~20 ms a decision on one thread (reports/mortal_onnx_step0; on the
@@ -11,7 +11,7 @@ droplet, 120 MB and ~100 ms). The service is stateless: each request carries the
 far, which is replayed into a fresh libriichi `Bot` allowed to act on the last
 event only.
 
-    POST /react  {"player_id": 0, "events": [{"type": "start_game"}, ...]}
+    POST /react  {"player_id": 0-3, "events": [{"type": "start_game"}, ...]}
     ->           {"reaction": {...}, "riichi_discard": {...} | null}
 
 `reaction` is Mortal's mjai reply (or null: nothing to do), with
@@ -39,7 +39,6 @@ import numpy as np
 import onnxruntime as ort
 
 MAX_BODY = 64 * 1024
-SEAT = 0  # the human seat; bots never ask
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', required=True, help='Mortal exported to ONNX (fp32)')
@@ -78,8 +77,8 @@ class OnnxEngine:
 engine = OnnxEngine(args.model)
 
 
-def react(events):
-    bot = Bot(engine, SEAT)
+def react(seat, events):
+    bot = Bot(engine, seat)
     reaction = None
     for i, event in enumerate(events):
         reaction = bot.react(json.dumps(event), can_act=i == len(events) - 1)
@@ -87,7 +86,7 @@ def react(events):
     riichi_discard = None
     if reaction and reaction['type'] == 'reach':
         # Mortal names its riichi discard once told the riichi stands.
-        followup = bot.react(json.dumps({'type': 'reach', 'actor': SEAT}), can_act=True)
+        followup = bot.react(json.dumps({'type': 'reach', 'actor': seat}), can_act=True)
         riichi_discard = None if followup is None else json.loads(followup)
     return {'reaction': reaction, 'riichi_discard': riichi_discard}
 
@@ -115,9 +114,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             req = json.loads(self.rfile.read(length))
             events = req['events']
-            if req.get('player_id') != SEAT or not isinstance(events, list) or not events:
-                raise ValueError('expected player_id 0 and a non-empty events list')
-            self._send(200, react(events))
+            seat = req.get('player_id')
+            if seat not in (0, 1, 2, 3) or not isinstance(events, list) or not events:
+                raise ValueError('expected player_id 0-3 and a non-empty events list')
+            self._send(200, react(seat, events))
         except Exception as ex:
             self._send(400, {'error': str(ex)})
 
