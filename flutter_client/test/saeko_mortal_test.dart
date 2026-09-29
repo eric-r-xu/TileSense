@@ -4,6 +4,7 @@ import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/game/game_controller.dart';
+import 'package:tilesense/game/guide_host.dart';
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/game/sfx.dart';
 
@@ -20,6 +21,30 @@ class _FakeMortal extends MortalAdvisor {
   Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
     asked.add(seat);
     return reply ?? (throw StateError('sidecar down'));
+  }
+}
+
+/// Mortal that, for your seat, always cuts the tile just drawn and passes
+/// every call: play no guide would copy move for move.
+class _TsumogiriMortal extends MortalAdvisor {
+  _TsumogiriMortal() : super('http://unused');
+  final asked = <int>{};
+
+  @override
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
+    asked.add(seat);
+    final last = events.last;
+    if (last['type'] == 'tsumo' && last['actor'] == seat) {
+      return {
+        'reaction': {
+          'type': 'dahai',
+          'actor': seat,
+          'pai': last['pai'],
+          'tsumogiri': true,
+        },
+      };
+    }
+    return {'reaction': null};
   }
 }
 
@@ -185,6 +210,81 @@ void main() {
       try {
         await playHands(tester, game);
         expect(mortal.asked, isEmpty);
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+  });
+
+  group('Auto-Play on the Mortal bot', () {
+    /// Plays your seat on Auto-Play for [turns] of your discards, returning
+    /// how many of them were the tile just drawn.
+    Future<(int, int)> playYourTurns(WidgetTester tester, GameController game,
+        {int turns = 8}) async {
+      game
+        ..setFastMode(true)
+        ..setAutoplay(true);
+      var mine = 0, cutDrawn = 0;
+      var seen = game.round.seats[kHumanSeat].allDiscards.length;
+      for (var i = 0; i < 4000 && mine < turns; i++) {
+        final drawn = game.round.seats[kHumanSeat].drawn;
+        await tester.pump(const Duration(milliseconds: 50));
+        if (game.phase != GamePhase.playing) {
+          if (game.phase == GamePhase.roundEnd) game.continueFromRoundEnd();
+          seen = game.round.seats[kHumanSeat].allDiscards.length;
+          continue;
+        }
+        final discards = game.round.seats[kHumanSeat].allDiscards;
+        if (discards.length > seen) {
+          mine++;
+          if (drawn != null && discards.last.id == drawn.id) cutDrawn++;
+          seen = discards.length;
+        }
+      }
+      return (mine, cutDrawn);
+    }
+
+    testWidgets("plays Mortal's moves for your seat", (tester) async {
+      Sfx.i.enabled = false;
+      final mortal = _TsumogiriMortal();
+      final game = GameController(seed: 9, mortal: mortal)
+        ..setAutoplayBrain(AutoplayBrain.mortal);
+      try {
+        final (mine, cutDrawn) = await playYourTurns(tester, game);
+        expect(mine, 8);
+        expect(cutDrawn, mine, reason: 'every discard was Mortal\'s');
+        expect(mortal.asked, contains(kHumanSeat));
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('falls back to the guide when Mortal fails', (tester) async {
+      Sfx.i.enabled = false;
+      final game = GameController(seed: 9, mortal: _FakeMortal())
+        ..setAutoplayBrain(AutoplayBrain.mortal);
+      try {
+        final (mine, cutDrawn) = await playYourTurns(tester, game);
+        expect(mine, 8, reason: 'the guide kept playing your seat');
+        expect(cutDrawn, lessThan(mine),
+            reason: 'the guide, not a tsumogiri bot, chose the discards');
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('with TileSense chosen, Auto-Play never asks Mortal to move',
+        (tester) async {
+      Sfx.i.enabled = false;
+      final mortal = _TsumogiriMortal();
+      final game = GameController(seed: 9, mortal: mortal);
+      try {
+        final (mine, cutDrawn) = await playYourTurns(tester, game);
+        expect(mine, 8);
+        expect(cutDrawn, lessThan(mine));
       } finally {
         game.dispose();
         Sfx.i.enabled = true;

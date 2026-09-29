@@ -11,7 +11,8 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
-import '../main.dart' show playingDialsText, openRules;
+import '../game/guide_host.dart' show AutoplayBrain;
+import '../main.dart' show brainColor, playingDialsText, openRules;
 
 const Color _gold = Color(0xffe9d58f);
 
@@ -131,6 +132,20 @@ Future<void> showPhoneMenu(
                               onTap: () => game.setAutoplay(!game.autoplay),
                             ),
                           ],
+                          if (game.mortalAvailable)
+                            [
+                              phoneMenuDial<AutoplayBrain>(
+                                caption: 'Follows',
+                                keyPrefix: 'phoneMenuBrain',
+                                values: AutoplayBrain.values,
+                                current: game.autoplayBrain,
+                                label: (v) => v == AutoplayBrain.mortal
+                                    ? 'Mortal bot'
+                                    : 'TileSense',
+                                colour: brainColor,
+                                onPick: game.setAutoplayBrain,
+                              ),
+                            ],
                           [
                             Row(children: [
                               const SizedBox(

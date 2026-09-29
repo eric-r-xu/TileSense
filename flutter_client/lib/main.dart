@@ -12,7 +12,7 @@ import 'game/app_update.dart' as upd;
 import 'game/fullscreen.dart' as fs;
 import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
-import 'game/guide_host.dart' show GuideHost;
+import 'game/guide_host.dart' show AutoplayBrain, GuideHost;
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
@@ -238,6 +238,13 @@ Color handFocusColor(HandFocus focus) => switch (focus) {
 Color strategyColor(Strategy strategy) => switch (strategy) {
       Strategy.points => const Color(0xffe9d58f),
       Strategy.placement => const Color(0xffce93d8),
+    };
+
+/// Colour for who Auto-Play follows: the guide's green, or the Mortal
+/// column's salmon.
+Color brainColor(AutoplayBrain brain) => switch (brain) {
+      AutoplayBrain.tilesense => const Color(0xff81c784),
+      AutoplayBrain.mortal => const Color(0xffffab91),
     };
 
 /// The dials the guide is playing right now, each in its own colour: points
@@ -1338,6 +1345,24 @@ class _GamePageState extends State<GamePage> {
             builder: (context, _) {
               final on = _game.autoplay;
               final dials = <Widget>[
+                // Who Auto-Play follows, where the Goal used to be. Riichi
+                // with Mortal only; tapping flips between the two.
+                if (_game.mortalAvailable)
+                  _barDial(
+                    caption: 'FOLLOWS',
+                    buttonKey: const Key('autoplayBrain'),
+                    label: _game.autoplayBrain == AutoplayBrain.mortal
+                        ? 'Mortal bot'
+                        : 'TileSense',
+                    colour: brainColor(_game.autoplayBrain),
+                    tooltip: 'Who Auto-Play follows, and whose order the guide '
+                        'lists moves in: the TileSense guide, or the Mortal '
+                        'bot (the guide covers any move Mortal can\'t answer)',
+                    onTap: () => _game.setAutoplayBrain(
+                        _game.autoplayBrain == AutoplayBrain.mortal
+                            ? AutoplayBrain.tilesense
+                            : AutoplayBrain.mortal),
+                  ),
                 _barTile(
                   caption: 'PLAYING',
                   width: 160,

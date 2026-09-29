@@ -19,6 +19,18 @@ import 'sfx.dart' show Character;
 /// shared by the live game and the online game so neither has to redefine it.
 enum GamePhase { playing, roundEnd, gameEnd }
 
+/// Who Auto-Play follows for your seat under riichi: the TileSense guide (the
+/// default), or the Mortal bot, which falls back to the guide for any
+/// decision it can't answer. It also decides which of the two orders the
+/// guide panel's rows.
+enum AutoplayBrain {
+  tilesense('TileSense'),
+  mortal('Mortal');
+
+  const AutoplayBrain(this.label);
+  final String label;
+}
+
 abstract class GuideHost implements Listenable {
   /// The table state being rendered.
   Round get round;
@@ -153,6 +165,15 @@ abstract class TableGameHost implements GuideHost {
   /// toggled from the hand bar.
   bool get autoPass;
   void setAutoPass(bool value);
+
+  /// Who Auto-Play follows; see [AutoplayBrain]. Only offered while
+  /// [mortalAvailable].
+  AutoplayBrain get autoplayBrain;
+  void setAutoplayBrain(AutoplayBrain value);
+
+  /// Whether Mortal can play here: riichi, offline, in an app built with
+  /// MORTAL_URL.
+  bool get mortalAvailable;
 
   GamePhase get phase;
   bool get paused;

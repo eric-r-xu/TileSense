@@ -11,7 +11,12 @@ import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import '../main.dart'
-    show handFocusColor, playStyleColor, playingDialsText, strategyColor;
+    show
+        brainColor,
+        handFocusColor,
+        playStyleColor,
+        playingDialsText,
+        strategyColor;
 import 'ev_explainer_dialog.dart';
 import 'tile_face.dart';
 
@@ -72,8 +77,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               // A game sets the dials itself as it goes; the scenario builder
               // has no game to win, so it keeps the three dials to compare
               // advice under each.
-              if (widget.game is TableGameHost) ...[
+              if (widget.game case final TableGameHost game) ...[
                 _playingRow(),
+                if (game.mortalAvailable) _brainRow(game),
               ] else ...[
                 if (!_hk) _styleDial(),
                 _focusDial(),
@@ -116,6 +122,43 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       ),
     );
   }
+
+  /// Who Auto-Play follows, mirrored here from the app bar and the phone
+  /// menu: all read and write the one [TableGameHost.autoplayBrain].
+  Widget _brainRow(TableGameHost game) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          _dialLabel('AUTO-PLAY', _brainTip),
+          const SizedBox(width: 8),
+          for (final brain in AutoplayBrain.values)
+            Expanded(
+              child: _dialChip(
+                label: brain == AutoplayBrain.mortal ? 'Mortal bot' : 'TileSense',
+                colour: brainColor(brain),
+                active: game.autoplayBrain == brain,
+                chipKey: Key('guideBrain_${brain.name}'),
+                onTap: () => game.setAutoplayBrain(brain),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static const _brainTip = <InlineSpan>[
+    TextSpan(text: 'AUTO-PLAY\n', style: _tipTitle),
+    TextSpan(
+        text: 'Who Auto-Play follows for your seat, and whose order the rows '
+            'below are sorted in.\n',
+        style: _tipBody),
+    TextSpan(
+        text: '• TileSense (default): the guide; its recommendation is on top.\n'
+            '• Mortal bot: Mortal plays your seat, and its preferred move is '
+            'on top. Any decision Mortal can\'t answer is played by the guide.',
+        style: _tipBody),
+  ];
 
   /// The dials the guide is playing right now, read-only.
   Widget _playingRow() {
@@ -1338,10 +1381,15 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     // wider table scrolls sideways.
     final mortal = widget.game.mortalAdvice;
     final m = mortal == null ? 0 : 1;
-    // Once Mortal has answered, rows follow its order of preference (its pick
-    // on top); the green tile is still the guide's own recommendation.
+    // Rows follow whoever Auto-Play follows: the guide's order by default,
+    // Mortal's order of preference (its pick on top) with the Mortal bot
+    // chosen and its answer in; otherwise the guide's order is the fallback.
+    // The green tile is always the guide's own recommendation.
     final lines = [...r.lines];
-    if (mortal?.status == MortalStatus.ready) {
+    final host = widget.game;
+    final byMortal =
+        host is TableGameHost && host.autoplayBrain == AutoplayBrain.mortal;
+    if (byMortal && mortal?.status == MortalStatus.ready) {
       // Unranked rows keep the guide's order below the ranked ones.
       int rank(DiscardLine l) =>
           mortal!.rankOf(l.discard) ?? 99 + r.lines.indexOf(l);
@@ -1374,7 +1422,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       children: [
         _headerRow([
           '',
-          if (mortal != null) 'Mortal decision',
+          if (mortal != null) 'Mortal bot',
           _hk ? 'Away' : 'Shanten',
           _hk ? 'Accepts' : 'Ukeire',
           'EV (HMR)',
@@ -1546,7 +1594,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   }
 
   static const _mortalTip = <InlineSpan>[
-    TextSpan(text: 'Mortal decision\n', style: _tipTitle),
+    TextSpan(text: 'Mortal bot\n', style: _tipTitle),
     TextSpan(
         text: 'What Mortal, an open-source deep-learning mahjong AI, would do '
             'in your seat, seeing only what your seat can see. ★ marks its '
@@ -1554,10 +1602,16 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'order of preference among the rest.\n\n',
         style: _tipBody),
     TextSpan(
-        text: 'A second opinion only: it never changes the green tile or '
-            'Autoplay. Riichi, single player. Mortal and its weights are '
-            'AGPL-3.0 — source: github.com/Equim-chan/Mortal; the service that '
-            'runs it: github.com/eric-r-xu/TileSense (mortal_sidecar).',
+        text: 'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the '
+            'rows follow Mortal\'s order; on TileSense (the default) they follow '
+            'the guide\'s, and this is a second opinion. The green tile is '
+            'always the guide\'s pick. Whenever Mortal can\'t answer, the '
+            'guide decides.\n\n',
+        style: _tipBody),
+    TextSpan(
+        text: 'Riichi, single player. Mortal and its weights are AGPL-3.0 — '
+            'source: github.com/Equim-chan/Mortal; the service that runs it: '
+            'github.com/eric-r-xu/TileSense (mortal_sidecar).',
         style: _tipDim),
   ];
 
@@ -1622,7 +1676,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 GuideConstants.chineseStyleDealInCost(
                     widget.game.round.ruleset)),
             'Detail' => _detailTip(),
-            'Mortal decision' => _mortalTip,
+            'Mortal bot' => _mortalTip,
             _ => null,
           };
           // A ranking column's arrow: up where higher is better, down where
@@ -1632,7 +1686,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               .where((c) => c.$1 == l)
               .map((c) => c.$2)
               .firstOrNull;
-          final colour = l == 'Mortal decision'
+          final colour = l == 'Mortal bot'
               ? _mortalColour
               : l == 'TileSense EV'
                   ? const Color(0xffbfe6e0)

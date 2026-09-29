@@ -63,7 +63,8 @@ the recommended discard or call.
   win chance times average score, reproduced from HMR's own simulation log to check
   the guide's numbers against. It never drives the recommendation. HMR is a
   separate solo trainer with no code or data shared with this project.
-- **Auto-Play** plays your seat with the guide's recommendations.
+- **Auto-Play** plays your seat with the guide's recommendations, or Mortal's
+  under riichi when you choose it (see below).
 - **The guide sets its own dials as the game goes**: under riichi it plays for
   points early and for placement in the final two hands, with no goal to pick
   (`flutter_client/lib/logic/auto_dials.dart`). The **PLAYING** readout shows the
@@ -96,13 +97,20 @@ In single-player riichi, the **Saeko** bot plays
 seat can see; if Mortal can't answer a decision, she plays it like the other
 bots.
 
-The guide can also add a **Mortal decision** column: what Mortal, an
-open-source deep-learning mahjong AI, would do in your seat, seeing only what
-your seat can see. Its pick is ringed in blue, and the rows follow its order of
-preference; the guide's own recommendation stays highlighted in green. The
-column is a second opinion only: it never plays your seat.
+The guide also adds a **Mortal bot** column: what Mortal, an open-source
+deep-learning mahjong AI, would do in your seat, seeing only what your seat can
+see. Its pick is ringed in blue; the guide's own recommendation stays green.
 
-Both are off unless the app is built with `--dart-define=MORTAL_URL=<address>`. Mortal
+**Auto-Play can follow either one** (the FOLLOWS dial in the top bar, the
+AUTO-PLAY chips in the guide panel, or the phone menu):
+
+- **TileSense** (the default): the guide plays your seat, and its
+  recommendation tops the list. The Mortal column is a second opinion.
+- **Mortal bot**: Mortal plays your seat, and the list follows its order of
+  preference. Any decision Mortal can't answer (the sidecar is down or slow, or
+  it names a move the table doesn't offer) is played by the guide instead.
+
+All of it is off unless the app is built with `--dart-define=MORTAL_URL=<address>`. Mortal
 runs on ONNX Runtime in a small sidecar (`mortal_sidecar/server.py`, setup steps in
 its header).
 
