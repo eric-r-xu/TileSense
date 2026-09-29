@@ -1,0 +1,28 @@
+{
+  "decisions": 5976,
+  "evaluated": 5476,
+  "fp32": {
+    "same_action_pct": 100.0,
+    "max_abs_q_diff": 0.0,
+    "rss_after_load_mb": 161.4,
+    "peak_rss_mb": 169.0,
+    "p50_ms": 20.1,
+    "p95_ms": 51.6,
+    "first_reply": "dahai",
+    "requests": 200,
+    "torch_loaded": false,
+    "file_mb": 41.6
+  },
+  "int8": {
+    "same_action_pct": 93.079,
+    "max_abs_q_diff": 4.482,
+    "rss_after_load_mb": 147.2,
+    "peak_rss_mb": 150.3,
+    "p50_ms": 7.6,
+    "p95_ms": 8.5,
+    "first_reply": "dahai",
+    "requests": 200,
+    "torch_loaded": false,
+    "file_mb": 11.8
+  }
+}

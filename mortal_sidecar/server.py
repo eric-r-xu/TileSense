@@ -6,8 +6,8 @@ that view; see packages/mahjong_core/lib/mjai.dart). It is display only: no
 seat is played by it.
 
 Mortal runs on ONNX Runtime, not PyTorch, to fit the droplet: about 170 MB
-peak and ~20 ms a decision on one thread (reports/mortal_onnx_step0 in
-TileSenseMortal). The service is stateless: each request carries the hand so
+peak and ~20 ms a decision on one thread (reports/mortal_onnx_step0; on the
+droplet, 120 MB and ~100 ms). The service is stateless: each request carries the hand so
 far, which is replayed into a fresh libriichi `Bot` allowed to act on the last
 event only.
 
@@ -26,8 +26,7 @@ Setup, from this directory (pyo3 0.25 needs Python <= 3.13):
     cp ~/Documents/GitHub/Mortal/target/release/libriichi.dylib libriichi.so
     .venv/bin/python server.py --model mortal_298k.onnx
 
-The .onnx file is exported from the checkpoint by TileSenseMortal's
-mortal_sidecar/step0_onnx.py. Mortal (code and weights) is AGPL-3.0.
+The .onnx file is exported from the checkpoint by export_onnx.py. Mortal (code and weights) is AGPL-3.0.
 """
 
 import argparse
