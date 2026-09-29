@@ -156,6 +156,13 @@ abstract class TableGameHost implements GuideHost {
   bool get autoWin;
   void setAutoWin(bool value);
 
+  /// Pass on every meld call (chi/pon/kan) another player's discard offers
+  /// you, instead of waiting for the buttons. An offer that includes a ron is
+  /// never passed: that is left to [autoWin], or to you. Off by default;
+  /// toggled from the hand bar.
+  bool get autoPass;
+  void setAutoPass(bool value);
+
   GamePhase get phase;
   bool get paused;
   List<int> get tablePoints;

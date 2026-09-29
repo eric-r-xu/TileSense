@@ -6,7 +6,9 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/auto_dials.dart' show Goal;
 import 'package:tilesense/main.dart';
+import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
+import 'package:tilesense/ui/tile_face.dart';
 
 import 'helpers.dart';
 import 'loading_helpers.dart';
@@ -36,17 +38,22 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Sort and Auto-win are thumb-sized and clear of the tiles',
+  testWidgets('Sort, Auto-win and Auto-pass are thumb-sized and apart',
       (tester) async {
     await startGame(tester);
     final sort = tester.getRect(find.byKey(const Key('sortHand')));
     final autoWin = tester.getRect(find.byKey(const Key('autoWin')));
-    for (final r in [sort, autoWin]) {
+    final autoPass = tester.getRect(find.byKey(const Key('autoPass')));
+    for (final r in [sort, autoWin, autoPass]) {
       expect(r.width, greaterThanOrEqualTo(96));
       expect(r.height, greaterThanOrEqualTo(46));
     }
-    expect(autoWin.top - sort.bottom, greaterThanOrEqualTo(10),
+    // Sort on its own, then the two call toggles stacked beside it.
+    expect(autoWin.left - sort.right, greaterThanOrEqualTo(10),
         reason: 'far enough apart to hit the one you meant');
+    expect(autoPass.top - autoWin.bottom, greaterThanOrEqualTo(10),
+        reason: 'far enough apart to hit the one you meant');
+    expect(autoPass.left, autoWin.left);
     expect(tester.takeException(), isNull);
     await tearDownApp(tester);
   });
@@ -159,6 +166,33 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
     }
+
+    testWidgets('the hand toggles shrink to icons, and all tiles still fit',
+        (tester) async {
+      await startGame(tester, size: iPhone);
+      final toggles = [
+        for (final key in ['sortHand', 'autoWin', 'autoPass'])
+          tester.getRect(find.byKey(Key(key)))
+      ];
+      // Square icons, all the same size (46 design units: the canvas is
+      // drawn at about half scale here, so fewer on-screen pixels).
+      for (final r in toggles) {
+        expect(r.width, moreOrLessEquals(r.height));
+        expect(r.width, moreOrLessEquals(toggles.first.width));
+      }
+      // Labels are gone; the tooltips name each toggle.
+      expect(find.text('AUTO-PASS'), findsNothing);
+      // Every tile of the resting hand is on screen without scrolling.
+      final tiles = tester
+          .widgetList<TileFace>(find.descendant(
+              of: find.byType(HandView), matching: find.byType(TileFace)))
+          .map((w) => tester.getRect(find.byWidget(w)))
+          .toList()
+        ..sort((a, b) => a.left.compareTo(b.left));
+      expect(tiles[12].right, lessThanOrEqualTo(iPhone.width));
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
 
     testWidgets('one Menu button under the right thumb replaces the bar tiles',
         (tester) async {

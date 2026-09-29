@@ -98,6 +98,33 @@ void main() {
     });
   });
 
+  testWidgets('Continue left, Pause right, the countdown under both',
+      (tester) async {
+    await withScores(tester, call: false, (game) async {
+      final cont = tester.getRect(find.byKey(const Key('scoreContinue')));
+      final pause = tester.getRect(find.byKey(const Key('scorePause')));
+      final countdown = tester.getRect(find.byKey(const Key('scoreCountdown')));
+      expect(cont.right, lessThan(pause.left));
+      expect(cont.height, pause.height);
+      expect(cont.width, greaterThanOrEqualTo(120));
+      expect(pause.width, greaterThanOrEqualTo(120));
+      expect(countdown.top, greaterThan(cont.bottom));
+      expect(countdown.top, greaterThan(pause.bottom));
+
+      // Pause holds the countdown and becomes Resume; Resume restarts it.
+      await tester.tap(find.byKey(const Key('scorePause')));
+      await tester.pump();
+      expect(find.text('Resume'), findsOneWidget);
+      expect(find.text('Auto Continue paused'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 30));
+      expect(game.continues, 0);
+      await tester.tap(find.byKey(const Key('scorePause')));
+      await tester.pump();
+      expect(find.text('Pause'), findsOneWidget);
+      expect(find.textContaining('Auto Continue in 20s'), findsOneWidget);
+    });
+  });
+
   testWidgets('each winner score page gets its own 20 seconds', (tester) async {
     await withScores(tester, (game) async {
       await tester.pump(CallCallout.flash);

@@ -5,14 +5,9 @@
 
 --- 
 
-[Play the live web app](https://app.ericrxu.com/tilesense/)
+[Play online](https://app.ericrxu.com/tilesense/)
 
-A mahjong **tile-efficiency trainer** for **Japanese riichi** and **Hong Kong**
-rules. Play single player against bots with a live guide grading every discard —
-shanten, ukeire (tile acceptance), probability-weighted point value, and the
-recommended tile — and ranking your hand by safety once an opponent threatens.
-Play online with friends too, bots filling any empty seat — multiplayer has no
-guide, so nobody gets an assist the others lack.
+A mahjong single and multiplayer game as well as a custom hand builder with decision-stats and autoplay.
 
 Pick 🇯🇵 Riichi, 🇭🇰 Hong Kong or 🇹🇼 Taiwanese on the welcome screen, or switch
 at any time from the game's app bar (which deals a new game) or the builder's
@@ -54,35 +49,7 @@ Details, emulator/simulator launch, and release/store builds are in
 ## Three rulesets, one engine
 
 `packages/mahjong_core/lib/ruleset.dart` defines `Ruleset.riichi`,
-`Ruleset.hongKong` and `Ruleset.taiwanese`. The round, guide, bots, scenario builder and UI are shared
-— offline and online alike — and branch on the ruleset only where the games
-differ. Hong Kong-only logic lives in `packages/mahjong_core/lib/hong_kong/`:
-
-| File | What it holds |
-|---|---|
-| `hong_kong_rules.dart` | Minimum-faan choices, the payment table, starting chips, Seven Pairs switch |
-| `hong_kong_scoring.dart` | Faan patterns and payments (`scoreHongKongHand`, `scoreFlowerWin`) |
-| `hong_kong_wall.dart` | The 144-tile wall with flowers and tail replacements |
-| `hong_kong_safety.dart` | Risk estimates with no discard immunity |
-
-Taiwanese-only logic sits alongside it in
-`packages/mahjong_core/lib/taiwanese/`:
-
-| File | What it holds |
-|---|---|
-| `taiwanese_rules.dart` | Minimum-points choices, the dealer win-streak bonus, starting points |
-| `taiwanese_scoring.dart` | Point patterns and payments (`scoreTaiwaneseHand`) |
-| `taiwanese_wall.dart` | The 144-tile wall, dealt 16 to a seat |
-| `taiwanese_hand_parse.dart` | Five-set hand parsing (`totalMelds` 5) |
-
-Everything else — shanten and acceptance, win-probability modelling, call
-mechanics, the table and hand widgets — is the same code for both. Riichi tests
-live in `flutter_client/test/`, Hong Kong tests in
-`flutter_client/test/hong_kong/`, Taiwanese coverage in
-`flutter_client/test/taiwanese_test.dart`,
-`flutter_client/test/taiwanese_tuning_sweep_test.dart` and the shared
-ruleset tests in `packages/mahjong_core/test/`;
-`flutter_client/test/ruleset_toggle_test.dart` covers the switch itself.
+`Ruleset.hongKong` and `Ruleset.taiwanese`. The round, guide, bots, scenario builder and UI are mostly shared 
 
 ---
 
@@ -92,77 +59,61 @@ ruleset tests in `packages/mahjong_core/test/`;
 
 - A shuffled wall — 136 tiles under riichi, 144 with flowers under Hong Kong
   and Taiwanese — and a full offline round vs three bots: draws,
-  discards, **chi**, **pon** and **closed kan**, riichi, tsumo, ron, and
+  discards, **chi**, **pon** and **kan**, riichi, tsumo, ron, and
   exhaustive draw with tenpai payments.
-- A **live efficiency guide**: for every tile in your hand — resulting shanten,
-  ukeire count, accepted tiles, and expected value. In tenpai, EV scores every
-  live wait (including yaku, han/fu, visible dora, tsumo/ron, and dealer value)
-  and weights it by remaining copies and estimated win probability. Before
-  tenpai, it uses completion probability and a dealer/open-hand value estimate.
-  Best-efficiency, best-EV, and recommended discards are highlighted, with a
-  riichi/damaten plan at tenpai. Honba and the riichi deposits already on the
-  table are counted too: they pay out on any win, so they scale with the
-  chance of winning rather than with what the hand is worth. Against a live
-  riichi each discard is also charged what it can cost you: its chance of
+- A **live recommendation guide**: for every tile in your hand — resulting shanten,
+  ukeire count, accepted tiles, and expected value. 
+  - In tenpai, EV scores every live wait and weights it by remaining copies and estimated win probability. 
+  - Before tenpai, it uses completion probability and a dealer/open-hand value estimate.
+  - Recommended actions based on the guide are highlighted, with a riichi/damaten plan at tenpai. 
+  - Honba and the riichi deposits (Riichi only) already on the table are counted too: they pay out on any win. 
+  - Against an opponent riichi, each discard is also charged what it can cost you: its chance of
   dealing in, from its own safety rating, times what that hand pays, plus the
-  turns that choosing it commits you to. Folding therefore wins on the numbers
-  when the hand is not worth pushing, rather than by a separate rule. The panel
-  shows the charge as a Risk column beside the value it came off. A second,
-  standalone **EV (HMR)** column shows the same win-probability-times-average-
-  score product with none of that pricing folded in — the "E.V." stat from
-  HMR (Hitori Mahjong Renshuuki), a closed-source solo trainer with no code or
-  data ties to this project, worked out from its own simulation log purely
-  for comparison; it never drives the recommendation. See also:
-  [Training tool: Hitori Mahjong Simulator](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html).
-- A **defensive panel** when an opponent is in riichi: each tile rated 0–15
-  (genbutsu / suji / one-chance / honor-by-copies) with a short reason; the
-  recommendation switches to the safest discard. Scores refer only to the
-  named riichi opponent: genbutsu includes their own discards (even before
-  riichi) and other players' discards they passed after declaring riichi.
+  turns that choosing it commits you to. 
+  - Folding therefore wins on the numbers when the hand is not worth pushing, rather than by a separate rule. 
+  - The panel shows the charge as a Risk column beside the value it came off. 
+  - A second, standalone **EV (HMR)** column shows the same win-probability-times-average-
+  score product 
+    — the "E.V." stat from [HMR (Hitori Mahjong Renshuuki)](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html), a solo trainer with no code or data ties to this project, worked out from its own simulation log purely for validated comparison (it never drives the recommendation)
+- A **defensive panel** when an opponent is in riichi
 - End-of-round scoring: yaku list, han/fu, dora/ura/aka, limit hands and
   yakuman, and the point transfers.
-- An **Auto-Play** toggle that plays your seat with the recommended discard.
+- An **Auto-Play** toggle that plays your seat with the recommended discard/action.
 - A **goal** — Win Rate, Points or Placement, starting on **Placement** —
-  that the guide and Auto-Play play for. The goal picks three underlying dials
-  from simulated games against the bots (`logic/auto_dials.dart`), and the
-  panel shows them read-only as PLAYING:
-  - **play style** — defensive, balanced or aggressive — how dearly the guide
+  that the guide and Auto-Play play for. 
+  - The goal picks three underlying dials from simulated games against the bots (`logic/auto_dials.dart`)
+  - **Play Style** — defensive, balanced or aggressive — how the guide
     prices danger and how readily it keeps a hand quiet rather than declaring
-    riichi;
-  - **focus** — Speed or Balanced — which tilts chance of finishing against
-    payout;
-  - **strategy** — Points or Placement — what "worth" means: Placement runs
-    every points-flavoured number through a heuristic model of how it moves
-    the chance of finishing above each other seat. Details:
-    [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
+    riichi
+  - **Focus** — Speed or Balanced — which tilts chance of finishing against
+    payout
+  - **Strategy** — Points or Placement — 
+    - Placement runs every a heuristic model of how it moves the chance of finishing above each other seat. Details: [`EXPECTED_VALUE.md`](flutter_client/EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
 
   Under riichi, Win Rate and Points play **Aggressive / Speed / Points** and
-  Placement plays **Balanced / Speed / Points**. Hong Kong and Taiwanese pin
-  style to Balanced and strategy to Points; focus is Speed, except Balanced at
-  Taiwanese's 5-tai minimum. The Custom Hand & Context Builder has no game to
-  win, so it keeps the three dials to set by hand.
+  Placement plays **Balanced / Speed / Points**. 
+
+  Hong Kong and Taiwanese pin style to Balanced and strategy to Points; focus is Speed, except Balanced at Taiwanese's 5-tai minimum. 
+
+  The Custom Hand & Context Builder has no game to win, so it keeps the three dials to set by hand.
+
 - **🇯🇵 Riichi, 🇭🇰 Hong Kong and 🇹🇼 Taiwanese rules**, chosen on the welcome
-  screen or from the app bar, each with a one-page rules PDF
+  screen or from the app bar, each with the associated rules PDF
   ([Riichi](https://app.ericrxu.com/static/Riichi.pdf),
   [Hong Kong](https://app.ericrxu.com/static/HK.pdf),
-  [Taiwanese](https://app.ericrxu.com/static/Taiwanese.pdf)). Hong Kong plays
-  with a **0-faan minimum** by default — any complete hand, even a chicken
-  hand, may be declared — or a 1-, 2- or 3-faan minimum, plus flower and season tiles and the New Style discarder-pays-all
-  table. Taiwanese deals 16 tiles a seat for a 17-tile, 5-meld winning hand,
+  [Taiwanese](https://app.ericrxu.com/static/Taiwanese.pdf)). 
+
+  - Hong Kong plays with a **0-faan minimum** by default
+  - Taiwanese deals 16 tiles a seat for a 17-tile, 5-meld winning hand,
   scores flat additive points with a **5-point minimum** by default (1 or 3
-  tai can be chosen instead), and adds a dealer
-  win-streak bonus. Every ruleset plays a hanchan (East and South) by default,
-  with an East-only option.
-- **Play Online**: a private room for up to four humans, any empty seat
-  filled by a bot. There is no guide here — nobody gets an assist the other
-  seats lack — so this is the offline game's own guide UI, minus the guide.
-- A **Custom Hand & Context Builder**, on its own screen from the start
-  page: pose any table by hand — your tiles, every seat's discards and calls,
-  the dora indicators, the wall counter, your seat wind (East deals) and who is
-  in riichi — and the same guide scores it. A 14-tile hand gets a discard recommendation; 13 tiles plus
-  a tile on offer gets a call recommendation. Nothing on the table can exceed
-  four copies, and it runs no game behind it: no bots, no turn timer, no
-  autoplay.
+  tai can be chosen instead), and adds a dealer win-streak bonus. 
+  - Every ruleset plays a hanchan (East and South) by default, with an East-only option.
+- **Play Online**: 
+  - a private room for up to four humans, any empty seat filled by a bot. 
+  - There is intentionally no guide or auto-play here 
+- A **Custom Hand & Context Builder**: 
+  - on its own screen from the start page
+  - pose any table by hand (your tiles, every seat's discards and calls, the dora indicators and who is in riichi (Riichi only), the wall counter, and your seat wind (East deals) and the same guide scores it. 
 
 Scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No replays
