@@ -227,7 +227,11 @@ void main() {
 
         expect(find.byKey(const Key('ev-explainer')), findsOneWidget);
         expect(find.textContaining('How EV (HMR) is made'), findsOneWidget);
-        expect(find.textContaining('cut ${line.discard.code}'), findsOneWidget);
+        expect(
+            find.descendant(
+                of: find.byKey(const Key('ev-explainer')),
+                matching: find.textContaining('cut ${line.discard.code}')),
+            findsOneWidget);
         // The headline product is the same number the cell shows.
         expect(
             find.textContaining(
