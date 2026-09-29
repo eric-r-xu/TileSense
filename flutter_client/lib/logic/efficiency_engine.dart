@@ -648,12 +648,21 @@ class DiscardLine {
     this.riichiLockCost = 0,
     this.valueTilt = 0,
     this.winBonus = 0,
+    this.yakuOdds = const {},
+    this.doraPerWin = 0,
     this.bestUkeire = false,
     this.bestExpectedValue = false,
     this.recommended = false,
   });
 
   final TileType discard;
+
+  /// Riichi, on a line that leaves you tenpai: the chance each yaku is in the
+  /// hand when it wins, by name. Empty on any other line.
+  final Map<String, ({double chance, int han, int yakuman})> yakuOdds;
+
+  /// Dora han (dora and red fives) an average win on this line carries.
+  final double doraPerWin;
   final int shanten;
   final int ukeire;
   final List<TileType> accepts;
@@ -1089,6 +1098,16 @@ class EfficiencyEngine {
           : math.min(value.turnsExposed, _riichiPushHorizon);
       final laterTurns = math.max(0.0, exposed - 1);
       final commitmentCost = dealInCost * laterTurns * _pushCommitment;
+      final odds =
+          ruleset.isRiichi && r.shanten == 0 && value.winProbability > 0
+              ? _yakuOdds(
+                  waits: r.accepts,
+                  remaining: remaining,
+                  concealed: afterDiscard,
+                  riichi: value.recommendRiichi || valueContext.inRiichi,
+                  context: valueContext,
+                )
+              : null;
       return DiscardLine(
         discard: r.discard,
         shanten: r.shanten,
@@ -1122,6 +1141,8 @@ class EfficiencyEngine {
         riichiLockCost: value.riichiLockCost,
         valueTilt: value.valueTilt,
         winBonus: valueContext.winBonus.toDouble(),
+        yakuOdds: odds?.yaku ?? const {},
+        doraPerWin: odds?.dora ?? 0,
       );
     }).toList();
 
@@ -3240,6 +3261,53 @@ class EfficiencyEngine {
       winProbability: outlook.win,
       turnsExposed: outlook.turns,
       damaPoints: damaPoints,
+    );
+  }
+
+  /// Weighted as [_assessTenpaiValue] weights points: live copies, then 65%
+  /// ron / 35% tsumo. Wins that don't score (no yaku) are left out.
+  ({Map<String, ({double chance, int han, int yakuman})> yaku, double dora})
+      _yakuOdds({
+    required List<TileType> waits,
+    required List<int> remaining,
+    required List<Tile> concealed,
+    required bool riichi,
+    required EfficiencyValueContext context,
+  }) {
+    final weight = <String, double>{};
+    final han = <String, ({int han, int yakuman})>{};
+    var total = 0.0;
+    var dora = 0.0;
+    for (final wait in waits) {
+      final copies = remaining[trainerIndexOf(wait)];
+      if (copies <= 0) continue;
+      for (final (isTsumo, share) in [(false, 0.65), (true, 0.35)]) {
+        final score = _scoreWait(concealed, Tile(-1000 - wait.index, wait),
+            isTsumo: isTsumo, assumeRiichi: riichi, context: context);
+        if (!score.valid) continue;
+        final w = copies * share;
+        total += w;
+        for (final y in score.yaku) {
+          if (y.name.endsWith('Dora')) {
+            dora += w * y.han;
+          } else {
+            weight[y.name] = (weight[y.name] ?? 0) + w;
+            han[y.name] = (han: y.han, yakuman: y.yakuman);
+          }
+        }
+      }
+    }
+    if (total == 0) return (yaku: const {}, dora: 0);
+    return (
+      yaku: {
+        for (final e in weight.entries)
+          e.key: (
+            chance: e.value / total,
+            han: han[e.key]!.han,
+            yakuman: han[e.key]!.yakuman
+          ),
+      },
+      dora: dora / total,
     );
   }
 

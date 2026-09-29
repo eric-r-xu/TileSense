@@ -148,7 +148,9 @@ void main() {
     BoxDecoration? fillOf(WidgetTester tester, String tile) {
       final table = tester.widget<Table>(find.byType(Table));
       for (final row in table.children.skip(1)) {
-        final face = (row.children.first as Padding).child! as TileFace;
+        final face = ((row.children.first as GestureDetector).child!
+                as Padding)
+            .child! as TileFace;
         if (mjaiTile(Tile(-1, face.type!)) != tile) continue;
         return row.decoration as BoxDecoration?;
       }

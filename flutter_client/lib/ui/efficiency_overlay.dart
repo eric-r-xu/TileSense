@@ -43,6 +43,9 @@ class EfficiencyOverlay extends StatefulWidget {
 class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   bool _minimized = false;
 
+  /// The row the yaku section describes, once a row's tile is tapped.
+  TileType? _yakuDiscard;
+
   @override
   Widget build(BuildContext context) {
     final r = widget.report;
@@ -100,6 +103,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                             ),
                           ),
                         _efficiencyTable(r),
+                        if (!_hk) _yakuSection(r),
                       ],
                     ],
                   ),
@@ -1164,6 +1168,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     // chosen and its answer in; otherwise the guide's order is the fallback.
     // The green tile is always the guide's own recommendation.
     final lines = [...r.lines];
+    final yakuPick = _hk ? null : _yakuLine(r).discard;
     final host = widget.game;
     final byMortal =
         host is TableGameHost && host.autoplayBrain == AutoplayBrain.mortal;
@@ -1220,11 +1225,21 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 ) ??
                 BoxDecoration(
                   color: line.bestUkeire ? const Color(0x22caa24e) : null,
+                  // A row picked for the yaku section, when it isn't
+                  // already marked as the guide's or Mortal's pick.
+                  border: line.discard == yakuPick && !line.recommended
+                      ? Border.all(color: const Color(0xff80cbc4), width: 2)
+                      : null,
                 ),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(3),
-                child: TileFace(type: line.discard, size: TileSize.small),
+              GestureDetector(
+                key: ValueKey('yaku-pick-${line.discard.code}'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _yakuDiscard = line.discard),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: TileFace(type: line.discard, size: TileSize.small),
+                ),
               ),
               if (mortal != null) _mortalCell(mortal, line.discard),
               _cell(line.shanten == -1 ? 'win' : line.shanten.toString()),
@@ -1310,6 +1325,106 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   }
 
   static const _mortalColour = Color(0xffffab91);
+
+  DiscardLine _yakuLine(EfficiencyReport r) =>
+      r.lines.where((l) => l.discard == _yakuDiscard).firstOrNull ??
+      r.lines.firstWhere((l) => l.recommended, orElse: () => r.lines.first);
+
+  /// The yaku the chosen row's wins score, and how often each.
+  Widget _yakuSection(EfficiencyReport r) {
+    final line = _yakuLine(r);
+    final odds = line.yakuOdds.entries.toList()
+      ..sort((a, b) => b.value.chance.compareTo(a.value.chance));
+    const muted = TextStyle(color: Colors.white54, fontSize: 9);
+    String pct(double p) => '${(p * 100).round()}%';
+    final dora = line.doraPerWin;
+    final doraText = dora == 0
+        ? ''
+        : '+${dora == dora.roundToDouble() ? dora.round() : dora.toStringAsFixed(1)}'
+            ' dora per win · ';
+    return Padding(
+      key: const ValueKey('yaku-section'),
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            _dialLabel('YAKU', _yakuTip),
+            Flexible(
+              child: Text(
+                  ' · cut ${line.discard.code}'
+                  '${odds.isEmpty ? '' : ' · ${line.valuePlan.toLowerCase()}'
+                      ' · ${pct(line.winProbability)} to win'}',
+                  style: muted),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          if (odds.isEmpty)
+            Text(
+                line.shanten > 0
+                    ? 'Yaku appear once this line is tenpai.'
+                    : 'No win to score on this line.',
+                style: muted)
+          else
+            for (final MapEntry(key: name, value: y) in odds)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 1.5),
+                child: Row(children: [
+                  SizedBox(
+                    width: 110,
+                    child: Text(name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10)),
+                  ),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: y.chance,
+                        minHeight: 6,
+                        backgroundColor: const Color(0x22ffffff),
+                        color: y.yakuman > 0
+                            ? const Color(0xffcaa24e)
+                            : const Color(0xff80cbc4),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text(pct(y.chance),
+                        textAlign: TextAlign.right,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10)),
+                  ),
+                  SizedBox(
+                    width: 50,
+                    child: Text(y.yakuman > 0 ? 'yakuman' : '${y.han} han',
+                        textAlign: TextAlign.right, style: muted),
+                  ),
+                ]),
+              ),
+          const SizedBox(height: 4),
+          Text('${doraText}Tap a tile in the table to see its yaku.',
+              style: muted),
+        ],
+      ),
+    );
+  }
+
+  static const _yakuTip = <InlineSpan>[
+    TextSpan(text: 'YAKU\n', style: _tipTitle),
+    TextSpan(
+        text: 'How often each yaku is in the hand when this line wins: every '
+            'live winning tile counted by its copies left, ron and tsumo '
+            'weighted as the guide weights points. Multiply by the line\'s '
+            'win chance for the odds overall.\n\n'
+            'Riichi and Menzen Tsumo follow the line\'s plan. Dora are not '
+            'yaku, so they are counted apart. Rows not yet tenpai have no '
+            'finished hand to score.',
+        style: _tipBody),
+  ];
 
   /// A pick's highlight: the guide's green fill, Mortal's red outline (the
   /// Mortal column's hue), or both when they agree. Null when neither picked

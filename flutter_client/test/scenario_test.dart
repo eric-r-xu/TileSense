@@ -651,4 +651,50 @@ void main() {
       c.dispose();
     });
   });
+
+  group('yaku section', () {
+    Future<void> showGuide(WidgetTester tester, ScenarioController c) =>
+        tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: EfficiencyOverlay(game: c, report: c.report),
+            ),
+          ),
+        ));
+
+    Finder section(String text) => find.descendant(
+        of: find.byKey(const ValueKey('yaku-section')),
+        matching: find.textContaining(text));
+
+    testWidgets("shows the guide's pick, and a tapped row's instead",
+        (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = ScenarioController();
+      c.edit((s) => fill(s, s.hand, '234m 567p 345s 66s 78m 9p'));
+      await showGuide(tester, c);
+
+      expect(section('cut 9p'), findsOneWidget);
+      expect(section('Pinfu'), findsOneWidget);
+      // Tanyao on the 6m side of 6-9m only.
+      expect(section('50%'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('yaku-pick-2m')));
+      await tester.pump();
+      expect(section('cut 2m'), findsOneWidget);
+      expect(section('once this line is tenpai'), findsOneWidget);
+      c.dispose();
+    });
+
+    testWidgets('is not shown under Hong Kong', (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = ScenarioController()..setRuleset(Ruleset.hongKong);
+      c.edit((s) => fill(s, s.hand, '234m 567p 345s 66s 78m 9p'));
+      await showGuide(tester, c);
+      expect(find.byKey(const ValueKey('yaku-section')), findsNothing);
+      c.dispose();
+    });
+  });
 }

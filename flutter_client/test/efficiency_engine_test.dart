@@ -807,4 +807,76 @@ void main() {
     expect(line.reason, isNot(contains('riichi')));
     expect(line.reason, isNot(contains('Damaten')));
   });
+
+  group('yaku odds', () {
+    DiscardLine tenpaiLine(String hand,
+        {List<Meld> melds = const [],
+        List<TileType> dora = const [],
+        bool canRiichi = true}) {
+      final tiles = parseTiles(hand);
+      final visible = toCounts34(tiles);
+      for (final t in dora) {
+        visible[t.index - 1]++;
+      }
+      final report = EfficiencyEngine().analyze(
+        hand: tiles,
+        visibleCounts34: visible,
+        canRiichi: canRiichi,
+        valueContext: EfficiencyValueContext(
+          melds: melds,
+          roundWind: Wind.east,
+          seatWind: Wind.south,
+          isDealer: false,
+          inRiichi: false,
+          wallTilesRemaining: 40,
+          doraIndicators: dora,
+        ),
+      );
+      final line = report.lines.firstWhere((l) => l.shanten == 0);
+      for (final l in report.lines.where((l) => l.shanten > 0)) {
+        expect(l.yakuOdds, isEmpty, reason: '${l.discard.code} is not tenpai');
+      }
+      return line;
+    }
+
+    test('a riichi pinfu on 6-9m: tanyao only on the 6m side', () {
+      final line = tenpaiLine('234m 567p 345s 66s 78m 9p');
+      expect(line.discard, TileType.pin9);
+      expect(line.recommendRiichi, isTrue);
+      expect(line.yakuOdds['Riichi']?.chance, 1);
+      expect(line.yakuOdds['Pinfu']?.chance, 1);
+      expect(line.yakuOdds['Menzen Tsumo']?.chance, closeTo(0.35, 1e-9));
+      // Four live of each wait.
+      expect(line.yakuOdds['Tanyao']?.chance, closeTo(0.5, 1e-9));
+      expect(line.doraPerWin, 0);
+    });
+
+    test('an open haku pon: yakuhai every time, no riichi, dora apart', () {
+      final line = tenpaiLine('234m 567m 22p 45s 9s', melds: [
+        Meld(
+            kind: MeldKind.triplet,
+            low: TileType.haku,
+            concealed: false,
+            calledFromSeatOffset: 1),
+      ], dora: const [
+        TileType.pin1,
+        TileType.man3,
+        TileType.sou3
+      ]);
+      final yakuhai =
+          line.yakuOdds.entries.where((e) => e.key.startsWith('Yakuhai'));
+      expect(yakuhai.single.value.chance, 1);
+      expect(line.yakuOdds.containsKey('Riichi'), isFalse);
+      expect(line.yakuOdds.containsKey('Menzen Tsumo'), isFalse);
+      expect(line.yakuOdds.keys.where((k) => k.endsWith('Dora')), isEmpty);
+      // 2p ×2, 4m and 4s.
+      expect(line.doraPerWin, 4);
+    });
+
+    test('no yaku on ron without riichi: every win is a tsumo', () {
+      final line = tenpaiLine('123m 456m 789p 35p 11s 9s', canRiichi: false);
+      expect(line.yakuOdds['Menzen Tsumo']?.chance, 1);
+      expect(line.yakuOdds.containsKey('Riichi'), isFalse);
+    });
+  });
 }
