@@ -22,6 +22,10 @@ NGINX = Path('/etc/nginx/sites-enabled/myproject')
 LEGACY = Path('/srv/digitalOcean/static/tilesense')
 BIN_DIR = Path('/usr/local/bin')
 UNIT_DIR = Path('/etc/systemd/system')
+MORTAL = Path('/opt/tilesense-mortal')
+NGINX_LIMITS = Path('/etc/nginx/conf.d/tilesense-mortal-limits.conf')
+MORTAL_UNIT = 'tilesense-mortal.service'
+MORTAL_MARKER = '# TileSense Mortal'
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,99}\Z')
 
 
@@ -303,6 +307,166 @@ def restore_nginx(backup):
     return {}
 
 
+# --- Mortal sidecar -------------------------------------------------------
+#
+# /opt/tilesense-mortal/
+#   releases/<id>/  server.py, libriichi.so, release.json, and symlinks
+#                   mortal.onnx -> models/<sha256>.onnx, venv -> venvs/<hash>
+#   models/, venvs/ shared by every release that pins the same model or
+#                   requirements, so neither is uploaded or rebuilt again
+#   current      -> the live release; switching it back is the rollback
+
+# One real hand: 123m 567p 239s EE N P, drawing 4s. Any reply proves the
+# model, libriichi and the venv all load and answer.
+MORTAL_HEALTH = json.dumps({'player_id': 0, 'events': [
+    {'type': 'start_game'},
+    {'type': 'start_kyoku', 'bakaze': 'E', 'dora_marker': '1p', 'kyoku': 1, 'honba': 0,
+     'kyotaku': 0, 'oya': 0, 'scores': [25000] * 4,
+     'tehais': [['1m', '2m', '3m', '5p', '6p', '7p', '2s', '3s', '9s', 'E', 'E', 'N', 'P']]
+     + [['?'] * 13] * 3},
+    {'type': 'tsumo', 'actor': 0, 'pai': '4s'}]})
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def mortal_health():
+    import urllib.request
+    request = urllib.request.Request('http://127.0.0.1:8790/react', MORTAL_HEALTH.encode(),
+                                     {'Content-Type': 'application/json'})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        if response.status != 200 or not json.loads(response.read()).get('reaction'):
+            raise OSError('Mortal health check failed')
+
+
+def mortal_status():
+    record = MORTAL / 'current/release.json'
+    return json.loads(record.read_text()) if record.is_file() else {}
+
+
+def nginx_mortal_config(text, block):
+    if MORTAL_MARKER in text:
+        return text
+    anchor = '    # TileSense versioned releases'
+    if text.count(anchor) != 1:
+        raise ValueError('Run deploy.sh setup-client first; expected one TileSense releases block')
+    return text.replace(anchor, MORTAL_MARKER + '\n' + block.rstrip() + '\n\n' + anchor, 1)
+
+
+def setup_mortal(stage):
+    """One-time: directories, the unit, and the nginx route and limits. The
+    service is enabled but first started by the first `mortal` release."""
+    unit = UNIT_DIR / MORTAL_UNIT
+    run(['systemd-analyze', 'verify', str(stage / MORTAL_UNIT)])
+    for name in ('releases', 'models', 'venvs'):
+        (MORTAL / name).mkdir(parents=True, exist_ok=True)
+    shutil.copy2(stage / MORTAL_UNIT, unit)
+    run(['systemctl', 'daemon-reload'])
+    run(['systemctl', 'enable', MORTAL_UNIT])
+    path = NGINX.resolve(strict=True)
+    original = path.read_text()
+    block = '\n'.join('    ' + line if line else '' for line in
+                      (stage / 'nginx-mortal.conf').read_text().splitlines() if not line.startswith('#'))
+    updated = nginx_mortal_config(original, block)
+    limits = (stage / 'nginx-mortal-limits.conf').read_text()
+    if updated == original and NGINX_LIMITS.is_file() and NGINX_LIMITS.read_text() == limits:
+        return {'configured': True}
+    backup = path.with_name(path.name + '.before-releases-mortal-' + str(time.time_ns()))
+    shutil.copy2(path, backup)
+    try:
+        NGINX_LIMITS.write_text(limits)
+        path.write_text(updated)
+        run(['nginx', '-t'])
+        run(['systemctl', 'reload', 'nginx'])
+    except BaseException:
+        shutil.copy2(backup, path)
+        NGINX_LIMITS.unlink(missing_ok=True)
+        run(['nginx', '-t'])
+        run(['systemctl', 'reload', 'nginx'])
+        raise
+    return {'configured': True, 'nginx_backup': str(backup)}
+
+
+def install_mortal(stage, rid):
+    """Builds the release from the stage, switches `current` to it and
+    restarts; any failure puts the previous release back before raising."""
+    record = json.loads((stage / 'release.json').read_text())
+    if record['build_id'] != rid:
+        raise ValueError('Release ID mismatch')
+    for name in ('server.py', 'libriichi.so', 'requirements.txt'):
+        if not (stage / name).is_file():
+            raise ValueError('Incomplete Mortal release: ' + name)
+    if not (UNIT_DIR / MORTAL_UNIT).is_file():
+        raise ValueError('Run deploy.sh setup-mortal once first')
+    model = MORTAL / 'models' / (record['model_sha256'] + '.onnx')
+    if (stage / 'mortal.onnx').is_file():
+        if sha256(stage / 'mortal.onnx') != record['model_sha256']:
+            raise ValueError('Model checksum mismatch')
+        os.replace(stage / 'mortal.onnx', model)
+    elif not model.is_file():
+        raise ValueError('Model not on the server; upload it with this release')
+    venv = MORTAL / 'venvs' / sha256(stage / 'requirements.txt')[:16]
+    if not (venv / 'bin/python').is_file():
+        building = venv.with_name(venv.name + '.building')
+        shutil.rmtree(building, ignore_errors=True)
+        run(['python3', '-m', 'venv', str(building)])
+        run([str(building / 'bin/pip'), 'install', '--quiet', '--no-cache-dir',
+             '-r', str(stage / 'requirements.txt')])
+        os.replace(building, venv)
+    release = MORTAL / 'releases' / rid
+    if release.exists():
+        raise ValueError('Release already exists; immutable releases cannot be overwritten')
+    release.mkdir()
+    for name in ('server.py', 'libriichi.so', 'release.json'):
+        shutil.copy2(stage / name, release / name)
+    (release / 'mortal.onnx').symlink_to(model)
+    (release / 'venv').symlink_to(venv)
+    current = MORTAL / 'current'
+    previous = os.readlink(current) if current.is_symlink() else None
+    try:
+        switch_mortal(release)
+        return {'previous': previous}
+    except BaseException:
+        if previous:
+            switch_mortal(Path(previous))
+        else:
+            # A first release that fails has nothing to go back to: stop it
+            # rather than let it restart forever (the column shows "—").
+            run(['systemctl', 'stop', MORTAL_UNIT])
+        raise
+
+
+def switch_mortal(target):
+    current = MORTAL / 'current'
+    temporary = MORTAL / '.current-next'
+    temporary.unlink(missing_ok=True)
+    temporary.symlink_to(target)
+    os.replace(temporary, current)
+    run(['systemctl', 'restart', MORTAL_UNIT])
+    # Loading the model takes a few seconds.
+    for attempt in range(30):
+        try:
+            mortal_health()
+            return
+        except OSError:
+            if attempt == 29:
+                raise
+            time.sleep(1)
+
+
+def restore_mortal(previous):
+    target = Path(previous)
+    if target.parent != MORTAL / 'releases' or not (target / 'server.py').is_file():
+        raise ValueError('Invalid Mortal rollback target')
+    switch_mortal(target)
+    return {}
+
+
 def handle(message):
     action = message['action']
     if action == 'restore-nginx':
@@ -311,6 +475,10 @@ def handle(message):
         return setup_client()
     if action == 'migrate':
         return migrate(message['uri'], message['migrations'])
+    if action == 'mortal-status':
+        return mortal_status()
+    if action == 'restore-mortal':
+        return restore_mortal(message['previous'])
     if action == 'preflight-client':
         if '# TileSense versioned releases' not in NGINX.resolve(strict=True).read_text():
             raise ValueError('Run deploy.sh setup-client once before publishing client releases')
@@ -324,6 +492,10 @@ def handle(message):
     if action == 'stage':
         stage.mkdir(parents=True, exist_ok=False)
         return {'path': str(stage)}
+    if action == 'setup-mortal':
+        return setup_mortal(stage)
+    if action == 'mortal':
+        return install_mortal(stage, rid)
     if action == 'rollback-service':
         return rollback_service(stage, message['name'])
     if action == 'service':
@@ -380,7 +552,9 @@ def main():
                             undo.append({'action': 'restore', 'id': message['id'], 'previous': result['previous']})
                         elif message['action'] == 'service':
                             undo.append({'action': 'rollback-service', 'id': message['id'], 'name': message['name']})
-                        elif message['action'] == 'setup-client' and 'nginx_backup' in result:
+                        elif message['action'] == 'mortal' and result['previous']:
+                            undo.append({'action': 'restore-mortal', 'previous': result['previous']})
+                        elif message['action'] in ('setup-client', 'setup-mortal') and 'nginx_backup' in result:
                             undo.append({'action': 'restore-nginx', 'backup': result['nginx_backup']})
                     print(json.dumps({'ok': True, 'result': result}), flush=True)
                 except Exception as error:

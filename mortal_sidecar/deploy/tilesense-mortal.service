@@ -1,0 +1,30 @@
+# /etc/systemd/system/tilesense-mortal.service
+#
+# Mortal's second opinion for the guide (see ../server.py). Stateless, so a
+# restart loses nothing: the column shows "—" for the few seconds it takes.
+# Capped hard so it can never starve the site, ingest or multiplayer on the
+# shared 1 vCPU / 2 GB droplet (measured: ~170 MB peak, ~20 ms a decision;
+# MemoryHigh throttles before MemoryMax kills).
+[Unit]
+Description=TileSense Mortal sidecar (guide's Mortal decision column)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=OMP_NUM_THREADS=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/tilesense-mortal/venv/bin/python /opt/tilesense-mortal/current/server.py --model /opt/tilesense-mortal/current/mortal.onnx --host 127.0.0.1 --port 8790
+Restart=always
+RestartSec=2
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+MemoryHigh=250M
+MemoryMax=300M
+CPUQuota=40%
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

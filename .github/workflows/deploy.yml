@@ -2,8 +2,10 @@
 # deploys (GitHub Actions)".
 #
 # Automatically: the web client, once CI has passed on a push to ericrxu_dev.
-# By hand (Actions tab -> Deploy -> Run workflow): mp, which drops live online
-# rooms, and the rollbacks. ingest, migrate, geoip and all need doctl and
+# Mortal (the guide's Mortal column) too, once the MORTAL variable is 1: its
+# sidecar first, and only when mortal_sidecar/ or the pinned model changed.
+# By hand (Actions tab -> Deploy -> Run workflow): mortal, mp, which drops live
+# online rooms, and the rollbacks. ingest, migrate, geoip and all need doctl and
 # database credentials, so they stay on the laptop.
 name: Deploy
 
@@ -17,7 +19,7 @@ on:
       target:
         description: What to deploy
         type: choice
-        options: [client, mp, rollback-client, rollback-ingest, rollback-mp]
+        options: [client, mortal, mp, rollback-client, rollback-ingest, rollback-mp]
         default: client
       release:
         description: Release ID (rollbacks only)
@@ -69,10 +71,14 @@ jobs:
     env:
       TARGET: ${{ inputs.target || 'client' }}
       RELEASE: ${{ inputs.release }}
+      MORTAL_STEP: >-
+        ${{ inputs.target == 'mortal' ||
+            (github.event_name == 'workflow_run' && vars.MORTAL == '1') }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.check.outputs.sha }}
+          fetch-depth: 0  # Mortal compares against the deployed commit
       # Same pins as ci.yml, so production is built by the toolchain CI tested.
       - uses: subosito/flutter-action@v2
         with:
@@ -97,14 +103,35 @@ jobs:
           HOST: ${{ secrets.HOST }}
           DROPLET_IP: ${{ secrets.DROPLET_IP }}
           DART_IMAGE: ${{ secrets.DART_IMAGE }}
+          MORTAL: ${{ vars.MORTAL }}  # 1: the client shows the Mortal column
         run: |
           {
             echo "export HOST=$HOST"
             echo "export DROPLET_IP=$DROPLET_IP"
             echo "export BASE_HREF=/tilesense/"
             echo "export DART_IMAGE=$DART_IMAGE"
+            echo "export MORTAL=$MORTAL"
           } > deploy.env
+      # The libriichi build and the model, keyed on the pin, so both are
+      # fetched or built once per Mortal version.
+      - if: env.MORTAL_STEP == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tilesense-mortal
+          key: mortal-${{ hashFiles('mortal_sidecar/model.json') }}
+      - name: ./deploy.sh mortal
+        if: env.MORTAL_STEP == 'true'
+        run: |
+          set -o pipefail
+          # Automatically, only when the sidecar or model changed; by hand, always.
+          [[ "$TARGET" == mortal ]] || export MORTAL_IF_CHANGED=1
+          ./deploy.sh mortal 2>&1 | tee "$RUNNER_TEMP/mortal.log"
+          grep -E '^(Deployment verified|Mortal unchanged)' "$RUNNER_TEMP/mortal.log" \
+            | sed 's/^/Mortal: /' >> "$GITHUB_STEP_SUMMARY" || true
+      # Runs even if Mortal failed: the client must not wait on it (its column
+      # just shows "—"); the job still ends failed so the failure is seen.
       - name: ./deploy.sh ${{ env.TARGET }}
+        if: ${{ !cancelled() && env.TARGET != 'mortal' }}
         run: |
           set -o pipefail  # or tee would hide a failed deploy
           case "$TARGET" in

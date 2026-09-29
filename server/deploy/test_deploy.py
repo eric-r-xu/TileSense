@@ -221,6 +221,82 @@ location / { proxy_pass http://unix:/run/myproject/myproject.sock; }
             if worker.poll() is None: worker.kill(); worker.wait()
             worker.stdin.close(); worker.stdout.close(); worker.stderr.close()
 
+    # --- Mortal ---------------------------------------------------------
+
+    def mortal_stage(self, rid='m1', model=b'model'):
+        stage = self.root / 'stage' / rid
+        stage.mkdir(parents=True)
+        for name in ('server.py', 'libriichi.so'):
+            (stage / name).write_text(name)
+        (stage / 'requirements.txt').write_text('onnxruntime==1.30.0\n')
+        (stage / 'mortal.onnx').write_bytes(model)
+        (stage / 'release.json').write_text(json.dumps(
+            {'build_id': rid, 'model_sha256': hashlib.sha256(b'model').hexdigest()}))
+        return stage
+
+    def mortal_env(self, health=None):
+        units = self.root / 'units'
+        units.mkdir(exist_ok=True)
+        (units / 'tilesense-mortal.service').write_text('unit')
+        mortal = self.root / 'opt'
+        for name in ('releases', 'models', 'venvs'):
+            (mortal / name).mkdir(parents=True, exist_ok=True)
+        def fake_run(args, **kwargs):
+            if args[:3] == ['python3', '-m', 'venv']:
+                (Path(args[3]) / 'bin').mkdir(parents=True)
+                (Path(args[3]) / 'bin/python').write_text('')
+            return MagicMock()
+        return mortal, [patch.object(remote, 'MORTAL', mortal), patch.object(remote, 'UNIT_DIR', units),
+                        patch.object(remote, 'run', side_effect=fake_run),
+                        patch.object(remote, 'mortal_health', side_effect=health),
+                        patch.object(remote.time, 'sleep')]
+
+    def test_mortal_release_links_model_and_venv_and_goes_live(self):
+        mortal, patches = self.mortal_env()
+        with contextlib.ExitStack() as stack:
+            for p in patches: stack.enter_context(p)
+            result = remote.install_mortal(self.mortal_stage(), 'm1')
+            status = remote.mortal_status()
+        release = mortal / 'releases/m1'
+        self.assertEqual((mortal / 'current').resolve(), release)
+        self.assertEqual(result, {'previous': None})
+        self.assertEqual((release / 'mortal.onnx').read_bytes(), b'model')
+        self.assertTrue((release / 'venv/bin/python').is_file())
+        self.assertEqual(status['build_id'], 'm1')
+
+    def test_mortal_bad_model_is_rejected_before_going_live(self):
+        mortal, patches = self.mortal_env()
+        with contextlib.ExitStack() as stack:
+            for p in patches: stack.enter_context(p)
+            with self.assertRaises(ValueError):
+                remote.install_mortal(self.mortal_stage(model=b'tampered'), 'm1')
+        self.assertFalse((mortal / 'current').exists())
+
+    def test_mortal_failed_health_check_restores_previous_release(self):
+        mortal, patches = self.mortal_env(health=[None] + [OSError('down')] * 30 + [None])
+        with contextlib.ExitStack() as stack:
+            for p in patches: stack.enter_context(p)
+            remote.install_mortal(self.mortal_stage('m1'), 'm1')
+            with self.assertRaises(OSError):
+                remote.install_mortal(self.mortal_stage('m2'), 'm2')
+        self.assertEqual((mortal / 'current').resolve(), mortal / 'releases/m1')
+
+    def test_mortal_first_release_that_fails_is_stopped(self):
+        mortal, patches = self.mortal_env(health=OSError('down'))
+        with contextlib.ExitStack() as stack:
+            for p in patches: stack.enter_context(p)
+            with self.assertRaises(OSError):
+                remote.install_mortal(self.mortal_stage(), 'm1')
+            calls = [c.args[0] for c in remote.run.call_args_list]
+        self.assertIn(['systemctl', 'stop', 'tilesense-mortal.service'], calls)
+
+    def test_nginx_mortal_route_added_once_and_fails_closed(self):
+        text = 'server {\n    # TileSense versioned releases\n}\n'
+        updated = remote.nginx_mortal_config(text, '    location /tilesense/mortal/ {}')
+        self.assertLess(updated.index('/tilesense/mortal/'), updated.index('# TileSense versioned releases'))
+        self.assertEqual(remote.nginx_mortal_config(updated, 'x'), updated)
+        with self.assertRaises(ValueError): remote.nginx_mortal_config('server {}', 'x')
+
     def test_geoip_bad_checksum_cannot_start_database_load(self):
         stage = self.root / 'stage'; stage.mkdir()
         (stage / 'geoip.csv.gz').write_bytes(b'bad')
@@ -323,6 +399,45 @@ class DriverTests(unittest.TestCase):
              patch.object(deploy.sys, 'stdin', MagicMock(**{'isatty.return_value': False})):
             with self.assertRaises(ValueError): deploy.deploy('rollback-mp', 'host', 'ip', 'old-release')
         remote.assert_not_called()
+
+    def mortal_run(self, current, env):
+        worker = MagicMock()
+        worker.call.side_effect = lambda action, **kw: current if action == 'mortal-status' else {'path': '/stage'}
+        record = {'build_id': 'r', 'git_commit': 'abc', 'dirty': False, 'model_sha256': 'sha', 'mortal_commit': 'c'}
+        def build(work, *args):
+            (work / 'mortal.onnx').write_text('model')
+            return record
+        with patch.dict(os.environ, env, clear=True), \
+             patch.object(deploy, 'source_state', return_value=('abc', False)), \
+             patch.object(deploy, 'build_mortal', side_effect=build), \
+             patch.object(deploy, 'Remote', return_value=worker), \
+             patch.object(deploy, 'run') as run:
+            deploy.deploy('mortal', 'host', 'ip')
+        return [c.args[0] for c in worker.call.call_args_list], worker, run
+
+    def test_mortal_skips_when_nothing_changed(self):
+        current = {'build_id': 'old', 'git_commit': 'abc', 'dirty': False, 'model_sha256': 'sha'}
+        actions, worker, _ = self.mortal_run(current, {'MORTAL_IF_CHANGED': '1'})
+        self.assertEqual(actions, ['mortal-status', 'commit'])
+        worker.upload.assert_not_called()
+
+    def test_mortal_deploys_without_reuploading_a_model_the_server_has(self):
+        current = {'build_id': 'old', 'git_commit': 'old', 'dirty': False, 'model_sha256': 'sha'}
+        uploaded = []
+        with patch.object(deploy.Path, 'unlink', autospec=True, side_effect=lambda p, *a, **k: uploaded.append(p.name)):
+            actions, _, _ = self.mortal_run(current, {})
+        self.assertEqual(actions, ['mortal-status', 'stage', 'mortal', 'commit'])
+        self.assertEqual(uploaded, ['mortal.onnx'])
+
+    def test_client_build_shows_the_mortal_column_only_with_mortal_1(self):
+        for env, expected in (({}, False), ({'MORTAL': '1'}, True)):
+            with patch.dict(os.environ, env, clear=True), \
+                 patch.object(deploy, 'output', return_value='{}'), patch.object(deploy, 'run') as run, \
+                 patch.object(deploy.shutil, 'copytree'), patch.object(deploy, 'stamp_client'), \
+                 patch.object(deploy.Path, 'read_text', return_value='version: 1.0.0+1'):
+                deploy.build_client(Path('/tmp/w'), 'rid', 'abc', False)
+            flutter = run.call_args_list[0].args[0]
+            self.assertEqual('--dart-define=MORTAL_URL=/tilesense/mortal' in flutter, expected)
 
     def test_all_builds_precede_remote_and_client_activates_last(self):
         events = []

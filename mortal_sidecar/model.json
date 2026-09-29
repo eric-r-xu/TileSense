@@ -1,0 +1,6 @@
+{
+  "url": "https://github.com/eric-r-xu/TileSense/releases/download/mortal-298k-onnx-v1/mortal_298k.onnx",
+  "sha256": "b9e6bdad70c47dd8f2a392f4cdb57471c7f94f4c6b9ad2ee10fa2e8c9530f7d1",
+  "mortal_repo": "https://github.com/eric-r-xu/Mortal.git",
+  "mortal_commit": "0cff2b52982be5b1163aa9a62fb01f03ce91e0d2"
+}
