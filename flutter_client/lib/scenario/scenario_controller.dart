@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
-import '../game/mortal_advisor.dart' show MortalAdvice;
+import '../game/mortal_advisor.dart';
 import '../game/sfx.dart' show Character;
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
@@ -21,13 +21,22 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:mahjong_core/wall.dart';
 import 'scenario.dart';
+import 'scenario_mjai.dart';
 
 class ScenarioController extends ChangeNotifier implements GuideHost {
   /// [seatWind] is the wind you start on (East when null).
-  ScenarioController({Wind? seatWind}) {
+  ScenarioController({Wind? seatWind, @visibleForTesting MortalAdvisor? mortal})
+      : _mortal =
+            mortal ?? (kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl)) {
     if (seatWind != null) scenario.seatWind = seatWind;
     rebuild();
   }
+
+  final MortalAdvisor? _mortal;
+
+  // Bumped by every edit, so a reply to a table since changed is dropped.
+  int _mortalAsk = 0;
+  bool _disposed = false;
 
   final Scenario scenario = Scenario();
   final _efficiency = EfficiencyEngine();
@@ -121,7 +130,42 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   CallAdvice? _callAdvice;
 
   @override
-  MortalAdvice? get mortalAdvice => null; // offline games only
+  MortalAdvice? mortalAdvice;
+
+  /// Idle while the table can't be read yet; failed when no history fits it.
+  void _askMortal() {
+    final ask = ++_mortalAsk;
+    if (_mortal == null || !ruleset.isRiichi) {
+      mortalAdvice = null;
+      return;
+    }
+    if (!scenario.isValid ||
+        (!scenario.isDiscardRead && scenario.offered == null)) {
+      mortalAdvice = MortalAdvice.idle;
+      return;
+    }
+    final events = scenarioMjaiEvents(scenario);
+    if (events == null) {
+      mortalAdvice = MortalAdvice.failed;
+      return;
+    }
+    mortalAdvice = MortalAdvice.thinking;
+    _mortal.advise(events, call: !scenario.isDiscardRead).then(
+        (advice) => advice, onError: (Object e) {
+      debugPrint('Mortal advice unavailable: $e');
+      return MortalAdvice.failed;
+    }).then((advice) {
+      if (_disposed || ask != _mortalAsk) return;
+      mortalAdvice = advice;
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   @override
   bool get awaitingHumanCall => humanCallOption != null;
@@ -162,6 +206,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   /// Re-pose the table and re-score it. Called after every edit.
   void rebuild() {
     round = _poseRound();
+    _askMortal();
     humanCallOption = null;
     _callAdvice = null;
     kanAdvice = null;
