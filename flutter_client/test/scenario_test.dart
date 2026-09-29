@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'loading_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart' show kHumanSeat;
 import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
+import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/scenario/scenario.dart';
 import 'package:tilesense/scenario/scenario_controller.dart';
@@ -15,6 +19,24 @@ import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
 import 'helpers.dart';
+
+/// Mortal whose replies the test completes by hand.
+class _HeldMortal extends MortalAdvisor {
+  _HeldMortal() : super('http://unused');
+  final asks = <(List<MjaiEvent>, Completer<Map<String, Object?>>)>[];
+
+  @override
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) {
+    final reply = Completer<Map<String, Object?>>();
+    asks.add((events, reply));
+    return reply.future;
+  }
+}
+
+Map<String, Object?> _cuts(String tile) => {
+      'reaction': {'type': 'dahai', 'actor': 0, 'pai': tile},
+      'riichi_discard': null,
+    };
 
 void fill(Scenario s, List<Tile> into, String spec) {
   for (final t in parseTypes(spec)) {
@@ -571,6 +593,62 @@ void main() {
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
+    });
+  });
+
+  group('Mortal in the builder', () {
+    test('asks about a riichi table and shows its pick', () async {
+      final mortal = _HeldMortal();
+      final c = ScenarioController(mortal: mortal);
+      c.edit((s) => fill(s, s.hand, '123m 456m 789m 23p 55s 9p'));
+      expect(c.mortalAdvice?.status, MortalStatus.thinking);
+      expect(mortal.asks.last.$1.last,
+          {'type': 'tsumo', 'actor': 0, 'pai': '9p'});
+
+      mortal.asks.last.$2.complete(_cuts('9p'));
+      await pumpEventQueue();
+      expect(c.mortalAdvice?.status, MortalStatus.ready);
+      expect(c.mortalAdvice?.discard, '9p');
+      c.dispose();
+    });
+
+    test('drops a reply once the table has changed', () async {
+      final mortal = _HeldMortal();
+      final c = ScenarioController(mortal: mortal);
+      c.edit((s) => fill(s, s.hand, '123m 456m 789m 23p 55s 9p'));
+      final stale = mortal.asks.last.$2;
+      c.edit((s) => s.honba = 1);
+      stale.complete(_cuts('9p'));
+      await pumpEventQueue();
+      expect(c.mortalAdvice?.status, MortalStatus.thinking);
+
+      mortal.asks.last.$2.complete(_cuts('1m'));
+      await pumpEventQueue();
+      expect(c.mortalAdvice?.discard, '1m');
+      c.dispose();
+    });
+
+    test('idle until readable, failed when no history fits, off outside '
+        'riichi', () async {
+      final mortal = _HeldMortal();
+      final c = ScenarioController(mortal: mortal);
+      expect(c.mortalAdvice?.status, MortalStatus.idle, reason: 'empty hand');
+
+      // A pon with nothing in your pond to have cut after it.
+      c.edit((s) {
+        fill(s, s.hand, '123m 456m 789m 5s 9p');
+        s.seats[0].melds.add(Meld(
+            kind: MeldKind.triplet,
+            low: TileType.haku,
+            concealed: false,
+            calledFromSeatOffset: 2));
+      });
+      expect(c.mortalAdvice?.status, MortalStatus.failed);
+
+      c.setRuleset(Ruleset.hongKong);
+      expect(c.mortalAdvice, isNull);
+      expect(mortal.asks, isEmpty);
+      c.dispose();
     });
   });
 }

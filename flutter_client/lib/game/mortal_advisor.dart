@@ -4,7 +4,8 @@
 /// ([MortalMove]).
 ///
 /// Off unless the app is built with `--dart-define=MORTAL_URL=<address>`
-/// (`/tilesense/mortal` in production); then only offline riichi games ask.
+/// (`/tilesense/mortal` in production); then only offline riichi games, and
+/// the scenario builder's riichi tables, ask.
 library;
 
 import 'dart:convert';
