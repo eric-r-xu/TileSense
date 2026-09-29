@@ -99,7 +99,8 @@ bots.
 
 The guide also adds a **Mortal bot** column: what Mortal, an open-source
 deep-learning mahjong AI, would do in your seat, seeing only what your seat can
-see. Its pick is ringed in blue; the guide's own recommendation stays green.
+see. Its pick is highlighted in red and the guide's in green; where they pick
+the same tile or move, the highlight is red and green stripes.
 
 **Auto-Play can follow either one** (the FOLLOWS dial in the top bar, the
 AUTO-PLAY chips in the guide panel, or the phone menu):
@@ -318,9 +319,8 @@ helped improve TileSense.
   used to validate the baseline EV calculations, and
   [Euophrys's Mahjong Efficiency Trainer](https://euophrys.itch.io/mahjong-efficiency-trainer),
   which underpins TileSense's shanten and ukeire calculations.
-- **Raymond M**: for identifying errors in pinfu scoring, illegal closed kans after
-  declaring riichi, and missing choices when several chi combinations were
-  available, requesting Auto-Pass functionality, and for improvement suggestions for the score screen's layout.
+- **Raymond M**: for identifying missed pinfu yaku scoring, illegal closed kans after
+  declaring riichi, and lack of chi choices when more than 1 sequence was available; for requesting Auto-Pass functionality for no calls and for score screen UX layout enhancements.
 - **Sherman L**: for suggesting a single-player rewind feature to revisit a
   decision, try a different action and explore the outcome.
 - **Melissa R**: for suggesting larger buttons and more space between controls,
@@ -329,8 +329,7 @@ helped improve TileSense.
   loading, which prompted audio caching that cut startup time.
 - **Vilay K**: for suggesting a slower pace of play, which inspired pauses between
   calls and an adjustable bot speed.
-- **Mark G**: for recommending Flutter, which keeps TileSense working across all
-  screen sizes.
+- **Mark G**: for recommending [Flutter](https://flutter.dev/), Google’s amazing open-source framework for building apps, enabling more consistent UI across devices and operating systems while at the same time reducing duplicate code and enhancing maintainability.
 
 Thank you to everyone else who shared feedback. If I've missed you and you'd like
 to be credited, please get in touch.
