@@ -180,6 +180,12 @@ def build_service(work, name):
     header = binary.read_bytes()[:20]
     if header[:4] != b'\x7fELF' or header[4:6] != b'\x02\x01' or header[18:20] != b'\x3e\x00':
         raise ValueError('Expected a Linux x86-64 ELF binary')
+    # On a Linux host (e.g. GitHub Actions) the container writes the binary as
+    # root, and Remote.upload's chmod then fails with PermissionError. Replace
+    # it with a copy this user owns; Docker Desktop on macOS already maps it.
+    owned = work / (name + '.owned')
+    shutil.copyfile(binary, owned)
+    os.replace(owned, binary)
     if name == 'tilesense-mp':
         shutil.copy2(REPO / 'server/mp/deploy/tilesense-mp.service', work / (name + '.service'))
 
