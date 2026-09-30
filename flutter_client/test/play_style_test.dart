@@ -341,15 +341,10 @@ void main() {
     await tester.tap(find.byKey(const Key('bottomGuideToggle')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    // A game's guide shows the dials in play, read-only, as the bar does.
+    // A game's guide shows no dials; they are set for you.
     expect(find.byKey(const Key('guidePlayStyle_defensive')), findsNothing);
     expect(find.byKey(const Key('guideGoal_placement')), findsNothing);
-    expect(
-        tester
-            .widget<Text>(find.byKey(const Key('guidePlayingDials')))
-            .textSpan!
-            .toPlainText(),
-        playingOf());
+    expect(find.byKey(const Key('guidePlayingDials')), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

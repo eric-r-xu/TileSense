@@ -401,13 +401,7 @@ void main() {
           matching: find.text('FOCUS'),
         ),
         findsNothing);
-    // East 1, you dealing: early in the game, so it plays for points.
-    expect(
-        tester
-            .widget<Text>(find.byKey(const Key('guidePlayingDials')))
-            .textSpan!
-            .toPlainText(),
-        'Aggressive · Speed · Points');
+    expect(find.byKey(const Key('guidePlayingDials')), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

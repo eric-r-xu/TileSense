@@ -92,15 +92,13 @@ const TextStyle _barCaptionStyle = TextStyle(
 /// up a few points tall under a thumb.
 Widget _barTile({
   required String caption,
-  required String tooltip,
+  required String? tooltip,
   required VoidCallback? onTap,
   required Widget value,
   Key? tapKey,
   double width = 84,
-}) =>
-    Tooltip(
-      message: tooltip,
-      child: Material(
+}) {
+  final tile = Material(
         type: MaterialType.transparency,
         child: InkWell(
           key: tapKey,
@@ -126,8 +124,9 @@ Widget _barTile({
             ),
           ),
         ),
-      ),
-    );
+      );
+  return tooltip == null ? tile : Tooltip(message: tooltip, child: tile);
+}
 
 /// A guide dial in the app bar — tapped to cycle. [buttonKey] marks the value
 /// text, which sits inside the tile's tap area.
@@ -136,7 +135,7 @@ Widget _barDial({
   required Key buttonKey,
   required String label,
   required Color colour,
-  required String tooltip,
+  required String? tooltip,
   required VoidCallback onTap,
 }) =>
     _barTile(
@@ -1346,18 +1345,25 @@ class _GamePageState extends State<GamePage> {
               final on = _game.autoplay;
               final dials = <Widget>[
                 // Who Auto-Play follows, where the Goal used to be. Riichi
-                // with Mortal only; tapping flips between the two.
+                // with Mortal only; tapping flips between the two. Under
+                // TileSense its tooltip names the dials the guide is playing.
                 if (_game.mortalAvailable)
                   _barDial(
-                    caption: 'FOLLOWS',
+                    caption: 'ALGORITHM',
                     buttonKey: const Key('autoplayBrain'),
                     label: _game.autoplayBrain == AutoplayBrain.mortal
                         ? 'Mortal bot'
                         : 'TileSense',
                     colour: brainColor(_game.autoplayBrain),
-                    tooltip: 'Who Auto-Play follows, and whose order the guide '
-                        'lists moves in: the TileSense guide, or the Mortal '
-                        'bot (the guide covers any move Mortal can\'t answer)',
+                    tooltip: _game.autoplayBrain == AutoplayBrain.mortal
+                        ? null
+                        : 'TileSense guide, playing ${_game.playStyle.label} · '
+                            '${_game.handFocus.label} · '
+                            '${_game.strategy.label}.\n'
+                            'Set for you as the game goes: Aggressive · Speed '
+                            '· Points early to build a lead; Balanced · Speed '
+                            '· Placement in the final two hands to protect or '
+                            'climb the standings.',
                     onTap: () => _game.setAutoplayBrain(
                         _game.autoplayBrain == AutoplayBrain.mortal
                             ? AutoplayBrain.tilesense

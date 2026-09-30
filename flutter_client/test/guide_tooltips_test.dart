@@ -259,16 +259,14 @@ void main() {
     });
   });
 
-  testWidgets('a game panel shows PLAYING in place of the dials, no GOAL',
+  testWidgets('a game panel shows no dials, PLAYING or GOAL',
       (tester) async {
     await withPanel(tester, (_) async {
       expect(find.text('STYLE'), findsNothing);
       expect(find.text('FOCUS'), findsNothing);
       expect(find.text('STRATEGY'), findsNothing);
       expect(find.text('GOAL'), findsNothing);
-      await openTip(tester, 'PLAYING');
-      expect(text('protect or climb the standings'), findsOneWidget);
-      expect(text('only Focus shows'), findsOneWidget);
+      expect(find.text('PLAYING'), findsNothing);
     });
   });
 

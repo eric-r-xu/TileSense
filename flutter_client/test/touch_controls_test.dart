@@ -238,11 +238,11 @@ void main() {
       await tearDownApp(tester);
     });
 
-    testWidgets('the menu shows the dials in play, with no goal to pick',
+    testWidgets('the menu shows no dials, and no goal to pick',
         (tester) async {
       await startGame(tester, size: iPhone);
       await openMenu(tester);
-      expect(find.byKey(const Key('phoneMenuPlayingDials')), findsOneWidget);
+      expect(find.byKey(const Key('phoneMenuPlayingDials')), findsNothing);
       expect(find.byKey(const Key('phoneMenuGoal_points')), findsNothing);
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
