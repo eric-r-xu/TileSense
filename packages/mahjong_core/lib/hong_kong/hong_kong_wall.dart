@@ -9,7 +9,7 @@ import '../tile.dart';
 import '../wall.dart';
 
 class HongKongWall implements TileWall {
-  HongKongWall(int seed) {
+  HongKongWall(int seed, {Random? rng}) {
     var id = 0;
     for (var i = 0; i < 34; i++) {
       for (var copy = 0; copy < 4; copy++) {
@@ -19,7 +19,7 @@ class HongKongWall implements TileWall {
     for (final t in TileType.values.where((t) => t.isBonus)) {
       _live.add(Tile(id++, t));
     }
-    _live.shuffle(Random(seed));
+    _live.shuffle(rng ?? Random(seed));
   }
 
   /// A wall posed for the scenario builder: only its count matters.

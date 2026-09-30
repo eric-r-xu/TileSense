@@ -295,6 +295,106 @@ void main() {
       expect(bCharacter, isNotEmpty);
     });
   }
+
+  Map<String, dynamic> createMsg(String guestId) => {
+        'type': 'create_room',
+        'guestId': guestId,
+        'name': guestId,
+        'ruleset': 'riichi',
+        'hanchan': false,
+      };
+
+  /// Polls until [done] holds — for server-side effects no socket is told of.
+  Future<void> eventually(bool Function() done) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (!done()) {
+      if (DateTime.now().isAfter(deadline)) fail('condition never held');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
+  test('creating a second room on one socket frees the first', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+
+    a.send(createMsg('guest-a'));
+    final first = (await a.waitFor((m) => m['type'] == 'room_state'))['code'];
+    a.send(createMsg('guest-a'));
+    await a.waitFor((m) => m['type'] == 'room_state' && m['code'] != first);
+
+    expect(manager.find(first as String), isNull);
+    expect(manager.roomCount, 1);
+  });
+
+  test('re-joining your own lobby keeps the room registered', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+
+    a.send(createMsg('guest-a'));
+    final code =
+        (await a.waitFor((m) => m['type'] == 'room_state'))['code'] as String;
+    a.log.clear();
+    a.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-a'});
+    await a.waitFor((m) => m['type'] == 'room_state');
+
+    expect(manager.find(code), isNotNull);
+  });
+
+  test('a game whose only human leaves is ended and freed', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+
+    a.send(createMsg('guest-a'));
+    final code =
+        (await a.waitFor((m) => m['type'] == 'room_state'))['code'] as String;
+    a.send({'type': 'start_game'});
+    await a.waitFor((m) => m['type'] == 'room_state' && m['phase'] == 'playing');
+    final room = manager.find(code)!;
+
+    await a.close();
+    await eventually(() => manager.find(code) == null);
+    expect(room.phase, RoomPhase.ended);
+  });
+
+  test('an oversized message closes the socket', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+
+    a.channel.sink.add('x' * 5000);
+    await a.channel.sink.done.timeout(const Duration(seconds: 5));
+    expect(a.channel.closeCode, isNotNull);
+  });
+
+  test('room creation is refused once the server is full', () async {
+    final manager = RoomManager();
+    for (var i = 0; i < 200; i++) {
+      manager.createRoom(
+          hostGuestId: 'filler-$i',
+          hostName: 'Filler',
+          ruleset: Ruleset.riichi,
+          hanchan: false);
+    }
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+
+    a.send(createMsg('guest-a'));
+    final error = await a.waitFor((m) => m['type'] == 'error');
+    expect(error['message'], contains('server is full'));
+    expect(manager.roomCount, 200);
+  });
 }
 
 /// A Taiwanese room must deal Taiwanese hands: 16 tiles a seat, 17 for the

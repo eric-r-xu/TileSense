@@ -31,7 +31,7 @@ abstract interface class TileWall {
 }
 
 class Wall implements TileWall {
-  Wall(int seed) : _rng = Random(seed) {
+  Wall(int seed, {Random? rng}) : _rng = rng ?? Random(seed) {
     _build();
   }
 

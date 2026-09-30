@@ -51,7 +51,7 @@ class TableLoop {
                   ));
 
   final Room room;
-  final Random _rng = Random();
+  final Random _rng = Random.secure();
   final MpTelemetry? _tel;
   late final String _matchId;
   late String _roundId;
@@ -199,6 +199,7 @@ class TableLoop {
   void _startRound() {
     round = Round(
       seed: _rng.nextInt(1 << 31),
+      shuffleRng: _rng,
       dealer: _dealer,
       roundWind: _roundWind,
       honba: _honba,
@@ -504,18 +505,7 @@ class TableLoop {
     _broadcastRoundResult(gameOver: gameOver);
 
     if (gameOver) {
-      _ended = true;
-      room.phase = RoomPhase.ended;
-      final tel = _tel;
-      if (tel != null) {
-        tel.matchEnd(
-          matchId: _matchId,
-          reason: 'game_end',
-          finalPoints: _points,
-          seatPlaces: _placesFromPoints(_points),
-        );
-        unawaited(tel.dispose());
-      }
+      _endMatch('game_end');
       return;
     }
 
@@ -656,6 +646,26 @@ class TableLoop {
           ?.call({'type': 'bot_takeover', 'seat': seat, 'reason': reason});
     }
     room.broadcastRoomState();
+    // No human can ever retake a bot seat, so an all-bot table would only
+    // play on unwatched while holding memory.
+    if (!_ended && room.seats.every((s) => s!.isBot)) _endMatch('abandoned');
+  }
+
+  /// Stops the loop, reports the match's end, and frees the room.
+  void _endMatch(String reason) {
+    _ended = true;
+    room.phase = RoomPhase.ended;
+    final tel = _tel;
+    if (tel != null) {
+      tel.matchEnd(
+        matchId: _matchId,
+        reason: reason,
+        finalPoints: _points,
+        seatPlaces: _placesFromPoints(_points),
+      );
+      unawaited(tel.dispose());
+    }
+    room.onIdleEmpty?.call();
   }
 
   Future<Map<String, dynamic>?> _awaitHumanAction(

@@ -1,5 +1,7 @@
 // Proves the engine is playable with plain `dart test` — no Flutter SDK
 // involved — which is the property the multiplayer game server relies on.
+import 'dart:math';
+
 import 'package:mahjong_core/mahjong_core.dart';
 import 'package:test/test.dart';
 
@@ -148,4 +150,30 @@ void main() {
       }
     }
   });
+
+  for (final ruleset in Ruleset.values) {
+    List<List<int>> dealtIds({Random? shuffleRng}) {
+      final round = Round(
+        seed: 42,
+        dealer: 0,
+        roundWind: Wind.east,
+        startingPoints: List.filled(4, ruleset.startingPoints),
+        ruleset: ruleset,
+        shuffleRng: shuffleRng,
+      );
+      return [
+        for (final s in round.seats) [for (final t in s.hand) t.id]
+      ];
+    }
+
+    test('${ruleset.name}: the same seed deals the same hands', () {
+      expect(dealtIds(), dealtIds());
+    });
+
+    test('${ruleset.name}: shuffleRng, not the seed, decides the deal', () {
+      expect(dealtIds(shuffleRng: Random(1)),
+          isNot(dealtIds(shuffleRng: Random(2))));
+      expect(dealtIds(shuffleRng: Random(1)), isNot(dealtIds()));
+    });
+  }
 }
