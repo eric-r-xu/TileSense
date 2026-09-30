@@ -11,6 +11,8 @@
 /// https://github.com/FluffyStuff/OpenRiichi
 library;
 
+import 'dart:math';
+
 import 'hand_parse.dart';
 import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_scoring.dart';
@@ -126,6 +128,9 @@ class CallOption {
 
 class Round {
   /// [wall] overrides the shuffled wall for [ruleset], for rule fixtures.
+  /// [shuffleRng], when given, shuffles the wall instead of [seed] — the
+  /// multiplayer server passes `Random.secure()` so a player can't recover
+  /// the wall by brute-forcing a 31-bit seed from their own dealt tiles.
   Round({
     required int seed,
     required this.dealer,
@@ -137,12 +142,13 @@ class Round {
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     TileWall? wall,
+    Random? shuffleRng,
   })  : wall = wall ??
             (ruleset.isTaiwanese
-                ? TaiwaneseWall(seed)
+                ? TaiwaneseWall(seed, rng: shuffleRng)
                 : ruleset.isHongKong
-                    ? HongKongWall(seed)
-                    : Wall(seed)),
+                    ? HongKongWall(seed, rng: shuffleRng)
+                    : Wall(seed, rng: shuffleRng)),
         startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];

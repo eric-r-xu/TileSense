@@ -71,8 +71,8 @@ class Room {
   final List<Seat?> seats = List<Seat?>.filled(4, null);
   TableLoop? loop;
 
-  /// Called when the room has no game in progress and no seat is connected —
-  /// the manager uses this to garbage-collect abandoned rooms.
+  /// Called by [TableLoop] once its game has ended or been abandoned — the
+  /// manager uses this to garbage-collect the room.
   void Function()? onIdleEmpty;
 
   /// The player-selectable personas (see the client's `Character` enum
@@ -197,6 +197,8 @@ class RoomManager {
   final Random _rng = Random.secure();
 
   Room? find(String code) => _rooms[code.toUpperCase()];
+
+  int get roomCount => _rooms.length;
 
   Room createRoom({
     required String hostGuestId,

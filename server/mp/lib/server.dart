@@ -16,6 +16,13 @@ import 'table_loop.dart';
 
 const _maxNameLength = 24;
 
+/// Real client messages are a few hundred bytes; anything far larger is abuse.
+const _maxMessageLength = 4096;
+
+/// A backstop on live rooms so no flood of them can exhaust the process's
+/// memory cap (see deploy/tilesense-mp.service).
+const _maxRooms = 200;
+
 String _sanitizeName(Object? raw) {
   final s = (raw is String ? raw : '').trim();
   if (s.isEmpty) return 'Guest';
@@ -50,6 +57,28 @@ Handler buildMultiplayerHandler(
       }
     }
 
+    /// Releases this connection's seat: a lobby seat is freed, a seat in a
+    /// running game starts its reconnect grace period.
+    void detach() {
+      final r = room;
+      final s = currentSeat();
+      room = null;
+      guestId = null;
+      if (r == null || s == null) return;
+      r.seats[s]?.send = null;
+      if (r.loop != null) {
+        r.loop!.handleDisconnect(s);
+      } else {
+        r.seats[s] = null;
+        if (s == r.hostSeat) {
+          final next = r.seats.indexWhere((seat) => seat != null);
+          if (next >= 0) r.hostSeat = next;
+        }
+        r.broadcastRoomState();
+        manager.collectIfAbandoned(r);
+      }
+    }
+
     void handle(Map<String, dynamic> msg) {
       final type = msg['type'] as String?;
       switch (type) {
@@ -59,6 +88,16 @@ Handler buildMultiplayerHandler(
             send({'type': 'error', 'message': 'missing guestId'});
             return;
           }
+          if (manager.roomCount >= _maxRooms) {
+            send({
+              'type': 'error',
+              'message': 'server is full, try again shortly'
+            });
+            return;
+          }
+          // One connection holds at most one seat, so a socket can't pile up
+          // rooms by creating or joining repeatedly.
+          if (room != null) detach();
           final ruleset = msg['ruleset'] == 'hongKong'
               ? Ruleset.hongKong
               : msg['ruleset'] == 'taiwanese'
@@ -97,6 +136,7 @@ Handler buildMultiplayerHandler(
             send({'type': 'error', 'message': 'that room has already started'});
             return;
           }
+          if (room != null && room != r) detach();
           final existing = r.seatIndexForGuest(requestedGuestId);
           final openSeat = existing ?? r.firstOpenSeat();
           if (openSeat == null) {
@@ -169,6 +209,7 @@ Handler buildMultiplayerHandler(
             });
             return;
           }
+          if (room != null && room != r) detach();
           room = r;
           guestId = requestedGuestId;
           r.seats[s]!.send = send;
@@ -189,9 +230,13 @@ Handler buildMultiplayerHandler(
 
     webSocket.stream.listen(
       (raw) {
+        if (raw is! String || raw.length > _maxMessageLength) {
+          webSocket.sink.close();
+          return;
+        }
         Map<String, dynamic> msg;
         try {
-          msg = jsonDecode(raw as String) as Map<String, dynamic>;
+          msg = jsonDecode(raw) as Map<String, dynamic>;
         } catch (_) {
           send({'type': 'error', 'message': 'malformed message'});
           return;
@@ -202,23 +247,7 @@ Handler buildMultiplayerHandler(
           send({'type': 'error', 'message': 'bad request'});
         }
       },
-      onDone: () {
-        final r = room;
-        final s = currentSeat();
-        if (r == null || s == null) return;
-        r.seats[s]?.send = null;
-        if (r.loop != null) {
-          r.loop!.handleDisconnect(s);
-        } else {
-          r.seats[s] = null;
-          if (s == r.hostSeat) {
-            final next = r.seats.indexWhere((seat) => seat != null);
-            if (next >= 0) r.hostSeat = next;
-          }
-          r.broadcastRoomState();
-          manager.collectIfAbandoned(r);
-        }
-      },
+      onDone: detach,
     );
   });
 }
