@@ -684,7 +684,7 @@ void main() {
       await tester.pump();
       // One step from tenpai: an estimate.
       expect(section('cut 2m'), findsOneWidget);
-      expect(section('once tenpai'), findsOneWidget);
+      expect(section('1 tile from tenpai'), findsOneWidget);
       expect(section('≈'), findsWidgets);
       c.dispose();
     });
@@ -701,12 +701,12 @@ void main() {
       expect(section('≈ …'), findsOneWidget);
 
       await tester.pumpAndSettle();
-      expect(section('rough, 3 from tenpai'), findsOneWidget);
+      expect(section('3 tiles from tenpai'), findsOneWidget);
       expect(section('Riichi'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('yaku-pick-N')));
       await tester.pumpAndSettle();
-      expect(section('rough, 2 from tenpai'), findsOneWidget);
+      expect(section('2 tiles from tenpai'), findsOneWidget);
       c.dispose();
     });
 

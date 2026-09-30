@@ -13,7 +13,7 @@ import 'package:mahjong_core/mjai.dart' show mjaiTile;
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
-import '../main.dart' show brainColor, playingDialsText;
+import '../main.dart' show brainColor;
 import 'ev_explainer_dialog.dart';
 import 'tile_face.dart';
 
@@ -74,9 +74,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           children: [
             _header(r),
             if (!_minimized) ...[
-              // The dials are set for you, in a game as it goes and in the
-              // scenario builder by where the table sits in one.
-              _playingRow(),
               if (widget.game case final TableGameHost game
                   when game.mortalAvailable)
                 _brainRow(game),
@@ -155,23 +152,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             'on top. Any decision Mortal can\'t answer is played by the guide.',
         style: _tipBody),
   ];
-
-  /// The dials the guide is playing right now, read-only.
-  Widget _playingRow() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          _dialLabel('PLAYING', _playingTip()),
-          const SizedBox(width: 12),
-          Flexible(
-            child: playingDialsText(widget.game,
-                key: const Key('guidePlayingDials'), fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// One chip of either dial — same shape, same hit target, so the two rows
   /// read as two settings of a kind rather than two different controls.
@@ -951,22 +931,6 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   }
 
 
-  List<InlineSpan> _playingTip() => [
-        const TextSpan(text: 'PLAYING\n', style: _tipTitle),
-        const TextSpan(
-            text: 'The style, focus and strategy the guide is weighing '
-                'every line with, set for you as the game goes.\n',
-            style: _tipBody),
-        ..._bullets(const [
-          ('Riichi, early hands', 'Aggressive · Speed · Points: '
-              'build a lead'),
-          ('Riichi, final two hands', 'Balanced · Speed · Placement: '
-              'protect or climb the standings'),
-          ('Hong Kong, Taiwanese', 'Style and Strategy are fixed; only '
-              'Focus shows'),
-        ]),
-      ];
-
   /// 0.4632 -> "46.32%". Two decimals so two cuts a hair apart still read
   /// differently in the tooltip.
   static String _chance(double p) => '${(p * 100).toStringAsFixed(2)}%';
@@ -1378,9 +1342,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final estimate = line.shanten > 0;
     String pct(double p) => '${estimate ? '≈' : ''}${(p * 100).round()}%';
     final doraText = dora == 0
-        ? ''
-        : '+${dora == dora.roundToDouble() ? dora.round() : dora.toStringAsFixed(1)}'
-            ' dora per win · ';
+        ? null
+        : 'Dora: about +${dora == dora.roundToDouble() ? dora.round() : dora.toStringAsFixed(1)}'
+            ' han per winning hand';
     return Padding(
       key: const ValueKey('yaku-section'),
       padding: const EdgeInsets.only(top: 10),
@@ -1394,9 +1358,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   ' · cut ${line.discard.code}'
                   '${odds.isEmpty ? '' : ' · ${switch (line.shanten) {
                       0 => line.valuePlan.toLowerCase(),
-                      1 => 'once tenpai',
-                      final n => 'rough, $n from tenpai',
-                    }} · ${pct(line.winProbability)} to win'}',
+                      1 => 'estimate: 1 tile from tenpai',
+                      final n => 'estimate: $n tiles from tenpai',
+                    }} · ${pct(line.winProbability)} chance to win'}',
                   style: muted),
             ),
           ]),
@@ -1410,7 +1374,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                             'of tenpai.'
                         : 'No win to score on this line.',
                 style: muted)
-          else
+          else ...[
+            const Text('When you win, how often each yaku is in the hand',
+                style: muted),
+            const SizedBox(height: 2),
             for (final MapEntry(key: name, value: y) in odds)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 1.5),
@@ -1450,9 +1417,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   ),
                 ]),
               ),
+          ],
           const SizedBox(height: 4),
-          Text('${doraText}Tap a tile in the table to see its yaku.',
-              style: muted),
+          if (doraText != null) Text(doraText, style: muted),
+          const Text('Tap a tile in the table to see its yaku.', style: muted),
         ],
       ),
     );
@@ -1461,18 +1429,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   static const _yakuTip = <InlineSpan>[
     TextSpan(text: 'YAKU\n', style: _tipTitle),
     TextSpan(
-        text: 'How often each yaku is in the hand when this line wins: every '
-            'live winning tile counted by its copies left, ron and tsumo '
-            'weighted as the guide weights points. Multiply by the line\'s '
-            'win chance for the odds overall.\n\n'
-            'Riichi and Menzen Tsumo follow the line\'s plan. Dora are not '
-            'yaku, so they are counted apart.\n\n'
-            '≈ One step from tenpai: every draw that makes tenpai, cutting '
-            'for the widest wait, weighted by its copies left, riichi '
-            'assumed on a closed hand.\n\n'
-            '≈ Two or three steps out, rough: the same, followed only down '
-            'the likeliest draws. Further out there is no finished hand to '
-            'score yet.',
+        text: 'Each bar: of the times this line wins, the share that include '
+            'that yaku. One win usually has several yaku, so the bars don\'t '
+            'add up to 100%. 100% means every win has it; Riichi is 100% when '
+            'the plan is to riichi.\n\n'
+            'Multiply by the chance to win for the overall odds.\n\n'
+            'Dora aren\'t yaku, so they\'re shown separately as the average '
+            'extra han.\n\n'
+            '≈ marks an estimate: short of tenpai, the guide assumes you keep '
+            'cutting for the widest hand and scores the likeliest ready hands '
+            'that leads to. It doesn\'t plan around yaku you\'d have to steer '
+            'toward (yakuhai, flushes), so those can read low. More than 3 '
+            'tiles away, nothing is shown yet.',
         style: _tipBody),
   ];
 

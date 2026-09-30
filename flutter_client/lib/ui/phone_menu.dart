@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart' show AutoplayBrain;
-import '../main.dart' show brainColor, playingDialsText, openRules;
+import '../main.dart' show brainColor, openRules;
 
 const Color _gold = Color(0xffe9d58f);
 
@@ -135,7 +135,7 @@ Future<void> showPhoneMenu(
                           if (game.mortalAvailable)
                             [
                               phoneMenuDial<AutoplayBrain>(
-                                caption: 'Follows',
+                                caption: 'Algorithm',
                                 keyPrefix: 'phoneMenuBrain',
                                 values: AutoplayBrain.values,
                                 current: game.autoplayBrain,
@@ -146,21 +146,6 @@ Future<void> showPhoneMenu(
                                 onPick: game.setAutoplayBrain,
                               ),
                             ],
-                          [
-                            Row(children: [
-                              const SizedBox(
-                                width: 64,
-                                child: Text('Playing',
-                                    style: TextStyle(
-                                        color: Colors.white70, fontSize: 13)),
-                              ),
-                              Flexible(
-                                child: playingDialsText(game,
-                                    key: const Key('phoneMenuPlayingDials'),
-                                    fontSize: 14),
-                              ),
-                            ]),
-                          ],
                         ]),
                       ),
                     ],
