@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:mahjong_core/game_timing.dart';
 
 import '../game/guide_host.dart' show GamePhase;
 import '../game/online_game_controller.dart';
@@ -270,7 +271,10 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                   ],
                 ),
                 if (game.phase != GamePhase.playing)
-                  ScoringView(game: game, onGameEnd: _leave),
+                  ScoringView(
+                      game: game,
+                      onGameEnd: _leave,
+                      continueLock: kScoreContinueLock),
               ],
             ),
           ),

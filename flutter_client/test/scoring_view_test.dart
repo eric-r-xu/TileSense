@@ -24,7 +24,9 @@ import 'helpers.dart';
 void main() {
   Future<void> withScores(
       WidgetTester tester, Future<void> Function(_ScoreGame) check,
-      {List<int> winners = const [], bool call = true}) async {
+      {List<int> winners = const [],
+      bool call = true,
+      Duration continueLock = Duration.zero}) async {
     Sfx.i.enabled = false;
     final game = _ScoreGame();
     game.round
@@ -44,7 +46,9 @@ void main() {
         CallCallout.i.clear();
       }
       await tester.pumpWidget(
-          MaterialApp(home: Scaffold(body: ScoringView(game: game))));
+          MaterialApp(
+              home: Scaffold(
+                  body: ScoringView(game: game, continueLock: continueLock))));
       await check(game);
     } finally {
       game.dispose();
@@ -138,6 +142,40 @@ void main() {
       expect(find.text('Round result'), findsOneWidget);
       expect(find.textContaining('Auto Continue in 20s'), findsOneWidget);
     }, winners: [0]);
+  });
+
+  testWidgets('online, Continue stays locked for its first 6 seconds',
+      (tester) async {
+    await withScores(tester, call: false, continueLock: kScoreContinueLock,
+        (game) async {
+      final cont = find.byKey(const Key('scoreContinue'));
+      expect(find.text('Continue (6)'), findsOneWidget);
+      expect(tester.widget<ElevatedButton>(cont).onPressed, isNull);
+      await tester.tap(cont);
+      await tester.pump(const Duration(seconds: 5));
+      expect(game.continues, 0);
+      expect(find.text('Continue (1)'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Continue'), findsOneWidget);
+      await tester.tap(cont);
+      expect(game.continues, 1);
+    });
+  });
+
+  testWidgets('the lock leaves Next free on a multi-winner result',
+      (tester) async {
+    await withScores(tester, call: false, continueLock: kScoreContinueLock,
+        (game) async {
+      // The win pause first, then the panel; Next pages straight away.
+      await tester.pump(kWinScorePause);
+      expect(find.text('Next'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('scoreContinue')));
+      await tester.pump();
+      expect(find.text('Round result  (2 / 2)'), findsOneWidget);
+      // The last page's Continue is still within the lock.
+      expect(find.textContaining('Continue ('), findsOneWidget);
+      expect(game.continues, 0);
+    }, winners: [0, 1]);
   });
 
   testWidgets('each winner score page gets its own 20 seconds', (tester) async {

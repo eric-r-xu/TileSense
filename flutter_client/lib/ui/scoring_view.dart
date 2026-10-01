@@ -14,8 +14,19 @@ import 'tile_face.dart';
 /// the point transfers. On a multiple ron the winners' hands are paged through
 /// with a "Next" button before the final "Continue".
 class ScoringView extends StatefulWidget {
-  const ScoringView({super.key, required this.game, this.onGameEnd});
+  const ScoringView({
+    super.key,
+    required this.game,
+    this.onGameEnd,
+    this.continueLock = Duration.zero,
+  });
   final TableGameHost game;
+
+  /// How long Continue stays disabled once the panel shows. Online, any
+  /// player's Continue deals the next hand for everyone, so this gives the
+  /// whole table time to read the scores (the server holds early presses
+  /// too). Zero offline, where you are the only one reading.
+  final Duration continueLock;
 
   /// Called instead of `game.newGame()` when the "New Game" button is pressed
   /// at game end — online play has no local restart, only "leave room".
@@ -52,6 +63,10 @@ class _ScoringViewState extends State<ScoringView> {
   int _secondsLeft = _autoContinueSeconds;
   Timer? _timer;
 
+  /// Whole seconds until Continue unlocks — see [ScoringView.continueLock].
+  late int _lockLeft = (widget.continueLock.inMilliseconds / 1000).ceil();
+  Timer? _lockTimer;
+
   TableGameHost get game => widget.game;
 
   // A tsumo / ron bubble may still be flashing on the table; hold the panel
@@ -72,9 +87,11 @@ class _ScoringViewState extends State<ScoringView> {
         if (!mounted) return;
         setState(() => _revealed = true);
         _startCountdown();
+        _startLock();
       });
     } else {
       _startCountdown();
+      _startLock();
     }
   }
 
@@ -82,7 +99,18 @@ class _ScoringViewState extends State<ScoringView> {
   void dispose() {
     _revealTimer?.cancel();
     _timer?.cancel();
+    _lockTimer?.cancel();
     super.dispose();
+  }
+
+  /// Counts [_lockLeft] down from the moment the panel is on screen.
+  void _startLock() {
+    if (_lockLeft <= 0) return;
+    _lockTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      setState(() => _lockLeft--);
+      if (_lockLeft <= 0) t.cancel();
+    });
   }
 
   void _startCountdown() {
@@ -142,11 +170,16 @@ class _ScoringViewState extends State<ScoringView> {
     }
 
     final hasMore = multi && page < winners.length - 1;
+    // Only the button that deals the next hand for everyone is locked; Next
+    // just turns your own page, and the game is over at game end.
+    final locked = !gameOver && !hasMore && _lockLeft > 0;
     final label = gameOver
         ? 'New Game'
         : hasMore
             ? 'Next'
-            : 'Continue';
+            : locked
+                ? 'Continue ($_lockLeft)'
+                : 'Continue';
 
     return Stack(
       fit: StackFit.expand,
@@ -210,17 +243,19 @@ class _ScoringViewState extends State<ScoringView> {
                                 foregroundColor: Colors.black,
                                 minimumSize: _buttonSize,
                               ),
-                              onPressed: () {
-                                _timer?.cancel();
-                                if (hasMore) {
-                                  setState(() => _page = page + 1);
-                                  _startCountdown();
-                                } else if (gameOver) {
-                                  (widget.onGameEnd ?? game.newGame)();
-                                } else {
-                                  game.continueFromRoundEnd();
-                                }
-                              },
+                              onPressed: locked
+                                  ? null
+                                  : () {
+                                      _timer?.cancel();
+                                      if (hasMore) {
+                                        setState(() => _page = page + 1);
+                                        _startCountdown();
+                                      } else if (gameOver) {
+                                        (widget.onGameEnd ?? game.newGame)();
+                                      } else {
+                                        game.continueFromRoundEnd();
+                                      }
+                                    },
                               child: Text(label),
                             ),
                             if (!gameOver) ...[

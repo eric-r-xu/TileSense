@@ -9,7 +9,7 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
-## 2026-09-30 — Rejoin online games, bigger Back buttons, win pause
+## 2026-09-30 — Rejoin and smoother online play, bigger Back buttons, win pause
 
 ### Added
 - **You can rejoin an online game you left while it is still going.** The
@@ -25,6 +25,23 @@ approximate wherever a batch of work spanned more than a day.
   (🇭🇰 3 faan, 🇹🇼 5 tai).
 
 ### Changed
+- **Online play is smoother under lag.** Your discard leaves your hand and
+  lands in your pond the moment you tap it, without waiting for the server;
+  if the server turns it down, it goes back. When a lag ends and several
+  updates arrive at once, the discards in them land one at a time, 0.42s
+  apart (0.2s while catching up on a long backlog), instead of the table
+  jumping straight to the newest. On a healthy connection nothing waits.
+- **Online, a bot's chi / pon / kan no longer snatches the tile the moment it
+  lands, or discards again mid-bubble.** The called tile now stays in the
+  pond at least 0.6s before it is taken (it used to vanish ~1ms after it
+  arrived), and a bot that has just called, or declared a kan of its own,
+  waits ~1.5s rather than 0.9s before its next move, so the PON / CHI / KAN
+  bubble has cleared first.
+- **Online, Continue on the score panel is locked for its first 6 seconds**
+  (it counts down on the button), so one player can't skip the scores before
+  the others have read them; the server holds an early press until then.
+  Single player is unchanged. Two players pressing Continue no longer makes
+  the server answer "bad request".
 - **The score panel waits another half second after a tsumo or ron**, so the
   winning hand can be seen before it is covered. The server's auto-continue
   waits the same extra time.

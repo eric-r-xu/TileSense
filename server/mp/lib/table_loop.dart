@@ -37,6 +37,9 @@ class TableLoop {
     Duration abandonGrace = const Duration(minutes: 5),
     Duration? continueTimeout,
     Duration botTurnPace = const Duration(milliseconds: 900),
+    Duration continueLock = kScoreContinueLock,
+    Duration callDiscardHold = const Duration(milliseconds: 600),
+    Duration? afterCallPace,
     MpTelemetry? telemetry,
   })  : _turnTimeout = turnTimeout ?? Duration(seconds: room.timerSeconds),
         _callTimeout = callTimeout ?? Duration(seconds: room.timerSeconds),
@@ -44,6 +47,10 @@ class TableLoop {
         _abandonGrace = abandonGrace,
         _continueTimeout = continueTimeout,
         _botTurnPace = botTurnPace,
+        _continueLock = continueLock,
+        _callDiscardHold = callDiscardHold,
+        _afterCallPace =
+            afterCallPace ?? kCallPause + const Duration(milliseconds: 200),
         _tel = telemetry ??
             (room.seats[room.hostSeat] == null
                 ? null
@@ -89,6 +96,22 @@ class TableLoop {
   /// a time. Zero in tests that just want the end state fast.
   final Duration _botTurnPace;
 
+  /// How long after the score panel appears before anyone's Continue counts,
+  /// so one player can't skip the scores before the others have read them.
+  final Duration _continueLock;
+
+  /// The least time a discard is on the table before a chi / pon / kan takes
+  /// it. With only bots able to call, the call resolves the instant the
+  /// discard is sent, and the tile would vanish from the pond before its
+  /// 480 ms slide-in had finished.
+  final Duration _callDiscardHold;
+
+  /// How long a bot that has just called (or declared a kan of its own) waits
+  /// before its next move is shown — longer than [_botTurnPace], so the
+  /// call's bubble (`kCallPause` on the client) has cleared before the next
+  /// tile flies.
+  final Duration _afterCallPace;
+
   Ruleset get ruleset => room.ruleset;
   int get _handsPerGame => ruleset.handsPerGame(fullGame: room.hanchan);
 
@@ -101,6 +124,14 @@ class TableLoop {
   int _riichiSticks = 0;
 
   int _discardSerial = 0;
+
+  /// When the latest discard was first broadcast (see [_callDiscardHold]).
+  int? _shownSerial;
+  DateTime _discardShownAt = DateTime.now();
+
+  /// The seat that has just called or declared a kan, whose next move waits
+  /// out [_afterCallPace]; null otherwise.
+  int? _justCalled;
   int? _lastDiscardSeat;
   bool _lastDiscardTsumogiri = false;
 
@@ -115,6 +146,11 @@ class TableLoop {
   final Map<int, Timer> _disconnectTimers = {};
   final Map<int, int> _timeoutStrikes = {};
   Completer<void>? _continueWaiter;
+
+  /// When a player's Continue starts counting this round end (see
+  /// [_continueLock]); one pressed earlier is held until then.
+  DateTime? _continueOpensAt;
+  Timer? _earlyContinue;
 
   bool _ended = false;
   bool _started = false;
@@ -222,6 +258,7 @@ class TableLoop {
       minimumPoints: room.minimumPoints,
     );
     _discardSerial = 0;
+    _justCalled = null;
     _lastDiscardSeat = null;
     _lastDiscardTsumogiri = false;
     _roundId = newUuid();
@@ -294,19 +331,26 @@ class TableLoop {
       _bots[seat] ?? SimpleBot(_rng.nextInt(1 << 31));
 
   Future<void> _applyBotTurn(int seat) async {
+    // Right after this seat's call, its bubble is still up on every client.
+    final pace = _justCalled == seat && _afterCallPace > _botTurnPace
+        ? _afterCallPace
+        : _botTurnPace;
+    _justCalled = null;
     final decision = _botFor(seat).decideTurn(round, seat);
     if (decision.tsumo) {
       round.declareTsumo(seat);
     } else if (decision.closedKan != null) {
       round.closedKan(seat, decision.closedKan!);
+      _justCalled = seat; // its KAN bubble, before the replacement's discard
     } else if (decision.addedKan != null) {
       round.addKan(seat, decision.addedKan!);
+      _justCalled = seat;
     } else {
       final tile = decision.discard ?? round.legalDiscards(seat).first;
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
-    if (_botTurnPace > Duration.zero) await Future.delayed(_botTurnPace);
+    if (pace > Duration.zero) await Future.delayed(pace);
     _broadcastState();
   }
 
@@ -466,7 +510,30 @@ class TableLoop {
       }
     }
 
+    // A chi / pon / kan takes the discard out of the pond: let it be seen
+    // landing first. (A ron ends the hand, and its panel already waits out
+    // the bubble; a pass leaves the tile where it is.)
+    final meldCalls = {
+      for (final e in choices.entries)
+        if (e.value != CallType.ron) e.key: e.value
+    };
+    final ron = choices.values.contains(CallType.ron);
+    if (meldCalls.isNotEmpty && !ron) {
+      final wait =
+          _callDiscardHold - DateTime.now().difference(_discardShownAt);
+      if (wait > Duration.zero) await Future.delayed(wait);
+      if (_ended) return;
+    }
+
     round.resolveCalls(choices, chiLow: chiLow);
+    // Whoever's call went through now has the turn; a bot holds its move
+    // for the bubble (a human's turn is theirs to take).
+    if (!ron &&
+        round.phase == RoundPhase.discarding &&
+        meldCalls.containsKey(round.turn) &&
+        isBotControlled(round.turn)) {
+      _justCalled = round.turn;
+    }
     _broadcastState();
   }
 
@@ -530,15 +597,40 @@ class TableLoop {
     final completer = Completer<void>();
     _continueWaiter = completer;
     final winners = round.result!.winners;
+    // Clients hold a win's panel back behind the call bubble and the win
+    // pause (see the client's ScoringView); the lock starts when it shows.
+    final revealWait =
+        winners.isEmpty ? Duration.zero : kCallPause + kWinScorePause;
+    _continueOpensAt = DateTime.now().add(revealWait + _continueLock);
     final timeout = _continueTimeout ??
-        kScorePageDelay * max(1, winners.length) +
-            (winners.isEmpty ? Duration.zero : kCallPause + kWinScorePause);
+        kScorePageDelay * max(1, winners.length) + revealWait;
     final timer = Timer(timeout, () {
       if (!completer.isCompleted) completer.complete();
     });
     await completer.future;
     timer.cancel();
+    _earlyContinue?.cancel();
+    _earlyContinue = null;
+    _continueOpensAt = null;
     _continueWaiter = null;
+  }
+
+  /// A player pressed Continue. Before the lock is up it is held until then
+  /// rather than dropped, so a panel that showed a moment early on one
+  /// client still gets its press honoured. Later presses (several players,
+  /// or one pressing twice) are no-ops.
+  void _requestContinue() {
+    final completer = _continueWaiter;
+    if (completer == null || completer.isCompleted) return;
+    final wait = _continueOpensAt?.difference(DateTime.now()) ?? Duration.zero;
+    if (wait <= Duration.zero) {
+      completer.complete();
+      return;
+    }
+    _earlyContinue ??= Timer(wait, () {
+      _earlyContinue = null;
+      if (!completer.isCompleted) completer.complete();
+    });
   }
 
   /// A pure copy of `GameController.rotateAfterRound` — kept here rather than
@@ -592,7 +684,7 @@ class TableLoop {
   void handleMessage(int seat, Map<String, dynamic> message) {
     final type = message['type'] as String?;
     if (type == 'continue_round') {
-      _continueWaiter?.complete();
+      _requestContinue();
       return;
     }
     if (type == 'action') {
@@ -693,6 +785,8 @@ class TableLoop {
   /// Stops the loop, reports the match's end, and frees the room.
   void _endMatch(String reason) {
     _ended = true;
+    _earlyContinue?.cancel();
+    _earlyContinue = null;
     _abandonTimer?.cancel();
     _abandonTimer = null;
     room.phase = RoomPhase.ended;
@@ -725,6 +819,10 @@ class TableLoop {
   }
 
   void _broadcastState() {
+    if (_discardSerial != _shownSerial) {
+      _shownSerial = _discardSerial;
+      _discardShownAt = DateTime.now();
+    }
     for (var i = 0; i < 4; i++) {
       _sendStateTo(i);
     }
