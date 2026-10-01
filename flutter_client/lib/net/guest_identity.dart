@@ -19,6 +19,7 @@ import '../telemetry/telemetry.dart' show newUuid;
 const _kGuestIdKey = 'ts_mp_guest_id';
 const _kNameKey = 'ts_mp_guest_name';
 const _kCharacterKey = 'ts_mp_guest_character';
+const _kActiveRoomKey = 'ts_mp_active_room';
 
 class GuestIdentity {
   GuestIdentity._(this.guestId, this.name, this.character);
@@ -28,6 +29,20 @@ class GuestIdentity {
   Character character;
 
   static GuestIdentity? _cached;
+
+  /// The room code of the online game this device was last seated in, while
+  /// that game was still going — what "Rejoin" on the main menu and in the
+  /// lobby offers. Null once the game has ended (or is known to be gone).
+  String? get activeRoomCode => _activeRoomCode;
+  String? _activeRoomCode;
+
+  /// Remembers [code] as [activeRoomCode], or forgets it when null. Stored
+  /// as '' to forget, since the storage layer has no remove.
+  void saveActiveRoom(String? code) {
+    if (code == _activeRoomCode) return;
+    _activeRoomCode = code;
+    platform.localStorageSet(_kActiveRoomKey, code ?? '');
+  }
 
   /// Loads (or creates) this device's guest identity. Safe to call repeatedly
   /// — later calls return the same instance.
@@ -46,6 +61,8 @@ class GuestIdentity {
       orElse: () => Character.eric,
     );
     final identity = GuestIdentity._(id, name, character);
+    final room = platform.localStorageGet(_kActiveRoomKey);
+    if (room != null && room.isNotEmpty) identity._activeRoomCode = room;
     _cached = identity;
     return identity;
   }

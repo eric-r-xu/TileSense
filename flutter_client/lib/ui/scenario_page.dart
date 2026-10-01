@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../main.dart' show isPhoneLayout, openRules;
+import 'bar_back_button.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -313,23 +314,27 @@ class _ScenarioPageState extends State<ScenarioPage> {
   }
 
   PreferredSizeWidget _appBar() {
+    // Taller on a phone, so Back clears a thumb's 44pt (see BarBackButton).
+    final barHeight = _phone ? BarBackButton.phoneTarget + 8 : 50.0;
     return AppBar(
-      toolbarHeight: 50,
+      toolbarHeight: barHeight,
       titleSpacing: 8,
+      leadingWidth: BarBackButton.leadingWidth,
+      leading: BarBackButton(
+        buttonKey: const Key('builderBack'),
+        label: 'Back',
+        tooltip: 'Back to start',
+        onPressed: widget.onExit,
+      ),
       title: TableBarTitle(
         game: _c,
         edits: _tableEdits(),
-        // No leading button, so just the titleSpacing above.
-        titleStart: 8,
+        height: barHeight,
+        // The leading width plus the titleSpacing above.
+        titleStart: BarBackButton.leadingWidth + 8,
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              key: const Key('builderBack'),
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Back to start',
-              onPressed: widget.onExit,
-            ),
             TileSensorTooltip(
               child: Image.asset(kTileSensorAsset,
                   height: 30,
@@ -338,13 +343,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
                       const Icon(Icons.school, size: 30)),
             ),
             const SizedBox(width: 8),
-            // Truncates on a phone, where boosted text leaves the controls
-            // less room.
-            const Flexible(
-              child: Text('Custom Hand & Context Builder',
+            // Shorter on a phone, where boosted text and the bigger Back
+            // leave the across seat less room to stay centred over the table.
+            Flexible(
+              child: Text(
+                  _phone ? 'Hand Builder' : 'Custom Hand & Context Builder',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14)),
+                  style: const TextStyle(fontSize: 14)),
             ),
           ],
         ),

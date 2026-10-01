@@ -15,6 +15,7 @@ import '../game/online_game_controller.dart';
 import '../game/sfx.dart'
     show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
 import '../main.dart' show isPhoneLayout, kLetterboxColor;
+import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'client_id_text.dart';
 
@@ -59,6 +60,14 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   /// rather than something the player typed — it follows the chosen character.
   static bool _isDefaultName(String name) =>
       name.trim().isEmpty || kCharacterName.containsValue(name.trim());
+
+  @override
+  void initState() {
+    super.initState();
+    // Is there a game this device left while it was still going? The answer
+    // shows the Rejoin banner.
+    game.checkRejoin();
+  }
 
   @override
   void dispose() {
@@ -114,24 +123,17 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       appBar: AppBar(
         backgroundColor: kLetterboxColor,
         toolbarHeight: barHeight,
-        leadingWidth: 132,
+        leadingWidth: BarBackButton.leadingWidth,
         // A labelled Back, the bar's full height, with nothing beside it to
         // mis-tap: the client id is behind the ID chip at the other end.
-        leading: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-          child: Tooltip(
-            message: 'Back to menu',
-            child: TextButton.icon(
-              key: const Key('onlineBack'),
-              onPressed: () {
-                if (game.roomCode.isNotEmpty) game.leaveRoom();
-                widget.onExit();
-              },
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Menu'),
-              style: TextButton.styleFrom(foregroundColor: Colors.white),
-            ),
-          ),
+        leading: BarBackButton(
+          buttonKey: const Key('onlineBack'),
+          label: 'Menu',
+          tooltip: 'Back to menu',
+          onPressed: () {
+            if (game.roomCode.isNotEmpty) game.leaveRoom();
+            widget.onExit();
+          },
         ),
         title: const Text('Play Online'),
         actions: [
@@ -195,6 +197,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (game.rejoining || game.rejoinableCode != null) _rejoinBanner(),
         const Padding(
           padding: EdgeInsets.only(bottom: 16),
           child: Text(
@@ -628,6 +631,58 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   /// [emoji], when given, sits left of [title]. Single-codepoint emoji only:
   /// one ending in U+FE0F has no Noto font on web, which then logs a
   /// missing-font warning (see the welcome screen's builder button).
+  /// A game this device left while it was still going: one tap takes the
+  /// seat back from the bot that has been playing it.
+  Widget _rejoinBanner() {
+    final code = game.rejoinableCode;
+    return Container(
+      key: const Key('rejoinBanner'),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xff1e6b5c),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xffcaa24e)),
+      ),
+      child: Row(
+        children: [
+          const Text('🔁', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              code == null
+                  ? 'Rejoining your game…'
+                  : 'Your game in room $code is still going.',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (code == null)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 3)),
+            )
+          else
+            FilledButton(
+              key: const Key('rejoinGame'),
+              onPressed: () => game.rejoinRoom(code),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xffcaa24e),
+                foregroundColor: Colors.black,
+                minimumSize: const Size(120, 48),
+              ),
+              child: const Text('Rejoin',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _card({required String title, required Widget child, Widget? emoji}) {
     return Container(
       width: double.infinity,

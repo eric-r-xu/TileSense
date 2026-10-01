@@ -18,11 +18,16 @@ class OnlinePage extends StatefulWidget {
     required this.initialRuleset,
     required this.onExit,
     this.initialJoinCode,
+    this.initialRejoinCode,
   });
 
   final Ruleset initialRuleset;
   final VoidCallback onExit;
   final String? initialJoinCode;
+
+  /// A game this device left while it was still going: opened straight back
+  /// into it, from the main menu's Rejoin button.
+  final String? initialRejoinCode;
 
   @override
   State<OnlinePage> createState() => _OnlinePageState();
@@ -30,6 +35,13 @@ class OnlinePage extends StatefulWidget {
 
 class _OnlinePageState extends State<OnlinePage> {
   late final OnlineGameController _controller = OnlineGameController();
+
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.initialRejoinCode;
+    if (code != null) _controller.rejoinRoom(code);
+  }
 
   @override
   void dispose() {

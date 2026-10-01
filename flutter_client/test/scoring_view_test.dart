@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/game_timing.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:mahjong_core/wall.dart';
@@ -125,9 +126,23 @@ void main() {
     });
   });
 
+  testWidgets('a win holds the panel back a further half second',
+      (tester) async {
+    // No call up, so the only wait is the win pause itself — exact on the
+    // fake clock.
+    await withScores(tester, call: false, (game) async {
+      expect(find.text('Round result'), findsNothing);
+      await tester.pump(kWinScorePause - const Duration(milliseconds: 50));
+      expect(find.text('Round result'), findsNothing);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('Round result'), findsOneWidget);
+      expect(find.textContaining('Auto Continue in 20s'), findsOneWidget);
+    }, winners: [0]);
+  });
+
   testWidgets('each winner score page gets its own 20 seconds', (tester) async {
     await withScores(tester, (game) async {
-      await tester.pump(CallCallout.flash);
+      await tester.pump(CallCallout.flash + kWinScorePause);
       expect(find.text('Round result  (1 / 2)'), findsOneWidget);
       await tester.pump(const Duration(seconds: 20));
       expect(game.continues, 0);
@@ -163,7 +178,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
           MaterialApp(home: Scaffold(body: ScoringView(game: game))));
-      await tester.pump(CallCallout.flash);
+      await tester.pump(CallCallout.flash + kWinScorePause);
 
       expect(find.byWidgetPredicate((w) => w is TileFace && w.tile == win),
           findsOneWidget);

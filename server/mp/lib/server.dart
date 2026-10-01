@@ -79,6 +79,34 @@ Handler buildMultiplayerHandler(
       }
     }
 
+    /// Attaches this connection to [seat] of a game already under way —
+    /// after a dropped socket, or a player coming back after leaving. A seat
+    /// a bot has taken over in the meantime is handed back, but only to the
+    /// human who held it (see [Seat.reclaimableBy]).
+    void rejoin(Room r, String requestedGuestId) {
+      final s = r.seatIndexForGuest(requestedGuestId);
+      if (s == null) {
+        send({'type': 'error', 'message': 'you are not seated in this room'});
+        return;
+      }
+      if (r.loop?.isBotControlled(s) ?? false) {
+        if (!r.seats[s]!.reclaimableBy(requestedGuestId)) {
+          send({
+            'type': 'error',
+            'message': 'this seat is bot-controlled'
+          });
+          return;
+        }
+        r.loop!.reclaimSeat(s);
+      }
+      if (room != null && room != r) detach();
+      room = r;
+      guestId = requestedGuestId;
+      r.seats[s]!.send = send;
+      r.broadcastRoomState();
+      r.loop?.handleReconnect(s);
+    }
+
     void handle(Map<String, dynamic> msg) {
       final type = msg['type'] as String?;
       switch (type) {
@@ -130,6 +158,13 @@ Handler buildMultiplayerHandler(
           final r = manager.find(code);
           if (r == null) {
             send({'type': 'error', 'message': 'room not found'});
+            return;
+          }
+          if (r.phase == RoomPhase.playing &&
+              r.seatIndexForGuest(requestedGuestId) != null) {
+            // Your own game, still going: the code (or a shared link) takes
+            // you back to your seat.
+            rejoin(r, requestedGuestId);
             return;
           }
           if (r.phase != RoomPhase.lobby) {
@@ -190,31 +225,31 @@ Handler buildMultiplayerHandler(
             return;
           }
           final r = manager.find(code);
-          if (r == null) {
+          if (r == null || r.phase == RoomPhase.ended) {
             send({'type': 'error', 'message': 'room no longer exists'});
             return;
           }
-          final s = r.seatIndexForGuest(requestedGuestId);
-          if (s == null) {
-            send({
-              'type': 'error',
-              'message': 'you are not seated in this room'
-            });
+          rejoin(r, requestedGuestId);
+
+        case 'room_status':
+          // Read-only: can this guest rejoin that game? Lets the client offer
+          // "Rejoin" only while there is something to rejoin. Attaches nothing.
+          final code = msg['roomCode'] as String?;
+          final requestedGuestId = msg['guestId'] as String?;
+          if (code == null || requestedGuestId == null) {
+            send({'type': 'error', 'message': 'missing roomCode or guestId'});
             return;
           }
-          if (r.loop?.isBotControlled(s) ?? false) {
-            send({
-              'type': 'error',
-              'message': 'this seat is now bot-controlled'
-            });
-            return;
-          }
-          if (room != null && room != r) detach();
-          room = r;
-          guestId = requestedGuestId;
-          r.seats[s]!.send = send;
-          r.broadcastRoomState();
-          r.loop?.handleReconnect(s);
+          final r = manager.find(code);
+          final s = r?.seatIndexForGuest(requestedGuestId);
+          send({
+            'type': 'room_status',
+            'roomCode': code,
+            'rejoinable': r != null &&
+                r.phase == RoomPhase.playing &&
+                s != null &&
+                r.seats[s]!.reclaimableBy(requestedGuestId),
+          });
 
         case 'action':
         case 'continue_round':

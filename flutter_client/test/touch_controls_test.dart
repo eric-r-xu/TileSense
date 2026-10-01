@@ -17,13 +17,21 @@ import 'loading_helpers.dart';
 void main() {
   preloadDeferredPages();
 
-  Future<void> startGame(WidgetTester tester, {Size size = kDesignSize}) async {
+  Future<void> startGame(WidgetTester tester,
+      {Size size = kDesignSize, String? ruleset}) async {
     Sfx.i.enabled = false;
     addTearDown(() => Sfx.i.enabled = true);
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
+    if (ruleset != null) {
+      final choice = find.byKey(Key('ruleset_$ruleset'));
+      await tester.ensureVisible(choice);
+      await tester.tap(choice);
+      await tester.pump();
+    }
+    await tester.ensureVisible(find.text('Single Player'));
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
@@ -158,6 +166,22 @@ void main() {
     await tearDownApp(tester);
   });
 
+  testWidgets('the desktop bar\'s Menu is a labelled, wide back button',
+      (tester) async {
+    await startGame(tester);
+    final back = tester.getRect(find.byKey(const Key('backToMenu')));
+    expect(find.descendant(
+            of: find.byKey(const Key('backToMenu')), matching: find.text('Menu')),
+        findsOneWidget);
+    expect(back.width, greaterThanOrEqualTo(100));
+    expect(back.height, greaterThanOrEqualTo(40));
+    expect(back.left, lessThan(20));
+    expect(find.byKey(const Key('rulesetBadge')), findsNothing,
+        reason: 'the desktop bar names the rules on its left instead');
+    expect(tester.takeException(), isNull);
+    await tearDownApp(tester);
+  });
+
   group('on a landscape iPhone', () {
     const iPhone = Size(852, 393);
 
@@ -265,6 +289,50 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Single Player'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
+
+    testWidgets('the bar names the rules in play at its top right',
+        (tester) async {
+      for (final (ruleset, label) in [
+        (null, '🇯🇵'),
+        ('hongKong', '🇭🇰'), // no minimum by default
+        ('taiwanese', '🇹🇼 5 tai'),
+      ]) {
+        await startGame(tester, size: iPhone, ruleset: ruleset);
+        final badge = find.byKey(const Key('rulesetBadge'));
+        expect(tester.widget<Text>(badge).data, label, reason: '$ruleset');
+        final r = tester.getRect(badge);
+        final bar = tester.getRect(find.byType(AppBar));
+        expect(r.right, greaterThan(bar.right - 20), reason: '$ruleset');
+        expect(r.top, greaterThanOrEqualTo(bar.top));
+        expect(r.bottom, lessThanOrEqualTo(bar.bottom));
+        expect(tester.takeException(), isNull);
+        await tearDownApp(tester);
+      }
+    });
+
+    testWidgets('the character screen\'s Back clears a thumb, clear of the '
+        'title', (tester) async {
+      Sfx.i.enabled = false;
+      addTearDown(() => Sfx.i.enabled = true);
+      await tester.binding.setSurfaceSize(iPhone);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.ensureVisible(find.text('Single Player'));
+      await tester.tap(find.text('Single Player'));
+      await tester.pump();
+      final back = tester.getRect(find.byKey(const Key('charactersBack')));
+      expect(back.width, greaterThanOrEqualTo(44));
+      expect(back.height, greaterThanOrEqualTo(44));
+      // The canvas is letterboxed at the sides on a phone this wide.
+      final scale = iPhone.height / kDesignSize.height;
+      final canvasLeft = (iPhone.width - kDesignSize.width * scale) / 2;
+      expect(back.left - canvasLeft, lessThan(20));
+      final title = tester.getRect(find.text('CHOOSE YOUR CHARACTERS'));
+      expect(back.overlaps(title), isFalse);
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
     });

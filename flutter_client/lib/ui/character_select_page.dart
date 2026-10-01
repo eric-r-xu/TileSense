@@ -12,6 +12,7 @@ import 'package:mahjong_core/tile.dart' show Wind;
 
 import '../game/sfx.dart'
     show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
+import 'bar_back_button.dart';
 import 'character_picker.dart';
 
 /// The wind [seat] starts on when [startingDealer] deals first (and so is
@@ -545,15 +546,14 @@ class CharacterSelectPage extends StatelessWidget {
           // Overlaid at the top-left rather than given its own row: the screen
           // is tight against the design canvas's height.
           Positioned(
-            left: 12,
-            top: 12,
-            child: TextButton.icon(
-              key: const Key('charactersBack'),
+            left: 4,
+            top: 8,
+            child: BarBackButton(
+              buttonKey: const Key('charactersBack'),
+              label: 'Back',
+              tooltip: 'Back to the main menu',
               onPressed: onBack,
-              icon: const Icon(Icons.arrow_back, size: 18),
-              label: const Text('Back'),
-              style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xff80cbc4)),
+              foregroundColor: const Color(0xff80cbc4),
             ),
           ),
         ],

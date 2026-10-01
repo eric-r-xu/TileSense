@@ -19,6 +19,7 @@ TableLoop _fastLoop(Room room) => TableLoop(
       turnTimeout: const Duration(seconds: 2),
       callTimeout: const Duration(milliseconds: 500),
       disconnectGrace: const Duration(milliseconds: 400),
+      abandonGrace: const Duration(milliseconds: 600),
       continueTimeout: const Duration(milliseconds: 500),
       botTurnPace: Duration.zero,
     );
@@ -363,6 +364,115 @@ void main() {
     await a.close();
     await eventually(() => manager.find(code) == null);
     expect(room.phase, RoomPhase.ended);
+  });
+
+  /// Creates a room for [guestId] alone and starts it (three bots fill in).
+  Future<(TestClient, String)> startSolo(int port, String guestId) async {
+    final a = await TestClient.connect(port);
+    a.send(createMsg(guestId));
+    final code =
+        (await a.waitFor((m) => m['type'] == 'room_state'))['code'] as String;
+    a.send({'type': 'start_game'});
+    await a.waitFor((m) => m['type'] == 'room_state' && m['phase'] == 'playing');
+    return (a, code);
+  }
+
+  test('a player a bot took over for gets their seat back on reconnect',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final (a, code) = await startSolo(server.port, 'guest-a');
+    final room = manager.find(code)!;
+    final seat = room.seatIndexForGuest('guest-a')!;
+
+    await a.close();
+    await eventually(() => room.loop!.isBotControlled(seat));
+
+    final back = await TestClient.connect(server.port);
+    addTearDown(back.close);
+    back.send({'type': 'reconnect', 'roomCode': code, 'guestId': 'guest-a'});
+    final state = await back.waitFor((m) => m['type'] == 'room_state');
+    expect(state['yourSeat'], seat);
+    expect((state['seats'] as List)[seat]['isBot'], isFalse);
+    await back.waitFor((m) => m['type'] == 'state' && m['yourSeat'] == seat);
+    expect(room.loop!.isBotControlled(seat), isFalse);
+
+    // Back in time: the all-bot abandon timer no longer ends the game.
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    expect(manager.find(code), isNotNull);
+    expect(room.phase, RoomPhase.playing);
+  });
+
+  test('joining your own started game by its code takes you back to your seat',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final (a, code) = await startSolo(server.port, 'guest-a');
+    final seat = manager.find(code)!.seatIndexForGuest('guest-a');
+    await a.close();
+
+    final back = await TestClient.connect(server.port);
+    addTearDown(back.close);
+    back.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-a'});
+    final state = await back.waitFor((m) => m['type'] == 'room_state');
+    expect(state['phase'], 'playing');
+    expect(state['yourSeat'], seat);
+    await back.waitFor((m) => m['type'] == 'state');
+
+    // Someone else still can't join a game under way.
+    final other = await TestClient.connect(server.port);
+    addTearDown(other.close);
+    other.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-z'});
+    final err = await other.waitFor((m) => m['type'] == 'error');
+    expect(err['message'], 'that room has already started');
+  });
+
+  test("a bot's own seat can't be claimed with its bot guest id", () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final (a, code) = await startSolo(server.port, 'guest-a');
+    addTearDown(a.close);
+    final room = manager.find(code)!;
+    final bot = room.seats.indexWhere((s) => s!.filledByBot);
+    final botId = room.seats[bot]!.guestId;
+
+    final thief = await TestClient.connect(server.port);
+    addTearDown(thief.close);
+    thief.send({'type': 'room_status', 'roomCode': code, 'guestId': botId});
+    final status = await thief.waitFor((m) => m['type'] == 'room_status');
+    expect(status['rejoinable'], isFalse);
+    thief.send({'type': 'reconnect', 'roomCode': code, 'guestId': botId});
+    final err = await thief.waitFor((m) => m['type'] == 'error');
+    expect(err['message'], 'this seat is bot-controlled');
+    expect(room.seats[bot]!.isBot, isTrue);
+    expect(room.seats[bot]!.connected, isFalse);
+  });
+
+  test('room_status says whether a guest can rejoin', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final (a, code) = await startSolo(server.port, 'guest-a');
+    addTearDown(a.close);
+
+    final probe = await TestClient.connect(server.port);
+    addTearDown(probe.close);
+    Future<bool> ask(String roomCode, String guestId) async {
+      probe.log.clear();
+      probe.send(
+          {'type': 'room_status', 'roomCode': roomCode, 'guestId': guestId});
+      final m = await probe.waitFor((m) => m['type'] == 'room_status');
+      return m['rejoinable'] as bool;
+    }
+
+    expect(await ask(code, 'guest-a'), isTrue);
+    expect(await ask(code, 'guest-z'), isFalse);
+    expect(await ask('NOPE', 'guest-a'), isFalse);
+    // Asking attaches nothing: the probe socket holds no seat.
+    expect(manager.find(code)!.seats.where((s) => s!.connected).length, 1);
   });
 
   test('an oversized message closes the socket', () async {

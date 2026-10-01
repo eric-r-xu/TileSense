@@ -34,12 +34,14 @@ class TableLoop {
     Duration? turnTimeout,
     Duration? callTimeout,
     Duration disconnectGrace = const Duration(seconds: 30),
+    Duration abandonGrace = const Duration(minutes: 5),
     Duration? continueTimeout,
     Duration botTurnPace = const Duration(milliseconds: 900),
     MpTelemetry? telemetry,
   })  : _turnTimeout = turnTimeout ?? Duration(seconds: room.timerSeconds),
         _callTimeout = callTimeout ?? Duration(seconds: room.timerSeconds),
         _disconnectGrace = disconnectGrace,
+        _abandonGrace = abandonGrace,
         _continueTimeout = continueTimeout,
         _botTurnPace = botTurnPace,
         _tel = telemetry ??
@@ -66,9 +68,13 @@ class TableLoop {
   /// three.
   final Duration _callTimeout;
 
-  /// How long a disconnected seat is held open for a reconnect before it
-  /// permanently converts to bot control.
+  /// How long a disconnected seat is held open before a bot takes it over.
+  /// The player can still reclaim it afterwards — see [reclaimSeat].
   final Duration _disconnectGrace;
+
+  /// How long an all-bot table (every human gone) plays on before the match
+  /// is abandoned, so a player who left by accident can still rejoin.
+  final Duration _abandonGrace;
 
   /// How long the table waits for any player to click "next hand" at a round
   /// end before dealing it automatically (covers a room with no connected
@@ -113,6 +119,10 @@ class TableLoop {
   bool _ended = false;
   bool _started = false;
 
+  /// Running while every seat is bot-controlled: the match ends when it
+  /// fires, unless a human has reclaimed a seat first.
+  Timer? _abandonTimer;
+
   bool isBotControlled(int seat) => _bots.containsKey(seat);
 
   /// Pushes whatever telemetry is buffered right now, without waiting for
@@ -140,7 +150,9 @@ class TableLoop {
           guestId: 'bot-$i',
           name: Room.characterName[character]!,
           character: character,
-        )..isBot = true;
+        )
+          ..isBot = true
+          ..filledByBot = true;
       }
       if (room.seats[i]!.isBot) _bots[i] = SimpleBot(_rng.nextInt(1 << 31));
     }
@@ -520,7 +532,7 @@ class TableLoop {
     final winners = round.result!.winners;
     final timeout = _continueTimeout ??
         kScorePageDelay * max(1, winners.length) +
-            (winners.isEmpty ? Duration.zero : kCallPause);
+            (winners.isEmpty ? Duration.zero : kCallPause + kWinScorePause);
     final timer = Timer(timeout, () {
       if (!completer.isCompleted) completer.complete();
     });
@@ -646,14 +658,43 @@ class TableLoop {
           ?.call({'type': 'bot_takeover', 'seat': seat, 'reason': reason});
     }
     room.broadcastRoomState();
-    // No human can ever retake a bot seat, so an all-bot table would only
-    // play on unwatched while holding memory.
-    if (!_ended && room.seats.every((s) => s!.isBot)) _endMatch('abandoned');
+    // With nobody left the bots play on, unwatched, for [_abandonGrace] so
+    // whoever left by accident can still come back; after that the table
+    // would only hold memory.
+    if (!_ended && _abandonTimer == null && room.seats.every((s) => s!.isBot)) {
+      _abandonTimer = Timer(_abandonGrace, () {
+        _abandonTimer = null;
+        if (!_ended && room.seats.every((s) => s!.isBot)) {
+          _endMatch('abandoned');
+        }
+      });
+    }
+  }
+
+  /// A human who was converted to a bot (see [_convertToBot]) came back:
+  /// their seat is theirs again from the next decision on. The caller
+  /// attaches the socket and then calls [handleReconnect].
+  void reclaimSeat(int seat) {
+    if (!isBotControlled(seat) || (room.seats[seat]?.filledByBot ?? true)) {
+      return;
+    }
+    _bots.remove(seat);
+    room.seats[seat]!.isBot = false;
+    _abandonTimer?.cancel();
+    _abandonTimer = null;
+    _tel?.seatEvent(
+      matchId: _matchId,
+      actorSeat: seat,
+      event: 'reclaimed',
+      guestId: room.seats[seat]?.guestId,
+    );
   }
 
   /// Stops the loop, reports the match's end, and frees the room.
   void _endMatch(String reason) {
     _ended = true;
+    _abandonTimer?.cancel();
+    _abandonTimer = null;
     room.phase = RoomPhase.ended;
     final tel = _tel;
     if (tel != null) {

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../game/guide_host.dart' show GamePhase;
 import '../game/online_game_controller.dart';
 import '../main.dart' show isPhoneLayout;
+import 'bar_back_button.dart';
 import 'client_id_text.dart';
 import 'hand_view.dart';
 import 'phone_menu.dart';
@@ -48,14 +49,15 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
   }
 
   /// Leave from the bar or a phone's Menu: asks first while the game is
-  /// still on, since a bot then plays your seat for the rest of it.
+  /// still on, since a bot then plays your seat until you rejoin.
   Future<void> _confirmLeave() async {
     if (game.phase == GamePhase.playing) {
       final go = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
           title: const Text('Leave this game?'),
-          content: const Text('A bot plays your seat for the rest of it.'),
+          content: const Text('A bot plays your seat until you come '
+              'back — Rejoin is on the main menu while the game is on.'),
           actions: [
             TextButton(
               key: const Key('leaveStay'),
@@ -182,31 +184,23 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
           appBar: AppBar(
             toolbarHeight: 50,
             titleSpacing: 12,
-            leadingWidth: 132,
+            leadingWidth: BarBackButton.leadingWidth,
             // A labelled Leave with nothing beside it to mis-tap: the client
             // id is behind the ID chip at the other end of the bar.
             leading: phone
                 ? null
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-                    child: Tooltip(
-                      message: 'Leave room',
-                      child: TextButton.icon(
-                        key: const Key('onlineLeave'),
-                        onPressed: _confirmLeave,
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text('Leave'),
-                        style: TextButton.styleFrom(
-                            foregroundColor: Colors.white),
-                      ),
-                    ),
+                : BarBackButton(
+                    buttonKey: const Key('onlineLeave'),
+                    label: 'Leave',
+                    tooltip: 'Leave room',
+                    onPressed: _confirmLeave,
                   ),
             // The room's own details on the left, then the across seat — up
             // here rather than on the felt, so the ponds get that row's height.
             title: TableBarTitle(
               game: game,
               // leadingWidth, when there is a leading, + titleSpacing.
-              titleStart: phone ? 12 : 132 + 12,
+              titleStart: phone ? 12 : BarBackButton.leadingWidth + 12,
               leading: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

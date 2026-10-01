@@ -22,6 +22,16 @@ class Seat {
   String name;
   bool isBot = false;
 
+  /// A bot from the start — an empty seat filled when the game began, never a
+  /// human's. Only a seat that started with a human can be taken back by a
+  /// reconnect (see `TableLoop.reclaimSeat`), so no client can claim one of
+  /// these by sending its `bot-N` guest id.
+  bool filledByBot = false;
+
+  /// Whether [guestId] may take this seat back after a bot took it over.
+  bool reclaimableBy(String guestId) =>
+      !filledByBot && this.guestId == guestId;
+
   /// Which of [Room.allCharacters] this seat renders as — the same avatar
   /// and display name on every client. See [Room.resolveCharacter].
   String character;

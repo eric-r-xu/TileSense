@@ -55,14 +55,17 @@ class _ScoringViewState extends State<ScoringView> {
   TableGameHost get game => widget.game;
 
   // A tsumo / ron bubble may still be flashing on the table; hold the panel
-  // back until it has gone so it isn't hidden behind the scrim.
+  // back until it has gone so it isn't hidden behind the scrim — and on a
+  // win, [kWinScorePause] longer, so the winning hand can be seen first.
   bool _revealed = true;
   Timer? _revealTimer;
 
   @override
   void initState() {
     super.initState();
-    final wait = CallCallout.i.remaining;
+    final win = game.round.result?.winners.isNotEmpty ?? false;
+    final wait =
+        CallCallout.i.remaining + (win ? kWinScorePause : Duration.zero);
     if (wait > Duration.zero) {
       _revealed = false;
       _revealTimer = Timer(wait, () {
