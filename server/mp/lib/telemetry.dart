@@ -227,7 +227,7 @@ class MpTelemetry {
   void seatEvent({
     required String matchId,
     required int actorSeat,
-    required String event, // 'bot_takeover' | 'reconnected'
+    required String event, // 'bot_takeover' | 'reconnected' | 'reclaimed'
     String? guestId,
     String? reason,
   }) =>

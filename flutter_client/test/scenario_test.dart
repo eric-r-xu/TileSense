@@ -470,6 +470,22 @@ void main() {
       await tester.pump();
     });
 
+    testWidgets('Back is labelled and clears a thumb', (tester) async {
+      await openBuilder(tester);
+      final back = find.byKey(const Key('builderBack'));
+      expect(find.descendant(of: find.byType(AppBar), matching: back),
+          findsOneWidget);
+      expect(find.descendant(of: back, matching: find.text('Back')),
+          findsOneWidget);
+      final r = tester.getRect(back);
+      expect(r.width, greaterThanOrEqualTo(44));
+      expect(r.height, greaterThanOrEqualTo(44));
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
     testWidgets('the across seat sits up in the bar, as in the game',
         (tester) async {
       await openBuilder(tester);

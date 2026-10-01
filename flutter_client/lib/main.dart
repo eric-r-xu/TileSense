@@ -15,10 +15,12 @@ import 'game/gesture_unlock.dart';
 import 'game/guide_host.dart' show AutoplayBrain, GuideHost;
 import 'game/sfx.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
+import 'net/guest_identity.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
+import 'ui/bar_back_button.dart';
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -956,6 +958,10 @@ class _GamePageState extends State<GamePage> {
   // read once at startup.
   String? _joinCode;
 
+  // An online game this device left while it was still going, picked from
+  // the welcome screen's Rejoin button: the lobby opens straight back into it.
+  String? _rejoinCode;
+
   // Push buffered telemetry when the tab is hidden or the app is torn down, so
   // completed rounds aren't stranded. No-op unless the app was built with
   // --dart-define=TELEMETRY=true.
@@ -1023,6 +1029,15 @@ class _GamePageState extends State<GamePage> {
       : _game.ruleset.isTaiwanese &&
               _game.minimumPoints != TaiwaneseRules.defaultMinimumPoints
           ? '${_game.minimumPoints} tai min'
+          : null;
+
+  /// The minimum a hand needs to win, for the phone bar's ruleset badge:
+  /// "3 faan" (Hong Kong, when the table sets one), "5 tai" (Taiwanese always
+  /// has one), or null (riichi's one-yaku rule isn't a points floor).
+  String? _minimumBadge() => _game.ruleset.isHongKong
+      ? (_game.minimumFaan > 0 ? '${_game.minimumFaan} faan' : null)
+      : _game.ruleset.isTaiwanese
+          ? '${_game.minimumPoints} tai'
           : null;
 
   void _toggleGuide() => setState(() => _showGuide = !_showGuide);
@@ -1147,6 +1162,7 @@ class _GamePageState extends State<GamePage> {
       void exitOnline() => setState(() {
             _showOnline = false;
             _joinCode = null;
+            _rejoinCode = null;
             _showWelcome = true;
           });
       return FeatureLoader(
@@ -1157,6 +1173,7 @@ class _GamePageState extends State<GamePage> {
         builder: (_) => online.OnlinePage(
           initialRuleset: _selectedRuleset,
           initialJoinCode: _joinCode,
+          initialRejoinCode: _rejoinCode,
           onExit: exitOnline,
         ),
       );
@@ -1199,6 +1216,11 @@ class _GamePageState extends State<GamePage> {
           _showBuilder = true;
         }),
         onPlayOnline: () => setState(() => _showOnline = true),
+        rejoinCode: GuestIdentity.load().activeRoomCode,
+        onRejoin: (code) => setState(() {
+          _rejoinCode = code;
+          _showOnline = true;
+        }),
       );
     }
     _game.guideVisible = _showGuide; // read only by telemetry
@@ -1210,12 +1232,13 @@ class _GamePageState extends State<GamePage> {
       appBar: AppBar(
         toolbarHeight: 50,
         titleSpacing: 12,
-        leading: phone ? null : IconButton(
-          key: const Key('backToMenu'),
+        leadingWidth: BarBackButton.leadingWidth,
+        leading: phone ? null : BarBackButton(
+          buttonKey: const Key('backToMenu'),
+          label: 'Menu',
           tooltip: 'Main menu — pauses this game; Start resumes it. Change '
               'the style there (a new game), or open the Custom Hand & '
               'Context Builder',
-          icon: const Icon(Icons.arrow_back),
           onPressed: _backToMenu,
         ),
         // The bar's own controls on the left, then the across seat — up here
@@ -1224,8 +1247,8 @@ class _GamePageState extends State<GamePage> {
           animation: _game,
           builder: (context, _) => TableBarTitle(
             game: _game,
-            // Default leading width plus the titleSpacing above.
-            titleStart: phone ? 12 : kToolbarHeight + 12,
+            // The leading width plus the titleSpacing above.
+            titleStart: phone ? 12 : BarBackButton.leadingWidth + 12,
             leading: phone ? const Text('TileSense') : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1332,7 +1355,30 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
         ),
-        actions: phone ? const [] : [
+        // A phone's bar has room for no controls, but it still names the
+        // rules in play (and the table's minimum), top right.
+        actions: phone ? [
+          AnimatedBuilder(
+            animation: _game,
+            builder: (context, _) => Tooltip(
+              message: 'Playing ${_game.ruleset.label} rules'
+                  '${_minimumSentence()}.',
+              child: Text(
+                switch (_minimumBadge()) {
+                  final min? => '${_game.ruleset.flag} $min',
+                  null => _game.ruleset.flag,
+                },
+                key: const Key('rulesetBadge'),
+                style: const TextStyle(
+                  color: Color(0xffffdf76),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ] : [
           // Auto-Play and the dials it plays in one panel: Auto-Play plays
           // from the guide's own scores, weighed on the dials the game sets
           // as it goes (points early, placement in the final hands; see
@@ -1564,6 +1610,8 @@ class _WelcomeScreen extends StatelessWidget {
     required this.onStart,
     required this.onBuild,
     required this.onPlayOnline,
+    this.rejoinCode,
+    required this.onRejoin,
   });
 
   /// The rules Start and the builder will use, and how to change them.
@@ -1578,6 +1626,11 @@ class _WelcomeScreen extends StatelessWidget {
 
   /// Opens the online lobby — create a private room or join one by code.
   final VoidCallback onPlayOnline;
+
+  /// The room of an online game this device left while it was still going,
+  /// or null. Shows a Rejoin button that takes you back to your seat.
+  final String? rejoinCode;
+  final ValueChanged<String> onRejoin;
 
   /// Japanese Riichi, Hong Kong, or Taiwanese, chosen before Start, each
   /// with a link to its rules PDF beneath it.
@@ -1842,6 +1895,25 @@ class _WelcomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (rejoinCode case final code?) ...[
+                      const SizedBox(height: 14),
+                      // Back into an online game left by accident; the bot
+                      // that played your seat meanwhile hands it back.
+                      FilledButton.icon(
+                        key: const Key('rejoinOnline'),
+                        onPressed: () => onRejoin(code),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xff1e6b5c),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 52),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
+                        icon: const Text('🔁', style: TextStyle(fontSize: 22)),
+                        label: Text('Rejoin your online game · Room $code',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ],
                 ),
               ),

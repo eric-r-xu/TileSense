@@ -146,6 +146,16 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   int? lastBotTakeoverSeat;
   bool connectionLost = false;
 
+  /// The game this device left while it was still going, once the server
+  /// has confirmed it can be rejoined (see [checkRejoin]) — what the lobby's
+  /// Rejoin banner offers. Null when there is nothing to rejoin.
+  String? rejoinableCode;
+
+  /// The room [rejoinRoom] is waiting to get back into, until the server
+  /// answers with the room (success) or an error (the game is gone).
+  String? _pendingRejoin;
+  bool get rejoining => _pendingRejoin != null;
+
   bool get isHost =>
       mySeat != null && lobbySeats.any((s) => s.seat == mySeat && s.isHost);
 
@@ -188,6 +198,32 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   String get _effectiveName => _identity.name.trim().isEmpty
       ? kCharacterName[_identity.character]!
       : _identity.name.trim();
+
+  /// Asks the server whether the game this device was last seated in (see
+  /// `GuestIdentity.activeRoomCode`) is still going; the answer sets
+  /// [rejoinableCode].
+  void checkRejoin() {
+    final code = _identity.activeRoomCode;
+    if (code == null) return;
+    _client.send({
+      'type': 'room_status',
+      'roomCode': code,
+      'guestId': _identity.guestId,
+    });
+  }
+
+  /// Takes your seat back in a game you left while it was under way — the
+  /// bot that played it in the meantime hands it back.
+  void rejoinRoom(String code) {
+    _pendingRejoin = code;
+    rejoinableCode = null;
+    _client.send({
+      'type': 'reconnect',
+      'roomCode': code,
+      'guestId': _identity.guestId,
+    });
+    notifyListeners();
+  }
 
   void startGame() {
     if (roomPhase == RoomLifecycle.lobby) _client.send({'type': 'start_game'});
@@ -487,7 +523,24 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         _applyRoundSnapshot(msg, isResult: true);
       case 'error':
         lastError = msg['message'] as String?;
+        if (_pendingRejoin != null) {
+          // The only errors a rejoin gets mean that game can't be rejoined.
+          _pendingRejoin = null;
+          _identity.saveActiveRoom(null);
+          lastError = 'That game has ended';
+        }
         notifyListeners();
+      case 'room_status':
+        final code = msg['roomCode'] as String?;
+        if (code != null && code == _identity.activeRoomCode) {
+          if (msg['rejoinable'] == true) {
+            rejoinableCode = code;
+          } else {
+            rejoinableCode = null;
+            _identity.saveActiveRoom(null);
+          }
+          notifyListeners();
+        }
       case 'bot_takeover':
         // The server reports its own absolute seat here, but every seat this
         // controller otherwise exposes to the UI (seatLabel/characterForSeat,
@@ -525,6 +578,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     minimumPoints =
         TaiwaneseRules.normalizeMinimumPoints(msg['minimumPoints']);
     roomPhase = RoomLifecycle.values.byName(msg['phase'] as String);
+    _pendingRejoin = null;
+    // Remembered while the game is on, so leaving it by accident can be
+    // undone from the main menu or the lobby; forgotten once it is over.
+    if (roomPhase == RoomLifecycle.playing) {
+      rejoinableCode = null;
+      _identity.saveActiveRoom(roomCode);
+    } else if (roomPhase == RoomLifecycle.ended) {
+      _identity.saveActiveRoom(null);
+    }
     final yourSeat = msg['yourSeat'] as int?;
     if (yourSeat != null) mySeat = yourSeat;
     lobbySeats = [
@@ -555,6 +617,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     final previousRound = _roundReady ? round : null;
     mySeat = seat;
     phase = GamePhase.values.byName(msg['gamePhase'] as String);
+    if (phase == GamePhase.gameEnd) _identity.saveActiveRoom(null);
     _tablePoints = List<int>.from(msg['tablePoints'] as List);
     _handInWind = msg['handInWind'] as int;
     _discardSerial = msg['discardSerial'] as int;
@@ -1177,6 +1240,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       Sfx.i.voiceChain(steps);
     }
   }
+
+  /// Feeds [msg] in as though the server had sent it.
+  @visibleForTesting
+  void debugReceive(Map<String, dynamic> msg) => _onMessage(msg);
 
   @override
   void dispose() {

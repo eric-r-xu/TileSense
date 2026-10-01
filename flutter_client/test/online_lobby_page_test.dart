@@ -3,16 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/online_game_controller.dart';
 import 'package:tilesense/game/sfx.dart' show Character, kCharacterName;
-import 'package:tilesense/main.dart' show kDesignSize;
+import 'package:tilesense/main.dart' show TileSenseApp, kDesignSize;
+import 'package:tilesense/net/guest_identity.dart';
 import 'package:tilesense/ui/character_picker.dart';
 import 'package:tilesense/ui/online_game_page.dart';
 import 'package:tilesense/ui/online_lobby_page.dart';
+
+import 'loading_helpers.dart';
 
 /// The pre-room setup screen: it runs two columns side by side (rather than
 /// one long stack) specifically so it fits in `kDesignSize`'s 820px height
 /// with no scrolling, and the name field is meant to track whichever
 /// character is selected until the player types their own.
 void main() {
+  preloadDeferredPages();
   Future<void> pump(WidgetTester tester, OnlineGameController game) async {
     await tester.binding.setSurfaceSize(kDesignSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -21,10 +25,14 @@ void main() {
         body: SizedBox(
           width: kDesignSize.width,
           height: kDesignSize.height,
-          child: OnlineLobbyPage(
-            controller: game,
-            initialRuleset: Ruleset.riichi,
-            onExit: () {},
+          // Rebuilt on every controller change, as `OnlinePage` does.
+          child: AnimatedBuilder(
+            animation: game,
+            builder: (_, __) => OnlineLobbyPage(
+              controller: game,
+              initialRuleset: Ruleset.riichi,
+              onExit: () {},
+            ),
           ),
         ),
       ),
@@ -262,6 +270,122 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byKey(const Key('clientIdValue')), findsOneWidget);
       expect(tester.takeException(), isNull);
+
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  });
+
+  group('rejoining a game left while it was still going', () {
+    tearDown(() => GuestIdentity.load().saveActiveRoom(null));
+
+    testWidgets('the lobby offers Rejoin once the server says the game is on',
+        (tester) async {
+      GuestIdentity.load().saveActiveRoom('ABCD');
+      final game = OnlineGameController();
+      await pump(tester, game);
+      // Nothing until the server has answered: the game may be long over.
+      expect(find.byKey(const Key('rejoinBanner')), findsNothing);
+
+      game.debugReceive(
+          {'type': 'room_status', 'roomCode': 'ABCD', 'rejoinable': true});
+      await tester.pump();
+      expect(find.byKey(const Key('rejoinBanner')), findsOneWidget);
+      expect(find.textContaining('room ABCD'), findsOneWidget);
+      final rejoin = tester.getSize(find.byKey(const Key('rejoinGame')));
+      expect(rejoin.height, greaterThanOrEqualTo(44));
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byKey(const Key('rejoinGame')));
+      await tester.pump();
+      expect(game.rejoining, isTrue);
+      expect(find.text('Rejoining your game…'), findsOneWidget);
+
+      // The server takes you back: the room is playing again.
+      game.debugReceive({
+        'type': 'room_state',
+        'code': 'ABCD',
+        'ruleset': 'riichi',
+        'hanchan': true,
+        'phase': 'playing',
+        'yourSeat': 2,
+        'seats': [
+          for (var i = 0; i < 4; i++)
+            {
+              'seat': i,
+              'name': 'P$i',
+              'character': null,
+              'isBot': i != 2,
+              'isHost': i == 0,
+              'connected': i == 2,
+            }
+        ],
+      });
+      expect(game.rejoining, isFalse);
+      expect(game.roomPhase, RoomLifecycle.playing);
+      expect(GuestIdentity.load().activeRoomCode, 'ABCD');
+
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('the main menu offers Rejoin, which reopens that game',
+        (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const Key('rejoinOnline')), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+
+      GuestIdentity.load().saveActiveRoom('ABCD');
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      final rejoin = find.byKey(const Key('rejoinOnline'));
+      expect(rejoin, findsOneWidget);
+      expect(find.textContaining('Room ABCD'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(rejoin);
+      await pumpUntilFound(tester, find.text('Rejoining your game…'));
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('a game that has ended is forgotten, not offered',
+        (tester) async {
+      GuestIdentity.load().saveActiveRoom('ABCD');
+      final game = OnlineGameController();
+      await pump(tester, game);
+      game.debugReceive(
+          {'type': 'room_status', 'roomCode': 'ABCD', 'rejoinable': false});
+      await tester.pump();
+      expect(find.byKey(const Key('rejoinBanner')), findsNothing);
+      expect(GuestIdentity.load().activeRoomCode, isNull);
+
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets('a failed rejoin says the game has ended and forgets it',
+        (tester) async {
+      GuestIdentity.load().saveActiveRoom('ABCD');
+      final game = OnlineGameController();
+      await pump(tester, game);
+      game.rejoinRoom('ABCD');
+      await tester.pump();
+      expect(find.text('Rejoining your game…'), findsOneWidget);
+
+      game.debugReceive({'type': 'error', 'message': 'room no longer exists'});
+      await tester.pump();
+      expect(game.rejoining, isFalse);
+      expect(game.lastError, 'That game has ended');
+      expect(GuestIdentity.load().activeRoomCode, isNull);
+      expect(find.byKey(const Key('rejoinBanner')), findsNothing);
 
       game.dispose();
       await tester.pumpWidget(const SizedBox());

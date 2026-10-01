@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:mahjong_core/game_timing.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
@@ -152,7 +153,8 @@ void main() {
       await tester.pumpWidget(RepaintBoundary(
           key: captureKey,
           child: MaterialApp(home: Scaffold(body: ScoringView(game: game)))));
-      await tester.pump(const Duration(milliseconds: 100));
+      // A win holds the panel back for kWinScorePause first.
+      await tester.pump(kWinScorePause + const Duration(milliseconds: 100));
       expect(find.byWidgetPredicate((w) => w is TileFace && w.tile == win),
           findsOneWidget);
       expect(find.textContaining('faan —'), findsOneWidget);

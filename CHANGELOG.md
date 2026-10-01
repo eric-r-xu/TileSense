@@ -9,6 +9,31 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-09-30 — Rejoin online games, bigger Back buttons, win pause
+
+### Added
+- **You can rejoin an online game you left while it is still going.** The
+  main menu shows "Rejoin your online game · Room ABCD", the Play Online
+  lobby shows a Rejoin banner once the server confirms the game is still on,
+  and re-entering the room code works too. A bot plays your seat while you
+  are away and hands it back when you return, even after the 30s grace. A
+  table with no humans left now plays on for 5 minutes before it ends,
+  instead of ending as soon as the last player's grace runs out. Only a seat
+  that started with a human can be reclaimed.
+- **On a phone, the single-player bar names the rules in play at its top
+  right**: the style's flag, plus the table's minimum where it has one
+  (🇭🇰 3 faan, 🇹🇼 5 tai).
+
+### Changed
+- **The score panel waits another half second after a tsumo or ron**, so the
+  winning hand can be seen before it is covered. The server's auto-continue
+  waits the same extra time.
+- **Every top-left Back is a labelled button**, the same one everywhere: the
+  game bar's Menu, the lobby's Menu, the online table's Leave, the builder's
+  Back and the character screen's Back. On a phone each clears 44pt. The
+  builder's bar is taller on a phone to make room, and its title shortens to
+  "Hand Builder" there.
+
 ## 2026-09-25 — Centre status pill, room for full ponds, taller tablet tables
 
 ### Changed
