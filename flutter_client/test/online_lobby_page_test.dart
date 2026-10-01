@@ -246,6 +246,37 @@ void main() {
       await tester.pump();
     });
 
+    testWidgets('the bar names the rules and minimum top right, phone or not',
+        (tester) async {
+      for (final phone in [false, true]) {
+        for (final (ruleset, faan, tai, label) in [
+          (Ruleset.riichi, 0, 5, '🇯🇵'),
+          (Ruleset.hongKong, 0, 5, '🇭🇰'),
+          (Ruleset.hongKong, 3, 5, '🇭🇰 3 faan'),
+          (Ruleset.taiwanese, 0, 3, '🇹🇼 3 tai'),
+        ]) {
+          final game = OnlineGameController()
+            ..ruleset = ruleset
+            ..minimumFaan = faan
+            ..minimumPoints = tai;
+          await pumpTable(tester, game, onExit: () {}, phone: phone);
+          final badge = find.byKey(const Key('rulesetBadge'));
+          expect(tester.widget<Text>(badge).data, label,
+              reason: '$ruleset, phone: $phone');
+          final bar = tester.getRect(find.byType(AppBar));
+          final r = tester.getRect(badge);
+          expect(r.left, greaterThan(bar.center.dx),
+              reason: 'on the right of the bar');
+          expect(r.top, greaterThanOrEqualTo(bar.top));
+          expect(r.bottom, lessThanOrEqualTo(bar.bottom));
+          expect(tester.takeException(), isNull);
+          game.dispose();
+          await tester.pumpWidget(const SizedBox());
+          await tester.pump();
+        }
+      }
+    });
+
     testWidgets('a phone gets Leave, Sound and Client ID in its Menu',
         (tester) async {
       final game = OnlineGameController();
@@ -353,6 +384,26 @@ void main() {
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('a server without room_status is no error, and no reason to '
+        'forget the game', (tester) async {
+      GuestIdentity.load().saveActiveRoom('ABCD');
+      final game = OnlineGameController();
+      await pump(tester, game);
+      // The main menu's Rejoin is under way when the probe's answer arrives.
+      game.rejoinRoom('ABCD');
+      game.debugReceive(
+          {'type': 'error', 'message': 'unknown message type: room_status'});
+      await tester.pump();
+      expect(game.lastError, isNull);
+      expect(game.rejoining, isTrue, reason: 'the rejoin itself goes on');
+      expect(GuestIdentity.load().activeRoomCode, 'ABCD');
+      expect(find.byType(SnackBar), findsNothing);
+
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets('a game that has ended is forgotten, not offered',

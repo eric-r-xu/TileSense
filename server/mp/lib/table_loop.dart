@@ -50,7 +50,7 @@ class TableLoop {
         _continueLock = continueLock,
         _callDiscardHold = callDiscardHold,
         _afterCallPace =
-            afterCallPace ?? kCallPause + const Duration(milliseconds: 200),
+            afterCallPace ?? kCallPause + const Duration(milliseconds: 700),
         _tel = telemetry ??
             (room.seats[room.hostSeat] == null
                 ? null
@@ -107,9 +107,9 @@ class TableLoop {
   final Duration _callDiscardHold;
 
   /// How long a bot that has just called (or declared a kan of its own) waits
-  /// before its next move is shown — longer than [_botTurnPace], so the
-  /// call's bubble (`kCallPause` on the client) has cleared before the next
-  /// tile flies.
+  /// before its next move is shown, about 2s: the call's bubble
+  /// (`kCallPause` on the client) clears, then half a second more to take in
+  /// the new meld before the next tile flies.
   final Duration _afterCallPace;
 
   Ruleset get ruleset => room.ruleset;

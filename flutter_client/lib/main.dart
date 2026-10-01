@@ -26,6 +26,7 @@ import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/online_page.dart' deferred as online;
 import 'ui/phone_menu.dart';
+import 'ui/ruleset_badge.dart';
 import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
@@ -1031,15 +1032,6 @@ class _GamePageState extends State<GamePage> {
           ? '${_game.minimumPoints} tai min'
           : null;
 
-  /// The minimum a hand needs to win, for the phone bar's ruleset badge:
-  /// "3 faan" (Hong Kong, when the table sets one), "5 tai" (Taiwanese always
-  /// has one), or null (riichi's one-yaku rule isn't a points floor).
-  String? _minimumBadge() => _game.ruleset.isHongKong
-      ? (_game.minimumFaan > 0 ? '${_game.minimumFaan} faan' : null)
-      : _game.ruleset.isTaiwanese
-          ? '${_game.minimumPoints} tai'
-          : null;
-
   void _toggleGuide() => setState(() => _showGuide = !_showGuide);
 
   /// New game sits beside pause, an easy mis-tap on a phone, and throws away
@@ -1360,21 +1352,10 @@ class _GamePageState extends State<GamePage> {
         actions: phone ? [
           AnimatedBuilder(
             animation: _game,
-            builder: (context, _) => Tooltip(
-              message: 'Playing ${_game.ruleset.label} rules'
-                  '${_minimumSentence()}.',
-              child: Text(
-                switch (_minimumBadge()) {
-                  final min? => '${_game.ruleset.flag} $min',
-                  null => _game.ruleset.flag,
-                },
-                key: const Key('rulesetBadge'),
-                style: const TextStyle(
-                  color: Color(0xffffdf76),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+            builder: (context, _) => RulesetBadge(
+              ruleset: _game.ruleset,
+              minimumFaan: _game.minimumFaan,
+              minimumPoints: _game.minimumPoints,
             ),
           ),
           const SizedBox(width: 16),
