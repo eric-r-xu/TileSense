@@ -22,11 +22,15 @@ TableLoop _fastLoop(Room room) => TableLoop(
       abandonGrace: const Duration(milliseconds: 600),
       continueTimeout: const Duration(milliseconds: 500),
       botTurnPace: Duration.zero,
+      continueLock: Duration.zero,
+      callDiscardHold: Duration.zero,
+      afterCallPace: Duration.zero,
     );
 
-Future<HttpServer> _startServer(RoomManager manager) async {
+Future<HttpServer> _startServer(RoomManager manager,
+    {TableLoop Function(Room room) loop = _fastLoop}) async {
   final handler = const Pipeline()
-      .addHandler(buildMultiplayerHandler(manager, tableLoopFactory: _fastLoop));
+      .addHandler(buildMultiplayerHandler(manager, tableLoopFactory: loop));
   return shelf_io.serve(handler, '127.0.0.1', 0);
 }
 
@@ -473,6 +477,134 @@ void main() {
     expect(await ask('NOPE', 'guest-a'), isFalse);
     // Asking attaches nothing: the probe socket holds no seat.
     expect(manager.find(code)!.seats.where((s) => s!.connected).length, 1);
+  });
+
+  test("Continue is held until the score lock is up, and pressing twice is fine",
+      () async {
+    const lock = Duration(milliseconds: 800);
+    final manager = RoomManager();
+    final server = await _startServer(manager,
+        loop: (room) => TableLoop(
+              room,
+              turnTimeout: const Duration(seconds: 2),
+              callTimeout: const Duration(milliseconds: 500),
+              continueTimeout: const Duration(seconds: 30),
+              botTurnPace: Duration.zero,
+              continueLock: lock,
+            ));
+    addTearDown(server.close);
+    final (a, _) = await startSolo(server.port, 'guest-a');
+    addTearDown(a.close);
+    final sub = _autoplay(a);
+    addTearDown(sub.cancel);
+
+    final result = await a.waitFor((m) => m['type'] == 'round_result',
+        timeout: const Duration(seconds: 20));
+    if (result['gamePhase'] != 'roundEnd') return; // the game ended outright
+    await sub.cancel(); // no more turns to play until the next hand
+    final shownAt = DateTime.now();
+    a.log.clear();
+    a.send({'type': 'continue_round'});
+    a.send({'type': 'continue_round'});
+
+    await a.waitFor((m) => m['type'] == 'state',
+        timeout: const Duration(seconds: 10));
+    // A win also waits out the clients' reveal; a draw only the lock.
+    expect(DateTime.now().difference(shownAt),
+        greaterThanOrEqualTo(lock - const Duration(milliseconds: 50)));
+    // A second Continue used to complete an already-completed Completer,
+    // which threw and came back as "bad request".
+    expect(
+        a.log.where(
+            (m) => m['type'] == 'error' && m['message'] == 'bad request'),
+        isEmpty);
+  });
+
+  test("a bot's call holds the taken discard, then waits out its bubble",
+      () async {
+    const hold = Duration(milliseconds: 300);
+    const afterCall = Duration(milliseconds: 400);
+    final manager = RoomManager();
+    final server = await _startServer(manager,
+        loop: (room) => TableLoop(
+              room,
+              turnTimeout: const Duration(seconds: 2),
+              callTimeout: const Duration(milliseconds: 500),
+              continueTimeout: const Duration(milliseconds: 100),
+              continueLock: Duration.zero,
+              botTurnPace: const Duration(milliseconds: 20),
+              callDiscardHold: hold,
+              afterCallPace: afterCall,
+            ));
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    // Hong Kong: bots pon and chow freely, so calls come quickly.
+    a.send({...createMsg('guest-a'), 'ruleset': 'hongKong', 'hanchan': true});
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+    final sub = _autoplay(a);
+    addTearDown(sub.cancel);
+
+    // Each measured bot call: how long the taken tile had been on the table,
+    // and how long the caller's bubble had before its next discard.
+    final measured = <({int held, int after})>[];
+    final sw = Stopwatch()..start();
+    final done = Completer<void>();
+    List<int>? melds, ponds;
+    int? serial;
+    var discardAt = 0;
+    ({int seat, int at, int held})? call;
+    final watch = a._controller.stream.listen((m) {
+      if (m['type'] == 'round_result') {
+        melds = null;
+        serial = null;
+        call = null;
+        a.send({'type': 'continue_round'});
+        return;
+      }
+      if (m['type'] != 'state') return;
+      final t = sw.elapsedMilliseconds;
+      final seats =
+          ((m['round'] as Map)['seats'] as List).cast<Map<String, dynamic>>();
+      final nowMelds = [for (final s in seats) (s['melds'] as List).length];
+      final nowPonds = [for (final s in seats) (s['pond'] as List).length];
+      final nowSerial = m['discardSerial'] as int;
+      if (serial != null && nowSerial > serial!) {
+        final c = call;
+        if (c != null && m['lastDiscardSeat'] == c.seat) {
+          measured.add((held: c.held, after: t - c.at));
+          call = null;
+          if (measured.length >= 3 && !done.isCompleted) done.complete();
+        }
+        discardAt = t;
+      }
+      if (melds != null) {
+        for (var s = 0; s < 4; s++) {
+          // A call: a new meld, its own pond unchanged (a kan from the hand
+          // on its own turn is left out — it took no discard).
+          if (s != m['yourSeat'] &&
+              nowMelds[s] > melds![s] &&
+              nowPonds[s] == ponds![s] &&
+              nowSerial == serial) {
+            call = (seat: s, at: t, held: t - discardAt);
+          }
+        }
+      }
+      melds = nowMelds;
+      ponds = nowPonds;
+      serial = nowSerial;
+    });
+    addTearDown(watch.cancel);
+
+    await done.future.timeout(const Duration(seconds: 60));
+    const slack = 40; // timer and socket jitter on a loaded machine
+    for (final c in measured) {
+      expect(c.held, greaterThanOrEqualTo(hold.inMilliseconds - slack),
+          reason: 'the called tile should be seen landing first');
+      expect(c.after, greaterThanOrEqualTo(afterCall.inMilliseconds - slack),
+          reason: "the caller's next discard waits out its bubble");
+    }
   });
 
   test('an oversized message closes the socket', () async {

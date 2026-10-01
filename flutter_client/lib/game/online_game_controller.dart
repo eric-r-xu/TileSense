@@ -8,10 +8,12 @@
 library;
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:mahjong_core/game_timing.dart';
 import 'package:mahjong_core/mahjong_core.dart';
 
 import '../logic/auto_dials.dart';
@@ -231,6 +233,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   void leaveRoom() {
     _client.send({'type': 'leave_room'});
+    _clearReplay();
     roomCode = '';
     mySeat = null;
     roomPhase = RoomLifecycle.lobby;
@@ -518,11 +521,17 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       case 'room_state':
         _applyRoomState(msg);
       case 'state':
-        _applyRoundSnapshot(msg, isResult: false);
+        _enqueueSnapshot(msg, isResult: false);
       case 'round_result':
-        _applyRoundSnapshot(msg, isResult: true);
+        _enqueueSnapshot(msg, isResult: true);
       case 'error':
         lastError = msg['message'] as String?;
+        // The server turned down the discard already shown as made: put the
+        // table back the way the server last described it.
+        final last = _lastSnapshot;
+        if (_predictedSerial != null && last != null) {
+          _applyRoundSnapshot(last, isResult: false);
+        }
         if (_pendingRejoin != null) {
           // The only errors a rejoin gets mean that game can't be rejoined.
           _pendingRejoin = null;
@@ -558,6 +567,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         notifyListeners();
       case '_reconnected':
         connectionLost = false;
+        // The server resends the whole table on reconnect; anything still
+        // queued from before the drop is stale.
+        _clearReplay();
         if (roomCode.isNotEmpty) {
           _client.send({
             'type': 'reconnect',
@@ -613,6 +625,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   void _applyRoundSnapshot(Map<String, dynamic> msg, {required bool isResult}) {
+    // The server's word replaces any discard shown ahead of it.
+    _predictedSerial = null;
+    if (!isResult) _lastSnapshot = msg;
     final seat = msg['yourSeat'] as int;
     final previousRound = _roundReady ? round : null;
     mySeat = seat;
@@ -750,6 +765,91 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       'tileId': tile.id,
       'riichi': declareRiichi,
     });
+    _predictDiscard(tile);
+  }
+
+  // --- smoothing over the network ------------------------------------------
+  //
+  // Your own discard is shown the moment you make it, not a round trip
+  // later; and when the server's updates arrive in a burst after a lag, each
+  // discard in it is replayed in turn instead of the table jumping to the
+  // newest one.
+
+  /// The `discardSerial` your shown-ahead discard will have once the server
+  /// confirms it; null when nothing is waiting on the server.
+  int? _predictedSerial;
+
+  /// The last `state` applied: what a turned-down discard rolls back to.
+  Map<String, dynamic>? _lastSnapshot;
+
+  final Queue<({Map<String, dynamic> msg, bool isResult})> _snapshots =
+      Queue();
+
+  /// Running for [kReplayGap] after a discard lands; a snapshot bringing the
+  /// next discard waits for it.
+  Timer? _replayGap;
+
+  /// Takes [tile] from your hand into your pond now, ahead of the server.
+  /// Only your own seat changes — never `Round.discard`, which on this copy,
+  /// with everyone else's hand hidden, would work out call options from
+  /// placeholder tiles. Riichi's stick and voice wait for the server's echo,
+  /// which is what announces every other riichi too.
+  void _predictDiscard(Tile tile) {
+    final s = round.seats[kHumanSeat];
+    final i = s.hand.indexWhere((t) => t.id == tile.id);
+    if (i < 0) return;
+    _lastDiscardTsumogiri = tile.id == s.drawn?.id;
+    s.hand.removeAt(i);
+    s.drawn = null;
+    s.pond.add(tile);
+    // Nobody is to act until the server answers: this hides your turn's
+    // buttons and turns away a second tap.
+    round.phase = RoundPhase.drawing;
+    _discardSerial++;
+    _predictedSerial = _discardSerial;
+    _lastDiscardSeat = kHumanSeat;
+    _lastSfxDiscardSerial = _discardSerial; // the echo doesn't clink again
+    Sfx.i.play(SfxKind.discard);
+    _startReplayGap();
+    _refreshReport();
+    notifyListeners();
+  }
+
+  void _enqueueSnapshot(Map<String, dynamic> msg, {required bool isResult}) {
+    _snapshots.add((msg: msg, isResult: isResult));
+    _drainSnapshots();
+  }
+
+  /// Applies queued snapshots in order. One that brings a new discard waits
+  /// out the gap after the last one, so each is seen landing; anything else
+  /// (a call resolving, a draw) goes straight on unless it is queued behind
+  /// a discard. On a healthy connection nothing waits: the server spaces
+  /// bots' turns wider than the gap, and your own discard's echo brings no
+  /// new one.
+  void _drainSnapshots() {
+    while (_snapshots.isNotEmpty) {
+      final next = _snapshots.first;
+      final bringsDiscard =
+          (next.msg['discardSerial'] as int? ?? 0) > _discardSerial;
+      if (bringsDiscard && (_replayGap?.isActive ?? false)) return;
+      _snapshots.removeFirst();
+      _applyRoundSnapshot(next.msg, isResult: next.isResult);
+      if (bringsDiscard) _startReplayGap();
+    }
+  }
+
+  /// A long backlog replays faster, so the table catches up.
+  void _startReplayGap() {
+    _replayGap?.cancel();
+    _replayGap = Timer(
+        _snapshots.length >= 3 ? kReplayCatchUpGap : kReplayGap,
+        _drainSnapshots);
+  }
+
+  void _clearReplay() {
+    _snapshots.clear();
+    _replayGap?.cancel();
+    _replayGap = null;
   }
 
   @override
@@ -1248,6 +1348,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   void dispose() {
     _autoDiscardTimer?.cancel();
+    _replayGap?.cancel();
     _sub?.cancel();
     _client.close();
     super.dispose();
