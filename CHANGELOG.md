@@ -22,7 +22,8 @@ approximate wherever a batch of work spanned more than a day.
   that started with a human can be reclaimed.
 - **On a phone, the single-player bar names the rules in play at its top
   right**: the style's flag, plus the table's minimum where it has one
-  (🇭🇰 3 faan, 🇹🇼 5 tai).
+  (🇭🇰 3 faan, 🇹🇼 5 tai). The online table's bar shows the same badge, top
+  right, on a phone and on a desktop.
 
 ### Changed
 - **Online play is smoother under lag.** Your discard leaves your hand and
@@ -35,8 +36,13 @@ approximate wherever a batch of work spanned more than a day.
   lands, or discards again mid-bubble.** The called tile now stays in the
   pond at least 0.6s before it is taken (it used to vanish ~1ms after it
   arrived), and a bot that has just called, or declared a kan of its own,
-  waits ~1.5s rather than 0.9s before its next move, so the PON / CHI / KAN
-  bubble has cleared first.
+  waits ~2s rather than 0.9s before its next move: the PON / CHI / KAN
+  bubble clears, then half a second more to take in the new meld.
+- **The Play Online lobby no longer shows "unknown message type: room_status"**
+  when it is talking to a multiplayer server older than the Rejoin feature.
+  The lobby then just offers no Rejoin banner, and a Rejoin already under way
+  from the main menu carries on instead of being reported as "That game has
+  ended".
 - **Online, Continue on the score panel is locked for its first 6 seconds**
   (it counts down on the button), so one player can't skip the scores before
   the others have read them; the server holds an early press until then.

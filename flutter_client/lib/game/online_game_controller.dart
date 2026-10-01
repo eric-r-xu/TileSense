@@ -525,6 +525,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       case 'round_result':
         _enqueueSnapshot(msg, isResult: true);
       case 'error':
+        // A server from before `room_status` existed can't say whether a
+        // game is still on. Nothing to show: the lobby just offers no Rejoin
+        // banner, and the main menu's Rejoin still tries the game directly.
+        if (msg['message'] == 'unknown message type: room_status') return;
         lastError = msg['message'] as String?;
         // The server turned down the discard already shown as made: put the
         // table back the way the server last described it.

@@ -17,6 +17,7 @@ import 'bar_back_button.dart';
 import 'client_id_text.dart';
 import 'hand_view.dart';
 import 'phone_menu.dart';
+import 'ruleset_badge.dart';
 import 'scoring_view.dart';
 import 'table_view.dart';
 import 'tilesensor.dart';
@@ -237,22 +238,32 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 ],
               ),
             ),
-            // The client id and sound sit top-right, where the solo table
-            // keeps its game controls too.
-            actions: phone ? const [] : [
-              const ClientIdButton(),
-              const SizedBox(width: 8),
-              IconButton(
-                key: const Key('soundToggle'),
-                tooltip: game.soundOn
-                    ? 'Sound on — tap to mute'
-                    : 'Sound off — tap to unmute',
-                iconSize: 24,
-                icon: Icon(game.soundOn ? Icons.volume_up : Icons.volume_off),
-                color: game.soundOn ? const Color(0xffe9d58f) : Colors.white38,
-                onPressed: () => game.setSoundOn(!game.soundOn),
+            // The rules in play top right, as at the solo table, then (off a
+            // phone, whose controls are in its Menu) the client id and sound.
+            actions: [
+              RulesetBadge(
+                ruleset: game.ruleset,
+                minimumFaan: game.minimumFaan,
+                minimumPoints: game.minimumPoints,
+                fontSize: phone ? 20 : 16,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: phone ? 16 : 12),
+              if (!phone) ...[
+                const ClientIdButton(),
+                const SizedBox(width: 8),
+                IconButton(
+                  key: const Key('soundToggle'),
+                  tooltip: game.soundOn
+                      ? 'Sound on — tap to mute'
+                      : 'Sound off — tap to unmute',
+                  iconSize: 24,
+                  icon: Icon(game.soundOn ? Icons.volume_up : Icons.volume_off),
+                  color:
+                      game.soundOn ? const Color(0xffe9d58f) : Colors.white38,
+                  onPressed: () => game.setSoundOn(!game.soundOn),
+                ),
+                const SizedBox(width: 10),
+              ],
             ],
           ),
           body: SafeArea(
