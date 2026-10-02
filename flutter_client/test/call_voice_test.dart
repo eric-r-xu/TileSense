@@ -1,10 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:mahjong_core/bot.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 
 import 'helpers.dart';
+
+/// A bot that always pons when offered, regardless of tile value, to force the
+/// pon-supersedes-chi conflict in tests.
+class _AlwaysPonBot extends SimpleBot {
+  _AlwaysPonBot(super.seed);
+
+  @override
+  CallType decideCall(
+      Round round, int seat, Tile discard, Set<CallType> allowed) {
+    if (allowed.contains(CallType.pon)) return CallType.pon;
+    return super.decideCall(round, seat, discard, allowed);
+  }
+}
 
 /// Every call the game can make should voice its character's line. Chi is the
 /// newest of them and the only one no opponent ever makes, so it is the one
@@ -71,6 +85,55 @@ void main() {
 
       expect(log, isEmpty);
       expect(game.round.seats[kHumanSeat].melds, isEmpty);
+    } finally {
+      Sfx.debugVoiceLog = null;
+      game.dispose();
+      Sfx.i.enabled = true;
+    }
+  });
+
+  testWidgets(
+      'when pon supersedes chi, only the pon voice plays and chi is silent',
+      (tester) async {
+    Sfx.i.enabled = false;
+    final log = <(Character, VoiceKind)>[];
+    Sfx.debugVoiceLog = log;
+
+    // Seat 3 discards pin5.
+    // Seat 0 (orderic / human): 4p 6p + filler — can chi the pin5.
+    // Seat 2 (hubert / bot): 5p 5p + filler — _AlwaysPonBot will call pon.
+    final fed = Tile(900, TileType.pin5);
+    final game = GameController(seed: 4, botFactory: _AlwaysPonBot.new);
+    game.autoWin = false;
+    final round = game.round;
+    round.seats[kHumanSeat]
+      ..hand = parseTiles('46p 123m 456m 789m 99s')
+      ..drawn = null
+      ..melds = [];
+    round.seats[2]
+      ..hand = parseTiles('55p 123m 456m 789m 99s')
+      ..drawn = null
+      ..melds = [];
+    round.seats[3]
+      ..hand = [...parseTiles('123m 456m 789m 111s 2p'), fed]
+      ..drawn = fed;
+    round.turn = 3;
+    round.phase = RoundPhase.discarding;
+    round.discard(3, fed);
+    // Confirm the call window opened with both a chi for the human and pon for the bot.
+    expect(round.phase, RoundPhase.callOffer,
+        reason: 'discard should open a call window');
+    expect(round.callOptions.any((o) => o.seat == 0), isTrue,
+        reason: 'seat 0 should have a chi call');
+    try {
+      await pumpUntil(tester, () => game.awaitingHumanCall);
+      expect(game.humanCallOption!.types, contains(CallType.chi));
+
+      game.answerCall(CallType.chi);
+
+      // Pon (hubert) wins priority — only pon voices, not the superseded chi.
+      expect(log, contains((Character.hubert, VoiceKind.pon)));
+      expect(log, isNot(contains((Character.orderic, VoiceKind.chi))));
     } finally {
       Sfx.debugVoiceLog = null;
       game.dispose();

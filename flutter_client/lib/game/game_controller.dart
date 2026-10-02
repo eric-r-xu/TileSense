@@ -1110,25 +1110,33 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void _playCallSfx(Map<int, CallType> choices) {
     final calls = choices.values;
     if (calls.contains(CallType.ron)) return; // handled at round end
-    if (calls.contains(CallType.kan)) {
-      Sfx.i.play(SfxKind.kan);
-    } else if (calls.contains(CallType.pon)) {
-      Sfx.i.play(SfxKind.pon);
-    } else if (calls.contains(CallType.chi)) {
-      Sfx.i.play(SfxKind.chi);
-    }
-    // The seat that made the call gets its character's line.
+    // Highest-priority call wins; only that seat voices and shows a bubble.
+    final CallType? winType = calls.contains(CallType.kan)
+        ? CallType.kan
+        : calls.contains(CallType.pon)
+            ? CallType.pon
+            : calls.contains(CallType.chi)
+                ? CallType.chi
+                : null;
+    if (winType == null) return;
+    final blip = switch (winType) {
+      CallType.kan => SfxKind.kan,
+      CallType.pon => SfxKind.pon,
+      CallType.chi => SfxKind.chi,
+      _ => null,
+    };
+    if (blip != null) Sfx.i.play(blip);
+    final vk = switch (winType) {
+      CallType.chi => VoiceKind.chi,
+      CallType.pon => VoiceKind.pon,
+      CallType.kan => VoiceKind.kan,
+      _ => null,
+    };
+    if (vk == null) return;
     for (final e in choices.entries) {
-      final vk = switch (e.value) {
-        CallType.chi => VoiceKind.chi,
-        CallType.pon => VoiceKind.pon,
-        CallType.kan => VoiceKind.kan,
-        _ => null,
-      };
-      if (vk != null) {
-        Sfx.i.voice(vk, character: _characterForSeat(e.key));
-        CallCallout.i.show(e.key, vk.name);
-      }
+      if (e.value != winType) continue; // superseded by a higher-priority call
+      Sfx.i.voice(vk, character: _characterForSeat(e.key));
+      CallCallout.i.show(e.key, vk.name);
     }
   }
 
