@@ -27,6 +27,55 @@ void main() {
     expect(() => TableLoop(room), returnsNormally);
   });
 
+  test('only 10 and 20 are accepted for the call buffer; else falls back to 10',
+      () {
+    expect(Room.normalizeCallBufferSeconds(10), 10);
+    expect(Room.normalizeCallBufferSeconds(20), 20);
+    for (final bad in [null, 0, 15, 3600, -1, '10', 10.0]) {
+      expect(Room.normalizeCallBufferSeconds(bad), 10, reason: '$bad');
+    }
+  });
+
+  test('a room defaults to a 10s call buffer and reports it in room_state',
+      () {
+    final def = Room(code: 'FFFF', ruleset: Ruleset.riichi, hanchan: true);
+    expect(def.callBufferSeconds, 10);
+    final long = Room(
+        code: 'GGGG',
+        ruleset: Ruleset.riichi,
+        hanchan: true,
+        callBufferSeconds: 20);
+    expect(long.roomStateJson()['callBufferSeconds'], 20);
+  });
+
+  test('RoomManager normalizes the call buffer it is given', () {
+    final manager = RoomManager();
+    final room = manager.createRoom(
+        hostGuestId: 'g',
+        hostName: 'Host',
+        ruleset: Ruleset.riichi,
+        hanchan: true,
+        callBufferSeconds: 20);
+    expect(room.roomStateJson()['callBufferSeconds'], 20);
+    final bad = manager.createRoom(
+        hostGuestId: 'h',
+        hostName: 'Host',
+        ruleset: Ruleset.riichi,
+        hanchan: true,
+        callBufferSeconds: 15);
+    expect(bad.callBufferSeconds, 10, reason: 'out-of-range falls back to 10');
+  });
+
+  test('the table loop still constructs with a non-default call buffer', () {
+    final room = Room(
+        code: 'HHHH',
+        ruleset: Ruleset.riichi,
+        hanchan: true,
+        timerSeconds: 60,
+        callBufferSeconds: 20);
+    expect(() => TableLoop(room), returnsNormally);
+  });
+
   test('a Hong Kong room carries its minimum faan to room_state', () {
     final def = Room(code: 'DDDD', ruleset: Ruleset.hongKong, hanchan: true);
     expect(def.roomStateJson()['minimumFaan'], 0);

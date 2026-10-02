@@ -41,8 +41,10 @@ class TableLoop {
     Duration callDiscardHold = const Duration(milliseconds: 600),
     Duration? afterCallPace,
     MpTelemetry? telemetry,
-  })  : _turnTimeout = turnTimeout ?? Duration(seconds: room.timerSeconds),
-        _callTimeout = callTimeout ?? Duration(seconds: room.timerSeconds),
+  })  : _turnTimeout = turnTimeout ??
+            Duration(seconds: room.timerSeconds + room.callBufferSeconds),
+        _callTimeout = callTimeout ??
+            Duration(seconds: room.timerSeconds + room.callBufferSeconds),
         _disconnectGrace = disconnectGrace,
         _abandonGrace = abandonGrace,
         _continueTimeout = continueTimeout,
@@ -66,13 +68,15 @@ class TableLoop {
   late String _roundId;
 
   /// How long a human seat gets to answer its own turn (discard / kan /
-  /// riichi / tsumo) before a bot plays that one decision for it.
+  /// riichi / tsumo) before a bot plays that one decision for it. Already
+  /// includes the room's call buffer (see [Room.callBufferSeconds]) on top
+  /// of its base [Room.timerSeconds].
   final Duration _turnTimeout;
 
   /// How long a human seat gets to answer a call offer (chi/pon/kan/ron)
-  /// before a bot decides that one call for it — short, because real calls
-  /// are time-pressured and one silent player must not stall the other
-  /// three.
+  /// before a bot decides that one call for it. Already includes the room's
+  /// call buffer (see [Room.callBufferSeconds]) on top of its base
+  /// [Room.timerSeconds].
   final Duration _callTimeout;
 
   /// How long a disconnected seat is held open before a bot takes it over.
