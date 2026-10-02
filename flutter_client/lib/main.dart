@@ -17,6 +17,7 @@ import 'game/sfx.dart';
 import 'l10n/app_language.dart';
 import 'l10n/l10n.dart';
 import 'l10n/mahjong_terms.dart';
+import 'l10n/guide_terms.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'net/guest_identity.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
@@ -1381,9 +1382,9 @@ class _GamePageState extends State<GamePage> {
                     tooltip: _game.autoplayBrain == AutoplayBrain.mortal
                         ? null
                         : context.l10n.algorithmTooltip(
-                            _game.playStyle.label,
-                            _game.handFocus.label,
-                            _game.strategy.label),
+                            context.l10n.playStyleName(_game.playStyle),
+                            context.l10n.handFocusName(_game.handFocus),
+                            context.l10n.strategyName(_game.strategy)),
                     onTap: () => _game.setAutoplayBrain(
                         _game.autoplayBrain == AutoplayBrain.mortal
                             ? AutoplayBrain.tilesense

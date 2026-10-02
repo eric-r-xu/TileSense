@@ -257,7 +257,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
-    return 'TileSense 指南：$style · $focus · $strategy。\n随对局进程自动设置：前期用 Aggressive · Speed · Points 建立领先；最后两局用 Balanced · Speed · Placement 保住或提升名次。';
+    return 'TileSense 指南：$style · $focus · $strategy。\n随对局自动调整：前期采用进攻・速度・点数以建立领先；最后两局采用平衡・速度・顺位以守住或提升排名。';
   }
 
   @override
@@ -1463,6 +1463,553 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorGameEnded => '该对局已结束';
+
+  @override
+  String get guideTipTitle => '指南\n';
+
+  @override
+  String get guideGreen => '绿色牌';
+
+  @override
+  String get guideGreenBody => '建议打出的牌';
+
+  @override
+  String get guideYellow => '黄色牌';
+
+  @override
+  String get guideYellowBody => '刚摸到的牌';
+
+  @override
+  String get guidePause => '暂停对局';
+
+  @override
+  String get guideHover => '\n将鼠标悬停在标题或设置上可查看说明。';
+
+  @override
+  String get tipAutoTitle => '自动打牌\n';
+
+  @override
+  String get tipAutoBody => '选择自动打牌采用的建议，以及下方候选项的排序依据。\n';
+
+  @override
+  String get tipAutoChoices =>
+      '• TileSense（默认）：由指南打牌，首行显示指南的建议。\n• Mortal：由 Mortal 打牌，首行显示其建议。Mortal 无法回答时由指南决定。';
+
+  @override
+  String get tipEvTitle => 'TileSense 期望值\n';
+
+  @override
+  String get tipFinishTitle => '和牌概率';
+
+  @override
+  String get tipFinishBody => '本局结束前和牌的概率。剩余有效牌和摸牌次数越多，概率越高。\n';
+
+  @override
+  String get tipFinishMore => '悬停查看进张说明；点击 EV (HMR) 数值查看图表';
+
+  @override
+  String get tipPayoutTitle => '和牌收益';
+
+  @override
+  String get tipPayoutTw => '每位付款者支付相同点数，再加连庄奖励。听牌时为准确值，未听牌时按所示牌型估算。\n';
+
+  @override
+  String get tipPayoutHk => '将番数换算为筹码。听牌时为准确值，未听牌时按所示牌型估算。\n';
+
+  @override
+  String get tipPayoutRiichi => '和牌得点，加上本场和立直棒。听牌时为准确值，未听牌时为估算值。\n';
+
+  @override
+  String get tipPayoutMore => '点击 EV (HMR) 数值查看计算过程';
+
+  @override
+  String get tipCutTitle => '打牌风险';
+
+  @override
+  String get tipCutChinese => '对手有三组以上明露面子时的预期损失。没有绝对安全的牌。\n';
+
+  @override
+  String get tipCutRiichi => '立直棒的成本（未和牌则损失）。面对立直时，还计入此牌的放铳概率和继续进攻所需的巡数。\n';
+
+  @override
+  String get tipCutMore => '悬停查看风险和安全度';
+
+  @override
+  String get tipFocusTitle => '侧重点';
+
+  @override
+  String get tipFocusBody => '速度优先会牺牲部分收益以提高和牌概率。平衡模式不作偏向调整。\n';
+
+  @override
+  String get tipFocusMore => '悬停查看侧重点';
+
+  @override
+  String get tipFocusPlacementMore => '悬停查看侧重点、策略和顺位的其余说明';
+
+  @override
+  String get tipEvHigher => '\n越高越好。风险高、收益低的打牌可能为负值。';
+
+  @override
+  String get tipOrdinaryWide => '比通常更宽';
+
+  @override
+  String get tipOrdinaryWideBody => '推进更快，但估算速度不超过普通手牌';
+
+  @override
+  String get tipOrdinaryTitle => '普通手牌的平均值';
+
+  @override
+  String get tipShantenLabel => '向听数';
+
+  @override
+  String get tipUkeireLabel => '进张';
+
+  @override
+  String get tipAwayLabel => '距听牌';
+
+  @override
+  String get tipAcceptsLabel => '有效进张';
+
+  @override
+  String get tipOrdinaryNote =>
+      '\n这是平均数，不是中位数：通过只追求牌效率、不防守也不鸣牌的单人模拟，测得各向听数下最佳打牌的平均进张。';
+
+  @override
+  String get tipSafetyTitle => '安全度\n';
+
+  @override
+  String get tipSafetyChinese => '面对有明露面子的对手时，打出此牌的风险。越高越安全。\n';
+
+  @override
+  String get tipSafetyRiichi => '面对立直时打出此牌的安全度。0 为危险，15 为现物。\n';
+
+  @override
+  String get tipNeverCertain => '没有绝对安全';
+
+  @override
+  String get tipNeverCertainBody => '没有振听规则，对手打过的牌仍可能让其和牌';
+
+  @override
+  String get tipRatedWhen => '评估条件';
+
+  @override
+  String get tipGenbutsu => '现物';
+
+  @override
+  String get tipGenbutsuBody => '对手打过的牌，或其立直后放过的牌，不会让其荣和';
+
+  @override
+  String get tipSuji => '筋';
+
+  @override
+  String get tipSujiBody => '与对手舍牌相差三的牌相对安全';
+
+  @override
+  String get tipRatedRiichi => '有人立直时才评估，否则显示 —';
+
+  @override
+  String get tipDealInTitle => '打牌放铳概率';
+
+  @override
+  String get tipRating => '评级';
+
+  @override
+  String get tipTile => '牌';
+
+  @override
+  String get tipDealsIn => '放铳率';
+
+  @override
+  String get tipRating15 => '现物 — 对手已打过的牌';
+
+  @override
+  String get tipRating13 => '字牌，剩余1张';
+
+  @override
+  String get tipRating12 => '双筋';
+
+  @override
+  String get tipRating11 => '筋幺九牌';
+
+  @override
+  String get tipRating9 => '字牌，剩余2张';
+
+  @override
+  String get tipRating8 => '无机会牌';
+
+  @override
+  String get tipRating7 => '半筋';
+
+  @override
+  String get tipRating6 => '筋2/3/7/8，或剩余3张的字牌';
+
+  @override
+  String get tipRating3 => '无筋2/3/7/8';
+
+  @override
+  String get tipRating2 => '无筋中张牌';
+
+  @override
+  String get tipHkRating14 => '字牌，未见0张';
+
+  @override
+  String get tipHkRating11 => '字牌，未见1张';
+
+  @override
+  String get tipHkRating6 => '字牌，未见2张以上';
+
+  @override
+  String get tipHkRating5 => '幺九牌';
+
+  @override
+  String get tipHkRating3 => '数牌';
+
+  @override
+  String get tipRiskTitle => '风险\n';
+
+  @override
+  String get tipDealInChance => '放铳概率';
+
+  @override
+  String get tipDealInChanceBody => '根据此牌的安全度计算';
+
+  @override
+  String get tipDealInCost => '放铳损失';
+
+  @override
+  String get tipStyleWeight => '风格权重';
+
+  @override
+  String get tipLaterTurns => '后续巡数';
+
+  @override
+  String get tipHowLong => '持续时间';
+
+  @override
+  String get tipChineseHorizon => '按本局预计剩余时间计算；无风险的打牌不产生额外成本';
+
+  @override
+  String get tipFormula => '公式';
+
+  @override
+  String get tipDetailTitle => '详情\n';
+
+  @override
+  String get tipDetailBody => '说明此牌获得该安全度评级的原因。\n';
+
+  @override
+  String get tipShows => '显示内容';
+
+  @override
+  String get tipShowsBody => '现物、筋、字牌剩余张数等';
+
+  @override
+  String get tipEmpty => '为空时';
+
+  @override
+  String get tipEmptyBody => '没有防守对象，因此没有说明';
+
+  @override
+  String get tipPlacementTitle => '顺位\n';
+
+  @override
+  String get tipPlacementBody => '此打法如何改变你最终领先其他三家的概率。\n';
+
+  @override
+  String get tipUses => '依据';
+
+  @override
+  String get tipUsesBody => '当前各家点数和剩余局数';
+
+  @override
+  String get tipNotPoints => '不是点数';
+
+  @override
+  String get tipNotPointsBody => '为便于阅读放大1,000倍；仅与其他打法的相对排序有意义';
+
+  @override
+  String get tipHeuristic => '启发式估算';
+
+  @override
+  String get tipHeuristicBody => '不是模拟结果';
+
+  @override
+  String get tipWorthTitle => '8,000点的价值';
+
+  @override
+  String get tipSituation => '局势';
+
+  @override
+  String get tipHandsLeft => '剩余局数';
+
+  @override
+  String get tipEven => '点数接近';
+
+  @override
+  String get tipLead => '大幅领先';
+
+  @override
+  String get tipBehind => '大幅落后';
+
+  @override
+  String get tipEvenLast => '点数接近，最后一局';
+
+  @override
+  String get tipLeadLast => '大幅领先，最后一局';
+
+  @override
+  String get tipPlacementNote => '\n点数在局势接近和对局末期时最重要，在大幅领先时影响最小。\n';
+
+  @override
+  String get tipNoWin => '此打法尚无可计分的和牌形。\n';
+
+  @override
+  String get tipRiskRow => '此牌风险';
+
+  @override
+  String get tipFinishRow => '和牌概率';
+
+  @override
+  String get tipPayoutRow => '和牌收益';
+
+  @override
+  String get tipSticksRow => '本场与立直棒';
+
+  @override
+  String get tipAverageRow => '平均收益';
+
+  @override
+  String get tipLockRow => '减去立直锁定成本';
+
+  @override
+  String get tipDealInRow => '减去放铳风险';
+
+  @override
+  String get tipCommitRow => '减去后续巡数成本';
+
+  @override
+  String get tipHmrBody => '仅用于比较的数值，不会影响建议。\n';
+
+  @override
+  String get tipHmrExcludes => '\n不计本场、立直棒、风险成本或风格与侧重点调整。\n';
+
+  @override
+  String get tipHmrSource => '\n对应以下工具的「E.V.」统计：';
+
+  @override
+  String get tipHmrSourceBody => '，这是一款仅限自摸的单人练习工具：总得点 ÷ 对局数，即和牌率 × 平均和牌得点。';
+
+  @override
+  String get tipYakuBody =>
+      '每条柱形表示：此打法和牌时包含该役的比例。一次和牌通常包含多个役，因此总和不为100%。100%表示每次和牌都有该役；计划立直时，立直为100%。\n\n乘以和牌概率，即为总体出现概率。\n\n宝牌不是役，因此另列为平均额外番数。\n\n≈表示估算：未听牌时，指南假定持续选择进张最宽的打法，并对最可能到达的听牌形计分。它不会主动规划役牌或染手等需要刻意追求的役，因此这些役可能偏低。距离听牌超过三张时暂不显示。';
+
+  @override
+  String get tipMortalBody =>
+      'Mortal 是开源深度学习麻将 AI，只使用你所在座位可见的信息。★标出其建议打牌（★R表示先立直）；数字表示其他候选项的优先顺序。Mortal 的建议用红框标出，指南的建议填充绿色；绿色加红框表示两者一致。\n\n';
+
+  @override
+  String get tipMortalAuto =>
+      '自动打牌选择 Mortal 时，会按其建议行动，列表也按其偏好排序。选择 TileSense（默认）时，按指南排序，Mortal 仅供参考。绿色牌始终是指南的建议。Mortal 无法回答时由指南决定。\n\n';
+
+  @override
+  String get tipMortalSource =>
+      '适用于单人立直麻将。Mortal 及其模型权重采用 AGPL-3.0：源码 github.com/Equim-chan/Mortal；运行服务 github.com/eric-r-xu/TileSense (mortal_sidecar)。';
+
+  @override
+  String get tipYakuTitle => '役\n';
+
+  @override
+  String tipEvAverage(String unit) {
+    return '此打牌对你的平均价值，以$unit计（EV＝期望值）。\n';
+  }
+
+  @override
+  String tipShantenBody(String ready) {
+    return '距离听牌所需的张数（0表示$ready）。';
+  }
+
+  @override
+  String tipUkeireBody(String effect) {
+    return '能$effect的剩余有效牌，即有帮助的摸牌数量。\n';
+  }
+
+  @override
+  String tipThreatSets(String count) {
+    return '对手有$count组以上明露面子，否则显示 —';
+  }
+
+  @override
+  String tipChineseCost(String cost, String unit) {
+    return '\n放铳损失按$cost$unit计算。';
+  }
+
+  @override
+  String tipRiichiCost(String cost, String dealerCost) {
+    return '$cost点（对庄家为$dealerCost点），每本场另加300点';
+  }
+
+  @override
+  String tipRiichiCostNote(String cost, String dealerCost) {
+    return '\n放铳损失为$cost点（对庄家为$dealerCost点），每本场另加300点。';
+  }
+
+  @override
+  String tipRiskBody(String unit) {
+    return '因打出此牌的风险而从期望值中扣除的$unit。\n';
+  }
+
+  @override
+  String tipStyleWeights(String weights, String styles) {
+    return '$styles对应×$weights';
+  }
+
+  @override
+  String tipCommitPercent(String percent) {
+    return '此打牌每需继续一巡，再加计成本的$percent%';
+  }
+
+  @override
+  String tipRiichiHorizon(String turns) {
+    return '按立直持续时间计算，约为你打牌$turns次；打现物不产生额外成本';
+  }
+
+  @override
+  String tipThisCut(String tile) {
+    return '\n此打牌 — $tile\n';
+  }
+
+  @override
+  String tipFocusTilt(String focus) {
+    return '$focus调整';
+  }
+
+  @override
+  String tipRankOrder(String name, String direction) {
+    return '$name（$direction优先）';
+  }
+
+  @override
+  String tipRankDirection(String direction) {
+    return '\n\n$direction越好，标题箭头表示该方向。';
+  }
+
+  @override
+  String tipRankBody(String first, String second, String third) {
+    return '打牌先按$first，再按$second，最后按$third排序；显示数值相同则视为相等。首选牌显示绿色，三项均与首选相同的牌也显示绿色。';
+  }
+
+  @override
+  String get tipReady => '听牌';
+
+  @override
+  String get tipTenpai => '听牌';
+
+  @override
+  String get tipCloser => '更接近听牌';
+
+  @override
+  String get tipReduce => '减少向听数';
+
+  @override
+  String get tipHigher => '越高';
+
+  @override
+  String get tipLower => '越低';
+
+  @override
+  String get tipHigherFirst => '较高';
+
+  @override
+  String get tipLowerFirst => '较低';
+
+  @override
+  String get tipPlacementLabel => '顺位';
+
+  @override
+  String get tipPointsUnit => '点';
+
+  @override
+  String get tipChipsUnit => '筹码';
+
+  @override
+  String get tipBalanced => '平衡';
+
+  @override
+  String get tipSpeed => '速度';
+
+  @override
+  String get tipAggressive => '进攻';
+
+  @override
+  String get tipPoints => '点数';
+
+  @override
+  String get tipDefensive => '防守';
+
+  @override
+  String get mathChance => '概率';
+
+  @override
+  String get mathFinish => '和牌';
+
+  @override
+  String get mathPayout => '收益';
+
+  @override
+  String get mathWin => '和牌';
+
+  @override
+  String get mathRisk => '风险';
+
+  @override
+  String get mathCut => '打牌';
+
+  @override
+  String get mathDealIn => '放铳';
+
+  @override
+  String get mathCost => '损失';
+
+  @override
+  String get mathWeight => '权重';
+
+  @override
+  String get mathStyle => '风格';
+
+  @override
+  String get mathCharge => '成本';
+
+  @override
+  String get mathLaterTurns => '后续巡数';
+
+  @override
+  String get mathWorth => '价值';
+
+  @override
+  String get mathGain => '增减';
+
+  @override
+  String get mathScore => '点数';
+
+  @override
+  String get mathOthers => '其他三家';
+
+  @override
+  String get mathTheirs => '对手';
+
+  @override
+  String get mathSpread => '分散尺度';
+
+  @override
+  String get mathHandsLeft => '剩余局数';
+
+  @override
+  String get mathLogistic => '逻辑函数';
+
+  @override
+  String mascotIntro(String mascot, String app) {
+    return '我是$mascot，一半草原犬鼠，一半美西螈。\n我会帮你选择最佳打牌和鸣牌。\n开启自动打牌，我就替你打。\n打错了？撤回再试一次。\n一起玩，提升你的$app！';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1718,7 +2265,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
-    return 'TileSense 指南：$style · $focus · $strategy。\n隨對局進程自動設定：前期用 Aggressive · Speed · Points 建立領先；最後兩局用 Balanced · Speed · Placement 保住或提升名次。';
+    return 'TileSense 指南：$style · $focus · $strategy。\n隨對局自動調整：前期採用進攻・速度・點數以建立領先；最後兩局採用平衡・速度・順位以守住或提升排名。';
   }
 
   @override
@@ -2924,4 +3471,551 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get errorGameEnded => '該對局已結束';
+
+  @override
+  String get guideTipTitle => '指南\n';
+
+  @override
+  String get guideGreen => '綠色牌';
+
+  @override
+  String get guideGreenBody => '建議打出的牌';
+
+  @override
+  String get guideYellow => '黃色牌';
+
+  @override
+  String get guideYellowBody => '剛摸到的牌';
+
+  @override
+  String get guidePause => '暫停對局';
+
+  @override
+  String get guideHover => '\n將滑鼠停在標題或設定上可查看說明。';
+
+  @override
+  String get tipAutoTitle => '自動打牌\n';
+
+  @override
+  String get tipAutoBody => '選擇自動打牌採用的建議，以及下方候選項的排序依據。\n';
+
+  @override
+  String get tipAutoChoices =>
+      '• TileSense（預設）：由指南打牌，首行顯示指南的建議。\n• Mortal：由 Mortal 打牌，首行顯示其建議。Mortal 無法回答時由指南決定。';
+
+  @override
+  String get tipEvTitle => 'TileSense 期望值\n';
+
+  @override
+  String get tipFinishTitle => '和牌機率';
+
+  @override
+  String get tipFinishBody => '本局結束前和牌的機率。剩餘有效牌和摸牌次數越多，機率越高。\n';
+
+  @override
+  String get tipFinishMore => '停留查看進張說明；點擊 EV (HMR) 數值查看圖表';
+
+  @override
+  String get tipPayoutTitle => '和牌收益';
+
+  @override
+  String get tipPayoutTw => '每位付款者支付相同點數，再加連莊獎勵。聽牌時為準確值，未聽牌時按所示牌型估算。\n';
+
+  @override
+  String get tipPayoutHk => '將番數換算為籌碼。聽牌時為準確值，未聽牌時按所示牌型估算。\n';
+
+  @override
+  String get tipPayoutRiichi => '和牌得點，加上本場和立直棒。聽牌時為準確值，未聽牌時為估算值。\n';
+
+  @override
+  String get tipPayoutMore => '點擊 EV (HMR) 數值查看計算過程';
+
+  @override
+  String get tipCutTitle => '打牌風險';
+
+  @override
+  String get tipCutChinese => '對手有三組以上明露面子時的預期損失。沒有絕對安全的牌。\n';
+
+  @override
+  String get tipCutRiichi => '立直棒的成本（未和牌則損失）。面對立直時，還計入此牌的放銃機率和繼續進攻所需的巡數。\n';
+
+  @override
+  String get tipCutMore => '停留查看風險和安全度';
+
+  @override
+  String get tipFocusTitle => '側重點';
+
+  @override
+  String get tipFocusBody => '速度優先會犧牲部分收益以提高和牌機率。平衡模式不作偏向調整。\n';
+
+  @override
+  String get tipFocusMore => '停留查看側重點';
+
+  @override
+  String get tipFocusPlacementMore => '停留查看側重點、策略和順位的其餘說明';
+
+  @override
+  String get tipEvHigher => '\n越高越好。風險高、收益低的打牌可能為負值。';
+
+  @override
+  String get tipOrdinaryWide => '比通常更寬';
+
+  @override
+  String get tipOrdinaryWideBody => '推進更快，但估算速度不超過普通手牌';
+
+  @override
+  String get tipOrdinaryTitle => '普通手牌的平均值';
+
+  @override
+  String get tipShantenLabel => '向聽數';
+
+  @override
+  String get tipUkeireLabel => '進張';
+
+  @override
+  String get tipAwayLabel => '距聽牌';
+
+  @override
+  String get tipAcceptsLabel => '有效進張';
+
+  @override
+  String get tipOrdinaryNote =>
+      '\n這是平均數，不是中位數：透過只追求牌效率、不防守也不鳴牌的單人模擬，測得各向聽數下最佳打牌的平均進張。';
+
+  @override
+  String get tipSafetyTitle => '安全度\n';
+
+  @override
+  String get tipSafetyChinese => '面對有明露面子的對手時，打出此牌的風險。越高越安全。\n';
+
+  @override
+  String get tipSafetyRiichi => '面對立直時打出此牌的安全度。0 為危險，15 為現物。\n';
+
+  @override
+  String get tipNeverCertain => '沒有絕對安全';
+
+  @override
+  String get tipNeverCertainBody => '沒有振聽規則，對手打過的牌仍可能讓其和牌';
+
+  @override
+  String get tipRatedWhen => '評估條件';
+
+  @override
+  String get tipGenbutsu => '現物';
+
+  @override
+  String get tipGenbutsuBody => '對手打過的牌，或其立直後放過的牌，不會讓其榮和';
+
+  @override
+  String get tipSuji => '筋';
+
+  @override
+  String get tipSujiBody => '與對手捨牌相差三的牌相對安全';
+
+  @override
+  String get tipRatedRiichi => '有人立直時才評估，否則顯示 —';
+
+  @override
+  String get tipDealInTitle => '打牌放銃機率';
+
+  @override
+  String get tipRating => '評級';
+
+  @override
+  String get tipTile => '牌';
+
+  @override
+  String get tipDealsIn => '放銃率';
+
+  @override
+  String get tipRating15 => '現物 — 對手已打過的牌';
+
+  @override
+  String get tipRating13 => '字牌，剩餘1張';
+
+  @override
+  String get tipRating12 => '雙筋';
+
+  @override
+  String get tipRating11 => '筋么九牌';
+
+  @override
+  String get tipRating9 => '字牌，剩餘2張';
+
+  @override
+  String get tipRating8 => '無機會牌';
+
+  @override
+  String get tipRating7 => '半筋';
+
+  @override
+  String get tipRating6 => '筋2/3/7/8，或剩餘3張的字牌';
+
+  @override
+  String get tipRating3 => '無筋2/3/7/8';
+
+  @override
+  String get tipRating2 => '無筋中張牌';
+
+  @override
+  String get tipHkRating14 => '字牌，未見0張';
+
+  @override
+  String get tipHkRating11 => '字牌，未見1張';
+
+  @override
+  String get tipHkRating6 => '字牌，未見2張以上';
+
+  @override
+  String get tipHkRating5 => '么九牌';
+
+  @override
+  String get tipHkRating3 => '數牌';
+
+  @override
+  String get tipRiskTitle => '風險\n';
+
+  @override
+  String get tipDealInChance => '放銃機率';
+
+  @override
+  String get tipDealInChanceBody => '根據此牌的安全度計算';
+
+  @override
+  String get tipDealInCost => '放銃損失';
+
+  @override
+  String get tipStyleWeight => '風格權重';
+
+  @override
+  String get tipLaterTurns => '後續巡數';
+
+  @override
+  String get tipHowLong => '持續時間';
+
+  @override
+  String get tipChineseHorizon => '按本局預計剩餘時間計算；無風險的打牌不產生額外成本';
+
+  @override
+  String get tipFormula => '公式';
+
+  @override
+  String get tipDetailTitle => '詳情\n';
+
+  @override
+  String get tipDetailBody => '說明此牌獲得該安全度評級的原因。\n';
+
+  @override
+  String get tipShows => '顯示內容';
+
+  @override
+  String get tipShowsBody => '現物、筋、字牌剩餘張數等';
+
+  @override
+  String get tipEmpty => '為空時';
+
+  @override
+  String get tipEmptyBody => '沒有防守對象，因此沒有說明';
+
+  @override
+  String get tipPlacementTitle => '順位\n';
+
+  @override
+  String get tipPlacementBody => '此打法如何改變你最終領先其他三家的機率。\n';
+
+  @override
+  String get tipUses => '依據';
+
+  @override
+  String get tipUsesBody => '目前各家點數和剩餘局數';
+
+  @override
+  String get tipNotPoints => '不是點數';
+
+  @override
+  String get tipNotPointsBody => '為便於閱讀放大1,000倍；僅與其他打法的相對排序有意義';
+
+  @override
+  String get tipHeuristic => '啟發式估算';
+
+  @override
+  String get tipHeuristicBody => '不是模擬結果';
+
+  @override
+  String get tipWorthTitle => '8,000點的價值';
+
+  @override
+  String get tipSituation => '局勢';
+
+  @override
+  String get tipHandsLeft => '剩餘局數';
+
+  @override
+  String get tipEven => '點數接近';
+
+  @override
+  String get tipLead => '大幅領先';
+
+  @override
+  String get tipBehind => '大幅落後';
+
+  @override
+  String get tipEvenLast => '點數接近，最後一局';
+
+  @override
+  String get tipLeadLast => '大幅領先，最後一局';
+
+  @override
+  String get tipPlacementNote => '\n點數在局勢接近和對局末期時最重要，在大幅領先時影響最小。\n';
+
+  @override
+  String get tipNoWin => '此打法尚無可計分的和牌形。\n';
+
+  @override
+  String get tipRiskRow => '此牌風險';
+
+  @override
+  String get tipFinishRow => '和牌機率';
+
+  @override
+  String get tipPayoutRow => '和牌收益';
+
+  @override
+  String get tipSticksRow => '本場與立直棒';
+
+  @override
+  String get tipAverageRow => '平均收益';
+
+  @override
+  String get tipLockRow => '減去立直鎖定成本';
+
+  @override
+  String get tipDealInRow => '減去放銃風險';
+
+  @override
+  String get tipCommitRow => '減去後續巡數成本';
+
+  @override
+  String get tipHmrBody => '僅用於比較的數值，不會影響建議。\n';
+
+  @override
+  String get tipHmrExcludes => '\n不計本場、立直棒、風險成本或風格與側重點調整。\n';
+
+  @override
+  String get tipHmrSource => '\n對應以下工具的「E.V.」統計：';
+
+  @override
+  String get tipHmrSourceBody => '，這是一款僅限自摸的單人練習工具：總得點 ÷ 對局數，即和牌率 × 平均和牌得點。';
+
+  @override
+  String get tipYakuBody =>
+      '每條柱形表示：此打法和牌時包含該役的比例。一次和牌通常包含多個役，因此總和不為100%。100%表示每次和牌都有該役；計畫立直時，立直為100%。\n\n乘以和牌機率，即為總體出現機率。\n\n寶牌不是役，因此另列為平均額外番數。\n\n≈表示估算：未聽牌時，指南假定持續選擇進張最寬的打法，並對最可能到達的聽牌形計分。它不會主動規劃役牌或染手等需要刻意追求的役，因此這些役可能偏低。距離聽牌超過三張時暫不顯示。';
+
+  @override
+  String get tipMortalBody =>
+      'Mortal 是開源深度學習麻將 AI，只使用你所在座位可見的資訊。★標出其建議打牌（★R表示先立直）；數字表示其他候選項的優先順序。Mortal 的建議用紅框標出，指南的建議填充綠色；綠色加紅框表示兩者一致。\n\n';
+
+  @override
+  String get tipMortalAuto =>
+      '自動打牌選擇 Mortal 時，會按其建議行動，列表也按其偏好排序。選擇 TileSense（預設）時，按指南排序，Mortal 僅供參考。綠色牌始終是指南的建議。Mortal 無法回答時由指南決定。\n\n';
+
+  @override
+  String get tipMortalSource =>
+      '適用於單人立直麻將。Mortal 及其模型權重採用 AGPL-3.0：原始碼 github.com/Equim-chan/Mortal；執行服務 github.com/eric-r-xu/TileSense (mortal_sidecar)。';
+
+  @override
+  String get tipYakuTitle => '役\n';
+
+  @override
+  String tipEvAverage(String unit) {
+    return '此打牌對你的平均價值，以$unit計（EV＝期望值）。\n';
+  }
+
+  @override
+  String tipShantenBody(String ready) {
+    return '距離聽牌所需的張數（0表示$ready）。';
+  }
+
+  @override
+  String tipUkeireBody(String effect) {
+    return '能$effect的剩餘有效牌，即有幫助的摸牌數量。\n';
+  }
+
+  @override
+  String tipThreatSets(String count) {
+    return '對手有$count組以上明露面子，否則顯示 —';
+  }
+
+  @override
+  String tipChineseCost(String cost, String unit) {
+    return '\n放銃損失按$cost$unit計算。';
+  }
+
+  @override
+  String tipRiichiCost(String cost, String dealerCost) {
+    return '$cost點（對莊家為$dealerCost點），每本場另加300點';
+  }
+
+  @override
+  String tipRiichiCostNote(String cost, String dealerCost) {
+    return '\n放銃損失為$cost點（對莊家為$dealerCost點），每本場另加300點。';
+  }
+
+  @override
+  String tipRiskBody(String unit) {
+    return '因打出此牌的風險而從期望值中扣除的$unit。\n';
+  }
+
+  @override
+  String tipStyleWeights(String weights, String styles) {
+    return '$styles對應×$weights';
+  }
+
+  @override
+  String tipCommitPercent(String percent) {
+    return '此打牌每需繼續一巡，再加計成本的$percent%';
+  }
+
+  @override
+  String tipRiichiHorizon(String turns) {
+    return '按立直持續時間計算，約為你打牌$turns次；打現物不產生額外成本';
+  }
+
+  @override
+  String tipThisCut(String tile) {
+    return '\n此打牌 — $tile\n';
+  }
+
+  @override
+  String tipFocusTilt(String focus) {
+    return '$focus調整';
+  }
+
+  @override
+  String tipRankOrder(String name, String direction) {
+    return '$name（$direction優先）';
+  }
+
+  @override
+  String tipRankDirection(String direction) {
+    return '\n\n$direction越好，標題箭頭表示該方向。';
+  }
+
+  @override
+  String tipRankBody(String first, String second, String third) {
+    return '打牌先按$first，再按$second，最後按$third排序；顯示數值相同則視為相等。首選牌顯示綠色，三項均與首選相同的牌也顯示綠色。';
+  }
+
+  @override
+  String get tipReady => '聽牌';
+
+  @override
+  String get tipTenpai => '聽牌';
+
+  @override
+  String get tipCloser => '更接近聽牌';
+
+  @override
+  String get tipReduce => '減少向聽數';
+
+  @override
+  String get tipHigher => '越高';
+
+  @override
+  String get tipLower => '越低';
+
+  @override
+  String get tipHigherFirst => '較高';
+
+  @override
+  String get tipLowerFirst => '較低';
+
+  @override
+  String get tipPlacementLabel => '順位';
+
+  @override
+  String get tipPointsUnit => '點';
+
+  @override
+  String get tipChipsUnit => '籌碼';
+
+  @override
+  String get tipBalanced => '平衡';
+
+  @override
+  String get tipSpeed => '速度';
+
+  @override
+  String get tipAggressive => '進攻';
+
+  @override
+  String get tipPoints => '點數';
+
+  @override
+  String get tipDefensive => '防守';
+
+  @override
+  String get mathChance => '機率';
+
+  @override
+  String get mathFinish => '和牌';
+
+  @override
+  String get mathPayout => '收益';
+
+  @override
+  String get mathWin => '和牌';
+
+  @override
+  String get mathRisk => '風險';
+
+  @override
+  String get mathCut => '打牌';
+
+  @override
+  String get mathDealIn => '放銃';
+
+  @override
+  String get mathCost => '損失';
+
+  @override
+  String get mathWeight => '權重';
+
+  @override
+  String get mathStyle => '風格';
+
+  @override
+  String get mathCharge => '成本';
+
+  @override
+  String get mathLaterTurns => '後續巡數';
+
+  @override
+  String get mathWorth => '價值';
+
+  @override
+  String get mathGain => '增減';
+
+  @override
+  String get mathScore => '點數';
+
+  @override
+  String get mathOthers => '其他三家';
+
+  @override
+  String get mathTheirs => '對手';
+
+  @override
+  String get mathSpread => '分散尺度';
+
+  @override
+  String get mathHandsLeft => '剩餘局數';
+
+  @override
+  String get mathLogistic => '邏輯函數';
+
+  @override
+  String mascotIntro(String mascot, String app) {
+    return '我是$mascot，一半草原犬鼠，一半美西螈。\n我會幫你選擇最佳打牌和鳴牌。\n開啟自動打牌，我就替你打。\n打錯了？撤回再試一次。\n一起玩，提升你的$app！';
+  }
 }

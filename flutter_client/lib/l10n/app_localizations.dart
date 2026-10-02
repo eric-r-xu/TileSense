@@ -2758,6 +2758,1020 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That game has ended'**
   String get errorGameEnded;
+
+  /// No description provided for @guideTipTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'GUIDE\n'**
+  String get guideTipTitle;
+
+  /// No description provided for @guideGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green tile'**
+  String get guideGreen;
+
+  /// No description provided for @guideGreenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'the recommended discard'**
+  String get guideGreenBody;
+
+  /// No description provided for @guideYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow tile'**
+  String get guideYellow;
+
+  /// No description provided for @guideYellowBody.
+  ///
+  /// In en, this message translates to:
+  /// **'the tile you just drew'**
+  String get guideYellowBody;
+
+  /// No description provided for @guidePause.
+  ///
+  /// In en, this message translates to:
+  /// **'pause the game'**
+  String get guidePause;
+
+  /// No description provided for @guideHover.
+  ///
+  /// In en, this message translates to:
+  /// **'\nHover a heading or a dial for what it means.'**
+  String get guideHover;
+
+  /// No description provided for @tipAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTO-PLAY\n'**
+  String get tipAutoTitle;
+
+  /// No description provided for @tipAutoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Who Auto-Play follows for your seat, and whose order the rows below are sorted in.\n'**
+  String get tipAutoBody;
+
+  /// No description provided for @tipAutoChoices.
+  ///
+  /// In en, this message translates to:
+  /// **'• TileSense (default): the guide; its recommendation is on top.\n• Mortal bot: Mortal plays your seat, and its preferred move is on top. Any decision Mortal can\'t answer is played by the guide.'**
+  String get tipAutoChoices;
+
+  /// No description provided for @tipEvTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TILESENSE EV\n'**
+  String get tipEvTitle;
+
+  /// No description provided for @tipFinishTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANCE OF FINISHING'**
+  String get tipFinishTitle;
+
+  /// No description provided for @tipFinishBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Odds you win before the hand ends. More live tiles and more draws left raise it.\n'**
+  String get tipFinishBody;
+
+  /// No description provided for @tipFinishMore.
+  ///
+  /// In en, this message translates to:
+  /// **'hover Ukeire · tap the EV (HMR) number for the chart'**
+  String get tipFinishMore;
+
+  /// No description provided for @tipPayoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT THE WIN PAYS'**
+  String get tipPayoutTitle;
+
+  /// No description provided for @tipPayoutTw.
+  ///
+  /// In en, this message translates to:
+  /// **'A flat point total, the same from every payer, plus a dealer-streak bonus. Exact once ready; before that, estimated from the patterns shown.\n'**
+  String get tipPayoutTw;
+
+  /// No description provided for @tipPayoutHk.
+  ///
+  /// In en, this message translates to:
+  /// **'Faan as chips. Exact once ready; before that, estimated from the patterns shown.\n'**
+  String get tipPayoutHk;
+
+  /// No description provided for @tipPayoutRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Points if it lands, plus honba and riichi sticks. Exact once tenpai; an estimate before.\n'**
+  String get tipPayoutRiichi;
+
+  /// No description provided for @tipPayoutMore.
+  ///
+  /// In en, this message translates to:
+  /// **'tap the EV (HMR) number for the working'**
+  String get tipPayoutMore;
+
+  /// No description provided for @tipCutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT THE CUT RISKS'**
+  String get tipCutTitle;
+
+  /// No description provided for @tipCutChinese.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated loss to an opponent with 3+ exposed sets. No tile is fully safe.\n'**
+  String get tipCutChinese;
+
+  /// No description provided for @tipCutRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'The riichi stick (lost unless you win). Against a live riichi, also how often this tile deals in and the turns it commits you to.\n'**
+  String get tipCutRiichi;
+
+  /// No description provided for @tipCutMore.
+  ///
+  /// In en, this message translates to:
+  /// **'hover Risk and Safety'**
+  String get tipCutMore;
+
+  /// No description provided for @tipFocusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'FOCUS'**
+  String get tipFocusTitle;
+
+  /// No description provided for @tipFocusBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed pays some payout for a better chance of finishing. Balanced adds no tilt.\n'**
+  String get tipFocusBody;
+
+  /// No description provided for @tipFocusMore.
+  ///
+  /// In en, this message translates to:
+  /// **'hover FOCUS'**
+  String get tipFocusMore;
+
+  /// No description provided for @tipFocusPlacementMore.
+  ///
+  /// In en, this message translates to:
+  /// **'hover FOCUS · STRATEGY and Placement for the rest'**
+  String get tipFocusPlacementMore;
+
+  /// No description provided for @tipEvHigher.
+  ///
+  /// In en, this message translates to:
+  /// **'\nHigher is better. A dangerous, cheap cut can go negative.'**
+  String get tipEvHigher;
+
+  /// No description provided for @tipOrdinaryWide.
+  ///
+  /// In en, this message translates to:
+  /// **'Wider than ordinary'**
+  String get tipOrdinaryWide;
+
+  /// No description provided for @tipOrdinaryWideBody.
+  ///
+  /// In en, this message translates to:
+  /// **'steps forward faster, but never faster than an ordinary hand'**
+  String get tipOrdinaryWideBody;
+
+  /// No description provided for @tipOrdinaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AN ORDINARY HAND HAS'**
+  String get tipOrdinaryTitle;
+
+  /// No description provided for @tipShantenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shanten'**
+  String get tipShantenLabel;
+
+  /// No description provided for @tipUkeireLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ukeire'**
+  String get tipUkeireLabel;
+
+  /// No description provided for @tipAwayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Away'**
+  String get tipAwayLabel;
+
+  /// No description provided for @tipAcceptsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepts'**
+  String get tipAcceptsLabel;
+
+  /// No description provided for @tipOrdinaryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'\nMeans, not medians: the average ukeire of the best discard at each shanten, measured over simulated solo games by a greedy efficiency player (no defence, no calls).'**
+  String get tipOrdinaryNote;
+
+  /// No description provided for @tipSafetyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SAFETY\n'**
+  String get tipSafetyTitle;
+
+  /// No description provided for @tipSafetyChinese.
+  ///
+  /// In en, this message translates to:
+  /// **'How risky a tile is to cut against an opponent with an exposed hand. Higher = safer.\n'**
+  String get tipSafetyChinese;
+
+  /// No description provided for @tipSafetyRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'How safe a tile is to cut against a riichi. 0 = dangerous, 15 = genbutsu.\n'**
+  String get tipSafetyRiichi;
+
+  /// No description provided for @tipNeverCertain.
+  ///
+  /// In en, this message translates to:
+  /// **'Never certain'**
+  String get tipNeverCertain;
+
+  /// No description provided for @tipNeverCertainBody.
+  ///
+  /// In en, this message translates to:
+  /// **'with no furiten, a tile an opponent discarded can still win'**
+  String get tipNeverCertainBody;
+
+  /// No description provided for @tipRatedWhen.
+  ///
+  /// In en, this message translates to:
+  /// **'Rated when'**
+  String get tipRatedWhen;
+
+  /// No description provided for @tipGenbutsu.
+  ///
+  /// In en, this message translates to:
+  /// **'Genbutsu'**
+  String get tipGenbutsu;
+
+  /// No description provided for @tipGenbutsuBody.
+  ///
+  /// In en, this message translates to:
+  /// **'a tile that player discarded, or that passed them after their riichi, cannot win their hand'**
+  String get tipGenbutsuBody;
+
+  /// No description provided for @tipSuji.
+  ///
+  /// In en, this message translates to:
+  /// **'Suji'**
+  String get tipSuji;
+
+  /// No description provided for @tipSujiBody.
+  ///
+  /// In en, this message translates to:
+  /// **'a tile three away from one they discarded is safer'**
+  String get tipSujiBody;
+
+  /// No description provided for @tipRatedRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'someone is in riichi — otherwise the column shows —'**
+  String get tipRatedRiichi;
+
+  /// No description provided for @tipDealInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANCE A CUT DEALS IN'**
+  String get tipDealInTitle;
+
+  /// No description provided for @tipRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get tipRating;
+
+  /// No description provided for @tipTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Tile'**
+  String get tipTile;
+
+  /// No description provided for @tipDealsIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Deals in'**
+  String get tipDealsIn;
+
+  /// No description provided for @tipRating15.
+  ///
+  /// In en, this message translates to:
+  /// **'Genbutsu — already discarded by that player'**
+  String get tipRating15;
+
+  /// No description provided for @tipRating13.
+  ///
+  /// In en, this message translates to:
+  /// **'Honor, 1 live'**
+  String get tipRating13;
+
+  /// No description provided for @tipRating12.
+  ///
+  /// In en, this message translates to:
+  /// **'Double suji'**
+  String get tipRating12;
+
+  /// No description provided for @tipRating11.
+  ///
+  /// In en, this message translates to:
+  /// **'Suji terminal'**
+  String get tipRating11;
+
+  /// No description provided for @tipRating9.
+  ///
+  /// In en, this message translates to:
+  /// **'Honor, 2 live'**
+  String get tipRating9;
+
+  /// No description provided for @tipRating8.
+  ///
+  /// In en, this message translates to:
+  /// **'No-chance tile'**
+  String get tipRating8;
+
+  /// No description provided for @tipRating7.
+  ///
+  /// In en, this message translates to:
+  /// **'Half suji'**
+  String get tipRating7;
+
+  /// No description provided for @tipRating6.
+  ///
+  /// In en, this message translates to:
+  /// **'Suji 2/3/7/8, or honor with 3 live'**
+  String get tipRating6;
+
+  /// No description provided for @tipRating3.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-suji 2/3/7/8'**
+  String get tipRating3;
+
+  /// No description provided for @tipRating2.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-suji middle tile'**
+  String get tipRating2;
+
+  /// No description provided for @tipHkRating14.
+  ///
+  /// In en, this message translates to:
+  /// **'Honor, none unseen'**
+  String get tipHkRating14;
+
+  /// No description provided for @tipHkRating11.
+  ///
+  /// In en, this message translates to:
+  /// **'Honor, 1 unseen'**
+  String get tipHkRating11;
+
+  /// No description provided for @tipHkRating6.
+  ///
+  /// In en, this message translates to:
+  /// **'Honor, 2 or more unseen'**
+  String get tipHkRating6;
+
+  /// No description provided for @tipHkRating5.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal'**
+  String get tipHkRating5;
+
+  /// No description provided for @tipHkRating3.
+  ///
+  /// In en, this message translates to:
+  /// **'Suit tile'**
+  String get tipHkRating3;
+
+  /// No description provided for @tipRiskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'RISK\n'**
+  String get tipRiskTitle;
+
+  /// No description provided for @tipDealInChance.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal-in chance'**
+  String get tipDealInChance;
+
+  /// No description provided for @tipDealInChanceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'from the tile\'s Safety rating'**
+  String get tipDealInChanceBody;
+
+  /// No description provided for @tipDealInCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal-in cost'**
+  String get tipDealInCost;
+
+  /// No description provided for @tipStyleWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Style weight'**
+  String get tipStyleWeight;
+
+  /// No description provided for @tipLaterTurns.
+  ///
+  /// In en, this message translates to:
+  /// **'Later turns'**
+  String get tipLaterTurns;
+
+  /// No description provided for @tipHowLong.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get tipHowLong;
+
+  /// No description provided for @tipChineseHorizon.
+  ///
+  /// In en, this message translates to:
+  /// **'the hand\'s own expected length; a tile with no risk commits you to nothing'**
+  String get tipChineseHorizon;
+
+  /// No description provided for @tipFormula.
+  ///
+  /// In en, this message translates to:
+  /// **'FORMULA'**
+  String get tipFormula;
+
+  /// No description provided for @tipDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'DETAIL\n'**
+  String get tipDetailTitle;
+
+  /// No description provided for @tipDetailBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this tile has the Safety rating it does.\n'**
+  String get tipDetailBody;
+
+  /// No description provided for @tipShows.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows'**
+  String get tipShows;
+
+  /// No description provided for @tipShowsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'genbutsu, suji, honor with copies left, and so on'**
+  String get tipShowsBody;
+
+  /// No description provided for @tipEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get tipEmpty;
+
+  /// No description provided for @tipEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'nobody is being defended against, so there is nothing to explain'**
+  String get tipEmptyBody;
+
+  /// No description provided for @tipPlacementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'PLACEMENT\n'**
+  String get tipPlacementTitle;
+
+  /// No description provided for @tipPlacementBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How a line moves your chance of finishing above the other three seats.\n'**
+  String get tipPlacementBody;
+
+  /// No description provided for @tipUses.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses'**
+  String get tipUses;
+
+  /// No description provided for @tipUsesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'the scores on the table and the hands left right now'**
+  String get tipUsesBody;
+
+  /// No description provided for @tipNotPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Not points'**
+  String get tipNotPoints;
+
+  /// No description provided for @tipNotPointsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'scaled up ×1,000 so it reads at a glance; only its order against the other lines means anything'**
+  String get tipNotPointsBody;
+
+  /// No description provided for @tipHeuristic.
+  ///
+  /// In en, this message translates to:
+  /// **'A heuristic'**
+  String get tipHeuristic;
+
+  /// No description provided for @tipHeuristicBody.
+  ///
+  /// In en, this message translates to:
+  /// **'not a simulation'**
+  String get tipHeuristicBody;
+
+  /// No description provided for @tipWorthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT 8,000 POINTS IS WORTH'**
+  String get tipWorthTitle;
+
+  /// No description provided for @tipSituation.
+  ///
+  /// In en, this message translates to:
+  /// **'Situation'**
+  String get tipSituation;
+
+  /// No description provided for @tipHandsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands left'**
+  String get tipHandsLeft;
+
+  /// No description provided for @tipEven.
+  ///
+  /// In en, this message translates to:
+  /// **'Even table'**
+  String get tipEven;
+
+  /// No description provided for @tipLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Big lead'**
+  String get tipLead;
+
+  /// No description provided for @tipBehind.
+  ///
+  /// In en, this message translates to:
+  /// **'Far behind'**
+  String get tipBehind;
+
+  /// No description provided for @tipEvenLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Even table, last hand'**
+  String get tipEvenLast;
+
+  /// No description provided for @tipLeadLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Big lead, last hand'**
+  String get tipLeadLast;
+
+  /// No description provided for @tipPlacementNote.
+  ///
+  /// In en, this message translates to:
+  /// **'\nPoints matter most in a close race and late in the game, and least when you are comfortably ahead.\n'**
+  String get tipPlacementNote;
+
+  /// No description provided for @tipNoWin.
+  ///
+  /// In en, this message translates to:
+  /// **'This line has no winning hand to score yet.\n'**
+  String get tipNoWin;
+
+  /// No description provided for @tipRiskRow.
+  ///
+  /// In en, this message translates to:
+  /// **'risk of this cut'**
+  String get tipRiskRow;
+
+  /// No description provided for @tipFinishRow.
+  ///
+  /// In en, this message translates to:
+  /// **'chance of finishing'**
+  String get tipFinishRow;
+
+  /// No description provided for @tipPayoutRow.
+  ///
+  /// In en, this message translates to:
+  /// **'what the win pays'**
+  String get tipPayoutRow;
+
+  /// No description provided for @tipSticksRow.
+  ///
+  /// In en, this message translates to:
+  /// **'honba and sticks'**
+  String get tipSticksRow;
+
+  /// No description provided for @tipAverageRow.
+  ///
+  /// In en, this message translates to:
+  /// **'so on average'**
+  String get tipAverageRow;
+
+  /// No description provided for @tipLockRow.
+  ///
+  /// In en, this message translates to:
+  /// **'less riichi lock-in'**
+  String get tipLockRow;
+
+  /// No description provided for @tipDealInRow.
+  ///
+  /// In en, this message translates to:
+  /// **'less deal-in risk'**
+  String get tipDealInRow;
+
+  /// No description provided for @tipCommitRow.
+  ///
+  /// In en, this message translates to:
+  /// **'less turns committed'**
+  String get tipCommitRow;
+
+  /// No description provided for @tipHmrBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A plain comparison figure — it never changes the recommendation.\n'**
+  String get tipHmrBody;
+
+  /// No description provided for @tipHmrExcludes.
+  ///
+  /// In en, this message translates to:
+  /// **'\nNo honba or sticks, no risk costs, no Style or Focus tilt.\n'**
+  String get tipHmrExcludes;
+
+  /// No description provided for @tipHmrSource.
+  ///
+  /// In en, this message translates to:
+  /// **'\nMirrors the \"E.V.\" stat in '**
+  String get tipHmrSource;
+
+  /// No description provided for @tipHmrSourceBody.
+  ///
+  /// In en, this message translates to:
+  /// **', a solo tsumo-only trainer: points won ÷ hands played, which is win rate × average win.'**
+  String get tipHmrSourceBody;
+
+  /// No description provided for @tipYakuBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each bar: of the times this line wins, the share that include that yaku. One win usually has several yaku, so the bars don\'t add up to 100%. 100% means every win has it; Riichi is 100% when the plan is to riichi.\n\nMultiply by the chance to win for the overall odds.\n\nDora aren\'t yaku, so they\'re shown separately as the average extra han.\n\n≈ marks an estimate: short of tenpai, the guide assumes you keep cutting for the widest hand and scores the likeliest ready hands that leads to. It doesn\'t plan around yaku you\'d have to steer toward (yakuhai, flushes), so those can read low. More than 3 tiles away, nothing is shown yet.'**
+  String get tipYakuBody;
+
+  /// No description provided for @tipMortalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'What Mortal, an open-source deep-learning mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide\'s filled green; green with a red outline means they agree.\n\n'**
+  String get tipMortalBody;
+
+  /// No description provided for @tipMortalAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the rows follow Mortal\'s order; on TileSense (the default) they follow the guide\'s, and this is a second opinion. The green tile is always the guide\'s pick. Whenever Mortal can\'t answer, the guide decides.\n\n'**
+  String get tipMortalAuto;
+
+  /// No description provided for @tipMortalSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi, single player. Mortal and its weights are AGPL-3.0 — source: github.com/Equim-chan/Mortal; the service that runs it: github.com/eric-r-xu/TileSense (mortal_sidecar).'**
+  String get tipMortalSource;
+
+  /// No description provided for @tipYakuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'YAKU\n'**
+  String get tipYakuTitle;
+
+  /// No description provided for @tipEvAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'The average {unit} this discard is worth to you (EV = Expected Value).\n'**
+  String tipEvAverage(String unit);
+
+  /// No description provided for @tipShantenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How many tiles you are from a ready hand (0 means {ready}).'**
+  String tipShantenBody(String ready);
+
+  /// No description provided for @tipUkeireBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Live tiles that {effect} — how many draws help.\n'**
+  String tipUkeireBody(String effect);
+
+  /// No description provided for @tipThreatSets.
+  ///
+  /// In en, this message translates to:
+  /// **'an opponent shows {count} or more exposed sets — otherwise the column shows —'**
+  String tipThreatSets(String count);
+
+  /// No description provided for @tipChineseCost.
+  ///
+  /// In en, this message translates to:
+  /// **'\nA deal-in is charged {cost} {unit}.'**
+  String tipChineseCost(String cost, String unit);
+
+  /// No description provided for @tipRiichiCost.
+  ///
+  /// In en, this message translates to:
+  /// **'{cost} points ({dealerCost} to a dealer), plus 300 a honba'**
+  String tipRiichiCost(String cost, String dealerCost);
+
+  /// No description provided for @tipRiichiCostNote.
+  ///
+  /// In en, this message translates to:
+  /// **'\nA deal-in costs {cost} ({dealerCost} to a dealer), plus 300 a honba.'**
+  String tipRiichiCostNote(String cost, String dealerCost);
+
+  /// No description provided for @tipRiskBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{unit} taken off EV for the danger of this cut.\n'**
+  String tipRiskBody(String unit);
+
+  /// No description provided for @tipStyleWeights.
+  ///
+  /// In en, this message translates to:
+  /// **'×{weights} for {styles}'**
+  String tipStyleWeights(String weights, String styles);
+
+  /// No description provided for @tipCommitPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% of the charge again for each turn the cut commits you to'**
+  String tipCommitPercent(String percent);
+
+  /// No description provided for @tipRiichiHorizon.
+  ///
+  /// In en, this message translates to:
+  /// **'as long as the riichi lasts, about {turns} of your discards; a genbutsu cut commits you to nothing'**
+  String tipRiichiHorizon(String turns);
+
+  /// No description provided for @tipThisCut.
+  ///
+  /// In en, this message translates to:
+  /// **'\nTHIS CUT — {tile}\n'**
+  String tipThisCut(String tile);
+
+  /// No description provided for @tipFocusTilt.
+  ///
+  /// In en, this message translates to:
+  /// **'{focus} tilt'**
+  String tipFocusTilt(String focus);
+
+  /// No description provided for @tipRankOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({direction} first)'**
+  String tipRankOrder(String name, String direction);
+
+  /// No description provided for @tipRankDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'\n\n{direction} is better — the arrow on the heading. '**
+  String tipRankDirection(String direction);
+
+  /// No description provided for @tipRankBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Discards are ranked by {first}, then {second}, then {third}; values count as equal when they show the same number. The green tile is the top of that order, and every tile equal to it on all three is green too.'**
+  String tipRankBody(String first, String second, String third);
+
+  /// No description provided for @tipReady.
+  ///
+  /// In en, this message translates to:
+  /// **'ready'**
+  String get tipReady;
+
+  /// No description provided for @tipTenpai.
+  ///
+  /// In en, this message translates to:
+  /// **'tenpai'**
+  String get tipTenpai;
+
+  /// No description provided for @tipCloser.
+  ///
+  /// In en, this message translates to:
+  /// **'bring you closer to ready'**
+  String get tipCloser;
+
+  /// No description provided for @tipReduce.
+  ///
+  /// In en, this message translates to:
+  /// **'reduce shanten'**
+  String get tipReduce;
+
+  /// No description provided for @tipHigher.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher'**
+  String get tipHigher;
+
+  /// No description provided for @tipLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower'**
+  String get tipLower;
+
+  /// No description provided for @tipHigherFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'higher'**
+  String get tipHigherFirst;
+
+  /// No description provided for @tipLowerFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'lower'**
+  String get tipLowerFirst;
+
+  /// No description provided for @tipPlacementLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Placement'**
+  String get tipPlacementLabel;
+
+  /// No description provided for @tipPointsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'points'**
+  String get tipPointsUnit;
+
+  /// No description provided for @tipChipsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'chips'**
+  String get tipChipsUnit;
+
+  /// No description provided for @tipBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get tipBalanced;
+
+  /// No description provided for @tipSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get tipSpeed;
+
+  /// No description provided for @tipAggressive.
+  ///
+  /// In en, this message translates to:
+  /// **'Aggressive'**
+  String get tipAggressive;
+
+  /// No description provided for @tipPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get tipPoints;
+
+  /// No description provided for @tipDefensive.
+  ///
+  /// In en, this message translates to:
+  /// **'Defensive'**
+  String get tipDefensive;
+
+  /// No description provided for @mathChance.
+  ///
+  /// In en, this message translates to:
+  /// **'chance'**
+  String get mathChance;
+
+  /// No description provided for @mathFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'finish'**
+  String get mathFinish;
+
+  /// No description provided for @mathPayout.
+  ///
+  /// In en, this message translates to:
+  /// **'payout'**
+  String get mathPayout;
+
+  /// No description provided for @mathWin.
+  ///
+  /// In en, this message translates to:
+  /// **'win'**
+  String get mathWin;
+
+  /// No description provided for @mathRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'risk'**
+  String get mathRisk;
+
+  /// No description provided for @mathCut.
+  ///
+  /// In en, this message translates to:
+  /// **'cut'**
+  String get mathCut;
+
+  /// No description provided for @mathDealIn.
+  ///
+  /// In en, this message translates to:
+  /// **'deal-in'**
+  String get mathDealIn;
+
+  /// No description provided for @mathCost.
+  ///
+  /// In en, this message translates to:
+  /// **'cost'**
+  String get mathCost;
+
+  /// No description provided for @mathWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'weight'**
+  String get mathWeight;
+
+  /// No description provided for @mathStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'style'**
+  String get mathStyle;
+
+  /// No description provided for @mathCharge.
+  ///
+  /// In en, this message translates to:
+  /// **'charge'**
+  String get mathCharge;
+
+  /// No description provided for @mathLaterTurns.
+  ///
+  /// In en, this message translates to:
+  /// **'later turns'**
+  String get mathLaterTurns;
+
+  /// No description provided for @mathWorth.
+  ///
+  /// In en, this message translates to:
+  /// **'worth'**
+  String get mathWorth;
+
+  /// No description provided for @mathGain.
+  ///
+  /// In en, this message translates to:
+  /// **'gain'**
+  String get mathGain;
+
+  /// No description provided for @mathScore.
+  ///
+  /// In en, this message translates to:
+  /// **'score'**
+  String get mathScore;
+
+  /// No description provided for @mathOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'3 other seats'**
+  String get mathOthers;
+
+  /// No description provided for @mathTheirs.
+  ///
+  /// In en, this message translates to:
+  /// **'theirs'**
+  String get mathTheirs;
+
+  /// No description provided for @mathSpread.
+  ///
+  /// In en, this message translates to:
+  /// **'spread'**
+  String get mathSpread;
+
+  /// No description provided for @mathHandsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'hands left'**
+  String get mathHandsLeft;
+
+  /// No description provided for @mathLogistic.
+  ///
+  /// In en, this message translates to:
+  /// **'logistic'**
+  String get mathLogistic;
+
+  /// No description provided for @mascotIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m {mascot}: part prairie dog, part axolotl.\nI pick your best discards and calls.\nTurn on Auto-Play and I\'ll play your seat.\nMisplayed? Take it back and try again.\nPlay along and level up your {app}.'**
+  String mascotIntro(String mascot, String app);
 }
 
 class _AppLocalizationsDelegate

@@ -260,7 +260,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
-    return 'TileSense ガイド：$style · $focus · $strategy。\n対局の進行に合わせて自動で設定されます：序盤は Aggressive · Speed · Points でリードを築き、最後の2局は Balanced · Speed · Placement で順位を守るか上げます。';
+    return 'TileSense ガイド：$style · $focus · $strategy。\n対局の進行に合わせて自動設定：序盤は攻撃的・速度・点数重視でリードを築き、最後の2局はバランス・速度・順位重視で順位を守るか上げます。';
   }
 
   @override
@@ -1475,4 +1475,554 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get errorGameEnded => 'その対局は終了しました';
+
+  @override
+  String get guideTipTitle => 'ガイド\n';
+
+  @override
+  String get guideGreen => '緑の牌';
+
+  @override
+  String get guideGreenBody => 'おすすめの打牌';
+
+  @override
+  String get guideYellow => '黄色の牌';
+
+  @override
+  String get guideYellowBody => '今ツモった牌';
+
+  @override
+  String get guidePause => '対局を一時停止';
+
+  @override
+  String get guideHover => '\n見出しや設定にカーソルを合わせると説明が表示されます。';
+
+  @override
+  String get tipAutoTitle => 'オートプレイ\n';
+
+  @override
+  String get tipAutoBody => 'あなたの席を自動で打つときに従う判断と、下の候補の並び順を選びます。\n';
+
+  @override
+  String get tipAutoChoices =>
+      '• TileSense（初期設定）：ガイドのおすすめを先頭に表示します。\n• Mortal：Mortal があなたの席を打ち、その推奨手を先頭に表示します。回答できない場合はガイドが判断します。';
+
+  @override
+  String get tipEvTitle => 'TileSense 期待値\n';
+
+  @override
+  String get tipFinishTitle => '和了確率';
+
+  @override
+  String get tipFinishBody =>
+      'この局が終わるまでに和了する確率です。有効牌の残り枚数と残りツモ回数が多いほど高くなります。\n';
+
+  @override
+  String get tipFinishMore => '受け入れにカーソルを合わせる・EV (HMR) の数値を押すとグラフを表示';
+
+  @override
+  String get tipPayoutTitle => '和了時の得点';
+
+  @override
+  String get tipPayoutTw =>
+      '各支払者が同額を払う点数に連荘ボーナスを加えます。聴牌時は正確な値、それ以前は表示された役からの推定です。\n';
+
+  @override
+  String get tipPayoutHk => '翻数をチップに換算します。聴牌時は正確な値、それ以前は表示された役からの推定です。\n';
+
+  @override
+  String get tipPayoutRiichi => '和了点に本場と供託リーチ棒を加えます。聴牌時は正確な値、それ以前は推定です。\n';
+
+  @override
+  String get tipPayoutMore => 'EV (HMR) の数値を押すと計算過程を表示';
+
+  @override
+  String get tipCutTitle => '打牌のリスク';
+
+  @override
+  String get tipCutChinese => '3組以上の副露がある相手への推定損失です。完全に安全な牌はありません。\n';
+
+  @override
+  String get tipCutRiichi =>
+      '和了しなければ失うリーチ棒の分です。他家のリーチがあれば、この牌の放銃率と押し続ける巡数も含みます。\n';
+
+  @override
+  String get tipCutMore => 'リスクと安全度にカーソルを合わせる';
+
+  @override
+  String get tipFocusTitle => '重視する要素';
+
+  @override
+  String get tipFocusBody => '速度重視は打点の一部を和了率に振り向けます。バランス型は補正しません。\n';
+
+  @override
+  String get tipFocusMore => '重視する要素にカーソルを合わせる';
+
+  @override
+  String get tipFocusPlacementMore => '重視する要素・戦略・順位にカーソルを合わせる';
+
+  @override
+  String get tipEvHigher => '\n高いほど有利です。危険で打点の低い打牌は負の値になることもあります。';
+
+  @override
+  String get tipOrdinaryWide => '標準より広い受け入れ';
+
+  @override
+  String get tipOrdinaryWideBody => '進みやすくなりますが、標準的な手牌より速いとは見積もりません';
+
+  @override
+  String get tipOrdinaryTitle => '標準的な手牌';
+
+  @override
+  String get tipShantenLabel => '向聴数';
+
+  @override
+  String get tipUkeireLabel => '受け入れ';
+
+  @override
+  String get tipAwayLabel => '聴牌まで';
+
+  @override
+  String get tipAcceptsLabel => '有効牌';
+
+  @override
+  String get tipOrdinaryNote =>
+      '\n中央値ではなく平均値です。守備も鳴きも行わず牌効率だけを追う一人打ちシミュレーションで、各向聴数の最善打牌の受け入れを測定しています。';
+
+  @override
+  String get tipSafetyTitle => '安全度\n';
+
+  @override
+  String get tipSafetyChinese => '副露している相手に対する打牌の危険度です。高いほど安全です。\n';
+
+  @override
+  String get tipSafetyRiichi => 'リーチに対する打牌の安全度です。0 は危険、15 は現物です。\n';
+
+  @override
+  String get tipNeverCertain => '絶対ではない';
+
+  @override
+  String get tipNeverCertainBody => 'フリテンがないため、相手が捨てた牌でも和了されることがあります';
+
+  @override
+  String get tipRatedWhen => '評価する条件';
+
+  @override
+  String get tipGenbutsu => '現物';
+
+  @override
+  String get tipGenbutsuBody => '相手自身の捨て牌や、リーチ後に通った牌ではロンされません';
+
+  @override
+  String get tipSuji => 'スジ';
+
+  @override
+  String get tipSujiBody => '相手の捨て牌と3つ離れた牌は比較的安全です';
+
+  @override
+  String get tipRatedRiichi => '誰かがリーチしている場合です。それ以外は「—」を表示します';
+
+  @override
+  String get tipDealInTitle => '打牌の放銃率';
+
+  @override
+  String get tipRating => '評価';
+
+  @override
+  String get tipTile => '牌';
+
+  @override
+  String get tipDealsIn => '放銃率';
+
+  @override
+  String get tipRating15 => '現物 — 相手の捨て牌';
+
+  @override
+  String get tipRating13 => '字牌、残り1枚';
+
+  @override
+  String get tipRating12 => '両スジ';
+
+  @override
+  String get tipRating11 => 'スジの老頭牌';
+
+  @override
+  String get tipRating9 => '字牌、残り2枚';
+
+  @override
+  String get tipRating8 => 'ノーチャンスの牌';
+
+  @override
+  String get tipRating7 => '片スジ';
+
+  @override
+  String get tipRating6 => 'スジの2・3・7・8、または残り3枚の字牌';
+
+  @override
+  String get tipRating3 => '無スジの2・3・7・8';
+
+  @override
+  String get tipRating2 => '無スジの中張牌';
+
+  @override
+  String get tipHkRating14 => '字牌、未見0枚';
+
+  @override
+  String get tipHkRating11 => '字牌、未見1枚';
+
+  @override
+  String get tipHkRating6 => '字牌、未見2枚以上';
+
+  @override
+  String get tipHkRating5 => '老頭牌';
+
+  @override
+  String get tipHkRating3 => '数牌';
+
+  @override
+  String get tipRiskTitle => 'リスク\n';
+
+  @override
+  String get tipDealInChance => '放銃率';
+
+  @override
+  String get tipDealInChanceBody => '牌の安全度から算出';
+
+  @override
+  String get tipDealInCost => '放銃時の損失';
+
+  @override
+  String get tipStyleWeight => '打ち方の重み';
+
+  @override
+  String get tipLaterTurns => '以後の巡目';
+
+  @override
+  String get tipHowLong => '期間';
+
+  @override
+  String get tipChineseHorizon => 'この局の予想残り時間です。リスクのない打牌には追加負担がありません';
+
+  @override
+  String get tipFormula => '計算式';
+
+  @override
+  String get tipDetailTitle => '詳細\n';
+
+  @override
+  String get tipDetailBody => 'この牌がその安全度になる理由です。\n';
+
+  @override
+  String get tipShows => '表示内容';
+
+  @override
+  String get tipShowsBody => '現物、スジ、字牌の残り枚数など';
+
+  @override
+  String get tipEmpty => '空欄';
+
+  @override
+  String get tipEmptyBody => '守備の対象がいないため、説明がありません';
+
+  @override
+  String get tipPlacementTitle => '順位\n';
+
+  @override
+  String get tipPlacementBody => 'その打牌が、他の3人より上位で終わる可能性をどう変えるかを示します。\n';
+
+  @override
+  String get tipUses => '使用する情報';
+
+  @override
+  String get tipUsesBody => '現在の持ち点と残り局数';
+
+  @override
+  String get tipNotPoints => '点数ではない';
+
+  @override
+  String get tipNotPointsBody => '見やすくするため1,000倍しています。他の候補との大小関係にのみ意味があります';
+
+  @override
+  String get tipHeuristic => '近似評価';
+
+  @override
+  String get tipHeuristicBody => 'シミュレーションではありません';
+
+  @override
+  String get tipWorthTitle => '8,000点の価値';
+
+  @override
+  String get tipSituation => '状況';
+
+  @override
+  String get tipHandsLeft => '残り局数';
+
+  @override
+  String get tipEven => '横並び';
+
+  @override
+  String get tipLead => '大きくリード';
+
+  @override
+  String get tipBehind => '大きく劣勢';
+
+  @override
+  String get tipEvenLast => '横並び、最終局';
+
+  @override
+  String get tipLeadLast => '大きくリード、最終局';
+
+  @override
+  String get tipPlacementNote => '\n接戦や終盤では点数の影響が大きく、余裕のあるリード時には小さくなります。\n';
+
+  @override
+  String get tipNoWin => 'この候補にはまだ得点を計算できる和了形がありません。\n';
+
+  @override
+  String get tipRiskRow => 'この打牌のリスク';
+
+  @override
+  String get tipFinishRow => '和了確率';
+
+  @override
+  String get tipPayoutRow => '和了時の得点';
+
+  @override
+  String get tipSticksRow => '本場と供託';
+
+  @override
+  String get tipAverageRow => '平均すると';
+
+  @override
+  String get tipLockRow => 'リーチ拘束分を引く';
+
+  @override
+  String get tipDealInRow => '放銃リスクを引く';
+
+  @override
+  String get tipCommitRow => '押し続ける負担を引く';
+
+  @override
+  String get tipHmrBody => '比較用の単純な数値です。おすすめの判断には影響しません。\n';
+
+  @override
+  String get tipHmrExcludes => '\n本場・供託・リスク費用・打ち方や重視要素の補正は含みません。\n';
+
+  @override
+  String get tipHmrSource => '\n次のツールの「E.V.」と同じ考え方です：';
+
+  @override
+  String get tipHmrSourceBody => '。ツモ和了のみの一人用練習ツールで、獲得点÷局数、つまり和了率×平均和了点です。';
+
+  @override
+  String get tipYakuBody =>
+      '各バーは、この候補で和了した場合にその役が含まれる割合です。一度の和了には複数の役があることが多いため、合計は100%になりません。100%はすべての和了に含まれるという意味で、リーチ予定ならリーチは100%です。\n\n和了確率を掛けると、全体での成立確率になります。\n\nドラは役ではないため、平均の追加翻数として別に表示します。\n\n≈は推定値です。聴牌前は、受け入れを最大にする打牌を続けると仮定し、到達しやすい聴牌形を評価します。役牌や染め手など、意識して狙う役は計画に含めないため低く出ることがあります。4向聴以上では表示しません。';
+
+  @override
+  String get tipMortalBody =>
+      'Mortal は公開されている深層学習の麻雀AIです。あなたの席から見える情報だけで判断します。★は推奨打牌（★Rは先にリーチ）、数字は残りの候補の優先順位です。Mortal の推奨牌は赤枠、ガイドの推奨牌は緑色です。緑色で赤枠なら両者が一致しています。\n\n';
+
+  @override
+  String get tipMortalAuto =>
+      'オートプレイを Mortal にすると、その判断で打ち、候補も Mortal 順になります。TileSense（初期設定）ではガイド順で、Mortal は参考意見です。緑の牌は常にガイドの推奨です。Mortal が回答できない場合はガイドが判断します。\n\n';
+
+  @override
+  String get tipMortalSource =>
+      'リーチ麻雀の一人用です。Mortal と学習済み重みは AGPL-3.0：ソース github.com/Equim-chan/Mortal、実行サービス github.com/eric-r-xu/TileSense (mortal_sidecar)。';
+
+  @override
+  String get tipYakuTitle => '役\n';
+
+  @override
+  String tipEvAverage(String unit) {
+    return 'この打牌の平均的な価値を$unitで表します（EV＝期待値）。\n';
+  }
+
+  @override
+  String tipShantenBody(String ready) {
+    return '聴牌までに必要な牌の数です（0は$ready）。';
+  }
+
+  @override
+  String tipUkeireBody(String effect) {
+    return '$effectための残り有効牌、つまり役に立つツモの枚数です。\n';
+  }
+
+  @override
+  String tipThreatSets(String count) {
+    return '相手の副露が$count組以上の場合です。それ以外は「—」を表示します';
+  }
+
+  @override
+  String tipChineseCost(String cost, String unit) {
+    return '\n放銃の損失は$cost$unitとして計算します。';
+  }
+
+  @override
+  String tipRiichiCost(String cost, String dealerCost) {
+    return '$cost点（親には$dealerCost点）、本場ごとに300点を加算';
+  }
+
+  @override
+  String tipRiichiCostNote(String cost, String dealerCost) {
+    return '\n放銃の損失は$cost点（親には$dealerCost点）、本場ごとに300点を加算します。';
+  }
+
+  @override
+  String tipRiskBody(String unit) {
+    return 'この打牌の危険性により、期待値から差し引く$unitです。\n';
+  }
+
+  @override
+  String tipStyleWeights(String weights, String styles) {
+    return '$stylesの順に×$weights';
+  }
+
+  @override
+  String tipCommitPercent(String percent) {
+    return 'この打牌で押し続ける巡数ごとに、費用の$percent%を追加';
+  }
+
+  @override
+  String tipRiichiHorizon(String turns) {
+    return 'リーチが続く間、あなたの打牌約$turns回分です。現物には追加負担がありません';
+  }
+
+  @override
+  String tipThisCut(String tile) {
+    return '\nこの打牌 — $tile\n';
+  }
+
+  @override
+  String tipFocusTilt(String focus) {
+    return '$focusの補正';
+  }
+
+  @override
+  String tipRankOrder(String name, String direction) {
+    return '$name（$direction順）';
+  }
+
+  @override
+  String tipRankDirection(String direction) {
+    return '\n\n$direction方が有利です。見出しの矢印で示しています。';
+  }
+
+  @override
+  String tipRankBody(String first, String second, String third) {
+    return '打牌は$first、次に$second、最後に$thirdで並びます。表示される数値が同じなら同順位です。最上位の牌が緑色で、3項目すべて同じ牌も緑色になります。';
+  }
+
+  @override
+  String get tipReady => '聴牌';
+
+  @override
+  String get tipTenpai => '聴牌';
+
+  @override
+  String get tipCloser => '聴牌に近づく';
+
+  @override
+  String get tipReduce => '向聴数を減らす';
+
+  @override
+  String get tipHigher => '高い';
+
+  @override
+  String get tipLower => '低い';
+
+  @override
+  String get tipHigherFirst => '高い';
+
+  @override
+  String get tipLowerFirst => '低い';
+
+  @override
+  String get tipPlacementLabel => '順位';
+
+  @override
+  String get tipPointsUnit => '点';
+
+  @override
+  String get tipChipsUnit => 'チップ';
+
+  @override
+  String get tipBalanced => 'バランス';
+
+  @override
+  String get tipSpeed => '速度';
+
+  @override
+  String get tipAggressive => '攻撃的';
+
+  @override
+  String get tipPoints => '点数';
+
+  @override
+  String get tipDefensive => '守備的';
+
+  @override
+  String get mathChance => '確率';
+
+  @override
+  String get mathFinish => '和了';
+
+  @override
+  String get mathPayout => '得点';
+
+  @override
+  String get mathWin => '和了';
+
+  @override
+  String get mathRisk => 'リスク';
+
+  @override
+  String get mathCut => '打牌';
+
+  @override
+  String get mathDealIn => '放銃';
+
+  @override
+  String get mathCost => '損失';
+
+  @override
+  String get mathWeight => '重み';
+
+  @override
+  String get mathStyle => '打ち方';
+
+  @override
+  String get mathCharge => '負担';
+
+  @override
+  String get mathLaterTurns => '以後の巡目';
+
+  @override
+  String get mathWorth => '価値';
+
+  @override
+  String get mathGain => '増減';
+
+  @override
+  String get mathScore => '持ち点';
+
+  @override
+  String get mathOthers => '他の3人';
+
+  @override
+  String get mathTheirs => '相手';
+
+  @override
+  String get mathSpread => 'ばらつき';
+
+  @override
+  String get mathHandsLeft => '残り局数';
+
+  @override
+  String get mathLogistic => 'ロジスティック関数';
+
+  @override
+  String mascotIntro(String mascot, String app) {
+    return 'ぼくは$mascot。プレーリードッグとウーパールーパーの仲間。\nおすすめの打牌や鳴きを選ぶよ。\nオートプレイをオンにすると、きみの席を打つよ。\n打ち間違えたら、戻してもう一度。\n一緒に遊んで$appを磨こう！';
+  }
 }

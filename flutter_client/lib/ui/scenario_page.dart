@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
+import '../l10n/mahjong_terms.dart';
 import '../main.dart' show isPhoneLayout, openRules;
 import 'bar_back_button.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
@@ -363,7 +364,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
         const LanguageButton(compact: true),
         const SizedBox(width: 4),
         Tooltip(
-          message: s.ruleset.label,
+          message: context.l10n.rulesetName(s.ruleset),
           child: Text(s.ruleset.flag,
               key: const Key('builderRulesFlag'),
               style: const TextStyle(fontSize: 22)),
@@ -495,7 +496,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               // Flags only, so none is cut off; the
                               // tooltip names the rules.
                               label: (r) => r.flag,
-                              tooltip: (r) => r.label,
+                              tooltip: (r) => context.l10n.rulesetName(r),
                               colour: (_) => gold,
                               onPick: _setRuleset,
                             ),

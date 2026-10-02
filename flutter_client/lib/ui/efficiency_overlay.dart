@@ -6,6 +6,8 @@ import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../game/guide_host.dart';
+import '../l10n/l10n.dart';
+import '../l10n/guide_terms.dart';
 import '../game/mortal_advisor.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/placement_utility.dart';
@@ -128,7 +130,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           for (final brain in AutoplayBrain.values)
             Expanded(
               child: _dialChip(
-                label: brain == AutoplayBrain.mortal ? 'Mortal bot' : 'TileSense',
+                label:
+                    brain == AutoplayBrain.mortal ? 'Mortal bot' : 'TileSense',
                 colour: brainColor(brain),
                 active: game.autoplayBrain == brain,
                 chipKey: Key('guideBrain_${brain.name}'),
@@ -140,18 +143,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  static const _brainTip = <InlineSpan>[
-    TextSpan(text: 'AUTO-PLAY\n', style: _tipTitle),
-    TextSpan(
-        text: 'Who Auto-Play follows for your seat, and whose order the rows '
-            'below are sorted in.\n',
-        style: _tipBody),
-    TextSpan(
-        text: '• TileSense (default): the guide; its recommendation is on top.\n'
-            '• Mortal bot: Mortal plays your seat, and its preferred move is '
-            'on top. Any decision Mortal can\'t answer is played by the guide.',
-        style: _tipBody),
-  ];
+  List<InlineSpan> get _brainTip => <InlineSpan>[
+        TextSpan(text: context.l10n.tipAutoTitle, style: _tipTitle),
+        TextSpan(text: context.l10n.tipAutoBody, style: _tipBody),
+        TextSpan(text: context.l10n.tipAutoChoices, style: _tipBody),
+      ];
 
   /// One chip of either dial — same shape, same hit target, so the two rows
   /// read as two settings of a kind rather than two different controls.
@@ -504,77 +500,42 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// whether the hand is ready or five tiles away, and whether or not anyone
   /// is in riichi. The exact coefficients live in the README; what matters
   /// here is which way each part pushes the number.
-  static final List<InlineSpan> _evGeneral = _evGeneralFor(Ruleset.riichi);
-  static final List<InlineSpan> _evGeneralHongKong =
-      _evGeneralFor(Ruleset.hongKong);
-  static final List<InlineSpan> _evGeneralTaiwanese =
-      _evGeneralFor(Ruleset.taiwanese);
+  List<InlineSpan> get _evGeneralCurrent =>
+      _evGeneralFor(widget.game.round.ruleset);
 
-  /// [_evGeneral] for the ruleset at the table.
-  List<InlineSpan> get _evGeneralCurrent => switch (widget.game.round.ruleset) {
-        Ruleset.riichi => _evGeneral,
-        Ruleset.hongKong => _evGeneralHongKong,
-        Ruleset.taiwanese => _evGeneralTaiwanese,
-      };
+  String get _unit => widget.game.round.ruleset.isHongKong
+      ? context.l10n.tipChipsUnit
+      : context.l10n.tipPointsUnit;
 
-  static List<InlineSpan> _evGeneralFor(Ruleset ruleset) => [
-        const TextSpan(text: 'TILESENSE EV\n', style: _tipTitle),
-        TextSpan(
-            text: 'The average ${ruleset.unit} this discard is worth to you '
-                '(EV = Expected Value).\n',
-            style: _tipBody),
-        const TextSpan(text: '\n', style: _tipBody),
-        _math('TileSense EV = chance_{finish} × payout_{win} − risk_{cut}'),
-        _tipPart(
-            'CHANCE OF FINISHING',
-            'Odds you win before the hand ends. More live tiles and more draws '
-                'left raise it.\n',
-            more: 'hover Ukeire · tap the EV (HMR) number for the chart'),
+  List<InlineSpan> _evGeneralFor(Ruleset ruleset) => [
+        TextSpan(text: context.l10n.tipEvTitle, style: _tipTitle),
+        TextSpan(text: context.l10n.tipEvAverage(_unit), style: _tipBody),
+        TextSpan(text: '\n', style: _tipBody),
+        _math(
+            'TileSense EV = ${context.l10n.mathChance}_{${context.l10n.mathFinish}} × ${context.l10n.mathPayout}_{${context.l10n.mathWin}} − ${context.l10n.mathRisk}_{${context.l10n.mathCut}}'),
+        _tipPart(context.l10n.tipFinishTitle, context.l10n.tipFinishBody,
+            more: context.l10n.tipFinishMore),
         if (ruleset.isTaiwanese) ...[
-          _tipPart(
-              'WHAT THE WIN PAYS',
-              'A flat point total, the same from every payer, plus a dealer-'
-                  'streak bonus. Exact once ready; before that, estimated from '
-                  'the patterns shown.\n',
-              more: 'tap the EV (HMR) number for the working'),
-          _tipPart(
-              'WHAT THE CUT RISKS',
-              'Estimated loss to an opponent with 3+ exposed sets. No tile is '
-                  'fully safe.\n',
-              more: 'hover Risk and Safety'),
+          _tipPart(context.l10n.tipPayoutTitle, context.l10n.tipPayoutTw,
+              more: context.l10n.tipPayoutMore),
+          _tipPart(context.l10n.tipCutTitle, context.l10n.tipCutChinese,
+              more: context.l10n.tipCutMore),
         ] else if (ruleset.isHongKong) ...[
-          _tipPart(
-              'WHAT THE WIN PAYS',
-              'Faan as chips. Exact once ready; before that, estimated from the '
-                  'patterns shown.\n',
-              more: 'tap the EV (HMR) number for the working'),
-          _tipPart(
-              'WHAT THE CUT RISKS',
-              'Estimated loss to an opponent with 3+ exposed sets. No tile is '
-                  'fully safe.\n',
-              more: 'hover Risk and Safety'),
+          _tipPart(context.l10n.tipPayoutTitle, context.l10n.tipPayoutHk,
+              more: context.l10n.tipPayoutMore),
+          _tipPart(context.l10n.tipCutTitle, context.l10n.tipCutChinese,
+              more: context.l10n.tipCutMore),
         ] else ...[
-          _tipPart(
-              'WHAT THE WIN PAYS',
-              'Points if it lands, plus honba and riichi sticks. Exact once '
-                  'tenpai; an estimate before.\n',
-              more: 'tap the EV (HMR) number for the working'),
-          _tipPart(
-              'WHAT THE CUT RISKS',
-              'The riichi stick (lost unless you win). Against a live riichi, also '
-                  'how often this tile deals in and the turns it commits you to.\n',
-              more: 'hover Risk and Safety'),
+          _tipPart(context.l10n.tipPayoutTitle, context.l10n.tipPayoutRiichi,
+              more: context.l10n.tipPayoutMore),
+          _tipPart(context.l10n.tipCutTitle, context.l10n.tipCutRiichi,
+              more: context.l10n.tipCutMore),
         ],
-        _tipPart(
-            'FOCUS',
-            'Speed pays some payout for a better chance of finishing. Balanced '
-                'adds no tilt.\n',
+        _tipPart(context.l10n.tipFocusTitle, context.l10n.tipFocusBody,
             more: ruleset.isChineseStyle
-                ? 'hover FOCUS'
-                : 'hover FOCUS · STRATEGY and Placement for the rest'),
-        const TextSpan(
-            text: '\nHigher is better. A dangerous, cheap cut can go negative.',
-            style: _tipDim),
+                ? context.l10n.tipFocusMore
+                : context.l10n.tipFocusPlacementMore),
+        TextSpan(text: context.l10n.tipEvHigher, style: _tipDim),
       ];
 
   // ── Explainers for the headings and dials ─────────────────────────────────
@@ -596,10 +557,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       '${v < 0 ? '−' : '+'}${v.abs().toStringAsFixed(2)}';
 
   /// A bulleted list: a bold lead-in, then the sentence it introduces.
-  static List<InlineSpan> _bullets(List<(String, String)> items) => [
+  List<InlineSpan> _bullets(List<(String, String)> items) => [
         for (final (lead, text) in items)
           TextSpan(children: [
-            const TextSpan(text: '•  ', style: _tipBody),
+            TextSpan(text: '•  ', style: _tipBody),
             TextSpan(
                 text: lead,
                 style: _tipBody.copyWith(fontWeight: FontWeight.w700)),
@@ -682,121 +643,109 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
 
   /// What has no heading of its own: the tile colours and the pause key.
   List<InlineSpan> _guideTip() => [
-        const TextSpan(text: 'GUIDE\n', style: _tipTitle),
+        TextSpan(text: context.l10n.guideTipTitle, style: _tipTitle),
         ..._bullets([
-          ('Green tile', 'the recommended discard'),
-          ('Yellow tile', 'the tile you just drew'),
-          if (widget.showGameControls) ('Esc', 'pause the game'),
+          (context.l10n.guideGreen, context.l10n.guideGreenBody),
+          (context.l10n.guideYellow, context.l10n.guideYellowBody),
+          if (widget.showGameControls) ('Esc', context.l10n.guidePause),
         ]),
-        const TextSpan(
-            text: '\nHover a heading or a dial for what it means.',
-            style: _tipDim),
+        TextSpan(text: context.l10n.guideHover, style: _tipDim),
       ];
 
-  static List<InlineSpan> _shantenTip(bool hk) => [
-        TextSpan(text: '${hk ? 'AWAY' : 'SHANTEN'}\n', style: _tipTitle),
+  List<InlineSpan> _shantenTip(bool hk) => [
         TextSpan(
-            text: 'How many tiles you are from a ready hand '
-                '(0 means ${hk ? 'ready' : 'tenpai'}).',
+            text:
+                '${(hk ? context.l10n.tipAwayLabel : context.l10n.tipShantenLabel).toUpperCase()}\n',
+            style: _tipTitle),
+        TextSpan(
+            text: context.l10n.tipShantenBody(
+                hk ? context.l10n.tipReady : context.l10n.tipTenpai),
             style: _tipBody),
       ];
 
-  static List<InlineSpan> _ukeireTip(bool hk) {
+  List<InlineSpan> _ukeireTip(bool hk) {
     final typical = GuideConstants.typicalUkeire;
     return [
-      TextSpan(text: '${hk ? 'ACCEPTS' : 'UKEIRE'}\n', style: _tipTitle),
       TextSpan(
           text:
-              'Live tiles that ${hk ? 'bring you closer to ready' : 'reduce shanten'}'
-              ' — how many draws help.\n',
+              '${(hk ? context.l10n.tipAcceptsLabel : context.l10n.tipUkeireLabel).toUpperCase()}\n',
+          style: _tipTitle),
+      TextSpan(
+          text: context.l10n.tipUkeireBody(
+              hk ? context.l10n.tipCloser : context.l10n.tipReduce),
           style: _tipBody),
-      const TextSpan(text: '\n', style: _tipBody),
+      TextSpan(text: '\n', style: _tipBody),
       ..._bullets([
-        (
-          'Wider than ordinary',
-          'steps forward faster, but never faster than an ordinary hand'
-        ),
+        (context.l10n.tipOrdinaryWide, context.l10n.tipOrdinaryWideBody),
       ]),
-      _tipSection('AN ORDINARY HAND HAS'),
+      _tipSection(context.l10n.tipOrdinaryTitle),
       _tipTable(
-        ['Shanten', for (var i = 0; i < typical.length; i++) '$i'],
         [
-          ['Ukeire', for (final v in typical) v.round().toString()],
+          context.l10n.tipShantenLabel,
+          for (var i = 0; i < typical.length; i++) '$i'
+        ],
+        [
+          [
+            context.l10n.tipUkeireLabel,
+            for (final v in typical) v.round().toString()
+          ],
         ],
       ),
-      const TextSpan(
-          text: '\nMeans, not medians: the average ukeire of the best discard '
-              'at each shanten, measured over simulated solo games by a '
-              'greedy efficiency player (no defence, no calls).',
-          style: _tipDim),
+      TextSpan(text: context.l10n.tipOrdinaryNote, style: _tipDim),
     ];
   }
 
   /// The riichi ratings this guide reports, in the order the reference table
   /// lists them, with what earns each one (see `rankSafety`).
-  static const List<(int, String)> _riichiRatings = [
-    (15, 'Genbutsu — already discarded by that player'),
-    (13, 'Honor, 1 live'),
-    (12, 'Double suji'),
-    (11, 'Suji terminal'),
-    (9, 'Honor, 2 live'),
-    (8, 'No-chance tile'),
-    (7, 'Half suji'),
-    (6, 'Suji 2/3/7/8, or honor with 3 live'),
-    (3, 'Non-suji 2/3/7/8'),
-    (2, 'Non-suji middle tile'),
-  ];
+  List<(int, String)> get _riichiRatings => [
+        (15, context.l10n.tipRating15),
+        (13, context.l10n.tipRating13),
+        (12, context.l10n.tipRating12),
+        (11, context.l10n.tipRating11),
+        (9, context.l10n.tipRating9),
+        (8, context.l10n.tipRating8),
+        (7, context.l10n.tipRating7),
+        (6, context.l10n.tipRating6),
+        (3, context.l10n.tipRating3),
+        (2, context.l10n.tipRating2),
+      ];
 
   /// Hong Kong has no furiten, so nothing is ever certainly safe (see
   /// `rankHongKongSafety`).
-  static const List<(int, String)> _hongKongRatings = [
-    (14, 'Honor, none unseen'),
-    (11, 'Honor, 1 unseen'),
-    (6, 'Honor, 2 or more unseen'),
-    (5, 'Terminal'),
-    (3, 'Suit tile'),
-  ];
+  List<(int, String)> get _hongKongRatings => [
+        (14, context.l10n.tipHkRating14),
+        (11, context.l10n.tipHkRating11),
+        (6, context.l10n.tipHkRating6),
+        (5, context.l10n.tipHkRating5),
+        (3, context.l10n.tipHkRating3),
+      ];
 
-  static List<InlineSpan> _safetyTip(
+  List<InlineSpan> _safetyTip(
       bool hk, String unit, double dealInCost, int threatSets) {
     final ratings = hk ? _hongKongRatings : _riichiRatings;
     return [
-      const TextSpan(text: 'SAFETY\n', style: _tipTitle),
+      TextSpan(text: context.l10n.tipSafetyTitle, style: _tipTitle),
       TextSpan(
-          text: hk
-              ? 'How risky a tile is to cut against an opponent with an '
-                  'exposed hand. Higher = safer.\n'
-              : 'How safe a tile is to cut against a riichi. 0 = dangerous, '
-                  '15 = genbutsu.\n',
+          text:
+              hk ? context.l10n.tipSafetyChinese : context.l10n.tipSafetyRiichi,
           style: _tipBody),
-      const TextSpan(text: '\n', style: _tipBody),
+      TextSpan(text: '\n', style: _tipBody),
       ..._bullets(hk
           ? [
+              (context.l10n.tipNeverCertain, context.l10n.tipNeverCertainBody),
               (
-                'Never certain',
-                'with no furiten, a tile an opponent discarded can still win'
-              ),
-              (
-                'Rated when',
-                'an opponent shows $threatSets '
-                    'or more exposed sets — otherwise the column shows —'
+                context.l10n.tipRatedWhen,
+                context.l10n.tipThreatSets(threatSets.toString())
               ),
             ]
           : [
-              (
-                'Genbutsu',
-                'a tile that player discarded, or that passed them after '
-                    'their riichi, cannot win their hand'
-              ),
-              ('Suji', 'a tile three away from one they discarded is safer'),
-              (
-                'Rated when',
-                'someone is in riichi — otherwise the column shows —'
-              ),
+              (context.l10n.tipGenbutsu, context.l10n.tipGenbutsuBody),
+              (context.l10n.tipSuji, context.l10n.tipSujiBody),
+              (context.l10n.tipRatedWhen, context.l10n.tipRatedRiichi),
             ]),
-      _tipSection('CHANCE A CUT DEALS IN'),
+      _tipSection(context.l10n.tipDealInTitle),
       _tipTable(
-        ['Rating', 'Tile', 'Deals in'],
+        [context.l10n.tipRating, context.l10n.tipTile, context.l10n.tipDealsIn],
         [
           for (final (rating, label) in ratings)
             ['$rating', label, _rate(GuideConstants.dealInRate(rating))],
@@ -805,108 +754,99 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       ),
       TextSpan(
           text: hk
-              ? '\nA deal-in is charged '
-                  '${dealInCost.round()} $unit.'
-              : '\nA deal-in costs ${_pts(GuideConstants.dealInCost)} '
-                  '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
-                  'plus 300 a honba.',
+              ? context.l10n
+                  .tipChineseCost(dealInCost.round().toString(), _unit)
+              : context.l10n.tipRiichiCostNote(_pts(GuideConstants.dealInCost),
+                  _pts(GuideConstants.dealerDealInCost)),
           style: _tipDim),
     ];
   }
 
-  static List<InlineSpan> _riskTip(bool hk, String unit, double dealInCost) => [
-        const TextSpan(text: 'RISK\n', style: _tipTitle),
+  List<InlineSpan> _riskTip(bool hk, String unit, double dealInCost) => [
+        TextSpan(text: context.l10n.tipRiskTitle, style: _tipTitle),
         TextSpan(
-            text: '${unit[0].toUpperCase()}${unit.substring(1)} taken off EV '
-                'for the danger of '
-                'this cut.\n',
+            text: context.l10n
+                .tipRiskBody('${_unit[0].toUpperCase()}${_unit.substring(1)}'),
             style: _tipBody),
-        const TextSpan(text: '\n', style: _tipBody),
+        TextSpan(text: '\n', style: _tipBody),
         ..._bullets([
-          ('Deal-in chance', 'from the tile\'s Safety rating'),
+          (context.l10n.tipDealInChance, context.l10n.tipDealInChanceBody),
           (
-            'Deal-in cost',
+            context.l10n.tipDealInCost,
             hk
-                ? '${dealInCost.round()} $unit'
-                : '${_pts(GuideConstants.dealInCost)} points '
-                    '(${_pts(GuideConstants.dealerDealInCost)} to a dealer), '
-                    'plus 300 a honba'
+                ? '${dealInCost.round()} $_unit'
+                : context.l10n.tipRiichiCost(_pts(GuideConstants.dealInCost),
+                    _pts(GuideConstants.dealerDealInCost))
           ),
           if (!hk)
             (
-              'Style weight',
-              '×${PlayStyle.values.map((s) => s.riskWeight.toStringAsFixed(2)).join(' / ')} '
-                  'for ${PlayStyle.values.map((s) => s.label).join(' / ')}'
+              context.l10n.tipStyleWeight,
+              context.l10n.tipStyleWeights(
+                  PlayStyle.values
+                      .map((s) => s.riskWeight.toStringAsFixed(2))
+                      .join(' / '),
+                  PlayStyle.values.map(context.l10n.playStyleName).join(' / '))
             ),
           (
-            'Later turns',
-            '${(GuideConstants.pushCommitment * 100).round()}% of the charge '
-                'again for each turn the cut commits you to'
+            context.l10n.tipLaterTurns,
+            context.l10n.tipCommitPercent(
+                (GuideConstants.pushCommitment * 100).round().toString())
           ),
           (
-            'How long',
+            context.l10n.tipHowLong,
             hk
-                ? 'the hand\'s own expected length; a tile with no risk '
-                    'commits you to nothing'
-                : 'as long as the riichi lasts, about '
-                    '${GuideConstants.riichiPushHorizon} of your discards; a '
-                    'genbutsu cut commits you to nothing'
+                ? context.l10n.tipChineseHorizon
+                : context.l10n.tipRiichiHorizon(
+                    GuideConstants.riichiPushHorizon.toString())
           ),
         ]),
-        _tipSection('FORMULA'),
-        _math('risk = chance_{deal-in} × cost_{deal-in}'
-            '${hk ? '' : ' × weight_{style}'} + charge_{later turns}'),
+        _tipSection(context.l10n.tipFormula),
+        _math(
+            '${context.l10n.mathRisk} = ${context.l10n.mathChance}_{${context.l10n.mathDealIn}} × ${context.l10n.mathCost}_{${context.l10n.mathDealIn}}'
+            '${hk ? '' : ' × ${context.l10n.mathWeight}_{${context.l10n.mathStyle}}'} + ${context.l10n.mathCharge}_{${context.l10n.mathLaterTurns}}'),
       ];
 
-  static List<InlineSpan> _detailTip() => [
-        const TextSpan(text: 'DETAIL\n', style: _tipTitle),
-        const TextSpan(
-            text: 'Why this tile has the Safety rating it does.\n',
-            style: _tipBody),
-        const TextSpan(text: '\n', style: _tipBody),
-        ..._bullets(const [
-          ('Shows', 'genbutsu, suji, honor with copies left, and so on'),
-          (
-            'Empty',
-            'nobody is being defended against, so there is nothing '
-                'to explain'
-          ),
+  List<InlineSpan> _detailTip() => [
+        TextSpan(text: context.l10n.tipDetailTitle, style: _tipTitle),
+        TextSpan(text: context.l10n.tipDetailBody, style: _tipBody),
+        TextSpan(text: '\n', style: _tipBody),
+        ..._bullets([
+          (context.l10n.tipShows, context.l10n.tipShowsBody),
+          (context.l10n.tipEmpty, context.l10n.tipEmptyBody),
         ]),
       ];
 
   /// The four situations the Placement tooltip works +/-8,000 through: the
   /// table's scores (mine first), and how many hands are left.
-  static const List<(String, List<int>, int)> _placementScenes = [
-    ('Even table', [25000, 25000, 25000, 25000], 8),
-    ('Big lead', [45000, 20000, 18000, 17000], 8),
-    ('Far behind', [8000, 30000, 32000, 30000], 8),
-    ('Even table, last hand', [25000, 25000, 25000, 25000], 1),
-    ('Big lead, last hand', [45000, 20000, 18000, 17000], 1),
-  ];
+  List<(String, List<int>, int)> get _placementScenes => [
+        (context.l10n.tipEven, [25000, 25000, 25000, 25000], 8),
+        (context.l10n.tipLead, [45000, 20000, 18000, 17000], 8),
+        (context.l10n.tipBehind, [8000, 30000, 32000, 30000], 8),
+        (context.l10n.tipEvenLast, [25000, 25000, 25000, 25000], 1),
+        (context.l10n.tipLeadLast, [45000, 20000, 18000, 17000], 1),
+      ];
 
-  static List<InlineSpan> _placementTip() {
+  List<InlineSpan> _placementTip() {
     double gain(List<int> table, int hands, double points) =>
         PlacementUtility(tablePoints: table, mySeat: 0, handsRemaining: hands)
             .valueOf(points);
     return [
-      const TextSpan(text: 'PLACEMENT\n', style: _tipTitle),
-      const TextSpan(
-          text: 'How a line moves your chance of finishing above the other '
-              'three seats.\n',
-          style: _tipBody),
-      const TextSpan(text: '\n', style: _tipBody),
-      ..._bullets(const [
-        ('Uses', 'the scores on the table and the hands left right now'),
-        (
-          'Not points',
-          'scaled up ×1,000 so it reads at a glance; only its order '
-              'against the other lines means anything'
-        ),
-        ('A heuristic', 'not a simulation'),
+      TextSpan(text: context.l10n.tipPlacementTitle, style: _tipTitle),
+      TextSpan(text: context.l10n.tipPlacementBody, style: _tipBody),
+      TextSpan(text: '\n', style: _tipBody),
+      ..._bullets([
+        (context.l10n.tipUses, context.l10n.tipUsesBody),
+        (context.l10n.tipNotPoints, context.l10n.tipNotPointsBody),
+        (context.l10n.tipHeuristic, context.l10n.tipHeuristicBody),
       ]),
-      _tipSection('WHAT 8,000 POINTS IS WORTH'),
+      _tipSection(context.l10n.tipWorthTitle),
       _tipTable(
-        ['Situation', 'Hands left', '+8,000', '−8,000'],
+        [
+          context.l10n.tipSituation,
+          context.l10n.tipHandsLeft,
+          '+8,000',
+          '−8,000'
+        ],
         [
           for (final (label, table, hands) in _placementScenes)
             [
@@ -917,19 +857,18 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             ],
         ],
       ),
-      const TextSpan(
-          text: '\nPoints matter most in a close race and late in the game, '
-              'and least when you are comfortably ahead.\n',
-          style: _tipDim),
-      _tipSection('FORMULA'),
-      _math('worth(gain) = u(score + gain) − u(score)'),
-      _math('u(score) = Σ_{3 other seats} logistic((score − score_{theirs}) '
-          '/ spread)'),
-      _math('spread = ${_pts(PlacementUtility.baseSpread)} × '
-          '√(hands left)'),
+      TextSpan(text: context.l10n.tipPlacementNote, style: _tipDim),
+      _tipSection(context.l10n.tipFormula),
+      _math(
+          '${context.l10n.mathWorth}(${context.l10n.mathGain}) = u(${context.l10n.mathScore} + ${context.l10n.mathGain}) − u(${context.l10n.mathScore})'),
+      _math(
+          'u(${context.l10n.mathScore}) = Σ_{${context.l10n.mathOthers}} ${context.l10n.mathLogistic}((${context.l10n.mathScore} − ${context.l10n.mathScore}_{${context.l10n.mathTheirs}}) '
+          '/ ${context.l10n.mathSpread})'),
+      _math(
+          '${context.l10n.mathSpread} = ${_pts(PlacementUtility.baseSpread)} × '
+          '√(${context.l10n.mathHandsLeft})'),
     ];
   }
-
 
   /// 0.4632 -> "46.32%". Two decimals so two cuts a hair apart still read
   /// differently in the tooltip.
@@ -954,23 +893,24 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// This line's own arithmetic, so the number in the cell can be checked by
   /// eye. Reconstructs exactly what the engine did — see [DiscardLine]. Every
   /// row is labelled with the phrase the section above uses for it.
-  static List<InlineSpan> _evWorked(DiscardLine line, HandFocus focus) {
+  List<InlineSpan> _evWorked(DiscardLine line, HandFocus focus) {
     final gross = line.winProbability * (line.averagePoints + line.winBonus);
     final chance = _chance(line.winProbability);
     final spans = <InlineSpan>[
-      const TextSpan(text: '\n', style: _tipDim),
-      TextSpan(text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
+      TextSpan(text: '\n', style: _tipDim),
+      TextSpan(
+          text: context.l10n.tipThisCut(line.discard.code), style: _tipTitle),
     ];
 
     if (line.averagePoints <= 0) {
       spans.add(TextSpan(
-          text: line.reason.isNotEmpty
+          text: context.l10n.localeName == 'en' && line.reason.isNotEmpty
               ? '${line.reason}\n'
-              : 'This line has no winning hand to score yet.\n',
+              : context.l10n.tipNoWin,
           style: _tipBody));
       if (line.riskCost > 0.5) {
         spans.add(TextSpan(
-            text: _row('risk of this cut', '-${_pts(line.riskCost)}') +
+            text: _row(context.l10n.tipRiskRow, '-${_pts(line.riskCost)}') +
                 _row('TileSense EV', _pts(line.expectedValue)),
             style: _tipMath));
       }
@@ -978,28 +918,31 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     }
 
     final buf = StringBuffer()
-      ..write(_row('chance of finishing', chance))
-      ..write(_row('what the win pays', _pts(line.averagePoints)));
+      ..write(_row(context.l10n.tipFinishRow, chance))
+      ..write(_row(context.l10n.tipPayoutRow, _pts(line.averagePoints)));
     if (line.winBonus > 0) {
-      buf.write(_row('honba and sticks', '+${_pts(line.winBonus)}'));
+      buf.write(_row(context.l10n.tipSticksRow, '+${_pts(line.winBonus)}'));
     }
-    buf.write(_row('so on average', _pts(gross)));
+    buf.write(_row(context.l10n.tipAverageRow, _pts(gross)));
     // The multiplication behind that row, so it can be checked by eye.
     buf.write('    = $chance × '
         '${line.winBonus > 0 ? '(${_pts(line.averagePoints)} + ${_pts(line.winBonus)})' : _pts(line.averagePoints)}\n');
     if (line.valueTilt.abs() > 0.5) {
       final sign = line.valueTilt > 0 ? '+' : '-';
-      buf.write(_row('${focus.label.toLowerCase()} tilt',
+      buf.write(_row(
+          context.l10n
+              .tipFocusTilt(context.l10n.handFocusName(focus).toLowerCase()),
           '$sign${_pts(line.valueTilt.abs())}'));
     }
     if (line.riichiLockCost > 0.5) {
-      buf.write(_row('less riichi lock-in', '-${_pts(line.riichiLockCost)}'));
+      buf.write(_row(context.l10n.tipLockRow, '-${_pts(line.riichiLockCost)}'));
     }
     if (line.dealInCost > 0.5) {
-      buf.write(_row('less deal-in risk', '-${_pts(line.dealInCost)}'));
+      buf.write(_row(context.l10n.tipDealInRow, '-${_pts(line.dealInCost)}'));
     }
     if (line.commitmentCost > 0.5) {
-      buf.write(_row('less turns committed', '-${_pts(line.commitmentCost)}'));
+      buf.write(
+          _row(context.l10n.tipCommitRow, '-${_pts(line.commitmentCost)}'));
     }
     buf.write('  ${'-' * 31}\n');
     buf.write(_row('TileSense EV', _pts(line.expectedValue)));
@@ -1018,34 +961,28 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// part of the guide's own recommendation. See
   /// [DiscardLine.expectedValueHmr] for the exact definition and where it
   /// comes from.
-  static final List<InlineSpan> _evHmrGeneral = [
-    TextSpan(text: 'EV (HMR)\n', style: _tipTitle),
-    TextSpan(
-        text: 'A plain comparison figure — it never changes the '
-            'recommendation.\n',
-        style: _tipBody),
-    const TextSpan(text: '\n', style: _tipBody),
-    _math('EV_{HMR} = chance_{finish} × payout_{win}'),
-    TextSpan(
-        text: '\nNo honba or sticks, no risk costs, no Style or Focus tilt.\n',
-        style: _tipBody),
-    TextSpan(style: _tipDim, children: [
-      const TextSpan(text: '\nMirrors the "E.V." stat in '),
-      TextSpan(
-        text: 'HMR (Hitori Mahjong Renshuuki)',
-        style: const TextStyle(
-          color: Color(0xff80cbc4),
-          decoration: TextDecoration.underline,
-          decorationColor: Color(0xff80cbc4),
-        ),
-        recognizer: _hmrLink,
-        mouseCursor: SystemMouseCursors.click,
-      ),
-      const TextSpan(
-          text: ', a solo tsumo-only trainer: points won ÷ hands played, '
-              'which is win rate × average win.'),
-    ]),
-  ];
+  List<InlineSpan> get _evHmrGeneral => [
+        TextSpan(text: 'EV (HMR)\n', style: _tipTitle),
+        TextSpan(text: context.l10n.tipHmrBody, style: _tipBody),
+        TextSpan(text: '\n', style: _tipBody),
+        _math(
+            'EV_{HMR} = ${context.l10n.mathChance}_{${context.l10n.mathFinish}} × ${context.l10n.mathPayout}_{${context.l10n.mathWin}}'),
+        TextSpan(text: context.l10n.tipHmrExcludes, style: _tipBody),
+        TextSpan(style: _tipDim, children: [
+          TextSpan(text: context.l10n.tipHmrSource),
+          TextSpan(
+            text: 'HMR (Hitori Mahjong Renshuuki)',
+            style: const TextStyle(
+              color: Color(0xff80cbc4),
+              decoration: TextDecoration.underline,
+              decorationColor: Color(0xff80cbc4),
+            ),
+            recognizer: _hmrLink,
+            mouseCursor: SystemMouseCursors.click,
+          ),
+          TextSpan(text: context.l10n.tipHmrSourceBody),
+        ]),
+      ];
 
   /// Where HMR is written up. One recognizer for the life of the app: the
   /// tooltip's text is static, so there is nothing to dispose of.
@@ -1056,21 +993,22 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
 
   /// This line's own [DiscardLine.expectedValueHmr] arithmetic, matching the
   /// worked example [_evWorked] gives for TileSense EV.
-  static List<InlineSpan> _evHmrWorked(DiscardLine line) {
+  List<InlineSpan> _evHmrWorked(DiscardLine line) {
     final spans = <InlineSpan>[
-      const TextSpan(text: '\n', style: _tipDim),
-      TextSpan(text: '\nTHIS CUT — ${line.discard.code}\n', style: _tipTitle),
+      TextSpan(text: '\n', style: _tipDim),
+      TextSpan(
+          text: context.l10n.tipThisCut(line.discard.code), style: _tipTitle),
     ];
     if (line.averagePoints <= 0) {
-      spans.add(const TextSpan(
-        text: 'This line has no winning hand to score yet.\n',
+      spans.add(TextSpan(
+        text: context.l10n.tipNoWin,
         style: _tipBody,
       ));
       return spans;
     }
     final buf = StringBuffer()
-      ..write(_row('chance of finishing', _chance(line.winProbability)))
-      ..write(_row('what the win pays', _pts(line.averagePoints)))
+      ..write(_row(context.l10n.tipFinishRow, _chance(line.winProbability)))
+      ..write(_row(context.l10n.tipPayoutRow, _pts(line.averagePoints)))
       ..write('  ${'-' * 31}\n')
       ..write(_row('EV (HMR)', _pts(line.expectedValueHmr)));
     spans.add(TextSpan(text: buf.toString(), style: _tipMath));
@@ -1426,23 +1364,10 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  static const _yakuTip = <InlineSpan>[
-    TextSpan(text: 'YAKU\n', style: _tipTitle),
-    TextSpan(
-        text: 'Each bar: of the times this line wins, the share that include '
-            'that yaku. One win usually has several yaku, so the bars don\'t '
-            'add up to 100%. 100% means every win has it; Riichi is 100% when '
-            'the plan is to riichi.\n\n'
-            'Multiply by the chance to win for the overall odds.\n\n'
-            'Dora aren\'t yaku, so they\'re shown separately as the average '
-            'extra han.\n\n'
-            '≈ marks an estimate: short of tenpai, the guide assumes you keep '
-            'cutting for the widest hand and scores the likeliest ready hands '
-            'that leads to. It doesn\'t plan around yaku you\'d have to steer '
-            'toward (yakuhai, flushes), so those can read low. More than 3 '
-            'tiles away, nothing is shown yet.',
-        style: _tipBody),
-  ];
+  List<InlineSpan> get _yakuTip => <InlineSpan>[
+        TextSpan(text: context.l10n.tipYakuTitle, style: _tipTitle),
+        TextSpan(text: context.l10n.tipYakuBody, style: _tipBody),
+      ];
 
   /// A pick's highlight: the guide's green fill, Mortal's red outline (the
   /// Mortal column's hue), or both when they agree. Null when neither picked
@@ -1538,29 +1463,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
-  static const _mortalTip = <InlineSpan>[
-    TextSpan(text: 'Mortal bot\n', style: _tipTitle),
-    TextSpan(
-        text: 'What Mortal, an open-source deep-learning mahjong AI, would do '
-            'in your seat, seeing only what your seat can see. ★ marks its '
-            'discard (★R: it would declare riichi first); the numbers are its '
-            'order of preference among the rest. Its pick is outlined in '
-            'red and the guide\'s filled green; green with a red outline '
-            'means they agree.\n\n',
-        style: _tipBody),
-    TextSpan(
-        text: 'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the '
-            'rows follow Mortal\'s order; on TileSense (the default) they follow '
-            'the guide\'s, and this is a second opinion. The green tile is '
-            'always the guide\'s pick. Whenever Mortal can\'t answer, the '
-            'guide decides.\n\n',
-        style: _tipBody),
-    TextSpan(
-        text: 'Riichi, single player. Mortal and its weights are AGPL-3.0 — '
-            'source: github.com/Equim-chan/Mortal; the service that runs it: '
-            'github.com/eric-r-xu/TileSense (mortal_sidecar).',
-        style: _tipDim),
-  ];
+  List<InlineSpan> get _mortalTip => <InlineSpan>[
+        TextSpan(text: '${context.l10n.mortalBot}\n', style: _tipTitle),
+        TextSpan(text: context.l10n.tipMortalBody, style: _tipBody),
+        TextSpan(text: context.l10n.tipMortalAuto, style: _tipBody),
+        TextSpan(text: context.l10n.tipMortalSource, style: _tipDim),
+      ];
 
   /// The columns that rank the discards, in the order they are compared, each
   /// with whether higher (true) or lower (false) is better: the value column
@@ -1579,23 +1487,30 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
 
   /// Added to a ranking column's heading tip: which way is better, and where
   /// the column sits in the order that picks the green tile.
+  String _rankingLabel(String label) => switch (label) {
+        'Placement' => context.l10n.tipPlacementLabel,
+        'Shanten' => context.l10n.tipShantenLabel,
+        'Away' => context.l10n.tipAwayLabel,
+        'Ukeire' => context.l10n.tipUkeireLabel,
+        'Accepts' => context.l10n.tipAcceptsLabel,
+        _ => label,
+      };
+
   List<InlineSpan> _rankingNote(String label) {
     final ranking = _rankingColumns();
     final (_, higher) = ranking.firstWhere((c) => c.$1 == label);
     final order = [
       for (final (name, up) in ranking)
-        '$name (${up ? 'higher' : 'lower'} first)'
+        context.l10n.tipRankOrder(_rankingLabel(name),
+            up ? context.l10n.tipHigherFirst : context.l10n.tipLowerFirst)
     ];
     return [
       TextSpan(
-          text: '\n\n${higher ? 'Higher' : 'Lower'} is better — '
-              'the arrow on the heading. ',
+          text: context.l10n.tipRankDirection(
+              higher ? context.l10n.tipHigher : context.l10n.tipLower),
           style: _tipBody),
       TextSpan(
-          text: 'Discards are ranked by ${order[0]}, then ${order[1]}, then '
-              '${order[2]}; values count as equal when they show the same '
-              'number. The green tile is the top of that order, and every '
-              'tile equal to it on all three is green too.',
+          text: context.l10n.tipRankBody(order[0], order[1], order[2]),
           style: _tipDim),
     ];
   }

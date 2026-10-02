@@ -1489,4 +1489,579 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorGameEnded => 'That game has ended';
+
+  @override
+  String get guideTipTitle => 'GUIDE\n';
+
+  @override
+  String get guideGreen => 'Green tile';
+
+  @override
+  String get guideGreenBody => 'the recommended discard';
+
+  @override
+  String get guideYellow => 'Yellow tile';
+
+  @override
+  String get guideYellowBody => 'the tile you just drew';
+
+  @override
+  String get guidePause => 'pause the game';
+
+  @override
+  String get guideHover => '\nHover a heading or a dial for what it means.';
+
+  @override
+  String get tipAutoTitle => 'AUTO-PLAY\n';
+
+  @override
+  String get tipAutoBody =>
+      'Who Auto-Play follows for your seat, and whose order the rows below are sorted in.\n';
+
+  @override
+  String get tipAutoChoices =>
+      '• TileSense (default): the guide; its recommendation is on top.\n• Mortal bot: Mortal plays your seat, and its preferred move is on top. Any decision Mortal can\'t answer is played by the guide.';
+
+  @override
+  String get tipEvTitle => 'TILESENSE EV\n';
+
+  @override
+  String get tipFinishTitle => 'CHANCE OF FINISHING';
+
+  @override
+  String get tipFinishBody =>
+      'Odds you win before the hand ends. More live tiles and more draws left raise it.\n';
+
+  @override
+  String get tipFinishMore =>
+      'hover Ukeire · tap the EV (HMR) number for the chart';
+
+  @override
+  String get tipPayoutTitle => 'WHAT THE WIN PAYS';
+
+  @override
+  String get tipPayoutTw =>
+      'A flat point total, the same from every payer, plus a dealer-streak bonus. Exact once ready; before that, estimated from the patterns shown.\n';
+
+  @override
+  String get tipPayoutHk =>
+      'Faan as chips. Exact once ready; before that, estimated from the patterns shown.\n';
+
+  @override
+  String get tipPayoutRiichi =>
+      'Points if it lands, plus honba and riichi sticks. Exact once tenpai; an estimate before.\n';
+
+  @override
+  String get tipPayoutMore => 'tap the EV (HMR) number for the working';
+
+  @override
+  String get tipCutTitle => 'WHAT THE CUT RISKS';
+
+  @override
+  String get tipCutChinese =>
+      'Estimated loss to an opponent with 3+ exposed sets. No tile is fully safe.\n';
+
+  @override
+  String get tipCutRiichi =>
+      'The riichi stick (lost unless you win). Against a live riichi, also how often this tile deals in and the turns it commits you to.\n';
+
+  @override
+  String get tipCutMore => 'hover Risk and Safety';
+
+  @override
+  String get tipFocusTitle => 'FOCUS';
+
+  @override
+  String get tipFocusBody =>
+      'Speed pays some payout for a better chance of finishing. Balanced adds no tilt.\n';
+
+  @override
+  String get tipFocusMore => 'hover FOCUS';
+
+  @override
+  String get tipFocusPlacementMore =>
+      'hover FOCUS · STRATEGY and Placement for the rest';
+
+  @override
+  String get tipEvHigher =>
+      '\nHigher is better. A dangerous, cheap cut can go negative.';
+
+  @override
+  String get tipOrdinaryWide => 'Wider than ordinary';
+
+  @override
+  String get tipOrdinaryWideBody =>
+      'steps forward faster, but never faster than an ordinary hand';
+
+  @override
+  String get tipOrdinaryTitle => 'AN ORDINARY HAND HAS';
+
+  @override
+  String get tipShantenLabel => 'Shanten';
+
+  @override
+  String get tipUkeireLabel => 'Ukeire';
+
+  @override
+  String get tipAwayLabel => 'Away';
+
+  @override
+  String get tipAcceptsLabel => 'Accepts';
+
+  @override
+  String get tipOrdinaryNote =>
+      '\nMeans, not medians: the average ukeire of the best discard at each shanten, measured over simulated solo games by a greedy efficiency player (no defence, no calls).';
+
+  @override
+  String get tipSafetyTitle => 'SAFETY\n';
+
+  @override
+  String get tipSafetyChinese =>
+      'How risky a tile is to cut against an opponent with an exposed hand. Higher = safer.\n';
+
+  @override
+  String get tipSafetyRiichi =>
+      'How safe a tile is to cut against a riichi. 0 = dangerous, 15 = genbutsu.\n';
+
+  @override
+  String get tipNeverCertain => 'Never certain';
+
+  @override
+  String get tipNeverCertainBody =>
+      'with no furiten, a tile an opponent discarded can still win';
+
+  @override
+  String get tipRatedWhen => 'Rated when';
+
+  @override
+  String get tipGenbutsu => 'Genbutsu';
+
+  @override
+  String get tipGenbutsuBody =>
+      'a tile that player discarded, or that passed them after their riichi, cannot win their hand';
+
+  @override
+  String get tipSuji => 'Suji';
+
+  @override
+  String get tipSujiBody =>
+      'a tile three away from one they discarded is safer';
+
+  @override
+  String get tipRatedRiichi =>
+      'someone is in riichi — otherwise the column shows —';
+
+  @override
+  String get tipDealInTitle => 'CHANCE A CUT DEALS IN';
+
+  @override
+  String get tipRating => 'Rating';
+
+  @override
+  String get tipTile => 'Tile';
+
+  @override
+  String get tipDealsIn => 'Deals in';
+
+  @override
+  String get tipRating15 => 'Genbutsu — already discarded by that player';
+
+  @override
+  String get tipRating13 => 'Honor, 1 live';
+
+  @override
+  String get tipRating12 => 'Double suji';
+
+  @override
+  String get tipRating11 => 'Suji terminal';
+
+  @override
+  String get tipRating9 => 'Honor, 2 live';
+
+  @override
+  String get tipRating8 => 'No-chance tile';
+
+  @override
+  String get tipRating7 => 'Half suji';
+
+  @override
+  String get tipRating6 => 'Suji 2/3/7/8, or honor with 3 live';
+
+  @override
+  String get tipRating3 => 'Non-suji 2/3/7/8';
+
+  @override
+  String get tipRating2 => 'Non-suji middle tile';
+
+  @override
+  String get tipHkRating14 => 'Honor, none unseen';
+
+  @override
+  String get tipHkRating11 => 'Honor, 1 unseen';
+
+  @override
+  String get tipHkRating6 => 'Honor, 2 or more unseen';
+
+  @override
+  String get tipHkRating5 => 'Terminal';
+
+  @override
+  String get tipHkRating3 => 'Suit tile';
+
+  @override
+  String get tipRiskTitle => 'RISK\n';
+
+  @override
+  String get tipDealInChance => 'Deal-in chance';
+
+  @override
+  String get tipDealInChanceBody => 'from the tile\'s Safety rating';
+
+  @override
+  String get tipDealInCost => 'Deal-in cost';
+
+  @override
+  String get tipStyleWeight => 'Style weight';
+
+  @override
+  String get tipLaterTurns => 'Later turns';
+
+  @override
+  String get tipHowLong => 'How long';
+
+  @override
+  String get tipChineseHorizon =>
+      'the hand\'s own expected length; a tile with no risk commits you to nothing';
+
+  @override
+  String get tipFormula => 'FORMULA';
+
+  @override
+  String get tipDetailTitle => 'DETAIL\n';
+
+  @override
+  String get tipDetailBody => 'Why this tile has the Safety rating it does.\n';
+
+  @override
+  String get tipShows => 'Shows';
+
+  @override
+  String get tipShowsBody =>
+      'genbutsu, suji, honor with copies left, and so on';
+
+  @override
+  String get tipEmpty => 'Empty';
+
+  @override
+  String get tipEmptyBody =>
+      'nobody is being defended against, so there is nothing to explain';
+
+  @override
+  String get tipPlacementTitle => 'PLACEMENT\n';
+
+  @override
+  String get tipPlacementBody =>
+      'How a line moves your chance of finishing above the other three seats.\n';
+
+  @override
+  String get tipUses => 'Uses';
+
+  @override
+  String get tipUsesBody =>
+      'the scores on the table and the hands left right now';
+
+  @override
+  String get tipNotPoints => 'Not points';
+
+  @override
+  String get tipNotPointsBody =>
+      'scaled up ×1,000 so it reads at a glance; only its order against the other lines means anything';
+
+  @override
+  String get tipHeuristic => 'A heuristic';
+
+  @override
+  String get tipHeuristicBody => 'not a simulation';
+
+  @override
+  String get tipWorthTitle => 'WHAT 8,000 POINTS IS WORTH';
+
+  @override
+  String get tipSituation => 'Situation';
+
+  @override
+  String get tipHandsLeft => 'Hands left';
+
+  @override
+  String get tipEven => 'Even table';
+
+  @override
+  String get tipLead => 'Big lead';
+
+  @override
+  String get tipBehind => 'Far behind';
+
+  @override
+  String get tipEvenLast => 'Even table, last hand';
+
+  @override
+  String get tipLeadLast => 'Big lead, last hand';
+
+  @override
+  String get tipPlacementNote =>
+      '\nPoints matter most in a close race and late in the game, and least when you are comfortably ahead.\n';
+
+  @override
+  String get tipNoWin => 'This line has no winning hand to score yet.\n';
+
+  @override
+  String get tipRiskRow => 'risk of this cut';
+
+  @override
+  String get tipFinishRow => 'chance of finishing';
+
+  @override
+  String get tipPayoutRow => 'what the win pays';
+
+  @override
+  String get tipSticksRow => 'honba and sticks';
+
+  @override
+  String get tipAverageRow => 'so on average';
+
+  @override
+  String get tipLockRow => 'less riichi lock-in';
+
+  @override
+  String get tipDealInRow => 'less deal-in risk';
+
+  @override
+  String get tipCommitRow => 'less turns committed';
+
+  @override
+  String get tipHmrBody =>
+      'A plain comparison figure — it never changes the recommendation.\n';
+
+  @override
+  String get tipHmrExcludes =>
+      '\nNo honba or sticks, no risk costs, no Style or Focus tilt.\n';
+
+  @override
+  String get tipHmrSource => '\nMirrors the \"E.V.\" stat in ';
+
+  @override
+  String get tipHmrSourceBody =>
+      ', a solo tsumo-only trainer: points won ÷ hands played, which is win rate × average win.';
+
+  @override
+  String get tipYakuBody =>
+      'Each bar: of the times this line wins, the share that include that yaku. One win usually has several yaku, so the bars don\'t add up to 100%. 100% means every win has it; Riichi is 100% when the plan is to riichi.\n\nMultiply by the chance to win for the overall odds.\n\nDora aren\'t yaku, so they\'re shown separately as the average extra han.\n\n≈ marks an estimate: short of tenpai, the guide assumes you keep cutting for the widest hand and scores the likeliest ready hands that leads to. It doesn\'t plan around yaku you\'d have to steer toward (yakuhai, flushes), so those can read low. More than 3 tiles away, nothing is shown yet.';
+
+  @override
+  String get tipMortalBody =>
+      'What Mortal, an open-source deep-learning mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide\'s filled green; green with a red outline means they agree.\n\n';
+
+  @override
+  String get tipMortalAuto =>
+      'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the rows follow Mortal\'s order; on TileSense (the default) they follow the guide\'s, and this is a second opinion. The green tile is always the guide\'s pick. Whenever Mortal can\'t answer, the guide decides.\n\n';
+
+  @override
+  String get tipMortalSource =>
+      'Riichi, single player. Mortal and its weights are AGPL-3.0 — source: github.com/Equim-chan/Mortal; the service that runs it: github.com/eric-r-xu/TileSense (mortal_sidecar).';
+
+  @override
+  String get tipYakuTitle => 'YAKU\n';
+
+  @override
+  String tipEvAverage(String unit) {
+    return 'The average $unit this discard is worth to you (EV = Expected Value).\n';
+  }
+
+  @override
+  String tipShantenBody(String ready) {
+    return 'How many tiles you are from a ready hand (0 means $ready).';
+  }
+
+  @override
+  String tipUkeireBody(String effect) {
+    return 'Live tiles that $effect — how many draws help.\n';
+  }
+
+  @override
+  String tipThreatSets(String count) {
+    return 'an opponent shows $count or more exposed sets — otherwise the column shows —';
+  }
+
+  @override
+  String tipChineseCost(String cost, String unit) {
+    return '\nA deal-in is charged $cost $unit.';
+  }
+
+  @override
+  String tipRiichiCost(String cost, String dealerCost) {
+    return '$cost points ($dealerCost to a dealer), plus 300 a honba';
+  }
+
+  @override
+  String tipRiichiCostNote(String cost, String dealerCost) {
+    return '\nA deal-in costs $cost ($dealerCost to a dealer), plus 300 a honba.';
+  }
+
+  @override
+  String tipRiskBody(String unit) {
+    return '$unit taken off EV for the danger of this cut.\n';
+  }
+
+  @override
+  String tipStyleWeights(String weights, String styles) {
+    return '×$weights for $styles';
+  }
+
+  @override
+  String tipCommitPercent(String percent) {
+    return '$percent% of the charge again for each turn the cut commits you to';
+  }
+
+  @override
+  String tipRiichiHorizon(String turns) {
+    return 'as long as the riichi lasts, about $turns of your discards; a genbutsu cut commits you to nothing';
+  }
+
+  @override
+  String tipThisCut(String tile) {
+    return '\nTHIS CUT — $tile\n';
+  }
+
+  @override
+  String tipFocusTilt(String focus) {
+    return '$focus tilt';
+  }
+
+  @override
+  String tipRankOrder(String name, String direction) {
+    return '$name ($direction first)';
+  }
+
+  @override
+  String tipRankDirection(String direction) {
+    return '\n\n$direction is better — the arrow on the heading. ';
+  }
+
+  @override
+  String tipRankBody(String first, String second, String third) {
+    return 'Discards are ranked by $first, then $second, then $third; values count as equal when they show the same number. The green tile is the top of that order, and every tile equal to it on all three is green too.';
+  }
+
+  @override
+  String get tipReady => 'ready';
+
+  @override
+  String get tipTenpai => 'tenpai';
+
+  @override
+  String get tipCloser => 'bring you closer to ready';
+
+  @override
+  String get tipReduce => 'reduce shanten';
+
+  @override
+  String get tipHigher => 'Higher';
+
+  @override
+  String get tipLower => 'Lower';
+
+  @override
+  String get tipHigherFirst => 'higher';
+
+  @override
+  String get tipLowerFirst => 'lower';
+
+  @override
+  String get tipPlacementLabel => 'Placement';
+
+  @override
+  String get tipPointsUnit => 'points';
+
+  @override
+  String get tipChipsUnit => 'chips';
+
+  @override
+  String get tipBalanced => 'Balanced';
+
+  @override
+  String get tipSpeed => 'Speed';
+
+  @override
+  String get tipAggressive => 'Aggressive';
+
+  @override
+  String get tipPoints => 'Points';
+
+  @override
+  String get tipDefensive => 'Defensive';
+
+  @override
+  String get mathChance => 'chance';
+
+  @override
+  String get mathFinish => 'finish';
+
+  @override
+  String get mathPayout => 'payout';
+
+  @override
+  String get mathWin => 'win';
+
+  @override
+  String get mathRisk => 'risk';
+
+  @override
+  String get mathCut => 'cut';
+
+  @override
+  String get mathDealIn => 'deal-in';
+
+  @override
+  String get mathCost => 'cost';
+
+  @override
+  String get mathWeight => 'weight';
+
+  @override
+  String get mathStyle => 'style';
+
+  @override
+  String get mathCharge => 'charge';
+
+  @override
+  String get mathLaterTurns => 'later turns';
+
+  @override
+  String get mathWorth => 'worth';
+
+  @override
+  String get mathGain => 'gain';
+
+  @override
+  String get mathScore => 'score';
+
+  @override
+  String get mathOthers => '3 other seats';
+
+  @override
+  String get mathTheirs => 'theirs';
+
+  @override
+  String get mathSpread => 'spread';
+
+  @override
+  String get mathHandsLeft => 'hands left';
+
+  @override
+  String get mathLogistic => 'logistic';
+
+  @override
+  String mascotIntro(String mascot, String app) {
+    return 'I\'m $mascot: part prairie dog, part axolotl.\nI pick your best discards and calls.\nTurn on Auto-Play and I\'ll play your seat.\nMisplayed? Take it back and try again.\nPlay along and level up your $app.';
+  }
 }
