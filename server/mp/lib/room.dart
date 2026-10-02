@@ -49,6 +49,7 @@ class Room {
     required this.ruleset,
     required this.hanchan,
     this.timerSeconds = defaultTimerSeconds,
+    this.callBufferSeconds = defaultCallBufferSeconds,
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
   });
@@ -63,12 +64,28 @@ class Room {
   static int normalizeTimerSeconds(Object? v) =>
       v is int && timerChoices.contains(v) ? v : defaultTimerSeconds;
 
+  /// Extra time, on top of [timerSeconds], added to every turn and call-offer
+  /// clock to cover the extra beat a call decision (chi/pon/kan/ron) takes;
+  /// a room may pick from [callBufferChoices] when it is created; see
+  /// [normalizeCallBufferSeconds].
+  static const int defaultCallBufferSeconds = 10;
+  static const List<int> callBufferChoices = [10, 20];
+
+  /// Anything other than a listed choice falls back to the default, so a
+  /// missing or hand-edited value can never produce a zero or huge buffer.
+  static int normalizeCallBufferSeconds(Object? v) => v is int &&
+          callBufferChoices.contains(v) ? v : defaultCallBufferSeconds;
+
   final String code;
   final Ruleset ruleset;
   final bool hanchan;
 
   /// Seconds each human gets per discard and per call offer.
   final int timerSeconds;
+
+  /// Extra seconds added on top of [timerSeconds] for both the turn and
+  /// call-offer clocks, earmarked for making a call.
+  final int callBufferSeconds;
 
   /// Hong Kong only: the fewest faan a hand needs to win, picked by the host.
   final int minimumFaan;
@@ -182,6 +199,7 @@ class Room {
         'ruleset': ruleset.name,
         'hanchan': hanchan,
         'timerSeconds': timerSeconds,
+        'callBufferSeconds': callBufferSeconds,
         'minimumFaan': minimumFaan,
         'minimumPoints': minimumPoints,
         'phase': phase.name,
@@ -218,6 +236,7 @@ class RoomManager {
     required Ruleset ruleset,
     required bool hanchan,
     int timerSeconds = Room.defaultTimerSeconds,
+    int callBufferSeconds = Room.defaultCallBufferSeconds,
     int minimumFaan = HongKongRules.defaultMinimumFaan,
     int minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     String? hostCharacter,
@@ -228,6 +247,7 @@ class RoomManager {
         ruleset: ruleset,
         hanchan: hanchan,
         timerSeconds: Room.normalizeTimerSeconds(timerSeconds),
+        callBufferSeconds: Room.normalizeCallBufferSeconds(callBufferSeconds),
         minimumFaan: HongKongRules.normalizeMinimumFaan(minimumFaan),
         minimumPoints: TaiwaneseRules.normalizeMinimumPoints(minimumPoints));
     room.seats[0] = Seat(

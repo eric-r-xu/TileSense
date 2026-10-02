@@ -49,6 +49,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   late Ruleset _ruleset = widget.initialRuleset;
   bool _hanchan = true;
   int _timerSeconds = OnlineGameController.timerChoices.first;
+  int _callBufferSeconds = OnlineGameController.callBufferChoices.first;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
   int _minimumPoints = TaiwaneseRules.defaultMinimumPoints;
   late Character _character = widget.controller.myCharacter;
@@ -88,6 +89,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         ruleset: _ruleset,
         hanchan: _hanchan,
         timerSeconds: _timerSeconds,
+        callBufferSeconds: _callBufferSeconds,
         minimumFaan: _minimumFaan,
         minimumPoints: _minimumPoints);
   }
@@ -252,6 +254,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(child: _timerPicker()),
+                            const SizedBox(width: 16),
+                            Expanded(child: _callBufferPicker()),
                             if (_ruleset.isHongKong) ...[
                               const SizedBox(width: 16),
                               Expanded(child: _minimumFaanPicker()),
@@ -394,6 +398,46 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         const SizedBox(height: 6),
         Row(children: [
           for (final t in OnlineGameController.timerChoices) option(t)
+        ]),
+      ],
+    );
+  }
+
+  /// Extra seconds added on top of the turn/call timer above, earmarked for
+  /// making a call — 10 by default, or 20. Applies to the whole table, so it
+  /// is the host's call; joining a room uses whatever its host picked.
+  Widget _callBufferPicker() {
+    Widget option(int seconds) {
+      final selected = _callBufferSeconds == seconds;
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: OutlinedButton(
+            key: Key('callBuffer_$seconds'),
+            onPressed: () => setState(() => _callBufferSeconds = seconds),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: selected ? const Color(0x33caa24e) : null,
+              foregroundColor:
+                  selected ? const Color(0xffffdf76) : Colors.white54,
+              side: BorderSide(
+                color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                width: selected ? 2 : 1,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+            child: Text('${seconds}s'),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        const Text('Calls buffer',
+            style: TextStyle(color: Colors.white60, fontSize: 12)),
+        const SizedBox(height: 6),
+        Row(children: [
+          for (final t in OnlineGameController.callBufferChoices) option(t)
         ]),
       ],
     );

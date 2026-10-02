@@ -141,6 +141,12 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// host when the room is created (30 or 60) and echoed back by the server.
   static const List<int> timerChoices = [30, 60];
   int timerSeconds = 30;
+
+  /// Extra seconds added on top of [timerSeconds] for both the turn and
+  /// call-offer clocks, earmarked for making a call, chosen by the host when
+  /// the room is created (10 or 20) and echoed back by the server.
+  static const List<int> callBufferChoices = [10, 20];
+  int callBufferSeconds = 10;
   RoomLifecycle roomPhase = RoomLifecycle.lobby;
   int? mySeat;
   List<LobbySeat> lobbySeats = _emptyLobby();
@@ -165,12 +171,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     required Ruleset ruleset,
     required bool hanchan,
     int timerSeconds = 30,
+    int callBufferSeconds = 10,
     int minimumFaan = HongKongRules.defaultMinimumFaan,
     int minimumPoints = TaiwaneseRules.defaultMinimumPoints,
   }) {
     this.ruleset = ruleset;
     this.hanchan = hanchan;
     this.timerSeconds = timerSeconds;
+    this.callBufferSeconds = callBufferSeconds;
     this.minimumFaan = minimumFaan;
     this.minimumPoints = minimumPoints;
     _client.send({
@@ -181,6 +189,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       'ruleset': ruleset.name,
       'hanchan': hanchan,
       'timerSeconds': timerSeconds,
+      'callBufferSeconds': callBufferSeconds,
       'minimumFaan': minimumFaan,
       'minimumPoints': minimumPoints,
     });
@@ -590,6 +599,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     ruleset = Ruleset.values.byName(msg['ruleset'] as String);
     hanchan = msg['hanchan'] as bool;
     timerSeconds = msg['timerSeconds'] as int? ?? 30;
+    callBufferSeconds = msg['callBufferSeconds'] as int? ?? 10;
     minimumFaan = HongKongRules.normalizeMinimumFaan(msg['minimumFaan']);
     minimumPoints =
         TaiwaneseRules.normalizeMinimumPoints(msg['minimumPoints']);
