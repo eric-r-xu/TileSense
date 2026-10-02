@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../logic/efficiency_engine.dart';
+import '../l10n/l10n.dart';
 import 'tile_face.dart';
 
 /// Opens the "how is this number made" page for one discard's EV (HMR) cell:
@@ -172,7 +173,7 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
               ),
             ),
             IconButton(
-              tooltip: 'Close',
+              tooltip: context.l10n.close,
               icon: const Icon(Icons.close, color: Colors.white70),
               onPressed: () => Navigator.of(context).pop(),
             ),

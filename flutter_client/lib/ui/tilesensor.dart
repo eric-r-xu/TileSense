@@ -4,24 +4,10 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
+
 /// The mascot's picture.
 const String kTileSensorAsset = 'assets/tilesensor.png';
-
-/// How TileSensor introduces itself, in the tooltips wherever it appears, as
-/// (text, bold) runs — its own name and the app's are set in bold. Short
-/// lines of about the same length, each broken by hand, so the centred block
-/// reads as even rows rather than a ragged wrap.
-const List<(String, bool)> _intro = [
-  ("I'm ", false),
-  ('TileSensor', true),
-  (': part prairie dog, part axolotl.\n'
-      'I pick your best discards and calls.\n'
-      "Turn on Auto-Play and I'll play your seat.\n"
-      'Misplayed? Take it back and try again.\n'
-      'Play along and level up your ', false),
-  ('TileSense', true),
-  ('.', false),
-];
 
 /// The tooltip TileSensor's picture carries wherever it appears: its
 /// introduction (plus an optional [footer] line, e.g. what a tap does),
@@ -46,6 +32,18 @@ class TileSensorTooltip extends StatelessWidget {
             14.0,
           _ => 12.0,
         };
+    final intro = context.l10n.mascotIntro('TileSensor', 'TileSense');
+    // Split only the brand names for emphasis; translators control word order.
+    final runs = <TextSpan>[];
+    var start = 0;
+    for (final match in RegExp(r'TileSensor|TileSense').allMatches(intro)) {
+      runs.add(TextSpan(text: intro.substring(start, match.start)));
+      runs.add(TextSpan(
+          text: match.group(0),
+          style: const TextStyle(fontWeight: FontWeight.w800)));
+      start = match.end;
+    }
+    runs.add(TextSpan(text: intro.substring(start)));
     return Tooltip(
       // Only the size is set here, so the tooltip keeps its themed colour.
       richMessage: TextSpan(
@@ -53,11 +51,7 @@ class TileSensorTooltip extends StatelessWidget {
         // same distance from the next.
         style: TextStyle(fontSize: base * 1.5, height: 1.4),
         children: [
-          for (final (text, bold) in _intro)
-            TextSpan(
-              text: text,
-              style: bold ? const TextStyle(fontWeight: FontWeight.w800) : null,
-            ),
+          ...runs,
           if (footer != null) TextSpan(text: '\n$footer'),
         ],
       ),

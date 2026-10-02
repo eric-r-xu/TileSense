@@ -912,5 +912,317 @@
   "errorBadRequest": "bad request",
   "errorIllegalAction": "illegal action for the current turn",
   "errorNoActionExpected": "no action expected right now",
-  "errorGameEnded": "That game has ended"
+  "errorGameEnded": "That game has ended",
+  "guideTipTitle": "GUIDE\n",
+  "guideGreen": "Green tile",
+  "guideGreenBody": "the recommended discard",
+  "guideYellow": "Yellow tile",
+  "guideYellowBody": "the tile you just drew",
+  "guidePause": "pause the game",
+  "guideHover": "\nHover a heading or a dial for what it means.",
+  "tipAutoTitle": "AUTO-PLAY\n",
+  "tipAutoBody": "Who Auto-Play follows for your seat, and whose order the rows below are sorted in.\n",
+  "tipAutoChoices": "• TileSense (default): the guide; its recommendation is on top.\n• Mortal bot: Mortal plays your seat, and its preferred move is on top. Any decision Mortal can't answer is played by the guide.",
+  "tipEvTitle": "TILESENSE EV\n",
+  "tipFinishTitle": "CHANCE OF FINISHING",
+  "tipFinishBody": "Odds you win before the hand ends. More live tiles and more draws left raise it.\n",
+  "tipFinishMore": "hover Ukeire · tap the EV (HMR) number for the chart",
+  "tipPayoutTitle": "WHAT THE WIN PAYS",
+  "tipPayoutTw": "A flat point total, the same from every payer, plus a dealer-streak bonus. Exact once ready; before that, estimated from the patterns shown.\n",
+  "tipPayoutHk": "Faan as chips. Exact once ready; before that, estimated from the patterns shown.\n",
+  "tipPayoutRiichi": "Points if it lands, plus honba and riichi sticks. Exact once tenpai; an estimate before.\n",
+  "tipPayoutMore": "tap the EV (HMR) number for the working",
+  "tipCutTitle": "WHAT THE CUT RISKS",
+  "tipCutChinese": "Estimated loss to an opponent with 3+ exposed sets. No tile is fully safe.\n",
+  "tipCutRiichi": "The riichi stick (lost unless you win). Against a live riichi, also how often this tile deals in and the turns it commits you to.\n",
+  "tipCutMore": "hover Risk and Safety",
+  "tipFocusTitle": "FOCUS",
+  "tipFocusBody": "Speed pays some payout for a better chance of finishing. Balanced adds no tilt.\n",
+  "tipFocusMore": "hover FOCUS",
+  "tipFocusPlacementMore": "hover FOCUS · STRATEGY and Placement for the rest",
+  "tipEvHigher": "\nHigher is better. A dangerous, cheap cut can go negative.",
+  "tipOrdinaryWide": "Wider than ordinary",
+  "tipOrdinaryWideBody": "steps forward faster, but never faster than an ordinary hand",
+  "tipOrdinaryTitle": "AN ORDINARY HAND HAS",
+  "tipShantenLabel": "Shanten",
+  "tipUkeireLabel": "Ukeire",
+  "tipAwayLabel": "Away",
+  "tipAcceptsLabel": "Accepts",
+  "tipOrdinaryNote": "\nMeans, not medians: the average ukeire of the best discard at each shanten, measured over simulated solo games by a greedy efficiency player (no defence, no calls).",
+  "tipSafetyTitle": "SAFETY\n",
+  "tipSafetyChinese": "How risky a tile is to cut against an opponent with an exposed hand. Higher = safer.\n",
+  "tipSafetyRiichi": "How safe a tile is to cut against a riichi. 0 = dangerous, 15 = genbutsu.\n",
+  "tipNeverCertain": "Never certain",
+  "tipNeverCertainBody": "with no furiten, a tile an opponent discarded can still win",
+  "tipRatedWhen": "Rated when",
+  "tipGenbutsu": "Genbutsu",
+  "tipGenbutsuBody": "a tile that player discarded, or that passed them after their riichi, cannot win their hand",
+  "tipSuji": "Suji",
+  "tipSujiBody": "a tile three away from one they discarded is safer",
+  "tipRatedRiichi": "someone is in riichi — otherwise the column shows —",
+  "tipDealInTitle": "CHANCE A CUT DEALS IN",
+  "tipRating": "Rating",
+  "tipTile": "Tile",
+  "tipDealsIn": "Deals in",
+  "tipRating15": "Genbutsu — already discarded by that player",
+  "tipRating13": "Honor, 1 live",
+  "tipRating12": "Double suji",
+  "tipRating11": "Suji terminal",
+  "tipRating9": "Honor, 2 live",
+  "tipRating8": "No-chance tile",
+  "tipRating7": "Half suji",
+  "tipRating6": "Suji 2/3/7/8, or honor with 3 live",
+  "tipRating3": "Non-suji 2/3/7/8",
+  "tipRating2": "Non-suji middle tile",
+  "tipHkRating14": "Honor, none unseen",
+  "tipHkRating11": "Honor, 1 unseen",
+  "tipHkRating6": "Honor, 2 or more unseen",
+  "tipHkRating5": "Terminal",
+  "tipHkRating3": "Suit tile",
+  "tipRiskTitle": "RISK\n",
+  "tipDealInChance": "Deal-in chance",
+  "tipDealInChanceBody": "from the tile's Safety rating",
+  "tipDealInCost": "Deal-in cost",
+  "tipStyleWeight": "Style weight",
+  "tipLaterTurns": "Later turns",
+  "tipHowLong": "How long",
+  "tipChineseHorizon": "the hand's own expected length; a tile with no risk commits you to nothing",
+  "tipFormula": "FORMULA",
+  "tipDetailTitle": "DETAIL\n",
+  "tipDetailBody": "Why this tile has the Safety rating it does.\n",
+  "tipShows": "Shows",
+  "tipShowsBody": "genbutsu, suji, honor with copies left, and so on",
+  "tipEmpty": "Empty",
+  "tipEmptyBody": "nobody is being defended against, so there is nothing to explain",
+  "tipPlacementTitle": "PLACEMENT\n",
+  "tipPlacementBody": "How a line moves your chance of finishing above the other three seats.\n",
+  "tipUses": "Uses",
+  "tipUsesBody": "the scores on the table and the hands left right now",
+  "tipNotPoints": "Not points",
+  "tipNotPointsBody": "scaled up ×1,000 so it reads at a glance; only its order against the other lines means anything",
+  "tipHeuristic": "A heuristic",
+  "tipHeuristicBody": "not a simulation",
+  "tipWorthTitle": "WHAT 8,000 POINTS IS WORTH",
+  "tipSituation": "Situation",
+  "tipHandsLeft": "Hands left",
+  "tipEven": "Even table",
+  "tipLead": "Big lead",
+  "tipBehind": "Far behind",
+  "tipEvenLast": "Even table, last hand",
+  "tipLeadLast": "Big lead, last hand",
+  "tipPlacementNote": "\nPoints matter most in a close race and late in the game, and least when you are comfortably ahead.\n",
+  "tipNoWin": "This line has no winning hand to score yet.\n",
+  "tipRiskRow": "risk of this cut",
+  "tipFinishRow": "chance of finishing",
+  "tipPayoutRow": "what the win pays",
+  "tipSticksRow": "honba and sticks",
+  "tipAverageRow": "so on average",
+  "tipLockRow": "less riichi lock-in",
+  "tipDealInRow": "less deal-in risk",
+  "tipCommitRow": "less turns committed",
+  "tipHmrBody": "A plain comparison figure — it never changes the recommendation.\n",
+  "tipHmrExcludes": "\nNo honba or sticks, no risk costs, no Style or Focus tilt.\n",
+  "tipHmrSource": "\nMirrors the \"E.V.\" stat in ",
+  "tipHmrSourceBody": ", a solo tsumo-only trainer: points won ÷ hands played, which is win rate × average win.",
+  "tipYakuBody": "Each bar: of the times this line wins, the share that include that yaku. One win usually has several yaku, so the bars don't add up to 100%. 100% means every win has it; Riichi is 100% when the plan is to riichi.\n\nMultiply by the chance to win for the overall odds.\n\nDora aren't yaku, so they're shown separately as the average extra han.\n\n≈ marks an estimate: short of tenpai, the guide assumes you keep cutting for the widest hand and scores the likeliest ready hands that leads to. It doesn't plan around yaku you'd have to steer toward (yakuhai, flushes), so those can read low. More than 3 tiles away, nothing is shown yet.",
+  "tipMortalBody": "What Mortal, an open-source deep-learning mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide's filled green; green with a red outline means they agree.\n\n",
+  "tipMortalAuto": "With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the rows follow Mortal's order; on TileSense (the default) they follow the guide's, and this is a second opinion. The green tile is always the guide's pick. Whenever Mortal can't answer, the guide decides.\n\n",
+  "tipMortalSource": "Riichi, single player. Mortal and its weights are AGPL-3.0 — source: github.com/Equim-chan/Mortal; the service that runs it: github.com/eric-r-xu/TileSense (mortal_sidecar).",
+  "tipYakuTitle": "YAKU\n",
+  "tipEvAverage": "The average {unit} this discard is worth to you (EV = Expected Value).\n",
+  "@tipEvAverage": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "tipShantenBody": "How many tiles you are from a ready hand (0 means {ready}).",
+  "@tipShantenBody": {
+    "placeholders": {
+      "ready": {
+        "type": "String"
+      }
+    }
+  },
+  "tipUkeireBody": "Live tiles that {effect} — how many draws help.\n",
+  "@tipUkeireBody": {
+    "placeholders": {
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "tipThreatSets": "an opponent shows {count} or more exposed sets — otherwise the column shows —",
+  "@tipThreatSets": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "tipChineseCost": "\nA deal-in is charged {cost} {unit}.",
+  "@tipChineseCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRiichiCost": "{cost} points ({dealerCost} to a dealer), plus 300 a honba",
+  "@tipRiichiCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "dealerCost": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRiichiCostNote": "\nA deal-in costs {cost} ({dealerCost} to a dealer), plus 300 a honba.",
+  "@tipRiichiCostNote": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "dealerCost": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRiskBody": "{unit} taken off EV for the danger of this cut.\n",
+  "@tipRiskBody": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "tipStyleWeights": "×{weights} for {styles}",
+  "@tipStyleWeights": {
+    "placeholders": {
+      "weights": {
+        "type": "String"
+      },
+      "styles": {
+        "type": "String"
+      }
+    }
+  },
+  "tipCommitPercent": "{percent}% of the charge again for each turn the cut commits you to",
+  "@tipCommitPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRiichiHorizon": "as long as the riichi lasts, about {turns} of your discards; a genbutsu cut commits you to nothing",
+  "@tipRiichiHorizon": {
+    "placeholders": {
+      "turns": {
+        "type": "String"
+      }
+    }
+  },
+  "tipThisCut": "\nTHIS CUT — {tile}\n",
+  "@tipThisCut": {
+    "placeholders": {
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "tipFocusTilt": "{focus} tilt",
+  "@tipFocusTilt": {
+    "placeholders": {
+      "focus": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRankOrder": "{name} ({direction} first)",
+  "@tipRankOrder": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRankDirection": "\n\n{direction} is better — the arrow on the heading. ",
+  "@tipRankDirection": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "tipRankBody": "Discards are ranked by {first}, then {second}, then {third}; values count as equal when they show the same number. The green tile is the top of that order, and every tile equal to it on all three is green too.",
+  "@tipRankBody": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      },
+      "third": {
+        "type": "String"
+      }
+    }
+  },
+  "tipReady": "ready",
+  "tipTenpai": "tenpai",
+  "tipCloser": "bring you closer to ready",
+  "tipReduce": "reduce shanten",
+  "tipHigher": "Higher",
+  "tipLower": "Lower",
+  "tipHigherFirst": "higher",
+  "tipLowerFirst": "lower",
+  "tipPlacementLabel": "Placement",
+  "tipPointsUnit": "points",
+  "tipChipsUnit": "chips",
+  "tipBalanced": "Balanced",
+  "tipSpeed": "Speed",
+  "tipAggressive": "Aggressive",
+  "tipPoints": "Points",
+  "tipDefensive": "Defensive",
+  "mathChance": "chance",
+  "mathFinish": "finish",
+  "mathPayout": "payout",
+  "mathWin": "win",
+  "mathRisk": "risk",
+  "mathCut": "cut",
+  "mathDealIn": "deal-in",
+  "mathCost": "cost",
+  "mathWeight": "weight",
+  "mathStyle": "style",
+  "mathCharge": "charge",
+  "mathLaterTurns": "later turns",
+  "mathWorth": "worth",
+  "mathGain": "gain",
+  "mathScore": "score",
+  "mathOthers": "3 other seats",
+  "mathTheirs": "theirs",
+  "mathSpread": "spread",
+  "mathHandsLeft": "hands left",
+  "mathLogistic": "logistic",
+  "mascotIntro": "I'm {mascot}: part prairie dog, part axolotl.\nI pick your best discards and calls.\nTurn on Auto-Play and I'll play your seat.\nMisplayed? Take it back and try again.\nPlay along and level up your {app}.",
+  "@mascotIntro": {
+    "placeholders": {
+      "mascot": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  }
 }
