@@ -526,6 +526,24 @@ void main() {
     await done.future.timeout(const Duration(seconds: 60));
   }, timeout: const Timeout(Duration(seconds: 90)));
 
+  test('every error carries a code a client can translate, and its message',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({'type': 'join_room', 'roomCode': 'ZZZZ', 'guestId': 'guest-a'});
+    final notFound = await a.waitFor((m) => m['type'] == 'error');
+    expect(notFound['code'], 'room_not_found');
+    expect(notFound['message'], 'room not found');
+    a.log.clear();
+    a.channel.sink.add('not json');
+    final malformed = await a.waitFor((m) => m['type'] == 'error');
+    expect(malformed['code'], 'malformed');
+    expect(malformed['message'], isNotEmpty);
+  });
+
   test('a player a bot took over for gets their seat back on reconnect',
       () async {
     final manager = RoomManager();
@@ -576,6 +594,7 @@ void main() {
     other.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-z'});
     final err = await other.waitFor((m) => m['type'] == 'error');
     expect(err['message'], 'that room has already started');
+    expect(err['code'], 'room_started');
   });
 
   test("a bot's own seat can't be claimed with its bot guest id", () async {
@@ -596,6 +615,7 @@ void main() {
     thief.send({'type': 'reconnect', 'roomCode': code, 'guestId': botId});
     final err = await thief.waitFor((m) => m['type'] == 'error');
     expect(err['message'], 'this seat is bot-controlled');
+    expect(err['code'], 'seat_bot_controlled');
     expect(room.seats[bot]!.isBot, isTrue);
     expect(room.seats[bot]!.connected, isFalse);
   });
@@ -781,6 +801,7 @@ void main() {
     a.send(createMsg('guest-a'));
     final error = await a.waitFor((m) => m['type'] == 'error');
     expect(error['message'], contains('server is full'));
+    expect(error['code'], 'server_full');
     expect(manager.roomCount, 200);
   });
 }

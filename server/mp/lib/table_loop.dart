@@ -348,7 +348,7 @@ class TableLoop {
         _timeoutStrikes[seat] = 0;
         return;
       }
-      room.sendError(seat, 'illegal action for the current turn');
+      room.sendError(seat, 'illegal_action', 'illegal action for the current turn');
     }
   }
 
@@ -735,7 +735,7 @@ class TableLoop {
     if (type == 'action') {
       final completer = _pending[seat];
       if (completer == null || completer.isCompleted) {
-        room.sendError(seat, 'no action expected right now');
+        room.sendError(seat, 'no_action_expected', 'no action expected right now');
         return;
       }
       completer.complete(Map<String, dynamic>.from(message));

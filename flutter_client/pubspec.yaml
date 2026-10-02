@@ -21,6 +21,9 @@ dependencies:
   web_socket_channel: ^3.0.1
   mahjong_core:
     path: ../packages/mahjong_core
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +32,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Generates lib/l10n/app_localizations*.dart from the ARB files there; see
+  # l10n.yaml.
+  generate: true
   assets:
     - assets/tilesense.png
     - assets/tilesensor.png

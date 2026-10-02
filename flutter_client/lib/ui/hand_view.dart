@@ -5,6 +5,8 @@ import 'package:flutter/scheduler.dart';
 import '../game/game_controller.dart' show kHumanSeat;
 import '../game/guide_host.dart';
 import '../game/mortal_advisor.dart' show MortalStatus;
+import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
 import '../main.dart' show isPhoneLayout;
 import 'package:mahjong_core/mjai.dart' show mjaiTile;
 import 'package:mahjong_core/round.dart';
@@ -485,10 +487,10 @@ class _HandViewState extends State<HandView> {
   }
 
   Widget _guideButton() {
-    final action = widget.showGuide ? 'Hide guide' : 'Show guide';
+    final l10n = context.l10n;
+    final action = widget.showGuide ? l10n.hideGuide : l10n.showGuide;
     return TileSensorTooltip(
-      footer:
-          widget.showGuide ? 'Tap to hide my guide.' : 'Tap to show my guide.',
+      footer: widget.showGuide ? l10n.hideGuideFooter : l10n.showGuideFooter,
       child: TextButton(
         key: const Key('bottomGuideToggle'),
         onPressed: widget.onToggleGuide,
@@ -527,32 +529,19 @@ class _HandViewState extends State<HandView> {
 
   /// The three-way Sort toggle: tap to cycle Off → Hand → Hand+draw.
   Widget _sortToggle() {
+    final l10n = context.l10n;
     final (value, icon, tooltip) = switch (_sort) {
-      HandSort.off => (
-          'Off',
-          Icons.drag_indicator,
-          'Sort: Off — your own order.\n'
-              'Long-press a tile and drag it to move it. '
-              'Tap for Hand (tile order).'
-        ),
-      HandSort.hand => (
-          'Hand',
-          Icons.sort,
-          'Sort: Hand — tiles kept in tile order, your drawn tile apart '
-              'on the right.\n'
-              'Tap for Hand+draw, or drag a tile to start your own order.'
-        ),
+      HandSort.off => (l10n.sortOff, Icons.drag_indicator, l10n.sortOffTooltip),
+      HandSort.hand => (l10n.sortHand, Icons.sort, l10n.sortHandTooltip),
       HandSort.handAndDraw => (
-          'Hand+draw',
+          l10n.sortHandDraw,
           Icons.low_priority,
-          'Sort: Hand+draw — your drawn tile is sorted straight into your '
-              'hand.\n'
-              'Tap to freeze this order (Off), or drag a tile to start your own.'
+          l10n.sortHandDrawTooltip
         ),
     };
     return _handToggle(
       key: const Key('sortHand'),
-      caption: 'SORT',
+      caption: l10n.sortCaption,
       value: value,
       icon: icon,
       on: _sort != HandSort.off,
@@ -568,16 +557,14 @@ class _HandViewState extends State<HandView> {
     final on = _singleTapDiscard;
     return _handToggle(
       key: const Key('discardMode'),
-      caption: 'DISCARD',
-      value: on ? 'Single' : 'Double',
+      caption: context.l10n.discardCaption,
+      value: on ? context.l10n.discardSingle : context.l10n.discardDouble,
       emoji: '👆',
       on: on,
       activeColor: const Color(0xff6a1b9a),
       tooltip: on
-          ? 'Discard: single tap — tapping a tile discards it.\n'
-              'Tap to raise a tile first and tap again to discard.'
-          : 'Discard: double tap — the first tap raises a tile, a second '
-              'discards it.\nTap to discard with a single tap.',
+          ? context.l10n.discardSingleTooltip
+          : context.l10n.discardDoubleTooltip,
       onTap: () => setState(() {
         _singleTapDiscard = !on;
         _selectedTileId = null;
@@ -590,16 +577,14 @@ class _HandViewState extends State<HandView> {
     final on = game.autoWin;
     return _handToggle(
       key: const Key('autoWin'),
-      caption: 'AUTO-WIN',
-      value: on ? 'On' : 'Off',
+      caption: context.l10n.autoWinCaption,
+      value: on ? context.l10n.on : context.l10n.off,
       icon: Icons.emoji_events,
       on: on,
       activeColor: const Color(0xff2e7d32),
       tooltip: on
-          ? 'Auto-win: on — ron and tsumo are declared for you '
-              'as soon as you can win.\nTap to decide yourself.'
-          : 'Auto-win: off — press the win button yourself.\n'
-              'Tap to declare ron/tsumo automatically.',
+          ? context.l10n.autoWinOnTooltip
+          : context.l10n.autoWinOffTooltip,
       onTap: () => game.setAutoWin(!on),
     );
   }
@@ -610,17 +595,14 @@ class _HandViewState extends State<HandView> {
     final on = game.autoPass;
     return _handToggle(
       key: const Key('autoPass'),
-      caption: 'AUTO-PASS',
-      value: on ? 'On' : 'Off',
+      caption: context.l10n.autoPassCaption,
+      value: on ? context.l10n.on : context.l10n.off,
       icon: Icons.skip_next,
       on: on,
       activeColor: const Color(0xff1565c0),
       tooltip: on
-          ? 'Auto-pass: on — chi, pon and kan on other players\' discards '
-              'are passed for you. A ron is still yours to take.\n'
-              'Tap to decide calls yourself.'
-          : 'Auto-pass: off — you are asked about every call.\n'
-              'Tap to pass chi, pon and kan automatically.',
+          ? context.l10n.autoPassOnTooltip
+          : context.l10n.autoPassOffTooltip,
       onTap: () => game.setAutoPass(!on),
     );
   }
@@ -738,8 +720,8 @@ class _HandViewState extends State<HandView> {
             children: [
               ListTile(
                 leading: const Icon(Icons.campaign),
-                title:
-                    Text('Declare Riichi and discard ${tile.type.displayName}'),
+                title: Text(context.l10n.declareRiichiDiscard(
+                    context.l10n.tileDisplayName(tile.type))),
                 onTap: () {
                   Navigator.pop(context);
                   game.humanDiscard(tile, declareRiichi: true);
@@ -747,7 +729,8 @@ class _HandViewState extends State<HandView> {
               ),
               ListTile(
                 leading: const Icon(Icons.arrow_forward),
-                title: Text('Just discard ${tile.type.displayName}'),
+                title: Text(context.l10n
+                    .justDiscard(context.l10n.tileDisplayName(tile.type))),
                 onTap: () {
                   Navigator.pop(context);
                   game.humanDiscard(tile);
@@ -773,35 +756,39 @@ class _HandViewState extends State<HandView> {
     // ron. It sits first so it stays visible next to (or instead of) the call
     // buttons — a furiten wait never gets a RON prompt.
     if (game.humanFuriten) {
-      buttons.add(const Chip(
-        label: Text('FURITEN',
-            style: TextStyle(
+      buttons.add(Chip(
+        label: Text(context.l10n.furiten,
+            style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: 0.5)),
-        backgroundColor: Color(0xffc62828),
+        backgroundColor: const Color(0xffc62828),
         visualDensity: VisualDensity.compact,
       ));
     }
 
     if (game.round.canFlowerWin(kHumanSeat)) {
       // Hong Kong: a seventh or eighth flower may be claimed as a win.
-      buttons.add(_btn('FLOWER WIN', const Color(0xff2e7d32), game.humanTsumo));
-      buttons.add(_btn('CONTINUE DRAWING', const Color(0xff37474f),
+      buttons.add(_btn(
+          context.l10n.flowerWin, const Color(0xff2e7d32), game.humanTsumo));
+      buttons.add(_btn(context.l10n.continueDrawing, const Color(0xff37474f),
           game.humanPassFlowerWin));
     } else if (game.awaitingHumanCall) {
       final opt = game.humanCallOption!;
       if (opt.types.contains(CallType.ron)) {
-        buttons.add(_btn(ruleset.ronLabel.toUpperCase(),
+        buttons.add(_btn(
+            context.l10n.callLabel(CallType.ron, ruleset).toUpperCase(),
             const Color(0xffd84315), () => game.answerCall(CallType.ron)));
       }
       if (opt.types.contains(CallType.pon)) {
-        buttons.add(_btn(ruleset.ponLabel.toUpperCase(),
+        buttons.add(_btn(
+            context.l10n.callLabel(CallType.pon, ruleset).toUpperCase(),
             const Color(0xff00695c), () => game.answerCall(CallType.pon)));
       }
       if (opt.types.contains(CallType.kan)) {
-        buttons.add(_btn(ruleset.kanLabel.toUpperCase(),
+        buttons.add(_btn(
+            context.l10n.callLabel(CallType.kan, ruleset).toUpperCase(),
             const Color(0xff4527a0), () => game.answerCall(CallType.kan)));
       }
       if (opt.types.contains(CallType.chi)) {
@@ -814,18 +801,19 @@ class _HandViewState extends State<HandView> {
             buttons.add(KeyedSubtree(
               key: Key('chiRun_${low.name}'),
               child: _btn(
-                  '${ruleset.chiLabel.toUpperCase()} ${_runLabel(low)}'
+                  '${context.l10n.callLabel(CallType.chi, ruleset).toUpperCase()} ${_runLabel(low)}'
                   '${low == picked ? ' ★' : ''}',
                   const Color(0xff00838f),
                   () => game.answerCall(CallType.chi, chiLow: low)),
             ));
           }
         } else {
-          buttons.add(_btn(ruleset.chiLabel.toUpperCase(),
+          buttons.add(_btn(
+              context.l10n.callLabel(CallType.chi, ruleset).toUpperCase(),
               const Color(0xff00838f), () => game.answerCall(CallType.chi)));
         }
       }
-      buttons.add(_btn('PASS', const Color(0xff37474f),
+      buttons.add(_btn(context.l10n.passCaps, const Color(0xff37474f),
           () => game.answerCall(CallType.none)));
       // Time left to answer; the call is passed when it reaches zero.
       final deadline = game.callDeadlineMs;
@@ -840,19 +828,21 @@ class _HandViewState extends State<HandView> {
       // uninterrupted draw, so this never overlaps a real turn's usual
       // choices; it just sits alongside them when it's on offer at all.
       if (game.humanCanDeclareKyuushu) {
-        buttons.add(_btn('KYUUSHU KYUUHAI', const Color(0xff8d6e63),
+        buttons.add(_btn(context.l10n.kyuushuKyuuhai, const Color(0xff8d6e63),
             game.humanDeclareKyuushu));
       }
       if (game.humanCanTsumo) {
-        buttons.add(_btn(ruleset.tsumoLabel.toUpperCase(),
+        buttons.add(_btn(context.l10n.tsumoLabel(ruleset).toUpperCase(),
             const Color(0xff2e7d32), game.humanTsumo));
       }
       for (final t in game.humanClosedKanTypes) {
-        buttons.add(_btn('${ruleset.kanLabel.toUpperCase()} ${t.code}',
+        buttons.add(_btn(
+            '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${t.code}',
             const Color(0xff4527a0), () => game.humanClosedKan(t)));
       }
       for (final t in game.humanAddedKanTypes) {
-        buttons.add(_btn('${ruleset.kanLabel.toUpperCase()} ${t.code}',
+        buttons.add(_btn(
+            '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${t.code}',
             const Color(0xff4527a0), () => game.humanAddKan(t)));
       }
       // Whenever riichi is legal — closed, and some discard leaves the hand
@@ -866,8 +856,8 @@ class _HandViewState extends State<HandView> {
           avatar: const Icon(Icons.campaign, size: 16, color: Colors.white),
           label: Text(
               recommended
-                  ? 'Riichi available — recommended'
-                  : 'Riichi available',
+                  ? context.l10n.riichiAvailableRecommended
+                  : context.l10n.riichiAvailable,
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -941,8 +931,7 @@ class _HandViewState extends State<HandView> {
   /// Takes back your last decision this hand — see [TableGameHost.undo].
   /// Named for what it undoes, so a press is never a guess.
   Widget _undoButton() => Tooltip(
-        message: 'Take back your last move this hand, and everything after '
-            'it.\nPress again to keep stepping back. (Ctrl/Cmd+Z)',
+        message: context.l10n.undoTooltip,
         child: OutlinedButton.icon(
           key: const Key('undo'),
           onPressed: () {
@@ -958,7 +947,7 @@ class _HandViewState extends State<HandView> {
           icon: const Icon(Icons.undo, size: 22),
           label: Text.rich(
             TextSpan(children: [
-              const TextSpan(text: 'Take back  '),
+              TextSpan(text: context.l10n.takeBack),
               TextSpan(
                   text: game.undoLabel ?? '',
                   style: const TextStyle(fontWeight: FontWeight.w800)),

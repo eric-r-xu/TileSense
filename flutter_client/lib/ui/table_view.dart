@@ -7,7 +7,10 @@ import '../game/call_callout.dart';
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../game/sfx.dart' show kCharacterPortrait;
+import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
 import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/ruleset.dart' show Ruleset;
 import 'meld_row.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
@@ -456,8 +459,11 @@ class TableView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              rowLabel('DORA'),
-              rowLabel(revealUra ? 'URA' : ''),
+              Builder(
+                  builder: (context) => rowLabel(context.l10n.doraRowLabel)),
+              Builder(
+                  builder: (context) =>
+                      rowLabel(revealUra ? context.l10n.uraRowLabel : '')),
             ],
           ),
         ),
@@ -686,12 +692,14 @@ class TableView extends StatelessWidget {
       TableArea.melds,
       s.seat,
       s.melds.isEmpty
-          ? const SizedBox(
+          ? SizedBox(
               width: 54,
               height: 30,
               child: Center(
-                  child: Text('calls',
-                      style: TextStyle(color: Colors.white54, fontSize: 10))))
+                  child: Builder(
+                      builder: (context) => Text(context.l10n.noCalls,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 10)))))
           : group,
     );
   }
@@ -888,7 +896,8 @@ class TableView extends StatelessWidget {
     );
     final portrait =
         tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
-    return _CallBubbleAnchor(seat: seat, child: portrait);
+    return _CallBubbleAnchor(
+        seat: seat, ruleset: game.round.ruleset, child: portrait);
   }
 
   /// Seat placard (wind + score), with Hong Kong's matching bonus-tile number.
@@ -945,8 +954,9 @@ class TableView extends StatelessWidget {
     );
   }
 
-  Widget _autoplayBadge() => Tooltip(
-        message: 'Auto-Play — TileSensor is playing your seat',
+  Widget _autoplayBadge() => Builder(
+      builder: (context) => Tooltip(
+        message: context.l10n.autoPlaySeatTooltip,
         child: Container(
           key: const Key('autoplaySeatBadge'),
           padding: const EdgeInsets.all(2),
@@ -964,7 +974,7 @@ class TableView extends StatelessWidget {
                 size: 18, color: Color(0xffcaa24e)),
           ),
         ),
-      );
+      ));
 
   Widget _furitenBadge() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -972,14 +982,16 @@ class TableView extends StatelessWidget {
           color: const Color(0xffc62828),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: const Text(
-          'FURITEN',
-          style: TextStyle(
+        child: Builder(
+          builder: (context) => Text(
+          context.l10n.furiten,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),
+        ),
         ),
       );
 }
@@ -1036,7 +1048,7 @@ class _CountdownBadgeState extends State<CountdownBadge> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        '${seconds}s',
+        context.l10n.secondsShort(seconds),
         style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
@@ -1283,8 +1295,12 @@ class _RemovableRow extends StatelessWidget {
 /// beside the portrait (following any scaling of the table). This owns the
 /// flash timer; [CallCallout] only says when a call happened.
 class _CallBubbleAnchor extends StatefulWidget {
-  const _CallBubbleAnchor({required this.seat, required this.child});
+  const _CallBubbleAnchor(
+      {required this.seat, required this.ruleset, required this.child});
   final int seat;
+
+  /// Which ruleset's word the bubble shows (see [MahjongTerms.callBubble]).
+  final Ruleset ruleset;
   final Widget child;
 
   @override
@@ -1326,7 +1342,7 @@ class _CallBubbleAnchorState extends State<_CallBubbleAnchor> {
           followerAnchor:
               onRight ? Alignment.centerLeft : Alignment.centerRight,
           offset: Offset(onRight ? 6 : -6, 0),
-          child: _bubble(call.text),
+          child: _bubble(context.l10n.callBubble(call.text, widget.ruleset)),
         ),
       ),
     );
@@ -1398,14 +1414,15 @@ class TableStatusLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final round = game.round;
     final rules = round.ruleset;
+    final l10n = context.l10n;
     final rest = [
-      'Wall ${round.wall.remaining}',
+      l10n.statusWall(round.wall.remaining),
       if (rules.isChineseStyle) ...[
-        if (showRuleset) rules.label,
-        'Dealer repeat ${game.dealerRepeat}',
+        if (showRuleset) l10n.rulesetName(rules),
+        l10n.statusDealerRepeat(game.dealerRepeat),
       ] else ...[
-        'Honba ${game.honba}',
-        'Riichi ${round.riichiSticks}',
+        l10n.statusHonba(game.honba),
+        l10n.statusRiichiSticks(round.riichiSticks),
       ],
     ];
     return FittedBox(
@@ -1417,8 +1434,8 @@ class TableStatusLine extends StatelessWidget {
               color: _colour, fontSize: 13, fontWeight: FontWeight.w600),
           children: [
             TextSpan(
-              text: '${round.roundWind.kanji} ${round.roundWind.label} '
-                  '${game.handInWind}',
+              text: l10n.statusRound(round.roundWind.kanji,
+                  l10n.windName(round.roundWind), game.handInWind),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
             for (final r in rest) TextSpan(text: '  ·  $r'),

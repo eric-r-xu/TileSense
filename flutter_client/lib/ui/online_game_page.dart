@@ -12,10 +12,12 @@ import 'package:mahjong_core/game_timing.dart';
 
 import '../game/guide_host.dart' show GamePhase;
 import '../game/online_game_controller.dart';
+import '../l10n/l10n.dart';
 import '../main.dart' show isPhoneLayout;
 import 'bar_back_button.dart';
 import 'client_id_text.dart';
 import 'hand_view.dart';
+import 'language_button.dart';
 import 'phone_menu.dart';
 import 'ruleset_badge.dart';
 import 'scoring_view.dart';
@@ -57,19 +59,18 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
       final go = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
-          title: const Text('Leave this game?'),
-          content: const Text('A bot plays your seat until you come '
-              'back — Rejoin is on the main menu while the game is on.'),
+          title: Text(context.l10n.leaveGameTitle),
+          content: Text(context.l10n.leaveGameBody),
           actions: [
             TextButton(
               key: const Key('leaveStay'),
               onPressed: () => Navigator.pop(dialog, false),
-              child: const Text('Stay'),
+              child: Text(context.l10n.stay),
             ),
             FilledButton(
               key: const Key('leaveConfirm'),
               onPressed: () => Navigator.pop(dialog, true),
-              child: const Text('Leave'),
+              child: Text(context.l10n.leave),
             ),
           ],
         ),
@@ -102,17 +103,19 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 children: [
                   Row(
                     children: [
-                      const Text('Menu',
-                          style: TextStyle(
+                      Text(context.l10n.menu,
+                          style: const TextStyle(
                               color: Color(0xffe9d58f),
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
                       const Spacer(),
+                      // The online table's language picker, on a phone.
+                      const LanguageButton(),
                       TextButton(
                         key: const Key('onlineMenuDone'),
                         onPressed: () => Navigator.pop(sheet),
-                        child:
-                            const Text('Done', style: TextStyle(fontSize: 16)),
+                        child: Text(context.l10n.done,
+                            style: const TextStyle(fontSize: 16)),
                       ),
                     ],
                   ),
@@ -121,20 +124,22 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                       phoneMenuAction(
                         key: const Key('onlineMenuLeave'),
                         icon: Icons.arrow_back,
-                        label: 'Leave room',
+                        label: context.l10n.leaveRoom,
                         onTap: closeThen(() => _confirmLeave()),
                       ),
                       phoneMenuAction(
                         key: const Key('onlineMenuSound'),
                         icon: game.soundOn ? Icons.volume_up : Icons.volume_off,
-                        label: game.soundOn ? 'Sound on' : 'Sound off',
+                        label: game.soundOn
+                            ? context.l10n.soundOn
+                            : context.l10n.soundOff,
                         on: game.soundOn,
                         onTap: () => game.setSoundOn(!game.soundOn),
                       ),
                       phoneMenuAction(
                         key: const Key('onlineMenuClientId'),
                         icon: Icons.badge_outlined,
-                        label: 'Client ID',
+                        label: context.l10n.clientId,
                         onTap: closeThen(() => showClientIdDialog(context)),
                       ),
                     ],
@@ -157,13 +162,15 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('${game.seatLabel(seat)} is now bot-controlled')),
+              content:
+                  Text(context.l10n.nowBotControlled(game.seatLabel(seat)))),
         );
       });
     }
     if (game.lastError != null && game.lastError != _lastShownError) {
       _lastShownError = game.lastError;
-      final message = game.lastError!;
+      final message =
+          context.l10n.errorText(game.lastErrorCode, game.lastError!);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
@@ -193,8 +200,8 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 ? null
                 : BarBackButton(
                     buttonKey: const Key('onlineLeave'),
-                    label: 'Leave',
-                    tooltip: 'Leave room',
+                    label: context.l10n.leave,
+                    tooltip: context.l10n.leaveRoom,
                     onPressed: _confirmLeave,
                   ),
             // The room's own details on the left, then the across seat — up
@@ -211,9 +218,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                   // tooltip can point back to offline play instead of the
                   // guide just silently vanishing.
                   Tooltip(
-                    message: 'TileSensor sits out multiplayer, so no seat gets '
-                        'a guide the others lack.\n'
-                        'Play single player to have me along!',
+                    message: context.l10n.noGuideOnlineTooltip,
                     child: Opacity(
                       opacity: 0.35,
                       child: Image.asset(
@@ -226,12 +231,12 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('Room ${game.roomCode}'),
+                  Text(context.l10n.roomLabel(game.roomCode)),
                   if (game.connectionLost) ...[
                     const SizedBox(width: 10),
-                    const Tooltip(
-                      message: 'Connection lost — reconnecting…',
-                      child: Icon(Icons.wifi_off,
+                    Tooltip(
+                      message: context.l10n.connectionLost,
+                      child: const Icon(Icons.wifi_off,
                           color: Colors.redAccent, size: 20),
                     ),
                   ],
@@ -249,13 +254,15 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
               ),
               SizedBox(width: phone ? 16 : 12),
               if (!phone) ...[
+                // This screen's language picker (on a phone: the Menu sheet).
+                const LanguageButton(compact: true),
                 const ClientIdButton(),
                 const SizedBox(width: 8),
                 IconButton(
                   key: const Key('soundToggle'),
                   tooltip: game.soundOn
-                      ? 'Sound on — tap to mute'
-                      : 'Sound off — tap to unmute',
+                      ? context.l10n.soundOnTooltip
+                      : context.l10n.soundOffTooltip,
                   iconSize: 24,
                   icon: Icon(game.soundOn ? Icons.volume_up : Icons.volume_off),
                   color:

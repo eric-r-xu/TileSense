@@ -5,6 +5,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:mahjong_core/ruleset.dart';
 
+import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
+
 class RulesetBadge extends StatelessWidget {
   const RulesetBadge({
     super.key,
@@ -25,30 +28,28 @@ class RulesetBadge extends StatelessWidget {
 
   /// "3 faan" / "5 tai", or null — riichi's one-yaku rule isn't a points
   /// floor, and a Hong Kong table may set none.
-  String? get minimum => ruleset.isHongKong
-      ? (minimumFaan > 0 ? '$minimumFaan faan' : null)
+  String? _minimum(AppLocalizations l10n) => ruleset.isHongKong
+      ? (minimumFaan > 0 ? l10n.faanCount(minimumFaan) : null)
       : ruleset.isTaiwanese
-          ? '$minimumPoints tai'
+          ? l10n.taiCount(minimumPoints)
           : null;
 
-  /// What the badge reads.
-  String get label => switch (minimum) {
-        final min? => '${ruleset.flag} $min',
-        null => ruleset.flag,
-      };
-
   @override
-  Widget build(BuildContext context) => Tooltip(
-        message: 'Playing ${ruleset.label} rules'
-            '${minimum == null ? '' : ', $minimum minimum'}.',
-        child: Text(
-          label,
-          key: const Key('rulesetBadge'),
-          style: TextStyle(
-            color: const Color(0xffffdf76),
-            fontSize: fontSize,
-            fontWeight: FontWeight.w800,
-          ),
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final minimum = _minimum(l10n);
+    return Tooltip(
+      message: l10n.badgeTooltip(l10n.rulesetName(ruleset),
+          minimum == null ? '' : l10n.badgeMinimum(minimum)),
+      child: Text(
+        minimum == null ? ruleset.flag : '${ruleset.flag} $minimum',
+        key: const Key('rulesetBadge'),
+        style: TextStyle(
+          color: const Color(0xffffdf76),
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
         ),
-      );
+      ),
+    );
+  }
 }

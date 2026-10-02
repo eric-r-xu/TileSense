@@ -19,6 +19,8 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import '../telemetry/telemetry.dart';
 import 'call_callout.dart';
+import '../l10n/l10n.dart' show AppLocalizations, currentL10n;
+import '../l10n/mahjong_terms.dart';
 import 'guide_host.dart';
 import 'mortal_advisor.dart';
 import 'sfx.dart';
@@ -210,14 +212,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   /// Your decisions this hand, newest last: where [_log] stood just before
   /// each one, and what to call it on the take-back button.
-  final List<({int logLength, String label})> _undoStack = [];
+  /// Each step's label is built in whatever language is current when it is
+  /// read, so switching languages mid-hand relabels the button too.
+  final List<({int logLength, String Function(AppLocalizations) label})>
+      _undoStack = [];
 
   void _apply(_Move move) {
     _log.add(move);
     move.applyTo(round);
   }
 
-  void _markUndoPoint(String label) =>
+  void _markUndoPoint(String Function(AppLocalizations) label) =>
       _undoStack.add((logLength: _log.length, label: label));
 
   @override
@@ -228,7 +233,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       !round.finished;
 
   @override
-  String? get undoLabel => _undoStack.isEmpty ? null : _undoStack.last.label;
+  String? get undoLabel =>
+      _undoStack.isEmpty ? null : _undoStack.last.label(currentL10n);
 
   /// Takes back your latest decision this hand — a discard, a call, a pass
   /// or a kan — along with everything the bots did after it, and hands the
@@ -629,7 +635,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   @override
   String seatLabel(int seat) => seat == kHumanSeat
-      ? '${kCharacterName[_characterForSeat(seat)]!} (you)'
+      ? currentL10n.seatLabelYou(kCharacterName[_characterForSeat(seat)]!)
       : kCharacterName[_characterForSeat(seat)]!;
 
   void setHanchan(bool value) {
@@ -1292,9 +1298,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // A riichi hand's cut is forced — the drawn tile, every time — so there is
     // nothing to take back; undo steps past it to a real choice.
     if (!round.seats[kHumanSeat].riichi) {
-      _markUndoPoint(declareRiichi
-          ? 'Riichi ${tile.type.displayName}'
-          : tile.type.displayName);
+      _markUndoPoint((l) => declareRiichi
+          ? l.undoRiichi(l.tileDisplayName(tile.type))
+          : l.tileDisplayName(tile.type));
     }
     _noteDiscard(kHumanSeat, tile);
     _apply(_Discard(kHumanSeat, tile.id, riichi: declareRiichi));
@@ -1317,7 +1323,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   void humanPassFlowerWin() {
     if (!round.canFlowerWin(kHumanSeat)) return;
-    _markUndoPoint('Continue drawing');
+    _markUndoPoint((l) => l.undoContinueDrawing);
     _apply(const _PassFlowerWin(kHumanSeat));
     _refreshReport();
     notifyListeners();
@@ -1341,7 +1347,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'KAN');
-      _markUndoPoint('${ruleset.kanLabel} ${type.displayName}');
+      _markUndoPoint((l) => l.undoKan(
+          l.callLabel(CallType.kan, ruleset), l.tileDisplayName(type)));
       _apply(_ClosedKan(kHumanSeat, type));
       _refreshReport();
       notifyListeners();
@@ -1355,7 +1362,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(kHumanSeat));
       CallCallout.i.show(kHumanSeat, 'KAN');
-      _markUndoPoint('${ruleset.kanLabel} ${type.displayName}');
+      _markUndoPoint((l) => l.undoKan(
+          l.callLabel(CallType.kan, ruleset), l.tileDisplayName(type)));
       _apply(_AddKan(kHumanSeat, type));
       _refreshReport();
       notifyListeners();
@@ -1409,13 +1417,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
         followedGuide: advised == null ? null : _callTypeFor(advised) == choice,
       );
     }
-    _markUndoPoint(switch (choice) {
-      CallType.none => 'Pass',
-      CallType.chi => ruleset.chiLabel,
-      CallType.pon => ruleset.ponLabel,
-      CallType.kan => ruleset.kanLabel,
-      CallType.ron => ruleset.ronLabel,
-    });
+    _markUndoPoint((l) => choice == CallType.none
+        ? l.undoPass
+        : l.callLabel(choice, ruleset));
     _humanCallOption = null;
     _humanCallAdvice = null;
     _playCallSfx(choices); // voices every calling seat, human included

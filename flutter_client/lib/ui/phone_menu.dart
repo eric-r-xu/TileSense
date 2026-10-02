@@ -12,7 +12,9 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../game/guide_host.dart' show AutoplayBrain;
+import '../l10n/l10n.dart';
 import '../main.dart' show brainColor, openRules;
+import 'language_button.dart';
 
 const Color _gold = Color(0xffe9d58f);
 
@@ -42,17 +44,19 @@ Future<void> showPhoneMenu(
                 children: [
                   Row(
                     children: [
-                      const Text('Menu',
-                          style: TextStyle(
+                      Text(context.l10n.menu,
+                          style: const TextStyle(
                               color: _gold,
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
                       const Spacer(),
+                      // The table screen's language picker, on a phone.
+                      const LanguageButton(),
                       TextButton(
                         key: const Key('phoneMenuDone'),
                         onPressed: () => Navigator.pop(sheet),
-                        child:
-                            const Text('Done', style: TextStyle(fontSize: 16)),
+                        child: Text(context.l10n.done,
+                            style: const TextStyle(fontSize: 16)),
                       ),
                     ],
                   ),
@@ -66,13 +70,15 @@ Future<void> showPhoneMenu(
                               key: const Key('phoneMenuPause'),
                               icon:
                                   game.paused ? Icons.play_arrow : Icons.pause,
-                              label: game.paused ? 'Resume' : 'Pause',
+                              label: game.paused
+                                  ? context.l10n.resume
+                                  : context.l10n.pause,
                               onTap: game.togglePause,
                             ),
                             phoneMenuAction(
                               key: const Key('phoneMenuNewGame'),
                               icon: Icons.add_circle_outline,
-                              label: 'New game',
+                              label: context.l10n.newGame,
                               onTap: closeThen(onNewGame),
                             ),
                           ],
@@ -80,13 +86,13 @@ Future<void> showPhoneMenu(
                             phoneMenuAction(
                               key: const Key('phoneMenuMainMenu'),
                               icon: Icons.arrow_back,
-                              label: 'Main menu',
+                              label: context.l10n.mainMenu,
                               onTap: closeThen(onMainMenu),
                             ),
                             phoneMenuAction(
                               key: const Key('phoneMenuRules'),
                               icon: Icons.menu_book,
-                              label: 'Rules',
+                              label: context.l10n.rules,
                               onTap: () => openRules(game.ruleset),
                             ),
                           ],
@@ -96,14 +102,18 @@ Future<void> showPhoneMenu(
                               icon: game.soundOn
                                   ? Icons.volume_up
                                   : Icons.volume_off,
-                              label: game.soundOn ? 'Sound on' : 'Sound off',
+                              label: game.soundOn
+                                  ? context.l10n.soundOn
+                                  : context.l10n.soundOff,
                               on: game.soundOn,
                               onTap: () => game.setSoundOn(!game.soundOn),
                             ),
                             phoneMenuAction(
                               key: const Key('phoneMenuSpeed'),
                               icon: Icons.speed,
-                              label: game.fastMode ? 'Bots 2x' : 'Bots 1x',
+                              label: game.fastMode
+                                  ? context.l10n.bots2x
+                                  : context.l10n.bots1x,
                               on: game.fastMode,
                               onTap: () => game.setFastMode(!game.fastMode),
                             ),
@@ -112,7 +122,9 @@ Future<void> showPhoneMenu(
                             phoneMenuAction(
                               key: const Key('phoneMenuLength'),
                               icon: Icons.timelapse,
-                              label: game.hanchan ? 'Hanchan' : 'East only',
+                              label: game.hanchan
+                                  ? context.l10n.hanchan
+                                  : context.l10n.eastOnly,
                               onTap: () => game.setHanchan(!game.hanchan),
                             ),
                           ],
@@ -126,8 +138,8 @@ Future<void> showPhoneMenu(
                               key: const Key('phoneMenuAutoplay'),
                               icon: Icons.smart_toy_outlined,
                               label: game.autoplay
-                                  ? 'Auto-Play on'
-                                  : 'Auto-Play off',
+                                  ? context.l10n.autoPlayOn
+                                  : context.l10n.autoPlayOff,
                               on: game.autoplay,
                               onTap: () => game.setAutoplay(!game.autoplay),
                             ),
@@ -135,12 +147,12 @@ Future<void> showPhoneMenu(
                           if (game.mortalAvailable)
                             [
                               phoneMenuDial<AutoplayBrain>(
-                                caption: 'Algorithm',
+                                caption: context.l10n.algorithm,
                                 keyPrefix: 'phoneMenuBrain',
                                 values: AutoplayBrain.values,
                                 current: game.autoplayBrain,
                                 label: (v) => v == AutoplayBrain.mortal
-                                    ? 'Mortal bot'
+                                    ? context.l10n.mortalBot
                                     : 'TileSense',
                                 colour: brainColor,
                                 onPick: game.setAutoplayBrain,
@@ -188,7 +200,8 @@ class PhoneMenuButton extends StatelessWidget {
                 const Icon(Icons.menu, size: 40, color: _gold),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(paused ? 'PAUSED' : 'MENU',
+                  child: Text(
+                      paused ? context.l10n.pausedCaps : context.l10n.menuCaps,
                       style: const TextStyle(
                           color: _gold,
                           fontSize: 16,

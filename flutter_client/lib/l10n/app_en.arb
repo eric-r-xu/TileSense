@@ -1,0 +1,916 @@
+{
+  "@@locale": "en",
+  "appTitle": "TileSense",
+  "languageTooltip": "Language",
+  "rulesetRiichi": "Riichi",
+  "rulesetHongKong": "Hong Kong",
+  "rulesetTaiwanese": "Taiwanese",
+  "windEast": "East",
+  "windSouth": "South",
+  "windWest": "West",
+  "windNorth": "North",
+  "callChiRiichi": "Chi",
+  "callChiHongKong": "Chow",
+  "callChiTaiwanese": "Chow",
+  "callPonRiichi": "Pon",
+  "callPonHongKong": "Pung",
+  "callPonTaiwanese": "Pung",
+  "callKanRiichi": "Kan",
+  "callKanHongKong": "Kong",
+  "callKanTaiwanese": "Kong",
+  "callRonRiichi": "Ron",
+  "callRonHongKong": "Win",
+  "callRonTaiwanese": "Hu",
+  "callTsumoRiichi": "Tsumo",
+  "callTsumoHongKong": "Self-pick",
+  "callTsumoTaiwanese": "Self-pick",
+  "hanchanCaveatRiichi": "That is with the dealership passing every hand. Under standard riichi rules a dealer who wins, or who is tenpai at an exhaustive draw, keeps it and the hand is replayed — so either length can run longer.",
+  "hanchanCaveatChinese": "That is with the dealership passing every hand. A dealer who wins, or any exhaustive draw, keeps it and the hand is replayed — so either length can run longer.",
+  "zoomOut": "Zoom out  (Ctrl/Cmd -)",
+  "zoomIn": "Zoom in  (Ctrl/Cmd +)",
+  "zoomReset": "Reset zoom  (Ctrl/Cmd 0)",
+  "installTitle": "Install TileSense",
+  "installBody": "This browser can't go full screen from a web page. Install TileSense as a web app instead and it opens full screen, with no browser bars:\n\n• iPhone / iPad: tap Share, then \"Add to Home Screen\"\n• Chrome / Edge: use the install icon in the address bar, or menu > \"Install app\"",
+  "gotIt": "Got it",
+  "fullscreenExit": "Exit full screen",
+  "fullscreenTooltip": "Full screen. For the best experience, install TileSense as a web app (browser menu > Install / Add to Home Screen).",
+  "fullscreen": "Full screen",
+  "updateAvailableTitle": "Update available",
+  "updateAvailableBody": "A newer version of TileSense is ready. Update now to get it.",
+  "updateNow": "Update now",
+  "upToDateTitle": "You're up to date",
+  "upToDateBody": "This is the latest version. Refresh anyway to re-download every file.",
+  "refreshAnyway": "Refresh anyway",
+  "refreshTitle": "Refresh TileSense",
+  "refreshUnknownBody": "Couldn't tell whether a newer version exists. Refresh to download the latest files.",
+  "refresh": "Refresh",
+  "notNow": "Not now",
+  "updateTooltip": "Check for a newer version and refresh the app",
+  "working": "Working…",
+  "update": "Update",
+  "rotatePrompt": "Rotate your device to landscape to play TileSense",
+  "minimumFaanSentence": ", {n}-faan minimum",
+  "@minimumFaanSentence": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "minimumTaiSentence": ", {n}-tai minimum",
+  "@minimumTaiSentence": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "minimumFaanTag": "{n} faan min",
+  "@minimumFaanTag": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "minimumTaiTag": "{n} tai min",
+  "@minimumTaiTag": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "newGameConfirmTitle": "Start a new game?",
+  "newGameConfirmBody": "The game in progress will be lost.",
+  "keepPlaying": "Keep playing",
+  "newGame": "New game",
+  "loadingTable": "Preparing your table…",
+  "loadingBuilder": "Loading hand builder…",
+  "loadingMultiplayer": "Loading multiplayer…",
+  "start": "Start",
+  "menu": "Menu",
+  "menuTooltip": "Main menu — pauses this game; Start resumes it. Change the style there (a new game), or open the Custom Hand & Context Builder",
+  "playingRulesTooltip": "Playing {rules} rules{minimum}.\nTo play another style, go back to the main menu.",
+  "@playingRulesTooltip": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      },
+      "minimum": {
+        "type": "String"
+      }
+    }
+  },
+  "rulesPdf": "{rules} rules (PDF)",
+  "@rulesPdf": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "hanchanOnTooltip": "Hanchan — East and South (半庄) rounds, 8+ hands.\n{caveat}\nTap for East only (东风战), 4+ hands.",
+  "@hanchanOnTooltip": {
+    "placeholders": {
+      "caveat": {
+        "type": "String"
+      }
+    }
+  },
+  "eastOnlyTooltipChinese": "East only — the East round, 4+ hands.\n{caveat}\nTap for hanchan (半庄): East and South (半庄), 8+ hands.",
+  "@eastOnlyTooltipChinese": {
+    "placeholders": {
+      "caveat": {
+        "type": "String"
+      }
+    }
+  },
+  "eastOnlyTooltipRiichi": "East only (东风战/tonpuusen) — the East round, 4+ hands.\n{caveat}\nTap for hanchan (半庄): East and South (半庄), 8+ hands.",
+  "@eastOnlyTooltipRiichi": {
+    "placeholders": {
+      "caveat": {
+        "type": "String"
+      }
+    }
+  },
+  "hanchan": "Hanchan",
+  "eastOnly": "East only",
+  "botSpeedCaption": "BOT SPEED",
+  "botSpeedFastTooltip": "Bots and draws move at double speed.\nTap for normal speed.",
+  "botSpeedNormalTooltip": "Bots and draws move at normal speed.\nTap for double speed.",
+  "algorithmCaption": "ALGORITHM",
+  "mortalBot": "Mortal bot",
+  "algorithmTooltip": "TileSense guide, playing {style} · {focus} · {strategy}.\nSet for you as the game goes: Aggressive · Speed · Points early to build a lead; Balanced · Speed · Placement in the final two hands to protect or climb the standings.",
+  "@algorithmTooltip": {
+    "placeholders": {
+      "style": {
+        "type": "String"
+      },
+      "focus": {
+        "type": "String"
+      },
+      "strategy": {
+        "type": "String"
+      }
+    }
+  },
+  "autoPlayCaption": "AUTO-PLAY",
+  "autoPlayOnTooltip": "Auto-Play is on — TileSensor plays your seat by the guide: points early, placement in the final two hands.\nTap to take your seat back.",
+  "autoPlayOffTooltip": "Auto-Play is off — you play your seat.\nTap to let TileSensor play it by the guide.",
+  "on": "On",
+  "off": "Off",
+  "soundCaption": "SOUND",
+  "soundOnTooltip": "Sound on — tap to mute",
+  "soundOffTooltip": "Sound off — tap to unmute",
+  "resumeCaption": "RESUME",
+  "pauseCaption": "PAUSE",
+  "resume": "Resume",
+  "pause": "Pause",
+  "newCaption": "NEW",
+  "pausedOverlay": "PAUSED\ntap, or press Esc, to resume",
+  "rulesetSubtitleRiichi": "yaku, dora, riichi",
+  "rulesetSubtitleHongKong": "faan, flowers, 0–3 faan minimum",
+  "rulesetSubtitleTaiwanese": "17 tiles, flowers, 1–5 tai minimum",
+  "welcomeTo": "Welcome to",
+  "welcomeTagline": "Sharpen your {rules} Mahjong decisions\nwith a guide that sees only what you see.",
+  "@welcomeTagline": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "singlePlayer": "Single Player",
+  "singlePlayerSubtitle": "Includes the guide",
+  "playOnline": "Play Online",
+  "playOnlineSubtitle": "With friends — bots fill empty seats, no guide",
+  "builder": "Custom Hand & Context Builder",
+  "builderSubtitle": "Pose any table and have TileSense score it",
+  "rejoinOnline": "Rejoin your online game · Room {code}",
+  "@rejoinOnline": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "viewOnGitHub": "View on GitHub",
+  "builtWithFlutter": "Built with Flutter",
+  "seatYou": "You",
+  "seatRight": "Right",
+  "seatAcross": "Across",
+  "seatLeft": "Left",
+  "youStartAs": "You start as",
+  "style": "Style",
+  "gameLength": "Game length",
+  "lengthHanchan": "半庄 Hanchan",
+  "lengthEastOnly": "东风战 East only",
+  "minFaan": "Min faan",
+  "minFaanTooltip": "The fewest faan a hand needs to win.\n0 lets any complete hand, even a chicken hand, win.",
+  "minTai": "Min tai",
+  "minTaiTooltip": "The fewest tai a hand needs to win.\n5 is the San Diego club sheet's rule; 1 and 3 are common house minimums.",
+  "chooseCharacters": "CHOOSE YOUR CHARACTERS",
+  "dealerNoteYou": "East deals first — that is you.",
+  "dealerNoteOther": "East deals first — that is {seat}.",
+  "@dealerNoteOther": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      }
+    }
+  },
+  "randomizeCharacters": "Randomize characters & seats",
+  "sound": "Sound",
+  "back": "Back",
+  "backToMainMenu": "Back to the main menu",
+  "done": "Done",
+  "mainMenu": "Main menu",
+  "rules": "Rules",
+  "soundOn": "Sound on",
+  "soundOff": "Sound off",
+  "bots2x": "Bots 2x",
+  "bots1x": "Bots 1x",
+  "autoPlayOn": "Auto-Play on",
+  "autoPlayOff": "Auto-Play off",
+  "algorithm": "Algorithm",
+  "pausedCaps": "PAUSED",
+  "menuCaps": "MENU",
+  "loadFailed": "Couldn’t finish loading. Try again.",
+  "retry": "Retry",
+  "clientIdTitle": "Your client ID",
+  "clientIdShort": "ID",
+  "clientIdHelp": "Include this if you report a problem.",
+  "close": "Close",
+  "copied": "Copied",
+  "copy": "Copy",
+  "faanCount": "{n} faan",
+  "@faanCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "taiCount": "{n} tai",
+  "@taiCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "badgeTooltip": "Playing {rules} rules{minimum}.",
+  "@badgeTooltip": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      },
+      "minimum": {
+        "type": "String"
+      }
+    }
+  },
+  "badgeMinimum": ", {min} minimum",
+  "@badgeMinimum": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "yakuRiichi": "Riichi",
+  "yakuDoubleRiichi": "Double Riichi",
+  "yakuIppatsu": "Ippatsu",
+  "yakuMenzenTsumo": "Menzen Tsumo",
+  "yakuHaiteiRaoyue": "Haitei Raoyue",
+  "yakuHouteiRaoyui": "Houtei Raoyui",
+  "yakuRinshanKaihou": "Rinshan Kaihou",
+  "yakuChankan": "Chankan",
+  "yakuTanyao": "Tanyao",
+  "yakuRoundWind": "Round Wind",
+  "yakuSeatWind": "Seat Wind",
+  "yakuShousangen": "Shousangen",
+  "yakuPinfu": "Pinfu",
+  "yakuIipeiko": "Iipeiko",
+  "yakuRyanpeikou": "Ryanpeikou",
+  "yakuChiitoitsu": "Chiitoitsu",
+  "yakuToitoi": "Toitoi",
+  "yakuSanankou": "Sanankou",
+  "yakuSankantsu": "Sankantsu",
+  "yakuSanshokuDoujun": "Sanshoku Doujun",
+  "yakuSanshokuDoukou": "Sanshoku Doukou",
+  "yakuIttsu": "Ittsu",
+  "yakuHonroutou": "Honroutou",
+  "yakuHonitsu": "Honitsu",
+  "yakuChinitsu": "Chinitsu",
+  "yakuChanta": "Chanta",
+  "yakuJunchan": "Junchan",
+  "yakuDora": "Dora",
+  "yakuUraDora": "Ura Dora",
+  "yakuAkaDora": "Aka Dora",
+  "yakuKokushiMusou": "Kokushi Musou",
+  "yakuSuuankou": "Suuankou",
+  "yakuDaisangen": "Daisangen",
+  "yakuDaisuushii": "Daisuushii",
+  "yakuShousuushii": "Shousuushii",
+  "yakuTsuuiisou": "Tsuuiisou",
+  "yakuChinroutou": "Chinroutou",
+  "yakuRyuuiisou": "Ryuuiisou",
+  "yakuChuurenPoutou": "Chuuren Poutou",
+  "faanAllFlowers": "All Flowers",
+  "faanAllSeasons": "All Seasons",
+  "faanAllHonours": "All Honours",
+  "faanAllSequences": "All Sequences",
+  "faanAllTerminals": "All Terminals",
+  "faanAllTriplets": "All Triplets",
+  "faanAllQuadruplets": "All Quadruplets",
+  "faanAllQuadrupletsUpgrade": "All Quadruplets (upgrade)",
+  "faanAllConcealedTriplets": "All Concealed Triplets",
+  "faanAllConcealedTripletsUpgrade": "All Concealed Triplets (upgrade)",
+  "faanBigFourWinds": "Big Four Winds",
+  "faanBigThreeDragons": "Big Three Dragons",
+  "faanBlessingOfEarth": "Blessing of Earth",
+  "faanBlessingOfHeaven": "Blessing of Heaven",
+  "faanBlessingOfMan": "Blessing of Man",
+  "faanChickenHand": "Chicken Hand",
+  "faanConcealedHand": "Concealed Hand",
+  "faanDoubleKongReplacement": "Double Kong Replacement",
+  "faanFullFlush": "Full Flush",
+  "faanMixedFlush": "Mixed Flush",
+  "faanMixedTerminals": "Mixed Terminals",
+  "faanMoonUnderTheSea": "Moon Under the Sea",
+  "faanNineGates": "Nine Gates",
+  "faanNoFlowersOrSeasons": "No Flowers or Seasons",
+  "faanRobbingTheKong": "Robbing the Kong",
+  "faanRoundWind": "Round Wind",
+  "faanSeatWind": "Seat Wind",
+  "faanSelfPick": "Self-Pick",
+  "faanSevenPairs": "Seven Pairs",
+  "faanSmallFourWinds": "Small Four Winds",
+  "faanSmallThreeDragons": "Small Three Dragons",
+  "faanThirteenOrphans": "Thirteen Orphans",
+  "faanWinByKongReplacement": "Win by Kong Replacement",
+  "faanSevenFlowers": "Seven Flowers",
+  "faanEightFlowers": "Eight Flowers",
+  "taiAllChowsWithFlowersOrHonors": "All Chows with Flowers or Honors",
+  "taiAllChows": "All Chows",
+  "taiAllPungs": "All Pungs",
+  "taiAllFlowers": "All Flowers",
+  "taiBigFourWinds": "Big Four Winds",
+  "taiBigThreeDragons": "Big Three Dragons",
+  "taiBigThreeWinds": "Big Three Winds",
+  "taiBlessingsOfEarth": "Blessings of Earth",
+  "taiBlessingsOfHeaven": "Blessings of Heaven",
+  "taiClosedWait": "Closed Wait",
+  "taiConcealedHand": "Concealed Hand",
+  "taiConcealedKong": "Concealed Kong",
+  "taiFiveConcealedPungs": "Five Concealed Pungs",
+  "taiFourConcealedPungs": "Four Concealed Pungs",
+  "taiThreeConcealedPungs": "Three Concealed Pungs",
+  "taiTwoConcealedPungs": "Two Concealed Pungs",
+  "taiFlowerTile": "Flower Tile",
+  "taiFullyConcealedHand": "Fully Concealed Hand",
+  "taiFullFlush": "Full Flush",
+  "taiHalfFlush": "Half Flush",
+  "taiLastTileDraw": "Last Tile Draw",
+  "taiLittleFourWinds": "Little Four Winds",
+  "taiLittleThreeDragons": "Little Three Dragons",
+  "taiLittleThreeWinds": "Little Three Winds",
+  "taiMeldedHand": "Melded Hand",
+  "taiMeldedKong": "Melded Kong",
+  "taiNoFlowerOrHonorTiles": "No Flower or Honor Tiles",
+  "taiNoFlowerTiles": "No Flower Tiles",
+  "taiNoHonors": "No Honors",
+  "taiPureStraight": "Pure Straight",
+  "taiRobbingTheKong": "Robbing the Kong",
+  "taiSelfDrawn": "Self-Drawn",
+  "taiSevenPairsAndAPung": "Seven Pairs and a Pung",
+  "taiSingleWait": "Single Wait",
+  "taiValueHonor": "Value Honor",
+  "taiWinWithin5Discards": "Win Within 5 Discards",
+  "taiWinWithin5To10Discards": "Win Within 5 to 10 Discards",
+  "resultKyuushuKyuuhaiNineTerminalsHonors": "Kyuushu Kyuuhai — nine terminals/honors",
+  "resultExhaustiveDraw": "Exhaustive Draw",
+  "resultMultipleWins": "Multiple Wins",
+  "resultRobbingAKong": "Robbing a Kong",
+  "resultWinOnDiscard": "Win on Discard",
+  "resultMultipleRon": "Multiple Ron",
+  "resultChankan": "Chankan",
+  "resultRon": "Ron",
+  "resultSelfDraw": "Self Draw",
+  "resultTsumo": "Tsumo",
+  "limitMangan": "Mangan",
+  "limitHaneman": "Haneman",
+  "limitBaiman": "Baiman",
+  "limitSanbaiman": "Sanbaiman",
+  "limitKazoeYakuman": "Kazoe Yakuman",
+  "limitYakuman": "Yakuman",
+  "limit13FaanCap": "13+ faan cap",
+  "tileTon": "East",
+  "tileNan": "South",
+  "tileShaa": "West",
+  "tilePei": "North",
+  "tileHaku": "White Dragon",
+  "tileHatsu": "Green Dragon",
+  "tileChun": "Red Dragon",
+  "tilePlum": "Plum",
+  "tileOrchid": "Orchid",
+  "tileChrysanthemum": "Chrysanthemum",
+  "tileBamboo": "Bamboo Flower",
+  "tileSpring": "Spring",
+  "tileSummer": "Summer",
+  "tileAutumn": "Autumn",
+  "tileWinter": "Winter",
+  "yakuYakuhai": "Yakuhai ({tile})",
+  "@yakuYakuhai": {
+    "placeholders": {
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "faanHonorPung": "{tile} Pung",
+  "@faanHonorPung": {
+    "placeholders": {
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "limitMultipleYakuman": "{n}× Yakuman",
+  "@limitMultipleYakuman": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "bubbleRiichi": "RIICHI",
+  "bubbleRinshanRiichi": "RINSHAN",
+  "bubbleRinshanChinese": "RINSHAN",
+  "doraRowLabel": "DORA",
+  "uraRowLabel": "URA",
+  "noCalls": "calls",
+  "autoPlaySeatTooltip": "Auto-Play — TileSensor is playing your seat",
+  "furiten": "FURITEN",
+  "secondsShort": "{n}s",
+  "@secondsShort": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statusWall": "Wall {n}",
+  "@statusWall": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statusDealerRepeat": "Dealer repeat {n}",
+  "@statusDealerRepeat": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statusHonba": "Honba {n}",
+  "@statusHonba": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statusRiichiSticks": "Riichi {n}",
+  "@statusRiichiSticks": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statusRound": "{kanji} {wind} {hand}",
+  "@statusRound": {
+    "placeholders": {
+      "kanji": {
+        "type": "String"
+      },
+      "wind": {
+        "type": "String"
+      },
+      "hand": {
+        "type": "int"
+      }
+    }
+  },
+  "seatLabelYou": "{name} (you)",
+  "@seatLabelYou": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "seatLabelBot": "{name} (bot)",
+  "@seatLabelBot": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "seatBot": "Bot",
+  "seatNumber": "Seat {n}",
+  "@seatNumber": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "tileMan": "{n} Man",
+  "@tileMan": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "tilePin": "{n} Pin",
+  "@tilePin": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "tileSou": "{n} Sou",
+  "@tileSou": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "undoPass": "Pass",
+  "undoContinueDrawing": "Continue drawing",
+  "undoRiichi": "Riichi {tile}",
+  "@undoRiichi": {
+    "placeholders": {
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "undoKan": "{kan} {tile}",
+  "@undoKan": {
+    "placeholders": {
+      "kan": {
+        "type": "String"
+      },
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "hideGuide": "Hide guide",
+  "showGuide": "Show guide",
+  "hideGuideFooter": "Tap to hide my guide.",
+  "showGuideFooter": "Tap to show my guide.",
+  "sortCaption": "SORT",
+  "sortOff": "Off",
+  "sortOffTooltip": "Sort: Off — your own order.\nLong-press a tile and drag it to move it. Tap for Hand (tile order).",
+  "sortHand": "Hand",
+  "sortHandTooltip": "Sort: Hand — tiles kept in tile order, your drawn tile apart on the right.\nTap for Hand+draw, or drag a tile to start your own order.",
+  "sortHandDraw": "Hand+draw",
+  "sortHandDrawTooltip": "Sort: Hand+draw — your drawn tile is sorted straight into your hand.\nTap to freeze this order (Off), or drag a tile to start your own.",
+  "discardCaption": "DISCARD",
+  "discardSingle": "Single",
+  "discardDouble": "Double",
+  "discardSingleTooltip": "Discard: single tap — tapping a tile discards it.\nTap to raise a tile first and tap again to discard.",
+  "discardDoubleTooltip": "Discard: double tap — the first tap raises a tile, a second discards it.\nTap to discard with a single tap.",
+  "autoWinCaption": "AUTO-WIN",
+  "autoWinOnTooltip": "Auto-win: on — ron and tsumo are declared for you as soon as you can win.\nTap to decide yourself.",
+  "autoWinOffTooltip": "Auto-win: off — press the win button yourself.\nTap to declare ron/tsumo automatically.",
+  "autoPassCaption": "AUTO-PASS",
+  "autoPassOnTooltip": "Auto-pass: on — chi, pon and kan on other players' discards are passed for you. A ron is still yours to take.\nTap to decide calls yourself.",
+  "autoPassOffTooltip": "Auto-pass: off — you are asked about every call.\nTap to pass chi, pon and kan automatically.",
+  "declareRiichiDiscard": "Declare Riichi and discard {tile}",
+  "@declareRiichiDiscard": {
+    "placeholders": {
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "justDiscard": "Just discard {tile}",
+  "@justDiscard": {
+    "placeholders": {
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "flowerWin": "FLOWER WIN",
+  "continueDrawing": "CONTINUE DRAWING",
+  "passCaps": "PASS",
+  "kyuushuKyuuhai": "KYUUSHU KYUUHAI",
+  "riichiAvailable": "Riichi available",
+  "riichiAvailableRecommended": "Riichi available — recommended",
+  "undoTooltip": "Take back your last move this hand, and everything after it.\nPress again to keep stepping back. (Ctrl/Cmd+Z)",
+  "takeBack": "Take back  ",
+  "scoreNewGame": "New Game",
+  "scoreNext": "Next",
+  "scoreContinueLocked": "Continue ({n})",
+  "@scoreContinueLocked": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreContinue": "Continue",
+  "autoContinuePaused": "Auto Continue paused",
+  "autoContinueHeld": "Auto Continue held — game paused",
+  "autoContinueIn": "Auto Continue in {n}s",
+  "@autoContinueIn": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "showPanel": "Show panel",
+  "seeThroughPanel": "See through panel",
+  "flowersSeasons": "Flowers / seasons",
+  "indicatorRowOne": "{label} indicator:",
+  "@indicatorRowOne": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "indicatorRowMany": "{label} indicators:",
+  "@indicatorRowMany": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "plainRow": "{label}:",
+  "@plainRow": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "yakuLineTaiOne": "{name}  {n} pt",
+  "@yakuLineTaiOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "yakuLineTaiMany": "{name}  {n} pts",
+  "@yakuLineTaiMany": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "yakuLineFaan": "{name}  {n} faan",
+  "@yakuLineFaan": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "yakuLineHan": "{name}  {n}",
+  "@yakuLineHan": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "yakuLineYakuman": "{name}  yakuman",
+  "@yakuLineYakuman": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scorePointOne": "{n} point",
+  "@scorePointOne": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "scorePointMany": "{n} points",
+  "@scorePointMany": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreFaanChips": "{faan} faan — {points} chips{limit}",
+  "@scoreFaanChips": {
+    "placeholders": {
+      "faan": {
+        "type": "int"
+      },
+      "points": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreLimitOnly": "{limit} — {points}",
+  "@scoreLimitOnly": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      },
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreHanFu": "{han} han {fu} fu{limit} — {points}",
+  "@scoreHanFu": {
+    "placeholders": {
+      "han": {
+        "type": "int"
+      },
+      "fu": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "String"
+      },
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "limitSuffix": "  ({limit})",
+  "@limitSuffix": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "wallExhaustedNoPayments": "Wall exhausted — no payments",
+  "allNoten": "All players noten",
+  "tenpaiRevealed": "Tenpai hands revealed",
+  "waits": "waits",
+  "backToMenu": "Back to menu",
+  "cantReachServer": "Can't reach the multiplayer server — retrying…",
+  "noGuideOnline": "Multiplayer has no TileSense guide — play single player for it.",
+  "yourName": "Your name",
+  "yourNameHelper": "Defaults to your character — edit to use your own",
+  "createARoom": "Create a room",
+  "fullGameSwitch": "Full game — hanchan/半庄 (8+ hands)",
+  "fullGameSwitchOn": "Off switches to East-only/东风战 (4+ hands)",
+  "fullGameSwitchOff": "East-only/东风战 — 4+ hands",
+  "createRoomButton": "Create Room",
+  "joinARoom": "Join a room",
+  "roomCode": "Room code",
+  "join": "Join",
+  "chooseYourCharacter": "Choose your character",
+  "pace": "Pace",
+  "paceFast": "Fast",
+  "paceStandard": "Standard",
+  "paceRelaxed": "Relaxed",
+  "paceCaption": "{turn}s per turn · {call}s to call",
+  "@paceCaption": {
+    "placeholders": {
+      "turn": {
+        "type": "int"
+      },
+      "call": {
+        "type": "int"
+      }
+    }
+  },
+  "minimumFaanToWin": "Minimum faan to win",
+  "minimumTaiToWin": "Minimum tai to win",
+  "roomCodeShare": "Room code — share this with the other players",
+  "copyCode": "Copy code",
+  "roomCodeCopied": "Room code copied",
+  "roomFaanMin": "{n}-faan min",
+  "@roomFaanMin": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "roomTaiMin": "{n}-tai min",
+  "@roomTaiMin": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "roomFullGame": "full game",
+  "roomEastOnly": "East-only",
+  "roomClocks": "{turn}s turn · {call}s call",
+  "@roomClocks": {
+    "placeholders": {
+      "turn": {
+        "type": "int"
+      },
+      "call": {
+        "type": "int"
+      }
+    }
+  },
+  "startGameBots": "Start Game — bots fill any empty seats",
+  "waitingForHost": "Waiting for the host to start…",
+  "leaveRoomButton": "Leave Room",
+  "emptySeat": "Empty seat",
+  "host": "HOST",
+  "rejoiningGame": "Rejoining your game…",
+  "gameStillGoing": "Your game in room {code} is still going.",
+  "@gameStillGoing": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "rejoin": "Rejoin",
+  "leaveGameTitle": "Leave this game?",
+  "leaveGameBody": "A bot plays your seat until you come back — Rejoin is on the main menu while the game is on.",
+  "stay": "Stay",
+  "leave": "Leave",
+  "leaveRoom": "Leave room",
+  "clientId": "Client ID",
+  "nowBotControlled": "{name} is now bot-controlled",
+  "@nowBotControlled": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noGuideOnlineTooltip": "TileSensor sits out multiplayer, so no seat gets a guide the others lack.\nPlay single player to have me along!",
+  "roomLabel": "Room {code}",
+  "@roomLabel": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionLost": "Connection lost — reconnecting…",
+  "backToStart": "Back to start",
+  "errorNotSeated": "you are not seated in this room",
+  "errorSeatBotControlled": "this seat is bot-controlled",
+  "errorMissingGuestId": "missing guestId",
+  "errorServerFull": "server is full, try again shortly",
+  "errorMissingRoom": "missing roomCode or guestId",
+  "errorRoomNotFound": "room not found",
+  "errorRoomStarted": "that room has already started",
+  "errorRoomFull": "room is full",
+  "errorNotHost": "only the host can start the game",
+  "errorRoomGone": "room no longer exists",
+  "errorUnknownType": "unknown message type",
+  "errorMalformed": "malformed message",
+  "errorBadRequest": "bad request",
+  "errorIllegalAction": "illegal action for the current turn",
+  "errorNoActionExpected": "no action expected right now",
+  "errorGameEnded": "That game has ended"
+}

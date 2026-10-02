@@ -5,6 +5,8 @@ import 'package:mahjong_core/game_timing.dart';
 
 import '../game/call_callout.dart';
 import '../game/guide_host.dart';
+import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/scoring.dart';
 import 'package:mahjong_core/tile.dart';
@@ -173,13 +175,15 @@ class _ScoringViewState extends State<ScoringView> {
     // Only the button that deals the next hand for everyone is locked; Next
     // just turns your own page, and the game is over at game end.
     final locked = !gameOver && !hasMore && _lockLeft > 0;
+    final l10n = context.l10n;
     final label = gameOver
-        ? 'New Game'
+        ? l10n.scoreNewGame
         : hasMore
-            ? 'Next'
+            ? l10n.scoreNext
             : locked
-                ? 'Continue ($_lockLeft)'
-                : 'Continue';
+                ? l10n.scoreContinueLocked(_lockLeft)
+                : l10n.scoreContinue;
+    final title = l10n.resultLabel(r.label, round.ruleset);
 
     return Stack(
       fit: StackFit.expand,
@@ -212,8 +216,8 @@ class _ScoringViewState extends State<ScoringView> {
                       children: [
                         Text(
                           multi
-                              ? '${r.label}  (${page + 1} / ${winners.length})'
-                              : r.label,
+                              ? '$title  (${page + 1} / ${winners.length})'
+                              : title,
                           style: const TextStyle(
                               color: Color(0xffffdf76),
                               fontSize: 26,
@@ -268,7 +272,8 @@ class _ScoringViewState extends State<ScoringView> {
                                   minimumSize: _buttonSize,
                                 ),
                                 onPressed: _toggleAuto,
-                                child: Text(_autoEnabled ? 'Pause' : 'Resume'),
+                                child: Text(
+                                    _autoEnabled ? l10n.pause : l10n.resume),
                               ),
                             ],
                           ],
@@ -278,10 +283,11 @@ class _ScoringViewState extends State<ScoringView> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               !_autoEnabled
-                                  ? 'Auto Continue paused'
+                                  ? l10n.autoContinuePaused
                                   : game.paused
-                                      ? 'Auto Continue held — game paused'
-                                      : 'Auto Continue in ${_secondsLeft.clamp(0, _autoContinueSeconds)}s',
+                                      ? l10n.autoContinueHeld
+                                      : l10n.autoContinueIn(_secondsLeft
+                                          .clamp(0, _autoContinueSeconds)),
                               key: const Key('scoreCountdown'),
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 12),
@@ -324,7 +330,7 @@ class _ScoringViewState extends State<ScoringView> {
   /// fully visible either way.
   Widget _transparencyToggle() {
     return Tooltip(
-      message: _dimmed ? 'Show panel' : 'See through panel',
+      message: _dimmed ? context.l10n.showPanel : context.l10n.seeThroughPanel,
       child: Material(
         color: const Color(0xff0b2f2f),
         shape: const CircleBorder(
@@ -406,12 +412,13 @@ class _ScoringViewState extends State<ScoringView> {
         ),
         const SizedBox(height: 8),
         if (hk)
-          _indicatorRow(
-              'Flowers / seasons', w.flowers.map((t) => t.type).toList(),
+          _indicatorRow(context.l10n.flowersSeasons,
+              w.flowers.map((t) => t.type).toList(),
               indicators: false)
         else ...[
-          _indicatorRow('Dora', doraInd),
-          if (uraInd.isNotEmpty) _indicatorRow('Ura Dora', uraInd),
+          _indicatorRow(context.l10n.yakuDora, doraInd),
+          if (uraInd.isNotEmpty)
+            _indicatorRow(context.l10n.yakuUraDora, uraInd),
         ],
         const SizedBox(height: 2),
         Wrap(
@@ -421,11 +428,16 @@ class _ScoringViewState extends State<ScoringView> {
           children: [
             for (final y in score.yaku)
               Text(
-                  taiwanese
-                      ? '${y.name}  ${y.faan} pt${y.faan == 1 ? '' : 's'}'
-                      : hk
-                          ? '${y.name}  ${y.faan} faan'
-                          : '${y.name}  ${y.yakuman > 0 ? 'yakuman' : '${y.han}'}',
+                  switch (context.l10n.scoringName(y.name, round.ruleset)) {
+                    final name when taiwanese => y.faan == 1
+                        ? context.l10n.yakuLineTaiOne(name, y.faan)
+                        : context.l10n.yakuLineTaiMany(name, y.faan),
+                    final name when hk =>
+                      context.l10n.yakuLineFaan(name, y.faan),
+                    final name => y.yakuman > 0
+                        ? context.l10n.yakuLineYakuman(name)
+                        : context.l10n.yakuLineHan(name, y.han),
+                  },
                   style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
@@ -435,21 +447,31 @@ class _ScoringViewState extends State<ScoringView> {
           // see taiwanese_scoring.dart — so there is nothing to show twice
           // the way "faan — chips" or "han fu — points" show two different
           // scales.
-          taiwanese
-              ? '${score.points} point${score.points == 1 ? '' : 's'}'
-              : hk
-                  ? '${score.faan} faan — ${score.points} chips'
-                      '${score.limitName.isEmpty ? '' : '  (${score.limitName})'}'
-                  : score.yakuman > 0
-                      ? '${score.limitName} — ${score.points}'
-                      : '${score.han} han ${score.fu} fu'
-                          '${score.limitName.isNotEmpty ? '  (${score.limitName})' : ''}'
-                          ' — ${score.points}',
+          _totalLine(context.l10n, score, taiwanese: taiwanese, hk: hk),
           style: const TextStyle(
               color: Color(0xffffdf76), fontWeight: FontWeight.bold),
         ),
       ],
     );
+  }
+
+  /// The hand's total: Taiwanese's points, Hong Kong's faan and chips, or
+  /// riichi's han and fu (or limit) and points.
+  String _totalLine(AppLocalizations l10n, HandScore score,
+      {required bool taiwanese, required bool hk}) {
+    final limit = score.limitName.isEmpty
+        ? ''
+        : l10n.limitSuffix(l10n.limitName(score.limitName));
+    if (taiwanese) {
+      return score.points == 1
+          ? l10n.scorePointOne(score.points)
+          : l10n.scorePointMany(score.points);
+    }
+    if (hk) return l10n.scoreFaanChips(score.faan, score.points, limit);
+    if (score.yakuman > 0) {
+      return l10n.scoreLimitOnly(l10n.limitName(score.limitName), score.points);
+    }
+    return l10n.scoreHanFu(score.han, score.fu, limit, score.points);
   }
 
   /// One line of dora / ura-dora indicator tiles, labelled. Empty when there
@@ -469,8 +491,10 @@ class _ScoringViewState extends State<ScoringView> {
         children: [
           Text(
               indicators
-                  ? '$label indicator${tiles.length > 1 ? 's' : ''}:'
-                  : '$label:',
+                  ? (tiles.length > 1
+                      ? context.l10n.indicatorRowMany(label)
+                      : context.l10n.indicatorRowOne(label))
+                  : context.l10n.plainRow(label),
               style: const TextStyle(color: Colors.white54, fontSize: 12)),
           const SizedBox(width: 2),
           for (final ty in tiles)
@@ -488,10 +512,10 @@ class _ScoringViewState extends State<ScoringView> {
       children: [
         Text(
           round.ruleset.isChineseStyle
-              ? 'Wall exhausted — no payments'
+              ? context.l10n.wallExhaustedNoPayments
               : seats.isEmpty
-                  ? 'All players noten'
-                  : 'Tenpai hands revealed',
+                  ? context.l10n.allNoten
+                  : context.l10n.tenpaiRevealed,
           style: const TextStyle(
               color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
         ),
@@ -541,8 +565,8 @@ class _ScoringViewState extends State<ScoringView> {
               runSpacing: 1,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Text('waits',
-                    style: TextStyle(color: Colors.white70, fontSize: 11)),
+                Text(context.l10n.waits,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(width: 2),
                 for (final wt in waits)
                   TileFace(type: wt, size: TileSize.small, scale: _tileScale),

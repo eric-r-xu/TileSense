@@ -14,6 +14,9 @@ import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/guide_host.dart' show AutoplayBrain, GuideHost;
 import 'game/sfx.dart';
+import 'l10n/app_language.dart';
+import 'l10n/l10n.dart';
+import 'l10n/mahjong_terms.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'net/guest_identity.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
@@ -24,6 +27,7 @@ import 'ui/bar_back_button.dart';
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
+import 'ui/language_button.dart';
 import 'ui/online_page.dart' deferred as online;
 import 'ui/phone_menu.dart';
 import 'ui/ruleset_badge.dart';
@@ -63,20 +67,6 @@ Color playStyleColor(PlayStyle style) => switch (style) {
       PlayStyle.aggressive => const Color(0xffff8a65),
     };
 
-/// Why the hand counts either game length advertises are a floor rather than
-/// a promise. Standard riichi replays the hand whenever the dealership holds,
-/// so both numbers are what you get only if it passes every single time.
-const String _handCountCaveat =
-    'That is with the dealership passing every hand. Under standard riichi '
-    'rules a dealer who wins, or who is tenpai at an exhaustive draw, keeps '
-    'it and the hand is replayed — so either length can run longer.';
-
-/// [_handCountCaveat] under Hong Kong and Taiwanese rules, where any draw
-/// keeps the deal.
-const String _handCountCaveatChineseStyle =
-    'That is with the dealership passing every hand. A dealer who wins, or '
-    'any exhaustive draw, keeps it and the hand is replayed — so either '
-    'length can run longer.';
 
 /// The caption every top-bar tile carries above its value.
 const TextStyle _barCaptionStyle = TextStyle(
@@ -322,8 +312,15 @@ class TileSenseApp extends StatelessWidget {
         // native platforms.
         behavior: HitTestBehavior.translucent,
         onPointerUp: (_) => Sfx.i.unlock(),
-        child: MaterialApp(
-          title: 'TileSense',
+        // The chosen language (see [AppLanguageController]): a new one rebuilds
+        // the app in it on the spot, keeping every screen's state.
+        child: ValueListenableBuilder<AppLanguage>(
+          valueListenable: AppLanguageController.instance,
+          builder: (context, language, _) => MaterialApp(
+          onGenerateTitle: (context) => context.l10n.appTitle,
+          locale: language.locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
@@ -351,6 +348,7 @@ class TileSenseApp extends StatelessWidget {
             child: child!,
           ),
           home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
+          ),
         ),
       );
 }
@@ -584,17 +582,17 @@ class _FixedCanvasState extends State<_FixedCanvas> {
         children: [
           button(
               Icons.remove,
-              'Zoom out  (Ctrl/Cmd -)',
+              context.l10n.zoomOut,
               _scale > _minScale + 0.001 ? () => _zoomBy(1 / _zoomStep) : null,
               const Key('zoomOut')),
           button(
               Icons.add,
-              'Zoom in  (Ctrl/Cmd +)',
+              context.l10n.zoomIn,
               _scale < _maxScale - 0.001 ? () => _zoomBy(_zoomStep) : null,
               const Key('zoomIn')),
           button(
               Icons.crop_free,
-              'Reset zoom  (Ctrl/Cmd 0)',
+              context.l10n.zoomReset,
               _zoomedIn ? () => _zoomTo(_minScale) : null,
               const Key('zoomReset')),
         ],
@@ -708,19 +706,12 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Install TileSense'),
-        content: const Text(
-          "This browser can't go full screen from a web page. Install "
-          'TileSense as a web app instead and it opens full screen, with no '
-          'browser bars:\n\n'
-          '• iPhone / iPad: tap Share, then "Add to Home Screen"\n'
-          '• Chrome / Edge: use the install icon in the address bar, or '
-          'menu > "Install app"',
-        ),
+        title: Text(context.l10n.installTitle),
+        content: Text(context.l10n.installBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it'),
+            child: Text(context.l10n.gotIt),
           ),
         ],
       ),
@@ -733,13 +724,13 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
     final full = fs.isFullscreen;
     return Tooltip(
       message: full
-          ? 'Exit full screen'
-          : 'Full screen. For the best experience, install TileSense as a '
-              'web app (browser menu > Install / Add to Home Screen).',
+          ? context.l10n.fullscreenExit
+          : context.l10n.fullscreenTooltip,
       child: TextButton.icon(
         key: const Key('fullscreen'),
         icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen, size: 22),
-        label: Text(full ? 'Exit full screen' : 'Full screen'),
+        label: Text(
+            full ? context.l10n.fullscreenExit : context.l10n.fullscreen),
         onPressed: fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp,
         style: TextButton.styleFrom(
           foregroundColor: const Color(0xff80cbc4),
@@ -770,23 +761,22 @@ class _UpdateButtonState extends State<_UpdateButton> {
     final status = await upd.checkForUpdate();
     if (!mounted) return;
     setState(() => _busy = false);
+    final l10n = context.l10n;
     final (title, body, action) = switch (status) {
       upd.UpdateStatus.updateAvailable => (
-          'Update available',
-          'A newer version of TileSense is ready. Update now to get it.',
-          'Update now',
+          l10n.updateAvailableTitle,
+          l10n.updateAvailableBody,
+          l10n.updateNow,
         ),
       upd.UpdateStatus.upToDate => (
-          "You're up to date",
-          'This is the latest version. Refresh anyway to re-download every '
-              'file.',
-          'Refresh anyway',
+          l10n.upToDateTitle,
+          l10n.upToDateBody,
+          l10n.refreshAnyway,
         ),
       upd.UpdateStatus.unknown => (
-          'Refresh TileSense',
-          "Couldn't tell whether a newer version exists. Refresh to "
-              'download the latest files.',
-          'Refresh',
+          l10n.refreshTitle,
+          l10n.refreshUnknownBody,
+          l10n.refresh,
         ),
     };
     final go = await showDialog<bool>(
@@ -797,7 +787,7 @@ class _UpdateButtonState extends State<_UpdateButton> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Not now'),
+            child: Text(context.l10n.notNow),
           ),
           TextButton(
             key: const Key('updateConfirm'),
@@ -817,7 +807,7 @@ class _UpdateButtonState extends State<_UpdateButton> {
   Widget build(BuildContext context) {
     if (!upd.updateButtonVisible) return const SizedBox.shrink();
     return Tooltip(
-      message: 'Check for a newer version and refresh the app',
+      message: context.l10n.updateTooltip,
       child: TextButton.icon(
         key: const Key('updateApp'),
         icon: _busy
@@ -827,7 +817,7 @@ class _UpdateButtonState extends State<_UpdateButton> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.refresh, size: 22),
-        label: Text(_busy ? 'Working…' : 'Update'),
+        label: Text(_busy ? context.l10n.working : context.l10n.update),
         onPressed: _busy ? null : _onPressed,
         style: TextButton.styleFrom(
           foregroundColor: const Color(0xff80cbc4),
@@ -874,36 +864,44 @@ class _LandscapeGate extends StatelessWidget {
 }
 
 /// Full-screen cover shown while the viewport is portrait. Opaque to hit tests
-/// so nothing reaches the game held behind it.
+/// so nothing reaches the game held behind it — all but its language picker,
+/// so the prompt itself can be read in your own language.
 class _RotatePrompt extends StatelessWidget {
   const _RotatePrompt();
 
   @override
-  Widget build(BuildContext context) => const AbsorbPointer(
-        child: ColoredBox(
-          color: kLetterboxColor,
-          child: Center(
+  Widget build(BuildContext context) => Stack(
+        fit: StackFit.expand,
+        children: [
+          const AbsorbPointer(child: ColoredBox(color: kLetterboxColor)),
+          Center(
             child: Padding(
-              padding: EdgeInsets.all(28),
+              padding: const EdgeInsets.all(28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.screen_rotation, color: Colors.white70, size: 48),
-                  SizedBox(height: 16),
+                  const Icon(Icons.screen_rotation,
+                      color: Colors.white70, size: 48),
+                  const SizedBox(height: 16),
                   Text(
-                    'Rotate your device to landscape to play TileSense',
+                    context.l10n.rotatePrompt,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  const Material(
+                    type: MaterialType.transparency,
+                    child: LanguageButton(),
+                  ),
                 ],
               ),
             ),
           ),
-        ),
+        ],
       );
 }
 
@@ -1017,19 +1015,19 @@ class _GamePageState extends State<GamePage> {
 
   /// ", 3-tai minimum" for the ruleset label's tooltip; empty under riichi.
   String _minimumSentence() => _game.ruleset.isHongKong
-      ? ', ${_game.minimumFaan}-faan minimum'
+      ? context.l10n.minimumFaanSentence(_game.minimumFaan)
       : _game.ruleset.isTaiwanese
-          ? ', ${_game.minimumPoints}-tai minimum'
+          ? context.l10n.minimumTaiSentence(_game.minimumPoints)
           : '';
 
   /// "3 tai min" beside the ruleset label, only when the table's minimum
   /// isn't its ruleset's default.
   String? _minimumTag() => _game.ruleset.isHongKong &&
           _game.minimumFaan != HongKongRules.defaultMinimumFaan
-      ? '${_game.minimumFaan} faan min'
+      ? context.l10n.minimumFaanTag(_game.minimumFaan)
       : _game.ruleset.isTaiwanese &&
               _game.minimumPoints != TaiwaneseRules.defaultMinimumPoints
-          ? '${_game.minimumPoints} tai min'
+          ? context.l10n.minimumTaiTag(_game.minimumPoints)
           : null;
 
   void _toggleGuide() => setState(() => _showGuide = !_showGuide);
@@ -1045,18 +1043,18 @@ class _GamePageState extends State<GamePage> {
     final go = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Start a new game?'),
-        content: const Text('The game in progress will be lost.'),
+        title: Text(context.l10n.newGameConfirmTitle),
+        content: Text(context.l10n.newGameConfirmBody),
         actions: [
           TextButton(
             key: const Key('newGameCancel'),
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep playing'),
+            child: Text(context.l10n.keepPlaying),
           ),
           FilledButton(
             key: const Key('newGameConfirm'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('New game'),
+            child: Text(context.l10n.newGame),
           ),
         ],
       ),
@@ -1129,7 +1127,7 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     if (_startingGame) {
       return StartupScreen(
-        label: 'Preparing your table…',
+        label: context.l10n.loadingTable,
         onRetry: _startFailed ? _startOffline : null,
         onBack: () => setState(() {
           _startRequest++;
@@ -1141,7 +1139,7 @@ class _GamePageState extends State<GamePage> {
       return FeatureLoader(
         key: const Key('builderLoader'),
         load: scenario.loadLibrary,
-        label: 'Loading hand builder…',
+        label: context.l10n.loadingBuilder,
         onBack: () => setState(() => _showBuilder = false),
         builder: (_) => scenario.ScenarioPage(
           initialRuleset: _selectedRuleset,
@@ -1160,7 +1158,7 @@ class _GamePageState extends State<GamePage> {
       return FeatureLoader(
         key: const Key('onlineLoader'),
         load: online.loadLibrary,
-        label: 'Loading multiplayer…',
+        label: context.l10n.loadingMultiplayer,
         onBack: exitOnline,
         builder: (_) => online.OnlinePage(
           initialRuleset: _selectedRuleset,
@@ -1181,7 +1179,7 @@ class _GamePageState extends State<GamePage> {
             _characters.setAll(0, randomSeatCharacters());
             _startingDealer = randomStartingDealer();
           }),
-          advanceLabel: 'Start',
+          advanceLabel: context.l10n.start,
           ruleset: _selectedRuleset,
           onRuleset: (r) => setState(() => _selectedRuleset = r),
           soundOn: Sfx.i.enabled,
@@ -1227,10 +1225,8 @@ class _GamePageState extends State<GamePage> {
         leadingWidth: BarBackButton.leadingWidth,
         leading: phone ? null : BarBackButton(
           buttonKey: const Key('backToMenu'),
-          label: 'Menu',
-          tooltip: 'Main menu — pauses this game; Start resumes it. Change '
-              'the style there (a new game), or open the Custom Hand & '
-              'Context Builder',
+          label: context.l10n.menu,
+          tooltip: context.l10n.menuTooltip,
           onPressed: _backToMenu,
         ),
         // The bar's own controls on the left, then the across seat — up here
@@ -1255,17 +1251,18 @@ class _GamePageState extends State<GamePage> {
                 AnimatedBuilder(
                   animation: _game,
                   builder: (context, _) => Tooltip(
-                    message: 'Playing ${_game.ruleset.label} rules'
-                        '${_minimumSentence()}.\n'
-                        'To play another style, go back to the main menu.',
+                    message: context.l10n.playingRulesTooltip(
+                        context.l10n.rulesetName(_game.ruleset),
+                        _minimumSentence()),
                     child: Padding(
                       key: const Key('ruleset'),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 6),
                       child: Text(
                         switch (_minimumTag()) {
-                          final tag? => '${_game.ruleset.flagLabel} · $tag',
-                          null => _game.ruleset.flagLabel,
+                          final tag? =>
+                            '${context.l10n.rulesetFlagLabel(_game.ruleset)} · $tag',
+                          null => context.l10n.rulesetFlagLabel(_game.ruleset),
                         },
                         style: const TextStyle(
                           color: Color(0xffffdf76),
@@ -1281,7 +1278,8 @@ class _GamePageState extends State<GamePage> {
                   animation: _game,
                   builder: (context, _) => IconButton(
                     key: const Key('rulesPdf'),
-                    tooltip: '${_game.ruleset.label} rules (PDF)',
+                    tooltip: context.l10n
+                        .rulesPdf(context.l10n.rulesetName(_game.ruleset)),
                     iconSize: 18,
                     visualDensity: VisualDensity.compact,
                     color: Colors.white54,
@@ -1293,21 +1291,19 @@ class _GamePageState extends State<GamePage> {
                 AnimatedBuilder(
                   animation: _game,
                   builder: (context, _) {
+                    // The hand counts each length advertises are a floor, not
+                    // a promise: the hand is replayed whenever the dealership
+                    // holds (under Hong Kong and Taiwanese rules, on any draw).
+                    final l10n = context.l10n;
                     final caveat = _game.ruleset.isChineseStyle
-                        ? _handCountCaveatChineseStyle
-                        : _handCountCaveat;
+                        ? l10n.hanchanCaveatChinese
+                        : l10n.hanchanCaveatRiichi;
                     return Tooltip(
                       message: _game.hanchan
-                          ? 'Hanchan — East and South (半庄) rounds, 8+ hands.\n'
-                              '$caveat\n'
-                              'Tap for East only (东风战), 4+ hands.'
+                          ? l10n.hanchanOnTooltip(caveat)
                           : (_game.ruleset.isChineseStyle
-                              ? 'East only — the East round, 4+ hands.\n'
-                                  '$caveat\n'
-                                  'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'
-                              : 'East only (东风战/tonpuusen) — the East round, 4+ hands.\n'
-                                  '$caveat\n'
-                                  'Tap for hanchan (半庄): East and South (半庄), 8+ hands.'),
+                              ? l10n.eastOnlyTooltipChinese(caveat)
+                              : l10n.eastOnlyTooltipRiichi(caveat)),
                       child: TextButton(
                         key: const Key('hanchan'),
                         onPressed: () => _game.setHanchan(!_game.hanchan),
@@ -1316,7 +1312,9 @@ class _GamePageState extends State<GamePage> {
                           foregroundColor: const Color(0xffe9d58f),
                         ),
                         child: Text(
-                          _game.hanchan ? 'Hanchan' : 'East only',
+                          _game.hanchan
+                              ? context.l10n.hanchan
+                              : context.l10n.eastOnly,
                           style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600),
                         ),
@@ -1329,17 +1327,15 @@ class _GamePageState extends State<GamePage> {
                 AnimatedBuilder(
                   animation: _game,
                   builder: (context, _) => _barDial(
-                    caption: 'BOT SPEED',
+                    caption: context.l10n.botSpeedCaption,
                     buttonKey: const Key('fastMode'),
                     label: _game.fastMode ? '2x' : '1x',
                     colour: _game.fastMode
                         ? const Color(0xffffdf76)
                         : Colors.white60,
                     tooltip: _game.fastMode
-                        ? 'Bots and draws move at double speed.\n'
-                            'Tap for normal speed.'
-                        : 'Bots and draws move at normal speed.\n'
-                            'Tap for double speed.',
+                        ? context.l10n.botSpeedFastTooltip
+                        : context.l10n.botSpeedNormalTooltip,
                     onTap: () => _game.setFastMode(!_game.fastMode),
                   ),
                 ),
@@ -1376,21 +1372,18 @@ class _GamePageState extends State<GamePage> {
                 // TileSense its tooltip names the dials the guide is playing.
                 if (_game.mortalAvailable)
                   _barDial(
-                    caption: 'ALGORITHM',
+                    caption: context.l10n.algorithmCaption,
                     buttonKey: const Key('autoplayBrain'),
                     label: _game.autoplayBrain == AutoplayBrain.mortal
-                        ? 'Mortal bot'
+                        ? context.l10n.mortalBot
                         : 'TileSense',
                     colour: brainColor(_game.autoplayBrain),
                     tooltip: _game.autoplayBrain == AutoplayBrain.mortal
                         ? null
-                        : 'TileSense guide, playing ${_game.playStyle.label} · '
-                            '${_game.handFocus.label} · '
-                            '${_game.strategy.label}.\n'
-                            'Set for you as the game goes: Aggressive · Speed '
-                            '· Points early to build a lead; Balanced · Speed '
-                            '· Placement in the final two hands to protect or '
-                            'climb the standings.',
+                        : context.l10n.algorithmTooltip(
+                            _game.playStyle.label,
+                            _game.handFocus.label,
+                            _game.strategy.label),
                     onTap: () => _game.setAutoplayBrain(
                         _game.autoplayBrain == AutoplayBrain.mortal
                             ? AutoplayBrain.tilesense
@@ -1419,23 +1412,19 @@ class _GamePageState extends State<GamePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _barTile(
-                      caption: 'AUTO-PLAY',
+                      caption: context.l10n.autoPlayCaption,
                       tapKey: const Key('autoplay'),
                       width: 92,
                       tooltip: on
-                          ? 'Auto-Play is on — TileSensor plays your seat by '
-                              'the guide: points early, placement in the '
-                              'final two hands.\n'
-                              'Tap to take your seat back.'
-                          : 'Auto-Play is off — you play your seat.\n'
-                              'Tap to let TileSensor play it by the guide.',
+                          ? context.l10n.autoPlayOnTooltip
+                          : context.l10n.autoPlayOffTooltip,
                       onTap: () => _game.setAutoplay(!on),
                       value: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _AutoPlayBadge(on: on, size: 22),
                           const SizedBox(width: 5),
-                          Text(on ? 'On' : 'Off',
+                          Text(on ? context.l10n.on : context.l10n.off,
                               style: TextStyle(
                                   color: on ? _autoPlayGold : Colors.white54,
                                   fontSize: 12,
@@ -1459,13 +1448,17 @@ class _GamePageState extends State<GamePage> {
             builder: (context, _) => Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // The language picker on this screen (on a phone it is in
+                // the Menu sheet instead).
+                const LanguageButton(compact: true),
+                const SizedBox(width: 4),
                 _barTile(
-                  caption: 'SOUND',
+                  caption: context.l10n.soundCaption,
                   tapKey: const Key('soundToggle'),
                   width: 56,
                   tooltip: _game.soundOn
-                      ? 'Sound on — tap to mute'
-                      : 'Sound off — tap to unmute',
+                      ? context.l10n.soundOnTooltip
+                      : context.l10n.soundOffTooltip,
                   onTap: () => _game.setSoundOn(!_game.soundOn),
                   value: Icon(
                     _game.soundOn ? Icons.volume_up : Icons.volume_off,
@@ -1477,19 +1470,21 @@ class _GamePageState extends State<GamePage> {
                 ),
                 const SizedBox(width: 8),
                 _barTile(
-                  caption: _game.paused ? 'RESUME' : 'PAUSE',
+                  caption: _game.paused
+                      ? context.l10n.resumeCaption
+                      : context.l10n.pauseCaption,
                   width: 56,
-                  tooltip: _game.paused ? 'Resume' : 'Pause',
+                  tooltip: _game.paused ? context.l10n.resume : context.l10n.pause,
                   onTap: _game.togglePause,
                   value: Icon(_game.paused ? Icons.play_arrow : Icons.pause,
                       size: 22, color: const Color(0xffe9d58f)),
                 ),
                 const SizedBox(width: 8),
                 _barTile(
-                  caption: 'NEW',
+                  caption: context.l10n.newCaption,
                   tapKey: const Key('newGame'),
                   width: 56,
-                  tooltip: 'New game',
+                  tooltip: context.l10n.newGame,
                   onTap: _confirmNewGame,
                   value: const Icon(Icons.add_circle_outline,
                       size: 22, color: Color(0xffe9d58f)),
@@ -1558,11 +1553,11 @@ class _GamePageState extends State<GamePage> {
                       onTap: _game.togglePause,
                       child: ColoredBox(
                         color: const Color(0xcc000000),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'PAUSED\ntap, or press Esc, to resume',
+                            context.l10n.pausedOverlay,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
@@ -1615,7 +1610,7 @@ class _WelcomeScreen extends StatelessWidget {
 
   /// Japanese Riichi, Hong Kong, or Taiwanese, chosen before Start, each
   /// with a link to its rules PDF beneath it.
-  Widget _rulesetChoice() {
+  Widget _rulesetChoice(BuildContext context) {
     Widget option(Ruleset value, String subtitle) {
       final selected = ruleset == value;
       return Padding(
@@ -1639,7 +1634,7 @@ class _WelcomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(value.flagLabel,
+                  Text(context.l10n.rulesetFlagLabel(value),
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
                   Text(subtitle, style: const TextStyle(fontSize: 11)),
@@ -1650,7 +1645,7 @@ class _WelcomeScreen extends StatelessWidget {
               key: Key('rulesPdf_${value.name}'),
               onPressed: () => openRules(value),
               icon: const Icon(Icons.open_in_new, size: 13),
-              label: Text('${value.label} rules (PDF)'),
+              label: Text(context.l10n.rulesPdf(context.l10n.rulesetName(value))),
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xff80cbc4),
                 visualDensity: VisualDensity.compact,
@@ -1667,9 +1662,9 @@ class _WelcomeScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        option(Ruleset.riichi, 'yaku, dora, riichi'),
-        option(Ruleset.hongKong, 'faan, flowers, 0–3 faan minimum'),
-        option(Ruleset.taiwanese, '17 tiles, flowers, 1–5 tai minimum'),
+        option(Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
+        option(Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
+        option(Ruleset.taiwanese, context.l10n.rulesetSubtitleTaiwanese),
       ],
     );
   }
@@ -1704,10 +1699,10 @@ class _WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Welcome to',
+                    Text(
+                      context.l10n.welcomeTo,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 42,
                         fontWeight: FontWeight.w600,
@@ -1734,8 +1729,8 @@ class _WelcomeScreen extends StatelessWidget {
                     SizedBox(
                       width: 840,
                       child: Text(
-                        'Sharpen your ${ruleset.label} Mahjong decisions\n'
-                        'with a guide that sees only what you see.',
+                        context.l10n
+                            .welcomeTagline(context.l10n.rulesetName(ruleset)),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white70,
@@ -1745,7 +1740,7 @@ class _WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    _rulesetChoice(),
+                    _rulesetChoice(context),
                     const SizedBox(height: 10),
                     const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1782,17 +1777,17 @@ class _WelcomeScreen extends StatelessWidget {
                                       const SizedBox.shrink(),
                                 ),
                                 const SizedBox(width: 8),
-                                const Column(
+                                Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('Single Player',
-                                        style: TextStyle(
+                                    Text(context.l10n.singlePlayer,
+                                        style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 2),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      'Includes the guide',
-                                      style: TextStyle(
+                                      context.l10n.singlePlayerSubtitle,
+                                      style: const TextStyle(
                                           fontSize: 12, color: Colors.black54),
                                     ),
                                   ],
@@ -1810,25 +1805,25 @@ class _WelcomeScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 12),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 // A globe: play with anyone, anywhere.
-                                Text('🌐',
+                                const Text('🌐',
                                     key: Key('playOnlineEmoji'),
                                     style: TextStyle(fontSize: 28)),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('Play Online',
-                                        style: TextStyle(
+                                    Text(context.l10n.playOnline,
+                                        style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 2),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      'With friends — bots fill empty seats, no guide',
-                                      style: TextStyle(
+                                      context.l10n.playOnlineSubtitle,
+                                      style: const TextStyle(
                                           fontSize: 12, color: Colors.white60),
                                     ),
                                   ],
@@ -1846,26 +1841,26 @@ class _WelcomeScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 12),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 // Tools: you build the table yourself. An icon,
                                 // not the 🛠️ emoji: its U+FE0F has no Noto font,
                                 // so Flutter web logs a missing-font warning.
-                                Icon(Icons.handyman,
+                                const Icon(Icons.handyman,
                                     key: Key('openBuilderEmoji'), size: 28),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('Custom Hand & Context Builder',
-                                        style: TextStyle(
+                                    Text(context.l10n.builder,
+                                        style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 2),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      'Pose any table and have TileSense score it',
-                                      style: TextStyle(
+                                      context.l10n.builderSubtitle,
+                                      style: const TextStyle(
                                           fontSize: 12, color: Colors.white60),
                                     ),
                                   ],
@@ -1890,7 +1885,7 @@ class _WelcomeScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                         ),
                         icon: const Text('🔁', style: TextStyle(fontSize: 22)),
-                        label: Text('Rejoin your online game · Room $code',
+                        label: Text(context.l10n.rejoinOnline(code),
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
@@ -1907,6 +1902,15 @@ class _WelcomeScreen extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         page,
+        // This screen's language picker.
+        const Positioned(
+          right: 16,
+          top: 12,
+          child: Material(
+            type: MaterialType.transparency,
+            child: LanguageButton(),
+          ),
+        ),
         const Positioned(right: 16, bottom: 12, child: _Credits()),
       ],
     );
@@ -1927,7 +1931,7 @@ class _Credits extends StatelessWidget {
           children: [
             IconButton(
               key: const Key('githubLink'),
-              tooltip: 'View on GitHub',
+              tooltip: context.l10n.viewOnGitHub,
               iconSize: 22,
               visualDensity: VisualDensity.compact,
               icon: const FaIcon(FontAwesomeIcons.github, size: 22),
@@ -1938,7 +1942,7 @@ class _Credits extends StatelessWidget {
               ),
             ),
             Tooltip(
-              message: 'Built with Flutter',
+              message: context.l10n.builtWithFlutter,
               child: InkWell(
                 key: const Key('flutterLink'),
                 borderRadius: BorderRadius.circular(6),
