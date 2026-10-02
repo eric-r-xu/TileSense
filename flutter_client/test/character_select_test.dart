@@ -91,11 +91,11 @@ void main() {
     final start = tester.getRect(find.byKey(const Key('charactersContinue')));
     expect(start.top, greaterThanOrEqualTo(0));
     expect(start.bottom, lessThanOrEqualTo(size.height));
-    final ricky = find.byKey(const Key('seatCharacterPick_0_ricky'));
-    expect(tester.getRect(ricky).bottom, lessThanOrEqualTo(size.height));
-    await tester.tap(ricky);
+    final finley = find.byKey(const Key('seatCharacterPick_0_finley'));
+    expect(tester.getRect(finley).bottom, lessThanOrEqualTo(size.height));
+    await tester.tap(finley);
     await tester.pump();
-    expect(_name(tester, 0), 'Ricky');
+    expect(_name(tester, 0), 'Finley');
     expect(tester.takeException(), isNull);
   });
 
