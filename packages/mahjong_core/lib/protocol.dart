@@ -210,6 +210,7 @@ Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       ],
       'flowers': tilesToJson(s.flowers),
       'riichi': s.riichi,
+      'riichiPondIndex': s.riichiPondIndex,
       'doubleRiichi': s.doubleRiichi,
       'ippatsu': s.ippatsu,
       'tempFuriten': revealed && s.tempFuriten,
@@ -303,6 +304,7 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     ];
     seat.flowers = tilesFromJson(sj['flowers'] as List);
     seat.riichi = sj['riichi'] as bool;
+    seat.riichiPondIndex = sj['riichiPondIndex'] as int? ?? -1;
     seat.doubleRiichi = sj['doubleRiichi'] as bool;
     seat.ippatsu = sj['ippatsu'] as bool;
     seat.tempFuriten = sj['tempFuriten'] as bool;

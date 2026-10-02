@@ -845,7 +845,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       'tileId': tile.id,
       'riichi': declareRiichi,
     });
-    _predictDiscard(tile);
+    _predictDiscard(tile, declareRiichi: declareRiichi);
   }
 
   // --- smoothing over the network ------------------------------------------
@@ -874,7 +874,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// with everyone else's hand hidden, would work out call options from
   /// placeholder tiles. Riichi's stick and voice wait for the server's echo,
   /// which is what announces every other riichi too.
-  void _predictDiscard(Tile tile) {
+  void _predictDiscard(Tile tile, {required bool declareRiichi}) {
     final s = round.seats[kHumanSeat];
     final i = s.hand.indexWhere((t) => t.id == tile.id);
     if (i < 0) return;
@@ -882,6 +882,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     s.hand.removeAt(i);
     s.drawn = null;
     s.pond.add(tile);
+    if (declareRiichi) s.riichiPondIndex = s.pond.length - 1;
     // Nobody is to act until the server answers: this hides your turn's
     // buttons and turns away a second tap.
     round.phase = RoundPhase.drawing;

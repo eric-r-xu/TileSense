@@ -236,9 +236,9 @@ void main() {
     await tester.pump();
     expect(_name(tester, 3), 'Sherman');
 
-    await tester.tap(find.byKey(const Key('seatCharacterPick_0_matthew')));
+    await tester.tap(find.byKey(const Key('seatCharacterPick_0_finley')));
     await tester.pump();
-    expect(_name(tester, 0), 'Matthew');
+    expect(_name(tester, 0), 'Finley');
 
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(); // Render the startup/loading frame.
@@ -247,7 +247,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     final table = tester.widget<TableView>(find.byType(TableView));
     expect(table.game.characterForSeat(1), Character.erika);
-    expect(table.game.characterForSeat(0), Character.matthew);
+    expect(table.game.characterForSeat(0), Character.finley);
     expect(table.game.characterForSeat(2), Character.matityahu);
     expect(table.game.characterForSeat(3), Character.sherman);
   });
