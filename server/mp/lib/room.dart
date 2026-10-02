@@ -43,6 +43,11 @@ class Seat {
   bool get connected => send != null;
 }
 
+/// An `error` frame: a stable [code] a client can show in its own language,
+/// and the English [message] older clients display as is.
+Map<String, dynamic> errorFrame(String code, String message) =>
+    {'type': 'error', 'code': code, 'message': message};
+
 class Room {
   Room({
     required this.code,
@@ -221,8 +226,8 @@ class Room {
         ],
       };
 
-  void sendError(int seat, String message) {
-    seats[seat]?.send?.call({'type': 'error', 'message': message});
+  void sendError(int seat, String code, String message) {
+    seats[seat]?.send?.call(errorFrame(code, message));
   }
 }
 

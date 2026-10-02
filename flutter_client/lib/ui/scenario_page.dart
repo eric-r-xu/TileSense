@@ -20,6 +20,8 @@ import 'package:mahjong_core/tile.dart';
 import '../scenario/scenario.dart';
 import '../scenario/scenario_controller.dart';
 import 'efficiency_overlay.dart';
+import 'language_button.dart';
+import '../l10n/l10n.dart';
 import 'phone_menu.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
@@ -322,8 +324,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
       leadingWidth: BarBackButton.leadingWidth,
       leading: BarBackButton(
         buttonKey: const Key('builderBack'),
-        label: 'Back',
-        tooltip: 'Back to start',
+        label: context.l10n.back,
+        tooltip: context.l10n.backToStart,
         onPressed: widget.onExit,
       ),
       title: TableBarTitle(
@@ -355,8 +357,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
           ],
         ),
       ),
-      // The rules in play, named in its tooltip.
+      // This screen's language picker, then the rules in play, named in its
+      // tooltip.
       actions: [
+        const LanguageButton(compact: true),
+        const SizedBox(width: 4),
         Tooltip(
           message: s.ruleset.label,
           child: Text(s.ruleset.flag,

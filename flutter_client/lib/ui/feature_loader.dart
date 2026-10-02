@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
+import 'language_button.dart';
+
 /// Downloads an optional screen on first use, with a way back and a retry
 /// when a connection drops. Keep the future stable across parent rebuilds.
 class FeatureLoader extends StatefulWidget {
@@ -82,21 +85,26 @@ class StartupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (onRetry == null) const CircularProgressIndicator(),
-              const SizedBox(height: 20),
-              Text(onRetry == null
-                  ? label
-                  : 'Couldn’t finish loading. Try again.'),
-              const SizedBox(height: 16),
-              if (onRetry != null)
-                FilledButton(onPressed: onRetry, child: const Text('Retry')),
-              TextButton(onPressed: onBack, child: const Text('Back')),
-            ],
-          ),
+        body: Stack(
+          children: [
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onRetry == null) const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
+                  Text(onRetry == null ? label : context.l10n.loadFailed),
+                  const SizedBox(height: 16),
+                  if (onRetry != null)
+                    FilledButton(
+                        onPressed: onRetry, child: Text(context.l10n.retry)),
+                  TextButton(onPressed: onBack, child: Text(context.l10n.back)),
+                ],
+              ),
+            ),
+            // This screen's language picker.
+            const Positioned(right: 8, top: 8, child: LanguageButton()),
+          ],
         ),
       );
 }

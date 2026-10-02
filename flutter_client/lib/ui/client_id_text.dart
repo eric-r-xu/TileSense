@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/l10n.dart';
 import '../telemetry/telemetry.dart' show persistentClientId;
 
 /// The "ID" chip for an app bar's actions, [height] tall to tap.
@@ -16,12 +17,12 @@ class ClientIdButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-        message: 'Your client ID',
+        message: context.l10n.clientIdTitle,
         child: OutlinedButton.icon(
           key: const Key('clientIdButton'),
           onPressed: () => showClientIdDialog(context),
           icon: const Icon(Icons.badge_outlined, size: 18),
-          label: const Text('ID'),
+          label: Text(context.l10n.clientIdShort),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white70,
             side: const BorderSide(color: Colors.white30),
@@ -60,7 +61,7 @@ class _ClientIdDialogState extends State<_ClientIdDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Your client ID'),
+        title: Text(context.l10n.clientIdTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,21 +72,21 @@ class _ClientIdDialogState extends State<_ClientIdDialog> {
               style: const TextStyle(fontFamily: 'monospace', fontSize: 16),
             ),
             const SizedBox(height: 8),
-            const Text('Include this if you report a problem.',
-                style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(context.l10n.clientIdHelp,
+                style: const TextStyle(color: Colors.white70, fontSize: 13)),
           ],
         ),
         actions: [
           TextButton(
             key: const Key('clientIdClose'),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(context.l10n.close),
           ),
           FilledButton.icon(
             key: const Key('clientIdCopy'),
             onPressed: _copy,
             icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
-            label: Text(_copied ? 'Copied' : 'Copy'),
+            label: Text(_copied ? context.l10n.copied : context.l10n.copy),
           ),
         ],
       );

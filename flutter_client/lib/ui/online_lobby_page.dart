@@ -12,12 +12,15 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 
 import '../game/online_game_controller.dart';
+import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
 import '../game/sfx.dart'
     show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
 import '../main.dart' show isPhoneLayout, kLetterboxColor;
 import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'client_id_text.dart';
+import 'language_button.dart';
 
 class OnlineLobbyPage extends StatefulWidget {
   const OnlineLobbyPage({
@@ -109,7 +112,9 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(game.lastError!)),
+          SnackBar(
+              content: Text(context.l10n
+                  .errorText(game.lastErrorCode, game.lastError!))),
         );
       });
     }
@@ -128,15 +133,18 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         // mis-tap: the client id is behind the ID chip at the other end.
         leading: BarBackButton(
           buttonKey: const Key('onlineBack'),
-          label: 'Menu',
-          tooltip: 'Back to menu',
+          label: context.l10n.menu,
+          tooltip: context.l10n.backToMenu,
           onPressed: () {
             if (game.roomCode.isNotEmpty) game.leaveRoom();
             widget.onExit();
           },
         ),
-        title: const Text('Play Online'),
+        title: Text(context.l10n.playOnline),
         actions: [
+          // This screen's language picker, before and after making a room.
+          const LanguageButton(),
+          const SizedBox(width: 8),
           ClientIdButton(height: barHeight - 8),
           const SizedBox(width: 12),
         ],
@@ -170,15 +178,15 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       width: double.infinity,
       color: const Color(0xff5d1a1a),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.wifi_off, color: Colors.white, size: 18),
-          SizedBox(width: 8),
+          const Icon(Icons.wifi_off, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
           Flexible(
             child: Text(
-              "Can't reach the multiplayer server — retrying…",
-              style: TextStyle(color: Colors.white),
+              context.l10n.cantReachServer,
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -198,12 +206,12 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (game.rejoining || game.rejoinableCode != null) _rejoinBanner(),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
           child: Text(
-            'Multiplayer has no TileSense guide — play single player for it.',
+            context.l10n.noGuideOnline,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white60, fontSize: 13),
+            style: const TextStyle(color: Colors.white60, fontSize: 13),
           ),
         ),
         Row(
@@ -216,17 +224,16 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                   TextField(
                     controller: _nameCtl,
                     maxLength: 24,
-                    decoration: const InputDecoration(
-                      labelText: 'Your name',
-                      helperText: 'Defaults to your character — edit to '
-                          'use your own',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.yourName,
+                      helperText: context.l10n.yourNameHelper,
                       counterText: '',
                     ),
                     style: const TextStyle(color: Colors.white),
                   ),
                   const SizedBox(height: 20),
                   _card(
-                    title: 'Create a room',
+                    title: context.l10n.createARoom,
                     // A house: a new room of your own.
                     emoji: const Text('🏠',
                         key: Key('createRoomEmoji'),
@@ -237,11 +244,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                         const SizedBox(height: 10),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title:
-                              const Text('Full game — hanchan/半庄 (8+ hands)'),
+                          title: Text(context.l10n.fullGameSwitch),
                           subtitle: Text(_hanchan
-                              ? 'Off switches to East-only/东风战 (4+ hands)'
-                              : 'East-only/东风战 — 4+ hands'),
+                              ? context.l10n.fullGameSwitchOn
+                              : context.l10n.fullGameSwitchOff),
                           value: _hanchan,
                           onChanged: (v) => setState(() => _hanchan = v),
                         ),
@@ -274,7 +280,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                               foregroundColor: Colors.black,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: const Text('Create Room'),
+                            child: Text(context.l10n.createRoomButton),
                           ),
                         ),
                       ],
@@ -291,7 +297,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                   _characterPicker(),
                   const SizedBox(height: 20),
                   _card(
-                    title: 'Join a room',
+                    title: context.l10n.joinARoom,
                     // A door: into someone else's room.
                     emoji: const Text('🚪',
                         key: Key('joinRoomEmoji'),
@@ -304,8 +310,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                             controller: _joinCtl,
                             textCapitalization: TextCapitalization.characters,
                             maxLength: 8,
-                            decoration: const InputDecoration(
-                              labelText: 'Room code',
+                            decoration: InputDecoration(
+                              labelText: context.l10n.roomCode,
                               counterText: '',
                             ),
                             style: const TextStyle(
@@ -323,7 +329,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 14),
                           ),
-                          child: const Text('Join'),
+                          child: Text(context.l10n.join),
                         ),
                       ],
                     ),
@@ -344,7 +350,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   /// the table already picked the same one).
   Widget _characterPicker() {
     return _card(
-      title: 'Choose your character',
+      title: context.l10n.chooseYourCharacter,
       // Keep the roster in one row to leave room for the setup controls.
       child: CharacterRow(
         options: kSelectableCharacters,
@@ -386,7 +392,13 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             ),
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(pace.label, maxLines: 1),
+              child: Text(
+                  switch (pace) {
+                    TimerPace.fast => context.l10n.paceFast,
+                    TimerPace.standard => context.l10n.paceStandard,
+                    TimerPace.relaxed => context.l10n.paceRelaxed,
+                  },
+                  maxLines: 1),
             ),
           ),
         ),
@@ -395,13 +407,13 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
 
     return Column(
       children: [
-        const Text('Pace',
-            style: TextStyle(color: Colors.white60, fontSize: 12)),
+        Text(context.l10n.pace,
+            style: const TextStyle(color: Colors.white60, fontSize: 12)),
         const SizedBox(height: 6),
         Row(children: [for (final p in TimerPace.values) option(p)]),
         const SizedBox(height: 6),
         Text(
-          '${_pace.turnSeconds}s per turn · ${_pace.callSeconds}s to call',
+          context.l10n.paceCaption(_pace.turnSeconds, _pace.callSeconds),
           key: const Key('paceCaption'),
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
@@ -454,7 +466,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
   }
 
   Widget _minimumFaanPicker() => _minimumPicker(
-        label: 'Minimum faan to win',
+        label: context.l10n.minimumFaanToWin,
         keyPrefix: 'onlineMinimumFaan',
         choices: HongKongRules.minimumFaanChoices,
         current: _minimumFaan,
@@ -462,7 +474,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       );
 
   Widget _minimumPointsPicker() => _minimumPicker(
-        label: 'Minimum tai to win',
+        label: context.l10n.minimumTaiToWin,
         keyPrefix: 'onlineMinimumPoints',
         choices: TaiwaneseRules.minimumPointsChoices,
         current: _minimumPoints,
@@ -488,7 +500,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 10),
             ),
-            child: Text(value.flagLabel),
+            child: Text(context.l10n.rulesetFlagLabel(value)),
           ),
         ),
       );
@@ -508,7 +520,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _card(
-          title: 'Room code — share this with the other players',
+          title: context.l10n.roomCodeShare,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -523,12 +535,12 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               ),
               const SizedBox(width: 12),
               IconButton(
-                tooltip: 'Copy code',
+                tooltip: context.l10n.copyCode,
                 icon: const Icon(Icons.copy, color: Colors.white70),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: game.roomCode));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Room code copied')),
+                    SnackBar(content: Text(context.l10n.roomCodeCopied)),
                   );
                 },
               ),
@@ -537,11 +549,15 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         ),
         const SizedBox(height: 16),
         _card(
-          title: '${game.ruleset.flagLabel} · '
-              '${game.ruleset.isHongKong ? game.minimumFaanLabel : ''}'
-              '${game.ruleset.isTaiwanese ? game.minimumPointsLabel : ''}'
-              '${game.hanchan ? "full game" : "East-only"} · '
-              '${game.turnSeconds}s turn · ${game.callSeconds}s call',
+          title: [
+            context.l10n.rulesetFlagLabel(game.ruleset),
+            if (game.ruleset.isHongKong)
+              context.l10n.roomFaanMin(game.minimumFaan),
+            if (game.ruleset.isTaiwanese)
+              context.l10n.roomTaiMin(game.minimumPoints),
+            game.hanchan ? context.l10n.roomFullGame : context.l10n.roomEastOnly,
+            context.l10n.roomClocks(game.turnSeconds, game.callSeconds),
+          ].join(' · '),
           child: Column(
             children: [
               for (final seat in game.lobbySeats) _seatRow(seat),
@@ -560,26 +576,26 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              child: const Text('Start Game — bots fill any empty seats'),
+              child: Text(context.l10n.startGameBots),
             ),
           )
         else
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('Waiting for the host to start…',
-                style: TextStyle(color: Colors.white54)),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(context.l10n.waitingForHost,
+                style: const TextStyle(color: Colors.white54)),
           ),
         const SizedBox(height: 10),
         TextButton(
           onPressed: () => game.leaveRoom(),
-          child: const Text('Leave Room'),
+          child: Text(context.l10n.leaveRoomButton),
         ),
       ],
     );
   }
 
   Widget _seatRow(LobbySeat seat) {
-    final label = seat.name ?? 'Empty seat';
+    final label = seat.name ?? context.l10n.emptySeat;
     final character = seat.character;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -604,10 +620,11 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             ),
           ),
           if (seat.isHost)
-            const Padding(
-              padding: EdgeInsets.only(right: 6),
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
               child: Chip(
-                label: Text('HOST', style: TextStyle(fontSize: 10)),
+                label: Text(context.l10n.host,
+                    style: const TextStyle(fontSize: 10)),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -661,8 +678,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           Expanded(
             child: Text(
               code == null
-                  ? 'Rejoining your game…'
-                  : 'Your game in room $code is still going.',
+                  ? context.l10n.rejoiningGame
+                  : context.l10n.gameStillGoing(code),
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -685,8 +702,9 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                 foregroundColor: Colors.black,
                 minimumSize: const Size(120, 48),
               ),
-              child: const Text('Rejoin',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(context.l10n.rejoin,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -715,9 +733,14 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             Row(
               children: [
                 if (emoji != null) ...[emoji, const SizedBox(width: 8)],
-                Text(title,
-                    style: const TextStyle(
-                        color: Color(0xffe9d58f), fontWeight: FontWeight.bold)),
+                // Flexible, so a long title (in any language) wraps rather
+                // than running off the card.
+                Flexible(
+                  child: Text(title,
+                      style: const TextStyle(
+                          color: Color(0xffe9d58f),
+                          fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
             const SizedBox(height: 10),

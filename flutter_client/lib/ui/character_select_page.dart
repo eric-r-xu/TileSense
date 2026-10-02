@@ -10,30 +10,38 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 
+import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
 import '../game/sfx.dart'
     show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
 import 'bar_back_button.dart';
 import 'character_picker.dart';
+import 'language_button.dart';
 
 /// The wind [seat] starts on when [startingDealer] deals first (and so is
 /// East); the other seats follow counter-clockwise, as in `Round`.
 Wind seatStartingWind(int seat, int startingDealer) =>
     Wind.values[(seat - startingDealer + 4) % 4];
 
-/// Where each seat sits relative to the human, by seat index. With the human
-/// as East, "Across" is West.
-const List<String> kSeatPositionNames = ['You', 'Right', 'Across', 'Left'];
+/// Where [seat] sits relative to the human (You, Right, Across, Left by seat
+/// index), in the current language. With the human as East, "Across" is West.
+String seatPositionName(AppLocalizations l10n, int seat) => switch (seat) {
+      0 => l10n.seatYou,
+      1 => l10n.seatRight,
+      2 => l10n.seatAcross,
+      _ => l10n.seatLeft,
+    };
 
 /// A fresh draw of four distinct characters, in random order — which changes
 /// who each seat plays as, and so where every character sits, in one go.
 List<Character> randomSeatCharacters([Random? random]) {
   final pool = List.of(kSelectableCharacters)..shuffle(random);
-  return pool.take(kSeatPositionNames.length).toList();
+  return pool.take(4).toList();
 }
 
 /// A random seat to deal first — i.e. a random wind for the human to start on.
 int randomStartingDealer([Random? random]) =>
-    (random ?? Random()).nextInt(kSeatPositionNames.length);
+    (random ?? Random()).nextInt(4);
 
 /// One big card per seat — wind, position, portrait, name and the picker — a
 /// chooser for the wind you start on, a Randomize button, and an advance
@@ -107,7 +115,7 @@ class CharacterSelectPage extends StatelessWidget {
 
   static const _gold = Color(0xffcaa24e);
 
-  Widget _seatCard(int seat) {
+  Widget _seatCard(BuildContext context, int seat) {
     final character = seatCharacters[seat];
     final wind = seatStartingWind(seat, startingDealer);
     return Container(
@@ -139,7 +147,7 @@ class CharacterSelectPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                wind.label,
+                context.l10n.windName(wind),
                 key: Key('seatWind_$seat'),
                 style: const TextStyle(
                   color: Color(0xffe9d58f),
@@ -151,8 +159,8 @@ class CharacterSelectPage extends StatelessWidget {
           ),
           Text(
             seat == 0
-                ? kSeatPositionNames[seat].toUpperCase()
-                : kSeatPositionNames[seat],
+                ? seatPositionName(context.l10n, seat).toUpperCase()
+                : seatPositionName(context.l10n, seat),
             key: Key('seatPosition_$seat'),
             style: TextStyle(
               color: seat == 0 ? Colors.white : Colors.white54,
@@ -202,13 +210,13 @@ class CharacterSelectPage extends StatelessWidget {
 
   /// "You start as: 東 East · 南 South · …" — picking one makes the seat that
   /// many places round from you the dealer, so you are not stuck on East.
-  Widget _windChoice() {
+  Widget _windChoice(BuildContext context) {
     final mine = seatStartingWind(0, startingDealer);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('You start as',
-            style: TextStyle(color: Colors.white54, fontSize: 14)),
+        Text(context.l10n.youStartAs,
+            style: const TextStyle(color: Colors.white54, fontSize: 14)),
         const SizedBox(width: 10),
         for (final w in Wind.values)
           Padding(
@@ -227,7 +235,7 @@ class CharacterSelectPage extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               ),
-              child: Text('${w.kanji} ${w.label}',
+              child: Text('${w.kanji} ${context.l10n.windName(w)}',
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -238,12 +246,13 @@ class CharacterSelectPage extends StatelessWidget {
 
   /// "Style: 🇯🇵 Riichi · 🇭🇰 Hong Kong · 🇹🇼 Taiwanese", starting on whatever
   /// the welcome screen had selected.
-  Widget _rulesetChoice(Ruleset current, ValueChanged<Ruleset> onChange) {
+  Widget _rulesetChoice(BuildContext context, Ruleset current,
+      ValueChanged<Ruleset> onChange) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Style',
-            style: TextStyle(color: Colors.white54, fontSize: 14)),
+        Text(context.l10n.style,
+            style: const TextStyle(color: Colors.white54, fontSize: 14)),
         const SizedBox(width: 10),
         for (final r in Ruleset.values)
           Padding(
@@ -261,7 +270,7 @@ class CharacterSelectPage extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               ),
-              child: Text(r.flagLabel,
+              child: Text(context.l10n.rulesetFlagLabel(r),
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -271,7 +280,7 @@ class CharacterSelectPage extends StatelessWidget {
   }
 
   /// "Game length: 半庄 Hanchan · 东风战 East only" — hanchan is the default.
-  Widget _lengthChoice() {
+  Widget _lengthChoice(BuildContext context) {
     Widget option(Key key, String label, bool value) {
       final on = hanchan == value;
       return Padding(
@@ -296,11 +305,12 @@ class CharacterSelectPage extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Game length',
-            style: TextStyle(color: Colors.white54, fontSize: 14)),
+        Text(context.l10n.gameLength,
+            style: const TextStyle(color: Colors.white54, fontSize: 14)),
         const SizedBox(width: 10),
-        option(const Key('lengthHanchan'), '半庄 Hanchan', true),
-        option(const Key('lengthEastOnly'), '东风战 East only', false),
+        option(const Key('lengthHanchan'), context.l10n.lengthHanchan, true),
+        option(
+            const Key('lengthEastOnly'), context.l10n.lengthEastOnly, false),
       ],
     );
   }
@@ -353,12 +363,11 @@ class CharacterSelectPage extends StatelessWidget {
 
   /// The minimum picker for [ruleset], or null when it has none (riichi) or
   /// no callback was given.
-  Widget? _minimumPicker() {
+  Widget? _minimumPicker(BuildContext context) {
     if (ruleset == Ruleset.hongKong && onMinimumFaan != null) {
       return _minimumChoice(
-        label: 'Min faan',
-        tooltip: 'The fewest faan a hand needs to win.\n'
-            '0 lets any complete hand, even a chicken hand, win.',
+        label: context.l10n.minFaan,
+        tooltip: context.l10n.minFaanTooltip,
         keyPrefix: 'minimumFaan',
         choices: HongKongRules.minimumFaanChoices,
         current: minimumFaan,
@@ -367,10 +376,8 @@ class CharacterSelectPage extends StatelessWidget {
     }
     if (ruleset == Ruleset.taiwanese && onMinimumPoints != null) {
       return _minimumChoice(
-        label: 'Min tai',
-        tooltip: 'The fewest tai a hand needs to win.\n'
-            '5 is the San Diego club sheet\'s rule; 1 and 3 are common '
-            'house minimums.',
+        label: context.l10n.minTai,
+        tooltip: context.l10n.minTaiTooltip,
         keyPrefix: 'minimumPoints',
         choices: TaiwaneseRules.minimumPointsChoices,
         current: minimumPoints,
@@ -401,9 +408,9 @@ class CharacterSelectPage extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'CHOOSE YOUR CHARACTERS',
-                          style: TextStyle(
+                        Text(
+                          context.l10n.chooseCharacters,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
@@ -413,9 +420,10 @@ class CharacterSelectPage extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           startingDealer == 0
-                              ? 'East deals first — that is you.'
-                              : 'East deals first — that is '
-                                  '${kSeatPositionNames[startingDealer].toLowerCase()}.',
+                              ? context.l10n.dealerNoteYou
+                              : context.l10n.dealerNoteOther(
+                                  seatPositionName(context.l10n, startingDealer)
+                                      .toLowerCase()),
                           key: const Key('dealerNote'),
                           style: const TextStyle(
                               color: Colors.white54, fontSize: 14),
@@ -430,8 +438,8 @@ class CharacterSelectPage extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              _windChoice(),
-                              if (_minimumPicker() case final picker?) ...[
+                              _windChoice(context),
+                              if (_minimumPicker(context) case final picker?) ...[
                                 const SizedBox(width: 28),
                                 picker,
                               ],
@@ -447,14 +455,14 @@ class CharacterSelectPage extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                _rulesetChoice(r, set),
+                                _rulesetChoice(context, r, set),
                                 const SizedBox(width: 28),
-                                _lengthChoice(),
+                                _lengthChoice(context),
                               ],
                             ),
                           )
                         else
-                          _lengthChoice(),
+                          _lengthChoice(context),
                         const SizedBox(height: 14),
                         Wrap(
                           alignment: WrapAlignment.center,
@@ -464,7 +472,7 @@ class CharacterSelectPage extends StatelessWidget {
                             for (var seat = 0;
                                 seat < seatCharacters.length;
                                 seat++)
-                              _seatCard(seat),
+                              _seatCard(context, seat),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -475,7 +483,7 @@ class CharacterSelectPage extends StatelessWidget {
                               key: const Key('randomizeCharacters'),
                               onPressed: onRandomize,
                               icon: const Icon(Icons.shuffle, size: 18),
-                              label: const Text('Randomize characters & seats'),
+                              label: Text(context.l10n.randomizeCharacters),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: const Color(0xffe9d58f),
                                 side: const BorderSide(color: _gold),
@@ -504,7 +512,7 @@ class CharacterSelectPage extends StatelessWidget {
                                           color: Colors.white54),
                                     ),
                                     Text(
-                                      'Sound',
+                                      context.l10n.sound,
                                       style: TextStyle(
                                         color: soundOn
                                             ? Colors.white
@@ -550,12 +558,14 @@ class CharacterSelectPage extends StatelessWidget {
             top: 8,
             child: BarBackButton(
               buttonKey: const Key('charactersBack'),
-              label: 'Back',
-              tooltip: 'Back to the main menu',
+              label: context.l10n.back,
+              tooltip: context.l10n.backToMainMenu,
               onPressed: onBack,
               foregroundColor: const Color(0xff80cbc4),
             ),
           ),
+          // This screen's language picker, opposite Back.
+          const Positioned(right: 8, top: 8, child: LanguageButton()),
         ],
       ),
     );

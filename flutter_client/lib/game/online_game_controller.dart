@@ -23,6 +23,7 @@ import '../net/mp_client.dart';
 import 'call_callout.dart';
 import 'game_controller.dart'
     show kAutoWinDelay, kHumanSeat, riichiAutoDiscardDelay;
+import '../l10n/l10n.dart' show currentL10n;
 import 'guide_host.dart';
 import 'mortal_advisor.dart' show MortalAdvice;
 import 'sfx.dart';
@@ -35,16 +36,16 @@ import 'sfx.dart';
 /// server's `TableLoop._maskCallWindow`). The server validates each number on
 /// its own (see `Room.discardChoices` / `Room.callChoices`), so these pairs
 /// must stay within those lists.
+/// Its name on screen is `paceFast` / `paceStandard` / `paceRelaxed`.
 enum TimerPace {
-  fast(15, 5, 'Fast'),
-  standard(30, 10, 'Standard'),
-  relaxed(60, 20, 'Relaxed');
+  fast(15, 5),
+  standard(30, 10),
+  relaxed(60, 20);
 
-  const TimerPace(this.discardSeconds, this.callSeconds, this.label);
+  const TimerPace(this.discardSeconds, this.callSeconds);
 
   final int discardSeconds;
   final int callSeconds;
-  final String label;
 
   /// The clock every turn shows.
   int get turnSeconds => discardSeconds + callSeconds;
@@ -160,15 +161,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// when the room is created and echoed back by the server.
   int minimumFaan = HongKongRules.defaultMinimumFaan;
 
-  /// "3-faan min · ", for the room card's settings line.
-  String get minimumFaanLabel => '$minimumFaan-faan min · ';
-
   /// Taiwanese only: the fewest points (tai) a hand needs to win, chosen by
   /// the host when the room is created and echoed back by the server.
   int minimumPoints = TaiwaneseRules.defaultMinimumPoints;
-
-  /// "3-tai min · ", for the room card's settings line.
-  String get minimumPointsLabel => '$minimumPoints-tai min · ';
 
   /// Seconds each player gets per turn, and to answer a call offer, chosen
   /// by the host as a [TimerPace] when the room is created and echoed back by
@@ -182,6 +177,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   int? mySeat;
   List<LobbySeat> lobbySeats = _emptyLobby();
   String? lastError;
+
+  /// [lastError]'s stable code, for showing it in the player's language (see
+  /// `AppLocalizations.errorText`); null from a server that sends none.
+  String? lastErrorCode;
   int? lastBotTakeoverSeat;
   bool connectionLost = false;
 
@@ -598,6 +597,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         // banner, and the main menu's Rejoin still tries the game directly.
         if (msg['message'] == 'unknown message type: room_status') return;
         lastError = msg['message'] as String?;
+        lastErrorCode = msg['code'] as String?;
         // The server turned down the discard already shown as made: put the
         // table back the way the server last described it.
         final last = _lastSnapshot;
@@ -609,6 +609,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
           _pendingRejoin = null;
           _identity.saveActiveRoom(null);
           lastError = 'That game has ended';
+          lastErrorCode = 'game_ended';
         }
         notifyListeners();
       case 'room_status':
@@ -1165,10 +1166,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     final entry = _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat);
     final name = entry?.name;
     final serverSeat = (localSeat + mySeat) % 4;
+    final l10n = currentL10n;
     final label = name == null || name.isEmpty
-        ? (entry?.isBot ?? false ? 'Bot' : 'Seat ${serverSeat + 1}')
-        : (entry!.isBot ? '$name (bot)' : name);
-    return localSeat == 0 ? '$label (you)' : label;
+        ? (entry?.isBot ?? false ? l10n.seatBot : l10n.seatNumber(serverSeat + 1))
+        : (entry!.isBot ? l10n.seatLabelBot(name) : name);
+    return localSeat == 0 ? l10n.seatLabelYou(label) : label;
   }
 
   @visibleForTesting

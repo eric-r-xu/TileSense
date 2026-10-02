@@ -1,0 +1,9 @@
+# `flutter gen-l10n` (also run by `flutter pub get`, since pubspec sets
+# `generate: true`): turns lib/l10n/app_*.arb into AppLocalizations. English
+# is the template every other language must match key for key.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+untranslated-messages-file: build/untranslated_messages.json

@@ -86,15 +86,12 @@ Handler buildMultiplayerHandler(
     void rejoin(Room r, String requestedGuestId) {
       final s = r.seatIndexForGuest(requestedGuestId);
       if (s == null) {
-        send({'type': 'error', 'message': 'you are not seated in this room'});
+        send(errorFrame('not_seated', 'you are not seated in this room'));
         return;
       }
       if (r.loop?.isBotControlled(s) ?? false) {
         if (!r.seats[s]!.reclaimableBy(requestedGuestId)) {
-          send({
-            'type': 'error',
-            'message': 'this seat is bot-controlled'
-          });
+          send(errorFrame('seat_bot_controlled', 'this seat is bot-controlled'));
           return;
         }
         r.loop!.reclaimSeat(s);
@@ -113,14 +110,11 @@ Handler buildMultiplayerHandler(
         case 'create_room':
           final requestedGuestId = msg['guestId'] as String?;
           if (requestedGuestId == null || requestedGuestId.isEmpty) {
-            send({'type': 'error', 'message': 'missing guestId'});
+            send(errorFrame('missing_guest_id', 'missing guestId'));
             return;
           }
           if (manager.roomCount >= _maxRooms) {
-            send({
-              'type': 'error',
-              'message': 'server is full, try again shortly'
-            });
+            send(errorFrame('server_full', 'server is full, try again shortly'));
             return;
           }
           // One connection holds at most one seat, so a socket can't pile up
@@ -157,12 +151,12 @@ Handler buildMultiplayerHandler(
           final code = msg['roomCode'] as String?;
           final requestedGuestId = msg['guestId'] as String?;
           if (code == null || requestedGuestId == null) {
-            send({'type': 'error', 'message': 'missing roomCode or guestId'});
+            send(errorFrame('missing_room_or_guest', 'missing roomCode or guestId'));
             return;
           }
           final r = manager.find(code);
           if (r == null) {
-            send({'type': 'error', 'message': 'room not found'});
+            send(errorFrame('room_not_found', 'room not found'));
             return;
           }
           if (r.phase == RoomPhase.playing &&
@@ -173,14 +167,14 @@ Handler buildMultiplayerHandler(
             return;
           }
           if (r.phase != RoomPhase.lobby) {
-            send({'type': 'error', 'message': 'that room has already started'});
+            send(errorFrame('room_started', 'that room has already started'));
             return;
           }
           if (room != null && room != r) detach();
           final existing = r.seatIndexForGuest(requestedGuestId);
           final openSeat = existing ?? r.firstOpenSeat();
           if (openSeat == null) {
-            send({'type': 'error', 'message': 'room is full'});
+            send(errorFrame('room_full', 'room is full'));
             return;
           }
           r.seats[openSeat] ??= Seat(
@@ -214,10 +208,7 @@ Handler buildMultiplayerHandler(
               s == null ||
               s != r.hostSeat ||
               r.phase != RoomPhase.lobby) {
-            send({
-              'type': 'error',
-              'message': 'only the host can start the game'
-            });
+            send(errorFrame('not_host', 'only the host can start the game'));
             return;
           }
           r.loop = tableLoopFactory(r)..start();
@@ -226,12 +217,12 @@ Handler buildMultiplayerHandler(
           final code = msg['roomCode'] as String?;
           final requestedGuestId = msg['guestId'] as String?;
           if (code == null || requestedGuestId == null) {
-            send({'type': 'error', 'message': 'missing roomCode or guestId'});
+            send(errorFrame('missing_room_or_guest', 'missing roomCode or guestId'));
             return;
           }
           final r = manager.find(code);
           if (r == null || r.phase == RoomPhase.ended) {
-            send({'type': 'error', 'message': 'room no longer exists'});
+            send(errorFrame('room_gone', 'room no longer exists'));
             return;
           }
           rejoin(r, requestedGuestId);
@@ -242,7 +233,7 @@ Handler buildMultiplayerHandler(
           final code = msg['roomCode'] as String?;
           final requestedGuestId = msg['guestId'] as String?;
           if (code == null || requestedGuestId == null) {
-            send({'type': 'error', 'message': 'missing roomCode or guestId'});
+            send(errorFrame('missing_room_or_guest', 'missing roomCode or guestId'));
             return;
           }
           final r = manager.find(code);
@@ -264,7 +255,7 @@ Handler buildMultiplayerHandler(
           r.loop?.handleMessage(s, msg);
 
         default:
-          send({'type': 'error', 'message': 'unknown message type: $type'});
+          send(errorFrame('unknown_type', 'unknown message type: $type'));
       }
     }
 
@@ -278,13 +269,13 @@ Handler buildMultiplayerHandler(
         try {
           msg = jsonDecode(raw) as Map<String, dynamic>;
         } catch (_) {
-          send({'type': 'error', 'message': 'malformed message'});
+          send(errorFrame('malformed', 'malformed message'));
           return;
         }
         try {
           handle(msg);
         } catch (e) {
-          send({'type': 'error', 'message': 'bad request'});
+          send(errorFrame('bad_request', 'bad request'));
         }
       },
       onDone: detach,
