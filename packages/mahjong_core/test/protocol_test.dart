@@ -4,6 +4,38 @@ import 'package:mahjong_core/mahjong_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('riichi declaration position survives snapshots for every viewer', () {
+    final round = Round(
+        seed: 7,
+        dealer: 0,
+        roundWind: Wind.east,
+        startingPoints: List.filled(4, 25000));
+    round.discard(0, round.legalDiscards(0).first, declareRiichi: true);
+    expect(round.seats[0].riichiPondIndex, 0);
+    for (var viewer = 0; viewer < 4; viewer++) {
+      final wire = jsonDecode(jsonEncode(
+              roundSnapshotToJson(round, reveal: (s) => s == viewer)))
+          as Map<String, dynamic>;
+      final mirror = buildRoundFromSnapshot(wire, mySeat: viewer);
+      expect(mirror.seats[(4 - viewer) % 4].riichiPondIndex, 0);
+      expect(mirror.seats[(5 - viewer) % 4].riichiPondIndex, -1);
+    }
+  });
+
+  test('older snapshots without a riichi position still load', () {
+    final round = Round(
+        seed: 7,
+        dealer: 0,
+        roundWind: Wind.east,
+        startingPoints: List.filled(4, 25000));
+    final wire = roundSnapshotToJson(round, reveal: (s) => s == 0);
+    for (final seat in wire['seats'] as List) {
+      (seat as Map).remove('riichiPondIndex');
+    }
+    expect(
+        buildRoundFromSnapshot(wire, mySeat: 0).seats[0].riichiPondIndex, -1);
+  });
+
   for (final ruleset in [Ruleset.riichi, Ruleset.hongKong, Ruleset.taiwanese]) {
     test(
         '${ruleset.name}: round-trips a live snapshot through JSON for every viewer',

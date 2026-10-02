@@ -70,6 +70,22 @@ void main() {
     }
   }
 
+  testWidgets('riichi discard rotates immediately and survives the server echo',
+      (tester) async {
+    await withGame(tester, (game) async {
+      final t = serverTable();
+      game.debugReceive(t.state(0));
+      final tile = game.round.legalDiscards(0).first;
+      game.humanDiscard(tile, declareRiichi: true);
+      expect(game.round.seats[0].riichiPondIndex, 0);
+      t.round.discard(0, t.round.legalDiscards(0).first, declareRiichi: true);
+      game.debugReceive(t.state(1, 0));
+      await tester.pump(kReplayGap);
+      expect(game.round.seats[0].riichiPondIndex, 0);
+      expect(game.round.seats[0].riichi, isTrue);
+    });
+  });
+
   testWidgets(
       'your discard leaves your hand at once, and the echo is quiet',
       (tester) => withGame(tester, (game) async {
