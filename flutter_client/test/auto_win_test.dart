@@ -80,6 +80,46 @@ void main() {
     }
   });
 
+  testWidgets('waits kAutoWinDelay before declaring the win', (tester) async {
+    Sfx.i.enabled = false;
+    for (final ron in [false, true]) {
+      CallCallout.i.clear();
+      final game =
+          ron ? awaitingRon(autoWin: true) : awaitingTsumo(autoWin: true);
+      try {
+        // Slices: the loop reaches the win in steps, and the pause starts
+        // only once it has.
+        for (var i = 0; i < 12; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(game.round.finished, isFalse, reason: 'ron: $ron at ${i}00ms');
+        }
+        await pumpUntil(tester, () => game.round.finished);
+        expect(game.round.result!.winners, contains(kHumanSeat));
+      } finally {
+        game.dispose();
+      }
+    }
+    Sfx.i.enabled = true;
+  });
+
+  testWidgets('switching Auto-win off during the pause leaves the win to you',
+      (tester) async {
+    Sfx.i.enabled = false;
+    final game = awaitingTsumo(autoWin: true);
+    try {
+      await tester.pump(const Duration(milliseconds: 500));
+      game.setAutoWin(false);
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(game.round.finished, isFalse);
+      expect(game.round.canTsumo(kHumanSeat), isTrue);
+    } finally {
+      game.dispose();
+      Sfx.i.enabled = true;
+    }
+  });
+
   testWidgets('off, the ron waits for the button', (tester) async {
     Sfx.i.enabled = false;
     final game = awaitingRon(autoWin: false);

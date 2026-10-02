@@ -15,9 +15,9 @@ import 'room.dart';
 import 'telemetry.dart';
 
 class TableLoop {
-  /// The turn and call clocks default to the room's chosen
-  /// [Room.timerSeconds] (30 or 60); the other durations to their production
-  /// values; tests
+  /// The turn clock defaults to the room's [Room.discardSeconds] plus its
+  /// [Room.callSeconds] (see [_turnTimeout]) and the call clock to its
+  /// [Room.callSeconds]; the other durations to their production values; tests
   /// override them to make timeout/disconnect/bot-takeover paths exercisable
   /// in milliseconds instead of tens of real seconds.
   ///
@@ -42,9 +42,8 @@ class TableLoop {
     Duration? afterCallPace,
     MpTelemetry? telemetry,
   })  : _turnTimeout = turnTimeout ??
-            Duration(seconds: room.timerSeconds + room.callBufferSeconds),
-        _callTimeout = callTimeout ??
-            Duration(seconds: room.timerSeconds + room.callBufferSeconds),
+            Duration(seconds: room.discardSeconds + room.callSeconds),
+        _callTimeout = callTimeout ?? Duration(seconds: room.callSeconds),
         _disconnectGrace = disconnectGrace,
         _abandonGrace = abandonGrace,
         _continueTimeout = continueTimeout,
@@ -68,15 +67,18 @@ class TableLoop {
   late String _roundId;
 
   /// How long a human seat gets to answer its own turn (discard / kan /
-  /// riichi / tsumo) before a bot plays that one decision for it. Already
-  /// includes the room's call buffer (see [Room.callBufferSeconds]) on top
-  /// of its base [Room.timerSeconds].
+  /// riichi / tsumo) before a bot plays that one decision for it, which also
+  /// counts a strike towards a bot takeover (see [_strike]). The room's
+  /// [Room.discardSeconds] plus its [Room.callSeconds], on every turn: a turn
+  /// that follows a call window is shown running from the discard, through
+  /// the window (see [_maskCallWindow]), so it always has the call clock's
+  /// worth folded in — and every turn shows the same clock, so its length
+  /// never hints at a pending call.
   final Duration _turnTimeout;
 
   /// How long a human seat gets to answer a call offer (chi/pon/kan/ron)
-  /// before a bot decides that one call for it. Already includes the room's
-  /// call buffer (see [Room.callBufferSeconds]) on top of its base
-  /// [Room.timerSeconds].
+  /// before it is passed for them — no strike, since letting an offer go is
+  /// a fine way to decline it. The room's [Room.callSeconds].
   final Duration _callTimeout;
 
   /// How long a disconnected seat is held open before a bot takes it over.
@@ -97,7 +99,9 @@ class TableLoop {
   /// with no delay here, a stretch of consecutive bot turns (nobody left to
   /// wait on) resolves within a single event-loop tick, and every discard in
   /// it lands in the client's next animation frame at once instead of one at
-  /// a time. Zero in tests that just want the end state fast.
+  /// a time. Zero in tests that just want the end state fast. Each turn
+  /// varies it upwards (see [_botPace]), so a bot seat's pause while someone
+  /// answers a call doesn't stand out against its usual one.
   final Duration _botTurnPace;
 
   /// How long after the score panel appears before anyone's Continue counts,
@@ -140,11 +144,23 @@ class TableLoop {
   bool _lastDiscardTsumogiri = false;
 
   /// When the seat currently on the clock (round.turn, mid `discardingPhase`)
-  /// must act by — or, during the call phase, when the players offered a call
-  /// must answer by — or null when no timer is running (between actions and at
-  /// round end). Read by [_sendStateTo]
+  /// must act by, or null when no turn timer is running (between actions, in
+  /// a call window, and at round end). Read by [_sendStateTo]
   /// so every client can render the same countdown for whoever's turn it is.
   DateTime? _actionDeadline;
+
+  /// While humans answer a call offer: when they must answer by. Only the
+  /// seats with an offer are sent it.
+  DateTime? _callDeadline;
+
+  /// While humans answer a call offer: the deadline every other seat is shown
+  /// for whoever plays next if nobody calls (see [_maskCallWindow]) — and
+  /// which that turn then keeps, rather than starting a fresh clock.
+  DateTime? _nextTurnDeadline;
+
+  /// When [_nextTurnDeadline]'s turn visibly began, so a bot playing it
+  /// doesn't add its whole thinking pause on top of the call window.
+  DateTime? _nextTurnShownAt;
 
   final Map<int, Completer<Map<String, dynamic>?>> _pending = {};
   final Map<int, Timer> _disconnectTimers = {};
@@ -206,7 +222,7 @@ class TableLoop {
         roomCode: room.code,
         ruleset: ruleset.name,
         hanchan: room.hanchan,
-        timerSeconds: room.timerSeconds,
+        timerSeconds: room.discardSeconds,
         seatCharacters: [for (final s in room.seats) s?.character],
         seatIsBot: [for (final s in room.seats) s?.isBot ?? false],
         seatGuestIds: [
@@ -303,14 +319,23 @@ class TableLoop {
 
   Future<void> _discardingPhase() async {
     final seat = round.turn;
+    // A turn already shown running through a call window keeps the deadline
+    // and start it was shown with.
+    final carried = _nextTurnDeadline;
+    final shownAt = _nextTurnShownAt;
+    _nextTurnDeadline = null;
+    _nextTurnShownAt = null;
     if (isBotControlled(seat)) {
-      await _applyBotTurn(seat);
+      await _applyBotTurn(seat, shownAt: shownAt);
       return;
     }
+    final deadline = carried ?? DateTime.now().add(_turnTimeout);
     while (true) {
-      _actionDeadline = DateTime.now().add(_turnTimeout);
+      _actionDeadline = deadline;
       _broadcastState();
-      final action = await _awaitHumanAction(seat, _turnTimeout);
+      final left = deadline.difference(DateTime.now());
+      final action =
+          await _awaitHumanAction(seat, left.isNegative ? Duration.zero : left);
       if (_ended) return;
       _actionDeadline = null;
       if (action == null) {
@@ -334,11 +359,16 @@ class TableLoop {
   SimpleBot _botFor(int seat) =>
       _bots[seat] ?? SimpleBot(_rng.nextInt(1 << 31));
 
-  Future<void> _applyBotTurn(int seat) async {
+  /// [_botTurnPace] up to about 2.8x (0.9–2.5 s in production).
+  Duration _botPace() => _botTurnPace * (1 + 16 / 9 * _rng.nextDouble());
+
+  /// [shownAt]: when this turn visibly began, if that was earlier than now
+  /// (it ran through a call window); the pause only makes up the difference.
+  Future<void> _applyBotTurn(int seat, {DateTime? shownAt}) async {
     // Right after this seat's call, its bubble is still up on every client.
     final pace = _justCalled == seat && _afterCallPace > _botTurnPace
         ? _afterCallPace
-        : _botTurnPace;
+        : _botPace();
     _justCalled = null;
     final decision = _botFor(seat).decideTurn(round, seat);
     if (decision.tsumo) {
@@ -354,7 +384,9 @@ class TableLoop {
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
-    if (pace > Duration.zero) await Future.delayed(pace);
+    final wait =
+        shownAt == null ? pace : pace - DateTime.now().difference(shownAt);
+    if (wait > Duration.zero) await Future.delayed(wait);
     _broadcastState();
   }
 
@@ -457,13 +489,17 @@ class TableLoop {
     }
 
     if (humanSeats.isNotEmpty) {
-      // Clients render the same countdown for a pending call as for a turn.
-      _actionDeadline = DateTime.now().add(_callTimeout);
+      // The seats with an offer get the call clock; everyone else sees the
+      // next turn's clock start (see [_maskCallWindow]).
+      final now = DateTime.now();
+      _callDeadline = now.add(_callTimeout);
+      _nextTurnDeadline = now.add(_turnTimeout);
+      _nextTurnShownAt = now;
       _broadcastState();
       final answers = await Future.wait([
         for (final seat in humanSeats) _awaitHumanAction(seat, _callTimeout)
       ]);
-      _actionDeadline = null;
+      _callDeadline = null;
       if (_ended) return;
       for (var i = 0; i < humanSeats.length; i++) {
         final seat = humanSeats[i];
@@ -478,15 +514,9 @@ class TableLoop {
           if (c != CallType.none) choices[seat] = c;
           continue;
         }
-        if (action == null) {
-          // Timed out while still human: a bot decides this one call, same
-          // as a timed-out turn, rather than defaulting to a pass.
-          _strike(seat);
-          final c = _botFor(seat)
-              .decideCall(round, seat, round.pendingDiscard!, opt.types);
-          if (c != CallType.none) choices[seat] = c;
-          continue;
-        }
+        // Timed out while still human: the offer is passed, a ron included,
+        // and it is no strike — a turn timeout still is.
+        if (action == null) continue;
         _timeoutStrikes[seat] = 0;
         final kind = action['kind'] as String?;
         var called = false;
@@ -530,6 +560,17 @@ class TableLoop {
     }
 
     round.resolveCalls(choices, chiLow: chiLow);
+    // Only an unclaimed window leads into the turn that was shown starting;
+    // a call (or the hand ending) gives whoever plays next a clock of their
+    // own.
+    if (choices.isNotEmpty || round.finished) {
+      _nextTurnDeadline = null;
+      _nextTurnShownAt = null;
+    } else if (_nextTurnDeadline != null && !isBotControlled(round.turn)) {
+      // Unclaimed: the turn shown starting carries straight on, clock and
+      // all — no gap in it that a window, unlike a plain turn, would leave.
+      _actionDeadline = _nextTurnDeadline;
+    }
     // Whoever's call went through now has the turn; a bot holds its move
     // for the bubble (a human's turn is theirs to take).
     if (!ron &&
@@ -835,6 +876,18 @@ class TableLoop {
   void _sendStateTo(int seat) {
     final send = room.seats[seat]?.send;
     if (send == null) return;
+    var snapshot = roundSnapshotToJson(round, reveal: (s) => s == seat);
+    var deadline = _actionDeadline;
+    if (round.phase == RoundPhase.callOffer && !round.finished) {
+      if (round.callOptions.any((o) => o.seat == seat)) {
+        deadline = _callDeadline;
+      } else {
+        final next = _nextToPlay;
+        snapshot = _maskCallWindow(snapshot, viewer: seat, next: next);
+        // A bot's turn never shows a clock.
+        deadline = isBotControlled(next) ? null : _nextTurnDeadline;
+      }
+    }
     send({
       'type': 'state',
       'yourSeat': seat,
@@ -844,9 +897,50 @@ class TableLoop {
       'discardSerial': _discardSerial,
       'lastDiscardSeat': _lastDiscardSeat,
       'lastDiscardTsumogiri': _lastDiscardTsumogiri,
-      'turnDeadlineMs': _actionDeadline?.millisecondsSinceEpoch,
-      'round': roundSnapshotToJson(round, reveal: (s) => s == seat),
+      'turnDeadlineMs': deadline?.millisecondsSinceEpoch,
+      'round': snapshot,
     });
+  }
+
+  /// Who plays once the open call window closes unclaimed: the discarder's
+  /// next seat — or, for a kan nobody robbed, the kan's own seat.
+  int get _nextToPlay => round.chankanPending
+      ? round.turn
+      : (round.pendingDiscardSeat + 1) % 4;
+
+  /// What a seat with no offer of its own is shown while others answer one:
+  /// the next player's turn already under way, exactly as it looks when
+  /// nobody can call (drawn tile, wall count and all) — so the wait reads as
+  /// that player thinking, never as somebody, let alone who, weighing a
+  /// call. The next player is shown their own turn waiting on its draw, since
+  /// their real hand can't show a tile they don't have yet.
+  static Map<String, dynamic> _maskCallWindow(Map<String, dynamic> snapshot,
+      {required int viewer, required int next}) {
+    final masked = Map<String, dynamic>.from(snapshot)
+      ..['turn'] = next
+      ..['pendingDiscard'] = null
+      ..['pendingDiscardSeat'] = null
+      ..['callOptions'] = const <Object>[];
+    if (viewer == next) {
+      masked['phase'] = RoundPhase.drawing.name;
+      return masked;
+    }
+    masked['phase'] = RoundPhase.discarding.name;
+    final wall = snapshot['wallRemaining'] as int;
+    if (wall > 0) {
+      masked['wallRemaining'] = wall - 1;
+      masked['seats'] = [
+        for (final s in (snapshot['seats'] as List).cast<Map<String, dynamic>>())
+          s['seat'] == next
+              ? {
+                  ...s,
+                  'handCount': (s['handCount'] as int) + 1,
+                  'hasDrawn': true,
+                }
+              : s,
+      ];
+    }
+    return masked;
   }
 
   void _broadcastRoundResult({required bool gameOver}) {

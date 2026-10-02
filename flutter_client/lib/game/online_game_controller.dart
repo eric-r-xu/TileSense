@@ -21,10 +21,34 @@ import '../logic/efficiency_engine.dart';
 import '../net/guest_identity.dart';
 import '../net/mp_client.dart';
 import 'call_callout.dart';
-import 'game_controller.dart' show kHumanSeat, riichiAutoDiscardDelay;
+import 'game_controller.dart'
+    show kAutoWinDelay, kHumanSeat, riichiAutoDiscardDelay;
 import 'guide_host.dart';
 import 'mortal_advisor.dart' show MortalAdvice;
 import 'sfx.dart';
+
+/// How long each player gets per turn and per call offer, picked by the host
+/// as one setting when the room is created. A call is a quick yes/no the whole
+/// table waits on, so its clock is about a third of a discard's. Every turn's
+/// clock is [turnSeconds] — the discard time with the call time folded in —
+/// since a call window is shown as the next turn already running (see the
+/// server's `TableLoop._maskCallWindow`). The server validates each number on
+/// its own (see `Room.discardChoices` / `Room.callChoices`), so these pairs
+/// must stay within those lists.
+enum TimerPace {
+  fast(15, 5, 'Fast'),
+  standard(30, 10, 'Standard'),
+  relaxed(60, 20, 'Relaxed');
+
+  const TimerPace(this.discardSeconds, this.callSeconds, this.label);
+
+  final int discardSeconds;
+  final int callSeconds;
+  final String label;
+
+  /// The clock every turn shows.
+  int get turnSeconds => discardSeconds + callSeconds;
+}
 
 /// The room's own lifecycle, as the server reports it — separate from
 /// [GamePhase], which only exists once a game is actually being played.
@@ -98,6 +122,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   final MpClient _client = MpClient();
+
+  /// Sees every message this controller sends, before it goes out.
+  @visibleForTesting
+  void Function(Map<String, dynamic> message)? debugOnSend;
+
+  void _send(Map<String, dynamic> message) {
+    debugOnSend?.call(message);
+    _client.send(message);
+  }
   final GuestIdentity _identity;
   StreamSubscription<Map<String, dynamic>>? _sub;
   final _efficiency = EfficiencyEngine();
@@ -137,16 +170,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// "3-tai min · ", for the room card's settings line.
   String get minimumPointsLabel => '$minimumPoints-tai min · ';
 
-  /// Seconds each player gets per discard and per call offer, chosen by the
-  /// host when the room is created (30 or 60) and echoed back by the server.
-  static const List<int> timerChoices = [30, 60];
-  int timerSeconds = 30;
+  /// Seconds each player gets per turn, and to answer a call offer, chosen
+  /// by the host as a [TimerPace] when the room is created and echoed back by
+  /// the server.
+  int discardSeconds = TimerPace.standard.discardSeconds;
+  int callSeconds = TimerPace.standard.callSeconds;
 
-  /// Extra seconds added on top of [timerSeconds] for both the turn and
-  /// call-offer clocks, earmarked for making a call, chosen by the host when
-  /// the room is created (10 or 20) and echoed back by the server.
-  static const List<int> callBufferChoices = [10, 20];
-  int callBufferSeconds = 10;
+  /// The clock every turn shows: see [TimerPace.turnSeconds].
+  int get turnSeconds => discardSeconds + callSeconds;
   RoomLifecycle roomPhase = RoomLifecycle.lobby;
   int? mySeat;
   List<LobbySeat> lobbySeats = _emptyLobby();
@@ -170,33 +201,32 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   void createRoom({
     required Ruleset ruleset,
     required bool hanchan,
-    int timerSeconds = 30,
-    int callBufferSeconds = 10,
+    TimerPace pace = TimerPace.standard,
     int minimumFaan = HongKongRules.defaultMinimumFaan,
     int minimumPoints = TaiwaneseRules.defaultMinimumPoints,
   }) {
     this.ruleset = ruleset;
     this.hanchan = hanchan;
-    this.timerSeconds = timerSeconds;
-    this.callBufferSeconds = callBufferSeconds;
+    discardSeconds = pace.discardSeconds;
+    callSeconds = pace.callSeconds;
     this.minimumFaan = minimumFaan;
     this.minimumPoints = minimumPoints;
-    _client.send({
+    _send({
       'type': 'create_room',
       'guestId': _identity.guestId,
       'name': _effectiveName,
       'character': _identity.character.name,
       'ruleset': ruleset.name,
       'hanchan': hanchan,
-      'timerSeconds': timerSeconds,
-      'callBufferSeconds': callBufferSeconds,
+      'discardSeconds': pace.discardSeconds,
+      'callSeconds': pace.callSeconds,
       'minimumFaan': minimumFaan,
       'minimumPoints': minimumPoints,
     });
   }
 
   void joinRoom(String code) {
-    _client.send({
+    _send({
       'type': 'join_room',
       'roomCode': code.trim().toUpperCase(),
       'guestId': _identity.guestId,
@@ -216,7 +246,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   void checkRejoin() {
     final code = _identity.activeRoomCode;
     if (code == null) return;
-    _client.send({
+    _send({
       'type': 'room_status',
       'roomCode': code,
       'guestId': _identity.guestId,
@@ -228,7 +258,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   void rejoinRoom(String code) {
     _pendingRejoin = code;
     rejoinableCode = null;
-    _client.send({
+    _send({
       'type': 'reconnect',
       'roomCode': code,
       'guestId': _identity.guestId,
@@ -237,11 +267,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   void startGame() {
-    if (roomPhase == RoomLifecycle.lobby) _client.send({'type': 'start_game'});
+    if (roomPhase == RoomLifecycle.lobby) _send({'type': 'start_game'});
   }
 
   void leaveRoom() {
-    _client.send({'type': 'leave_room'});
+    _send({'type': 'leave_room'});
     _clearReplay();
     roomCode = '';
     mySeat = null;
@@ -263,15 +293,19 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   GamePhase phase = GamePhase.playing;
 
-  /// Declare ron/tsumo automatically the moment one is legal — purely
-  /// client-side, same as the riichi auto-discard: it just sends the action the
-  /// button would have. See [_maybeAutoWin].
+  /// Declare ron/tsumo automatically, [kAutoWinDelay] after one becomes
+  /// legal — purely client-side, same as the riichi auto-discard: it just
+  /// sends the action the button would have. See [_maybeAutoWin].
   @override
   bool autoWin = true;
   @override
   void setAutoWin(bool value) {
     if (autoWin == value) return;
     autoWin = value;
+    if (!value) {
+      _autoWinTimer?.cancel();
+      _autoWonKey = null;
+    }
     notifyListeners();
     if (value && _roundReady && !round.finished) _maybeAutoWin();
   }
@@ -313,29 +347,54 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   /// The `discardSerial` (ron) or drawn tile id (tsumo) [_maybeAutoWin] last
-  /// won on, so a repeat `state` broadcast for the same moment (e.g. after a
-  /// reconnect) doesn't send the win twice.
+  /// armed for, so a repeat `state` broadcast for the same moment (e.g. after
+  /// a reconnect) doesn't restart the wait or send the win twice.
   String? _autoWonKey;
+  Timer? _autoWinTimer;
 
-  /// Returns true if it sent a win, so the caller skips auto-discarding.
+  /// Returns true if a win is on its way, so the caller skips auto-passing
+  /// and auto-discarding. The win waits [kAutoWinDelay] — well inside the
+  /// shortest call clock — and is only sent if it is still on offer then
+  /// (a tap on the button may already have taken it).
   bool _maybeAutoWin() {
     if (!autoWin) return false;
     final opt = _humanCallOption;
     if (opt != null && opt.types.contains(CallType.ron)) {
-      final key = 'ron:$_discardSerial';
-      if (_autoWonKey == key) return true;
-      _autoWonKey = key;
-      answerCall(CallType.ron);
-      return true;
+      final serial = _discardSerial;
+      return _armAutoWin(
+        'ron:$serial',
+        stillOn: () {
+          final o = _humanCallOption;
+          return o != null &&
+              o.types.contains(CallType.ron) &&
+              _discardSerial == serial;
+        },
+        win: () => answerCall(CallType.ron),
+      );
     }
     if (isHumanTurn && round.canTsumo(kHumanSeat)) {
-      final key = 'tsumo:${round.seats[kHumanSeat].drawn?.id}';
-      if (_autoWonKey == key) return true;
-      _autoWonKey = key;
-      humanTsumo();
-      return true;
+      final drawnId = round.seats[kHumanSeat].drawn?.id;
+      return _armAutoWin(
+        'tsumo:$drawnId',
+        stillOn: () =>
+            isHumanTurn &&
+            round.seats[kHumanSeat].drawn?.id == drawnId &&
+            round.canTsumo(kHumanSeat),
+        win: humanTsumo,
+      );
     }
     return false;
+  }
+
+  bool _armAutoWin(String key,
+      {required bool Function() stillOn, required void Function() win}) {
+    if (_autoWonKey == key) return true;
+    _autoWonKey = key;
+    _autoWinTimer?.cancel();
+    _autoWinTimer = Timer(kAutoWinDelay, () {
+      if (autoWin && _roundReady && !round.finished && stillOn()) win();
+    });
+    return true;
   }
 
   /// The drawn tile [_maybeAutoDiscardInRiichi] last armed for, so a repeat
@@ -584,7 +643,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         // queued from before the drop is stale.
         _clearReplay();
         if (roomCode.isNotEmpty) {
-          _client.send({
+          _send({
             'type': 'reconnect',
             'roomCode': roomCode,
             'guestId': _identity.guestId,
@@ -598,8 +657,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     roomCode = msg['code'] as String;
     ruleset = Ruleset.values.byName(msg['ruleset'] as String);
     hanchan = msg['hanchan'] as bool;
-    timerSeconds = msg['timerSeconds'] as int? ?? 30;
-    callBufferSeconds = msg['callBufferSeconds'] as int? ?? 10;
+    // `timerSeconds` / `callBufferSeconds`: a server from before the
+    // separate call clock.
+    discardSeconds = msg['discardSeconds'] as int? ??
+        msg['timerSeconds'] as int? ??
+        TimerPace.standard.discardSeconds;
+    callSeconds = msg['callSeconds'] as int? ??
+        msg['callBufferSeconds'] as int? ??
+        TimerPace.standard.callSeconds;
     minimumFaan = HongKongRules.normalizeMinimumFaan(msg['minimumFaan']);
     minimumPoints =
         TaiwaneseRules.normalizeMinimumPoints(msg['minimumPoints']);
@@ -773,7 +838,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         round.phase != RoundPhase.discarding) {
       return;
     }
-    _client.send({
+    _send({
       'type': 'action',
       'kind': 'discard',
       'tileId': tile.id,
@@ -869,21 +934,21 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   void humanTsumo() {
     if (_roundReady && round.turn == kHumanSeat && round.canTsumo(kHumanSeat)) {
-      _client.send({'type': 'action', 'kind': 'tsumo'});
+      _send({'type': 'action', 'kind': 'tsumo'});
     }
   }
 
   @override
   void humanPassFlowerWin() {
     if (_roundReady && round.canFlowerWin(kHumanSeat)) {
-      _client.send({'type': 'action', 'kind': 'pass_flower_win'});
+      _send({'type': 'action', 'kind': 'pass_flower_win'});
     }
   }
 
   @override
   void humanDeclareKyuushu() {
     if (_roundReady && round.canDeclareKyuushu(kHumanSeat)) {
-      _client.send({'type': 'action', 'kind': 'kyuushu'});
+      _send({'type': 'action', 'kind': 'kyuushu'});
     }
   }
 
@@ -892,7 +957,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     if (_roundReady &&
         round.turn == kHumanSeat &&
         round.phase == RoundPhase.discarding) {
-      _client.send(
+      _send(
           {'type': 'action', 'kind': 'closed_kan', 'tileType': type.name});
     }
   }
@@ -921,7 +986,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   void answerCall(CallType choice, {TileType? chiLow}) {
     if (_humanCallOption == null) return;
     if (choice == CallType.none) {
-      _client.send({'type': 'action', 'kind': 'pass_call'});
+      _send({'type': 'action', 'kind': 'pass_call'});
     } else {
       final payload = <String, dynamic>{
         'type': 'action',
@@ -933,7 +998,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
             chiLow ?? _humanCallAdvice?.forAction(GuidedAction.chi)?.meldLow;
         if (low != null) payload['chiLow'] = low.name;
       }
-      _client.send(payload);
+      _send(payload);
     }
     // Cleared optimistically so the call buttons disappear immediately; the
     // next broadcast is the actual confirmation.
@@ -945,7 +1010,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   void continueFromRoundEnd() {
     if (phase != GamePhase.roundEnd) return;
-    _client.send({'type': 'continue_round'});
+    _send({'type': 'continue_round'});
   }
 
   /// Online play has no local restart — see [leaveRoom].
@@ -1362,6 +1427,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   @override
   void dispose() {
     _autoDiscardTimer?.cancel();
+    _autoWinTimer?.cancel();
     _replayGap?.cancel();
     _sub?.cancel();
     _client.close();

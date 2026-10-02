@@ -259,6 +259,10 @@ class Round {
   /// an unclaimed chankan resumes the kan instead of advancing the turn.
   bool _chankanPending = false;
 
+  /// Whether the open call window is a chankan one (see [_chankanPending]):
+  /// if nobody robs the kan, the same seat carries on rather than the next.
+  bool get chankanPending => _chankanPending;
+
   /// The pon an added kan upgraded, held while its chankan window is open so
   /// a Hong Kong robbery can put it back.
   Meld? _pendingPung;
