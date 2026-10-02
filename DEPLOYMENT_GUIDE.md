@@ -91,11 +91,14 @@ and manual rsync commands bypass these locks and must no longer be used.
 
 `.github/workflows/deploy.yml` runs this same `./deploy.sh` from GitHub:
 
-- **Automatically:** `client`, after the CI workflow passes on a push to
+- **Automatically:** `client`, then `mp`, after the CI workflow passes on a push to
   `ericrxu_dev`. It deploys exactly the commit CI tested, and skips it if
   `ericrxu_dev` has already moved on (the newer push's own CI run deploys that).
   Pull requests never deploy. With the `MORTAL` variable set to `1`, `mortal`
   runs first, and only when `mortal_sidecar/` or the pinned model changed.
+  After the preceding steps succeed, `mp` runs with `ALLOW_MP_RESTART=1`:
+  every successful automatic deployment restarts multiplayer and disconnects
+  live rooms. Its release ID is recorded separately in the run summary.
 - **By hand** (Actions tab → Deploy → Run workflow): `mortal`, `mp`, which drops live
   online rooms (choosing it is the `ALLOW_MP_RESTART=1` acknowledgement), and
   `rollback-client`, `rollback-ingest` and `rollback-mp` with a release ID.

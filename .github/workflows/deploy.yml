@@ -1,7 +1,8 @@
 # Deploys to production with ./deploy.sh. See DEPLOYMENT_GUIDE.md, "Automatic
 # deploys (GitHub Actions)".
 #
-# Automatically: the web client, once CI has passed on a push to ericrxu_dev.
+# Automatically: the web client, then multiplayer (disconnecting live rooms),
+# once CI has passed on a push to ericrxu_dev.
 # Mortal (the guide's Mortal column) too, once the MORTAL variable is 1: its
 # sidecar first, and only when mortal_sidecar/ or the pinned model changed.
 # By hand (Actions tab -> Deploy -> Run workflow): mortal, mp, which drops live
@@ -142,5 +143,14 @@ jobs:
           esac
           ./deploy.sh "$TARGET" ${RELEASE:+"$RELEASE"} 2>&1 | tee "$RUNNER_TEMP/deploy.log"
           grep -E '^(Deployment|Rollback) verified' "$RUNNER_TEMP/deploy.log" >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Deploy multiplayer after automatic client deployment
+        if: github.event_name == 'workflow_run'
+        env:
+          ALLOW_MP_RESTART: '1'  # Every automatic deployment disconnects live rooms.
+        run: |
+          set -o pipefail
+          ./deploy.sh mp 2>&1 | tee "$RUNNER_TEMP/mp.log"
+          grep -E '^Deployment verified' "$RUNNER_TEMP/mp.log" \
+            | sed 's/^/Multiplayer: /' >> "$GITHUB_STEP_SUMMARY" || true
       - if: always()
         run: rm -f ~/.ssh/id_ed25519 deploy.env
