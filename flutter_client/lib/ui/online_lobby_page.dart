@@ -48,8 +48,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       TextEditingController(text: widget.initialJoinCode ?? '');
   late Ruleset _ruleset = widget.initialRuleset;
   bool _hanchan = true;
-  int _timerSeconds = OnlineGameController.timerChoices.first;
-  int _callBufferSeconds = OnlineGameController.callBufferChoices.first;
+  TimerPace _pace = TimerPace.standard;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
   int _minimumPoints = TaiwaneseRules.defaultMinimumPoints;
   late Character _character = widget.controller.myCharacter;
@@ -88,8 +87,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     game.createRoom(
         ruleset: _ruleset,
         hanchan: _hanchan,
-        timerSeconds: _timerSeconds,
-        callBufferSeconds: _callBufferSeconds,
+        pace: _pace,
         minimumFaan: _minimumFaan,
         minimumPoints: _minimumPoints);
   }
@@ -253,16 +251,15 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: _timerPicker()),
-                            const SizedBox(width: 16),
-                            Expanded(child: _callBufferPicker()),
+                            Expanded(flex: 3, child: _pacePicker()),
                             if (_ruleset.isHongKong) ...[
                               const SizedBox(width: 16),
-                              Expanded(child: _minimumFaanPicker()),
+                              Expanded(flex: 2, child: _minimumFaanPicker()),
                             ],
                             if (_ruleset.isTaiwanese) ...[
                               const SizedBox(width: 16),
-                              Expanded(child: _minimumPointsPicker()),
+                              Expanded(
+                                  flex: 2, child: _minimumPointsPicker()),
                             ],
                           ],
                         ),
@@ -363,18 +360,19 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     );
   }
 
-  /// Seconds per discard and per call offer for the room you create — 30 by
-  /// default, or 60. Applies to the whole table, so it is the host's call;
+  /// How long each player gets per turn and per call offer in the room you
+  /// create, as one choice: Fast, Standard (the default) or Relaxed — see
+  /// [TimerPace]. Applies to the whole table, so it is the host's call;
   /// joining a room uses whatever its host picked.
-  Widget _timerPicker() {
-    Widget option(int seconds) {
-      final selected = _timerSeconds == seconds;
+  Widget _pacePicker() {
+    Widget option(TimerPace pace) {
+      final selected = _pace == pace;
       return Expanded(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: OutlinedButton(
-            key: Key('timer_$seconds'),
-            onPressed: () => setState(() => _timerSeconds = seconds),
+            key: Key('pace_${pace.name}'),
+            onPressed: () => setState(() => _pace = pace),
             style: OutlinedButton.styleFrom(
               backgroundColor: selected ? const Color(0x33caa24e) : null,
               foregroundColor:
@@ -383,9 +381,13 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                 color: selected ? const Color(0xffcaa24e) : Colors.white24,
                 width: selected ? 2 : 1,
               ),
+              minimumSize: Size.zero,
               padding: const EdgeInsets.symmetric(vertical: 10),
             ),
-            child: Text('${seconds}s'),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(pace.label, maxLines: 1),
+            ),
           ),
         ),
       );
@@ -393,52 +395,16 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
 
     return Column(
       children: [
-        const Text('Turn & call timer (room you create)',
+        const Text('Pace',
             style: TextStyle(color: Colors.white60, fontSize: 12)),
         const SizedBox(height: 6),
-        Row(children: [
-          for (final t in OnlineGameController.timerChoices) option(t)
-        ]),
-      ],
-    );
-  }
-
-  /// Extra seconds added on top of the turn/call timer above, earmarked for
-  /// making a call — 10 by default, or 20. Applies to the whole table, so it
-  /// is the host's call; joining a room uses whatever its host picked.
-  Widget _callBufferPicker() {
-    Widget option(int seconds) {
-      final selected = _callBufferSeconds == seconds;
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: OutlinedButton(
-            key: Key('callBuffer_$seconds'),
-            onPressed: () => setState(() => _callBufferSeconds = seconds),
-            style: OutlinedButton.styleFrom(
-              backgroundColor: selected ? const Color(0x33caa24e) : null,
-              foregroundColor:
-                  selected ? const Color(0xffffdf76) : Colors.white54,
-              side: BorderSide(
-                color: selected ? const Color(0xffcaa24e) : Colors.white24,
-                width: selected ? 2 : 1,
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-            ),
-            child: Text('${seconds}s'),
-          ),
+        Row(children: [for (final p in TimerPace.values) option(p)]),
+        const SizedBox(height: 6),
+        Text(
+          '${_pace.turnSeconds}s per turn · ${_pace.callSeconds}s to call',
+          key: const Key('paceCaption'),
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
-      );
-    }
-
-    return Column(
-      children: [
-        const Text('Calls buffer',
-            style: TextStyle(color: Colors.white60, fontSize: 12)),
-        const SizedBox(height: 6),
-        Row(children: [
-          for (final t in OnlineGameController.callBufferChoices) option(t)
-        ]),
       ],
     );
   }
@@ -575,7 +541,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               '${game.ruleset.isHongKong ? game.minimumFaanLabel : ''}'
               '${game.ruleset.isTaiwanese ? game.minimumPointsLabel : ''}'
               '${game.hanchan ? "full game" : "East-only"} · '
-              '${game.timerSeconds}s timer',
+              '${game.turnSeconds}s turn · ${game.callSeconds}s call',
           child: Column(
             children: [
               for (final seat in game.lobbySeats) _seatRow(seat),

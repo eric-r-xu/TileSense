@@ -34,6 +34,12 @@ const int kHumanSeat = 0;
 Duration riichiAutoDiscardDelay(Random rng) =>
     Duration(milliseconds: 500 + rng.nextInt(1001));
 
+/// How long Auto-win waits before declaring a ron or tsumo, so the winning
+/// tile lands and the win button lights up before the round jumps to the
+/// score screen. Pressing the button during the wait still wins at once.
+/// Shared by the solo and online controllers.
+const Duration kAutoWinDelay = Duration(milliseconds: 1500);
+
 /// The default personality per seat — 0 self (Orderic), 1 right (Grant),
 /// 2 across (Hubert), 3 left (Astaroth) — and what a fresh [GameController]
 /// starts with. Every seat, including the human's, can be changed to any of
@@ -239,6 +245,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _loopTimer?.cancel();
     _loopTimer = null;
     _autoDiscardTimer?.cancel();
+    _disarmAutoWin();
 
     final replay = _log.sublist(0, step.logLength);
     _log.clear();
@@ -319,15 +326,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
     notifyListeners();
   }
 
-  /// Declare ron/tsumo automatically the moment one is legal — see
-  /// [_maybeAutoTsumo] and [_resolveCallPhase]. Independent of [autoplay],
-  /// which already makes its own win decisions.
+  /// Declare ron/tsumo automatically, [kAutoWinDelay] after one becomes
+  /// legal — see [_maybeAutoTsumo] and [_armAutoWin]. Independent of
+  /// [autoplay], which already makes its own win decisions.
   @override
   bool autoWin = true;
   @override
   void setAutoWin(bool value) {
     if (autoWin == value) return;
     autoWin = value;
+    if (!value) _disarmAutoWin();
     _tel?.settingChange(matchId: _matchId, setting: 'auto_win', value: value);
     notifyListeners();
   }
@@ -348,12 +356,52 @@ class GameController extends ChangeNotifier implements TableGameHost {
     }
   }
 
-  /// Returns true if it fired (and so already ended the round/notified
-  /// listeners itself via [humanTsumo]).
+  /// Returns true if a tsumo is on its way (see [_armAutoWin]); listeners
+  /// are notified so the drawn tile and the win button show meanwhile.
   bool _maybeAutoTsumo() {
     if (!autoWin || !round.canTsumo(kHumanSeat)) return false;
-    humanTsumo();
+    final r = round;
+    final drawn = r.seats[kHumanSeat].drawn;
+    _armAutoWin(
+      drawn,
+      stillOn: () =>
+          identical(round, r) &&
+          r.turn == kHumanSeat &&
+          r.phase == RoundPhase.discarding &&
+          identical(r.seats[kHumanSeat].drawn, drawn) &&
+          r.canTsumo(kHumanSeat),
+      win: humanTsumo,
+    );
+    notifyListeners();
     return true;
+  }
+
+  /// What [_autoWinTimer] is waiting to win on (the drawn tile, or the call
+  /// offer), so the loop coming back round for the same moment doesn't
+  /// restart the wait.
+  Object? _autoWinArmedFor;
+  Timer? _autoWinTimer;
+
+  /// Waits [kAutoWinDelay], then sends [win] — if Auto-win is still on and
+  /// [stillOn] says the same win is still there (a tap on the button may
+  /// already have taken it). Paused when the timer fires, it stands down and
+  /// the loop arms it again on resume.
+  void _armAutoWin(Object? key,
+      {required bool Function() stillOn, required void Function() win}) {
+    if (key != null && identical(_autoWinArmedFor, key)) return;
+    _autoWinTimer?.cancel();
+    _autoWinArmedFor = key;
+    _autoWinTimer = Timer(kAutoWinDelay, () {
+      _autoWinArmedFor = null;
+      if (_disposed || paused || !autoWin || !stillOn()) return;
+      win();
+    });
+  }
+
+  void _disarmAutoWin() {
+    _autoWinTimer?.cancel();
+    _autoWinTimer = null;
+    _autoWinArmedFor = null;
   }
 
   /// While locked into riichi, cut the drawn tile on its own after a short
@@ -851,6 +899,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _disposed = true;
     _loopTimer?.cancel();
     _autoDiscardTimer?.cancel();
+    _disarmAutoWin();
     if (_matchId.isNotEmpty && phase != GamePhase.gameEnd) {
       _tel?.matchEnd(
         matchId: _matchId,
@@ -976,10 +1025,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
         _humanCallOption = opt;
         _askMortal();
         if (autoWin && opt.types.contains(CallType.ron)) {
-          answerCall(CallType.ron); // settles the bot seats' calls too
-          return;
-        }
-        if (autoPass && !opt.types.contains(CallType.ron)) {
+          // The buttons show meanwhile; answering settles the bot seats'
+          // calls too.
+          _armAutoWin(opt,
+              stillOn: () => identical(_humanCallOption, opt),
+              win: () => answerCall(CallType.ron));
+        } else if (autoPass && !opt.types.contains(CallType.ron)) {
           answerCall(CallType.none); // likewise
           return;
         }

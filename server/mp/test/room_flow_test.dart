@@ -73,9 +73,11 @@ class TestClient {
 }
 
 /// A minimal autoplay loop for a test client: discards whatever is legal,
-/// takes a free win, and passes every call. Just enough to make real games
+/// takes a free win, and passes every call — or, without [answerCalls],
+/// leaves every call offer to run out. Just enough to make real games
 /// progress without needing real strategy.
-StreamSubscription<void> _autoplay(TestClient client) {
+StreamSubscription<void> _autoplay(TestClient client,
+    {bool answerCalls = true}) {
   return client._controller.stream.listen((msg) {
     if (msg['type'] != 'state') return;
     final mySeat = msg['yourSeat'] as int;
@@ -83,7 +85,7 @@ StreamSubscription<void> _autoplay(TestClient client) {
         msg['round'] as Map<String, dynamic>, mySeat: mySeat);
     if (round.phase == RoundPhase.callOffer &&
         round.callOptions.any((o) => o.seat == 0)) {
-      client.send({'type': 'action', 'kind': 'pass_call'});
+      if (answerCalls) client.send({'type': 'action', 'kind': 'pass_call'});
       return;
     }
     if (round.turn != 0 || round.phase != RoundPhase.discarding) return;
@@ -381,6 +383,148 @@ void main() {
     await a.waitFor((m) => m['type'] == 'room_state' && m['phase'] == 'playing');
     return (a, code);
   }
+
+  test("an older client's turn timer and calls buffer become the two clocks",
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      ...createMsg('guest-a'),
+      'timerSeconds': 60,
+      'callBufferSeconds': 20,
+    });
+    final state = await a.waitFor((m) => m['type'] == 'room_state');
+    expect(state['discardSeconds'], 60);
+    expect(state['callSeconds'], 20);
+  });
+
+  test('a call offer left to run out is passed, with no strike', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager,
+        loop: (room) => TableLoop(
+              room,
+              turnTimeout: const Duration(seconds: 2),
+              callTimeout: const Duration(milliseconds: 150),
+              continueTimeout: const Duration(milliseconds: 100),
+              botTurnPace: Duration.zero,
+              continueLock: Duration.zero,
+              callDiscardHold: Duration.zero,
+              afterCallPace: Duration.zero,
+            ));
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    // Hong Kong: chow and pung offers come often, and a bot deciding them
+    // (the old timeout behaviour) would take one as soon as it helps.
+    a.send({...createMsg('guest-a'), 'ruleset': 'hongKong', 'hanchan': true});
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+    final sub = _autoplay(a, answerCalls: false);
+    addTearDown(sub.cancel);
+
+    final offered = <int>{};
+    final done = Completer<void>();
+    final watch = a._controller.stream.listen((m) {
+      if (m['type'] == 'round_result') {
+        a.send({'type': 'continue_round'});
+        return;
+      }
+      if (m['type'] != 'state') return;
+      final round = buildRoundFromSnapshot(m['round'] as Map<String, dynamic>,
+          mySeat: m['yourSeat'] as int);
+      expect(round.seats[0].melds, isEmpty,
+          reason: 'nobody may call for a seat that let its offers run out');
+      if (round.phase == RoundPhase.callOffer &&
+          round.callOptions.any((o) => o.seat == 0)) {
+        offered.add(m['discardSerial'] as int);
+        if (offered.length >= 6 && !done.isCompleted) done.complete();
+      }
+    });
+    addTearDown(watch.cancel);
+    await done.future.timeout(const Duration(seconds: 60));
+    expect(a.log.where((m) => m['type'] == 'bot_takeover'), isEmpty,
+        reason: 'expired call offers are not strikes');
+  }, timeout: const Timeout(Duration(seconds: 90)));
+
+  test('a call window looks like the next turn to everyone without an offer',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager,
+        loop: (room) => TableLoop(
+              room,
+              turnTimeout: const Duration(seconds: 2),
+              callTimeout: const Duration(milliseconds: 150),
+              continueTimeout: const Duration(milliseconds: 100),
+              botTurnPace: Duration.zero,
+              continueLock: Duration.zero,
+              callDiscardHold: Duration.zero,
+              afterCallPace: Duration.zero,
+            ));
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    final b = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    addTearDown(b.close);
+    // Hong Kong: chow and pung offers come often.
+    a.send({...createMsg('guest-a'), 'ruleset': 'hongKong', 'hanchan': true});
+    final code =
+        (await a.waitFor((m) => m['type'] == 'room_state'))['code'] as String;
+    b.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-b'});
+    await b.waitFor((m) => m['type'] == 'room_state' && m['yourSeat'] != null);
+    a.send({'type': 'start_game'});
+    // A lets every offer run out, so its windows stay open; B passes its own.
+    final aSub = _autoplay(a, answerCalls: false);
+    final bSub = _autoplay(b);
+    addTearDown(aSub.cancel);
+    addTearDown(bSub.cancel);
+
+    // The deadline each client last saw on a turn still waiting on its draw
+    // (phase `drawing` is only ever the next player's view of a window).
+    final waitingDeadline = <TestClient, int?>{};
+    var carried = 0;
+    final done = Completer<void>();
+    void check(TestClient c, Map<String, dynamic> m) {
+      if (m['type'] == 'round_result') {
+        c.send({'type': 'continue_round'});
+        return;
+      }
+      if (m['type'] != 'state') return;
+      final me = m['yourSeat'] as int;
+      final round = m['round'] as Map<String, dynamic>;
+      final options = (round['callOptions'] as List).cast<Map>();
+      expect(options.every((o) => o['seat'] == me), isTrue,
+          reason: 'seat $me was shown another seat\'s call offer');
+      if (round['phase'] == 'callOffer') {
+        expect(options, isNotEmpty,
+            reason: 'only a seat with an offer sees the call window');
+      }
+      if (round['phase'] == 'drawing') {
+        expect(round['turn'], me);
+        // The update sent the instant a tile is discarded has no clock yet,
+        // with or without a call pending; the window's own update has one.
+        final deadline = m['turnDeadlineMs'] as int?;
+        if (deadline != null) waitingDeadline[c] = deadline;
+      } else if (waitingDeadline[c] != null &&
+          round['phase'] == 'discarding' &&
+          round['turn'] == me) {
+        // Nobody called: the turn keeps the clock it was shown with.
+        expect(m['turnDeadlineMs'], waitingDeadline[c]);
+        waitingDeadline[c] = null;
+        if (++carried >= 2 && !done.isCompleted) done.complete();
+      } else if (round['turn'] != me) {
+        waitingDeadline[c] = null; // somebody called instead
+      }
+    }
+
+    final aWatch = a._controller.stream.listen((m) => check(a, m));
+    final bWatch = b._controller.stream.listen((m) => check(b, m));
+    addTearDown(aWatch.cancel);
+    addTearDown(bWatch.cancel);
+    await done.future.timeout(const Duration(seconds: 60));
+  }, timeout: const Timeout(Duration(seconds: 90)));
 
   test('a player a bot took over for gets their seat back on reconnect',
       () async {

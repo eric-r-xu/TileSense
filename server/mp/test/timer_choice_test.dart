@@ -4,76 +4,73 @@ import 'package:tilesense_mp/table_loop.dart';
 import 'package:mahjong_core/ruleset.dart';
 
 void main() {
-  test('only 30 and 60 are accepted; anything else falls back to 30', () {
-    expect(Room.normalizeTimerSeconds(30), 30);
-    expect(Room.normalizeTimerSeconds(60), 60);
+  test('discard clocks are 15, 30 or 60; anything else falls back to 30', () {
+    for (final ok in [15, 30, 60]) {
+      expect(Room.normalizeDiscardSeconds(ok), ok);
+    }
     for (final bad in [null, 0, 10, 45, 3600, -1, '60', 60.0]) {
-      expect(Room.normalizeTimerSeconds(bad), 30, reason: '$bad');
+      expect(Room.normalizeDiscardSeconds(bad), 30, reason: '$bad');
     }
   });
 
-  test('a room defaults to 30s and reports its choice in room_state', () {
+  test('call clocks are 5, 10 or 20; anything else falls back to 10', () {
+    for (final ok in [5, 10, 20]) {
+      expect(Room.normalizeCallSeconds(ok), ok);
+    }
+    for (final bad in [null, 0, 15, 30, 3600, -1, '10', 10.0]) {
+      expect(Room.normalizeCallSeconds(bad), 10, reason: '$bad');
+    }
+  });
+
+  test('a room defaults to 30s/10s and reports both clocks in room_state', () {
     final def = Room(code: 'AAAA', ruleset: Ruleset.riichi, hanchan: true);
-    expect(def.timerSeconds, 30);
-    final long = Room(
-        code: 'BBBB', ruleset: Ruleset.riichi, hanchan: true, timerSeconds: 60);
-    expect(long.roomStateJson()['timerSeconds'], 60);
+    expect(def.discardSeconds, 30);
+    expect(def.callSeconds, 10);
+    final json = Room(
+            code: 'BBBB',
+            ruleset: Ruleset.riichi,
+            hanchan: true,
+            discardSeconds: 60,
+            callSeconds: 20)
+        .roomStateJson();
+    expect(json['discardSeconds'], 60);
+    expect(json['callSeconds'], 20);
+    // Older clients label the room from this.
+    expect(json['timerSeconds'], 60);
+    expect(json.containsKey('callBufferSeconds'), isFalse);
   });
 
-  test('the table loop takes both clocks from the room', () {
-    final room = Room(
-        code: 'CCCC', ruleset: Ruleset.riichi, hanchan: true, timerSeconds: 60);
-    // Constructing must not throw and must accept the room's clock.
-    expect(() => TableLoop(room), returnsNormally);
-  });
-
-  test('only 10 and 20 are accepted for the call buffer; else falls back to 10',
-      () {
-    expect(Room.normalizeCallBufferSeconds(10), 10);
-    expect(Room.normalizeCallBufferSeconds(20), 20);
-    for (final bad in [null, 0, 15, 3600, -1, '10', 10.0]) {
-      expect(Room.normalizeCallBufferSeconds(bad), 10, reason: '$bad');
-    }
-  });
-
-  test('a room defaults to a 10s call buffer and reports it in room_state',
-      () {
-    final def = Room(code: 'FFFF', ruleset: Ruleset.riichi, hanchan: true);
-    expect(def.callBufferSeconds, 10);
-    final long = Room(
-        code: 'GGGG',
-        ruleset: Ruleset.riichi,
-        hanchan: true,
-        callBufferSeconds: 20);
-    expect(long.roomStateJson()['callBufferSeconds'], 20);
-  });
-
-  test('RoomManager normalizes the call buffer it is given', () {
+  test('RoomManager normalizes the clocks it is given', () {
     final manager = RoomManager();
-    final room = manager.createRoom(
+    final fast = manager.createRoom(
         hostGuestId: 'g',
         hostName: 'Host',
         ruleset: Ruleset.riichi,
         hanchan: true,
-        callBufferSeconds: 20);
-    expect(room.roomStateJson()['callBufferSeconds'], 20);
+        discardSeconds: 15,
+        callSeconds: 5);
+    expect((fast.discardSeconds, fast.callSeconds), (15, 5));
     final bad = manager.createRoom(
         hostGuestId: 'h',
         hostName: 'Host',
         ruleset: Ruleset.riichi,
         hanchan: true,
-        callBufferSeconds: 15);
-    expect(bad.callBufferSeconds, 10, reason: 'out-of-range falls back to 10');
+        discardSeconds: 45,
+        callSeconds: 15);
+    expect((bad.discardSeconds, bad.callSeconds), (30, 10),
+        reason: 'out-of-range falls back to the defaults');
   });
 
-  test('the table loop still constructs with a non-default call buffer', () {
-    final room = Room(
-        code: 'HHHH',
-        ruleset: Ruleset.riichi,
-        hanchan: true,
-        timerSeconds: 60,
-        callBufferSeconds: 20);
-    expect(() => TableLoop(room), returnsNormally);
+  test('the table loop constructs with any pace', () {
+    for (final (discard, call) in [(15, 5), (30, 10), (60, 20)]) {
+      final room = Room(
+          code: 'CCCC',
+          ruleset: Ruleset.riichi,
+          hanchan: true,
+          discardSeconds: discard,
+          callSeconds: call);
+      expect(() => TableLoop(room), returnsNormally);
+    }
   });
 
   test('a Hong Kong room carries its minimum faan to room_state', () {

@@ -137,9 +137,12 @@ Handler buildMultiplayerHandler(
             hostName: _sanitizeName(msg['name']),
             ruleset: ruleset,
             hanchan: hanchan,
-            timerSeconds: Room.normalizeTimerSeconds(msg['timerSeconds']),
-            callBufferSeconds:
-                Room.normalizeCallBufferSeconds(msg['callBufferSeconds']),
+            // Clients from before the separate call clock send their turn
+            // timer and "calls buffer" instead; both are valid choices here.
+            discardSeconds: Room.normalizeDiscardSeconds(
+                msg['discardSeconds'] ?? msg['timerSeconds']),
+            callSeconds: Room.normalizeCallSeconds(
+                msg['callSeconds'] ?? msg['callBufferSeconds']),
             minimumFaan: HongKongRules.normalizeMinimumFaan(msg['minimumFaan']),
             minimumPoints:
                 TaiwaneseRules.normalizeMinimumPoints(msg['minimumPoints']),

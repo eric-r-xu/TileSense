@@ -57,7 +57,16 @@ void main() {
           if (seat != viewer) {
             expect(map.containsKey('hand'), isFalse,
                 reason: 'seat $seat leaked its hand to viewer $viewer');
+            expect(map['tempFuriten'], isFalse,
+                reason: 'seat $seat leaked its furiten to viewer $viewer');
+            expect(map['riichiFuriten'], isFalse,
+                reason: 'seat $seat leaked its furiten to viewer $viewer');
           }
+        }
+        // Nor which other seat could call this discard, or how.
+        for (final c in wire['callOptions'] as List) {
+          expect((c as Map<String, dynamic>)['seat'], viewer,
+              reason: 'viewer $viewer saw another seat\'s call option');
         }
 
         final mirror = buildRoundFromSnapshot(wire, mySeat: viewer);

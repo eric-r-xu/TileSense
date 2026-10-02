@@ -80,6 +80,36 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('one Pace choice sets both the discard and the call clock',
+      (tester) async {
+    final game = OnlineGameController();
+    await pump(tester, game);
+
+    // The old separate pickers are gone.
+    expect(find.text('Calls buffer'), findsNothing);
+    expect(find.text('40s per turn · 10s to call'), findsOneWidget,
+        reason: 'Standard is the default');
+    for (final ruleset in ['riichi', 'hongKong', 'taiwanese']) {
+      await tester.tap(find.byKey(Key('onlineRuleset_$ruleset')));
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: ruleset);
+      expect(find.byKey(const Key('pace_relaxed')), findsOneWidget);
+    }
+    await tester.tap(find.byKey(const Key('pace_fast')));
+    await tester.pump();
+    expect(find.text('20s per turn · 5s to call'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pace_relaxed')));
+    await tester.pump();
+    expect(find.text('80s per turn · 20s to call'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('createRoom')));
+    await tester.pump();
+    expect((game.discardSeconds, game.callSeconds), (60, 20));
+
+    game.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   testWidgets('Hong Kong rooms pick a 0-3 minimum faan, with no overflow',
       (tester) async {
     final game = OnlineGameController();

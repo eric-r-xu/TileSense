@@ -148,8 +148,10 @@ RoundResult roundResultFromJson(
 // --- round snapshot -----------------------------------------------------
 
 /// Serializes [round] for one recipient. [reveal] decides, per server seat
-/// index, whether that seat's real hand goes over the wire (true only for
-/// the recipient's own seat) or just its tile count.
+/// index, whether that seat's private state goes over the wire (true only for
+/// the recipient's own seat): its real hand rather than just a tile count,
+/// its call options, and its furiten flags — another seat's offer, or the
+/// furiten a passed ron leaves, would tell the table who can win on what.
 Map<String, dynamic> roundSnapshotToJson(
   Round round, {
   required bool Function(int seat) reveal,
@@ -179,6 +181,7 @@ Map<String, dynamic> roundSnapshotToJson(
         round.pendingDiscardSeat < 0 ? null : round.pendingDiscardSeat,
     'callOptions': [
       for (final c in round.callOptions)
+        if (reveal(c.seat))
         {
           'seat': c.seat,
           'types': [for (final t in c.types) t.name],
@@ -209,8 +212,8 @@ Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       'riichi': s.riichi,
       'doubleRiichi': s.doubleRiichi,
       'ippatsu': s.ippatsu,
-      'tempFuriten': s.tempFuriten,
-      'riichiFuriten': s.riichiFuriten,
+      'tempFuriten': revealed && s.tempFuriten,
+      'riichiFuriten': revealed && s.riichiFuriten,
       'allDiscards': tilesToJson(s.allDiscards),
       'passedDiscardsAfterRiichi': [
         for (final t in s.passedDiscardsAfterRiichi) t.name,
