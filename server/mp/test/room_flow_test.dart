@@ -449,82 +449,149 @@ void main() {
         reason: 'expired call offers are not strikes');
   }, timeout: const Timeout(Duration(seconds: 90)));
 
-  test('a call window looks like the next turn to everyone without an offer',
-      () async {
-    final manager = RoomManager();
-    final server = await _startServer(manager,
+  test(
+    'a call window looks like the next turn to everyone without an offer',
+    () async {
+      final manager = RoomManager();
+      final server = await _startServer(
+        manager,
         loop: (room) => TableLoop(
-              room,
-              turnTimeout: const Duration(seconds: 2),
-              callTimeout: const Duration(milliseconds: 150),
-              continueTimeout: const Duration(milliseconds: 100),
-              botTurnPace: Duration.zero,
-              continueLock: Duration.zero,
-              callDiscardHold: Duration.zero,
-              afterCallPace: Duration.zero,
-            ));
-    addTearDown(server.close);
-    final a = await TestClient.connect(server.port);
-    final b = await TestClient.connect(server.port);
-    addTearDown(a.close);
-    addTearDown(b.close);
-    // Hong Kong: chow and pung offers come often.
-    a.send({...createMsg('guest-a'), 'ruleset': 'hongKong', 'hanchan': true});
-    final code =
-        (await a.waitFor((m) => m['type'] == 'room_state'))['code'] as String;
-    b.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-b'});
-    await b.waitFor((m) => m['type'] == 'room_state' && m['yourSeat'] != null);
-    a.send({'type': 'start_game'});
-    // A lets every offer run out, so its windows stay open; B passes its own.
-    final aSub = _autoplay(a, answerCalls: false);
-    final bSub = _autoplay(b);
-    addTearDown(aSub.cancel);
-    addTearDown(bSub.cancel);
+          room,
+          turnTimeout: const Duration(seconds: 30),
+          callTimeout: const Duration(seconds: 5),
+          botTurnPace: Duration.zero,
+          callDiscardHold: Duration.zero,
+          afterCallPace: Duration.zero,
+        ),
+      );
+      addTearDown(server.close);
+      // Control all four seats: random deals and bot calls need not produce
+      // two unclaimed windows followed by a human turn, even in a full game.
+      final clients = <TestClient>[];
+      for (var i = 0; i < 4; i++) {
+        final client = await TestClient.connect(server.port);
+        clients.add(client);
+        addTearDown(client.close);
+      }
+      clients.first.send({
+        ...createMsg('guest-0'),
+        'ruleset': 'hongKong',
+        'hanchan': true,
+      });
+      final code = (await clients.first.waitFor(
+        (m) => m['type'] == 'room_state',
+      ))['code'] as String;
+      for (var i = 1; i < clients.length; i++) {
+        clients[i].send({
+          'type': 'join_room',
+          'roomCode': code,
+          'guestId': 'guest-$i',
+        });
+        await clients[i].waitFor((m) => m['type'] == 'room_state');
+      }
+      clients.first.send({'type': 'start_game'});
+      final bySeat = <int, TestClient>{};
+      for (final client in clients) {
+        final state = await client.waitFor((m) => m['type'] == 'state');
+        bySeat[state['yourSeat'] as int] = client;
+      }
+      final loop = manager.find(code)!.loop!;
+      // Keep the seat the loop is already waiting on, with a reproducible wall.
+      final round = loop.round = Round(
+        seed: 0,
+        dealer: loop.round.turn,
+        roundWind: Wind.east,
+        startingPoints: List.filled(4, Ruleset.hongKong.startingPoints),
+        ruleset: Ruleset.hongKong,
+      );
+      var tileId = 1000;
+      for (var serial = 1; serial <= 2; serial++) {
+        final discarder = round.turn;
+        final next = (discarder + 1) % 4;
+        final caller = (discarder + 2) % 4;
+        // Scattered hands cannot win on East. Only the caller has its pair,
+        // guaranteeing a pon offer that leaves the next player waiting to draw.
+        for (final seat in round.seats) {
+          seat.hand = [
+            for (final type in [
+              TileType.man1,
+              TileType.man3,
+              TileType.man5,
+              TileType.man7,
+              TileType.man9,
+              TileType.pin1,
+              TileType.pin3,
+              TileType.pin5,
+              TileType.pin7,
+              TileType.pin9,
+              TileType.sou1,
+              seat.seat == caller ? TileType.ton : TileType.sou3,
+              seat.seat == caller ? TileType.ton : TileType.sou5,
+            ])
+              Tile(tileId++, type),
+          ];
+          seat.drawn = null;
+        }
+        final tile = Tile(tileId++, TileType.ton);
+        round.seats[discarder].hand.add(tile);
+        round.seats[discarder].drawn = tile;
+        bySeat[discarder]!.send({
+          'type': 'action',
+          'kind': 'discard',
+          'tileId': tile.id,
+        });
 
-    // The deadline each client last saw on a turn still waiting on its draw
-    // (phase `drawing` is only ever the next player's view of a window).
-    final waitingDeadline = <TestClient, int?>{};
-    var carried = 0;
-    final done = Completer<void>();
-    void check(TestClient c, Map<String, dynamic> m) {
-      if (m['type'] == 'round_result') {
-        c.send({'type': 'continue_round'});
-        return;
-      }
-      if (m['type'] != 'state') return;
-      final me = m['yourSeat'] as int;
-      final round = m['round'] as Map<String, dynamic>;
-      final options = (round['callOptions'] as List).cast<Map>();
-      expect(options.every((o) => o['seat'] == me), isTrue,
-          reason: 'seat $me was shown another seat\'s call offer');
-      if (round['phase'] == 'callOffer') {
-        expect(options, isNotEmpty,
-            reason: 'only a seat with an offer sees the call window');
-      }
-      if (round['phase'] == 'drawing') {
-        expect(round['turn'], me);
-        // The update sent the instant a tile is discarded has no clock yet,
-        // with or without a call pending; the window's own update has one.
-        final deadline = m['turnDeadlineMs'] as int?;
-        if (deadline != null) waitingDeadline[c] = deadline;
-      } else if (waitingDeadline[c] != null &&
-          round['phase'] == 'discarding' &&
-          round['turn'] == me) {
-        // Nobody called: the turn keeps the clock it was shown with.
-        expect(m['turnDeadlineMs'], waitingDeadline[c]);
-        waitingDeadline[c] = null;
-        if (++carried >= 2 && !done.isCompleted) done.complete();
-      } else if (round['turn'] != me) {
-        waitingDeadline[c] = null; // somebody called instead
-      }
-    }
+        final deadlines = <int, int>{};
+        for (var seat = 0; seat < 4; seat++) {
+          final state = await bySeat[seat]!.waitFor(
+            (m) =>
+                m['type'] == 'state' &&
+                m['discardSerial'] == serial &&
+                m['turnDeadlineMs'] != null,
+          );
+          final snapshot = state['round'] as Map<String, dynamic>;
+          final options = (snapshot['callOptions'] as List).cast<Map>();
+          expect(
+            options.every((o) => o['seat'] == seat),
+            isTrue,
+            reason: 'seat $seat was shown another seat\'s call offer',
+          );
+          deadlines[seat] = state['turnDeadlineMs'] as int;
+          if (seat == caller) {
+            expect(snapshot['phase'], 'callOffer');
+            expect(options, hasLength(1));
+            expect(options.single['types'], contains('pon'));
+          } else {
+            expect(options, isEmpty);
+            expect(snapshot['phase'], seat == next ? 'drawing' : 'discarding');
+            expect(snapshot['turn'], next);
+            expect(snapshot['pendingDiscard'], isNull);
+            expect(snapshot['pendingDiscardSeat'], isNull);
+          }
+        }
+        for (var seat = 0; seat < 4; seat++) {
+          if (seat != caller) expect(deadlines[seat], deadlines[next]);
+        }
+        expect(deadlines[caller], lessThan(deadlines[next]!));
 
-    final aWatch = a._controller.stream.listen((m) => check(a, m));
-    final bWatch = b._controller.stream.listen((m) => check(b, m));
-    addTearDown(aWatch.cancel);
-    addTearDown(bWatch.cancel);
-    await done.future.timeout(const Duration(seconds: 60));
-  }, timeout: const Timeout(Duration(seconds: 90)));
+        bySeat[caller]!.send({'type': 'action', 'kind': 'pass_call'});
+        final drawn = await bySeat[next]!.waitFor(
+          (m) =>
+              m['type'] == 'state' &&
+              m['discardSerial'] == serial &&
+              m['round']['phase'] == 'discarding' &&
+              m['round']['turn'] == next,
+        );
+        expect(
+          drawn['turnDeadlineMs'],
+          deadlines[next],
+          reason: 'an unclaimed window must carry its clock into the next turn',
+        );
+        expect(round.turn, next);
+        expect(round.phase, RoundPhase.discarding);
+      }
+    },
+  );
 
   test('every error carries a code a client can translate, and its message',
       () async {
