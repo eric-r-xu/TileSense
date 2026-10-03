@@ -973,6 +973,33 @@ class AppLocalizationsJa extends AppLocalizations {
   String get furiten => 'フリテン';
 
   @override
+  String get noYaku => '役なし';
+
+  @override
+  String underFaan(int n) {
+    return '$n翻未満';
+  }
+
+  @override
+  String underTai(int n) {
+    return '$n台未満';
+  }
+
+  @override
+  String underFan(int n) {
+    return '$n番未満';
+  }
+
+  @override
+  String get noWin => '和了不可';
+
+  @override
+  String get minimumRonOnlyTooltip => 'ロン不可：どの待ちも出和了では条件に届きません。ツモなら和了できます';
+
+  @override
+  String get minimumDeadTooltip => 'どの待ちもツモでも条件に届きません。このままでは和了できません';
+
+  @override
   String secondsShort(int n) {
     return '$n秒';
   }

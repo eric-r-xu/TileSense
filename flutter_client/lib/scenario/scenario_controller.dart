@@ -126,6 +126,11 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       scenario.hand.isNotEmpty && round.isFuriten(kHumanSeat);
 
   @override
+  MinimumShortfall get humanMinimumShortfall => scenario.hand.isNotEmpty
+      ? round.minimumShortfall(kHumanSeat)
+      : MinimumShortfall.none;
+
+  @override
   CallOption? humanCallOption;
   CallAdvice? _callAdvice;
 

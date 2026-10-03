@@ -968,6 +968,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get furiten => '振听';
 
   @override
+  String get noYaku => '无役';
+
+  @override
+  String underFaan(int n) {
+    return '不足$n番';
+  }
+
+  @override
+  String underTai(int n) {
+    return '不足$n台';
+  }
+
+  @override
+  String underFan(int n) {
+    return '不足$n番';
+  }
+
+  @override
+  String get noWin => '无法和牌';
+
+  @override
+  String get minimumRonOnlyTooltip => '无法荣和：任何听牌点炮都达不到最低要求，自摸仍可和牌';
+
+  @override
+  String get minimumDeadTooltip => '任何听牌即使自摸也达不到最低要求，此手牌目前无法和牌';
+
+  @override
   String secondsShort(int n) {
     return '$n秒';
   }
@@ -3008,6 +3035,33 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get furiten => '振聽';
+
+  @override
+  String get noYaku => '無役';
+
+  @override
+  String underFaan(int n) {
+    return '不足$n番';
+  }
+
+  @override
+  String underTai(int n) {
+    return '不足$n台';
+  }
+
+  @override
+  String underFan(int n) {
+    return '不足$n番';
+  }
+
+  @override
+  String get noWin => '無法和牌';
+
+  @override
+  String get minimumRonOnlyTooltip => '無法榮和：任何聽牌放槍都達不到最低要求，自摸仍可和牌';
+
+  @override
+  String get minimumDeadTooltip => '任何聽牌即使自摸也達不到最低要求，此手牌目前無法和牌';
 
   @override
   String secondsShort(int n) {

@@ -13,7 +13,7 @@ import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
 import 'meld_row.dart';
 import 'phone_menu.dart' show PhoneMenuButton;
-import 'table_view.dart' show CountdownBadge;
+import 'table_view.dart' show CountdownBadge, kMinimumShortfallColor;
 import 'tile_face.dart';
 import 'tilesensor.dart';
 
@@ -768,6 +768,30 @@ class _HandViewState extends State<HandView> {
       ));
     }
 
+    // Under-minimum marker: tenpai, but no wait reaches the table's minimum
+    // (yaku / faan / tai / fan) off a discard, so ron is never offered —
+    // amber, to read as a sibling of FURITEN rather than the same thing.
+    final shortfall = game.humanMinimumShortfall;
+    if (shortfall != MinimumShortfall.none) {
+      buttons.add(Tooltip(
+        message: context.l10n.minimumShortfallTooltip(shortfall),
+        child: Chip(
+          key: const Key('minimumShortfallChip'),
+          label: Text(
+              context.l10n.minimumShortfallLabel(ruleset, shortfall,
+                  minimumFaan: game.round.minimumFaan,
+                  minimumPoints: game.round.minimumPoints),
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 0.5)),
+          backgroundColor: kMinimumShortfallColor,
+          visualDensity: VisualDensity.compact,
+        ),
+      ));
+    }
+
     if (game.round.canFlowerWin(kHumanSeat)) {
       // Hong Kong: a seventh or eighth flower may be claimed as a win.
       buttons.add(_btn(
@@ -875,6 +899,7 @@ class _HandViewState extends State<HandView> {
     // single frame.
     final offer = [
       game.humanFuriten,
+      game.humanMinimumShortfall,
       game.round.canFlowerWin(kHumanSeat),
       game.humanCallOption?.types,
       game.humanChiRuns,

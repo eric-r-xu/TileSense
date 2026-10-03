@@ -15,6 +15,10 @@ import 'meld_row.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
 
+/// The under-minimum marker's amber, shared by the placard badge and the hand
+/// bar's chip so it never reads as FURITEN's red.
+const kMinimumShortfallColor = Color(0xffef6c00);
+
 /// The flat 2D table. Each seat's placard hugs its own edge with the concealed
 /// hand just inside it (the freshly drawn tile split out so its position reads);
 /// the four discard ponds bracket the centre on a fixed six-column grid whose
@@ -939,6 +943,11 @@ class TableView extends StatelessWidget {
       // but barred from ron. Only seat 0's placard renders unrotated, so
       // keep it here.
       if (seat == kHumanSeat && game.humanFuriten) _furitenBadge(),
+      // Beside it, the under-minimum badge: tenpai, but no wait reaches the
+      // table's minimum off a discard.
+      if (seat == kHumanSeat &&
+          game.humanMinimumShortfall != MinimumShortfall.none)
+        _minimumShortfallBadge(),
       if (seat == kHumanSeat && autoplaying) _autoplayBadge(),
       // Online play only — see [GuideHost.turnDeadlineMs] — a per-turn
       // countdown next to whoever's actually on the clock.
@@ -976,22 +985,41 @@ class TableView extends StatelessWidget {
         ),
       ));
 
-  Widget _furitenBadge() => Container(
+  Widget _furitenBadge() => Builder(
+      builder: (context) =>
+          _statusBadge(context.l10n.furiten, const Color(0xffc62828)));
+
+  Widget _minimumShortfallBadge() => Builder(builder: (context) {
+        final shortfall = game.humanMinimumShortfall;
+        return Tooltip(
+          message: context.l10n.minimumShortfallTooltip(shortfall),
+          child: _statusBadge(
+            context.l10n.minimumShortfallLabel(
+                game.round.ruleset, shortfall,
+                minimumFaan: game.round.minimumFaan,
+                minimumPoints: game.round.minimumPoints),
+            kMinimumShortfallColor,
+            key: const Key('minimumShortfallBadge'),
+          ),
+        );
+      });
+
+  /// A small rounded label beside the human's placard (FURITEN, under-minimum).
+  Widget _statusBadge(String label, Color color, {Key? key}) => Container(
+        key: key,
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
-          color: const Color(0xffc62828),
+          color: color,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Builder(
-          builder: (context) => Text(
-          context.l10n.furiten,
+        child: Text(
+          label,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),
-        ),
         ),
       );
 }

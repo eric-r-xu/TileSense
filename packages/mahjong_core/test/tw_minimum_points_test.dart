@@ -101,6 +101,18 @@ void main() {
     }
   });
 
+  test('minimumShortfall reports a wait too cheap for the minimum', () {
+    for (final (minimum, flowers, expected) in [
+      (1, 1, MinimumShortfall.none), // 1 point off a discard
+      (3, 1, MinimumShortfall.dead), // 2 self-drawn: never enough
+      (3, 2, MinimumShortfall.ronOnly), // 2 off a discard, 3 self-drawn
+      (5, 2, MinimumShortfall.dead),
+    ]) {
+      expect(_table(minimum, flowers: flowers).minimumShortfall(1), expected,
+          reason: 'minimum $minimum, $flowers flowers');
+    }
+  });
+
   test('scoreTaiwaneseHand defaults to the sheet\'s 5', () {
     final r = _table(1);
     final score = scoreTaiwaneseHand(

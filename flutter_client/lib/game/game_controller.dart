@@ -1831,6 +1831,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   bool get humanFuriten => !round.finished && round.isFuriten(kHumanSeat);
 
+  @override
+  MinimumShortfall get humanMinimumShortfall => round.finished
+      ? MinimumShortfall.none
+      : round.minimumShortfall(kHumanSeat);
+
   /// The tile the auto-player would discard on the human's turn (for the green
   /// "what autoplay would do" hint). Null when it is not the human's turn.
   /// Autoplay follows the guide, so this is simply its recommended discard.

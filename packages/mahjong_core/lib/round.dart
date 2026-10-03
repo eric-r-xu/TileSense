@@ -35,6 +35,20 @@ enum RoundEndKind { tsumo, ron, exhaustiveDraw, abortiveDraw }
 
 enum CallType { none, chi, pon, kan, ron }
 
+/// How a tenpai hand falls short of the table's minimum to win — no yaku
+/// (riichi), under the minimum faan (Hong Kong) or points (Taiwanese), or
+/// under 8 fan (MCR). See [Round.minimumShortfall].
+enum MinimumShortfall {
+  /// Not tenpai, or at least one wait wins off a discard.
+  none,
+
+  /// No wait wins off a discard, but at least one wins self-drawn.
+  ronOnly,
+
+  /// No wait wins at all, discard or self-draw.
+  dead,
+}
+
 class SeatState {
   SeatState(this.seat, this.wind, this.isDealer, this.points);
 
@@ -424,6 +438,26 @@ class Round {
     final s = seats[seat];
     if (_waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
     return _isFuriten(s);
+  }
+
+  /// Whether [seat] is tenpai but no wait reaches the table's minimum off a
+  /// discard — the reason ron never gets offered, shown beside the furiten
+  /// marker. Furiten itself is ignored here; [isFuriten] reports that.
+  MinimumShortfall minimumShortfall(int seat) {
+    final s = seats[seat];
+    if (s.hand.length % 3 != 1) return MinimumShortfall.none;
+    final waits = _waitTiles(s.hand, openMelds: s.melds.length);
+    if (waits.isEmpty) return MinimumShortfall.none;
+    // A stand-in winning tile: id -1 matches no physical tile, so scoring
+    // that counts visible tiles by id (MCR's last-tile check) is unaffected.
+    bool wins(TileType t, {required bool isTsumo}) =>
+        _winsWith(s, s.hand, Tile(-1, t), isTsumo: isTsumo);
+    if (waits.any((t) => wins(t, isTsumo: false))) {
+      return MinimumShortfall.none;
+    }
+    return waits.any((t) => wins(t, isTsumo: true))
+        ? MinimumShortfall.ronOnly
+        : MinimumShortfall.dead;
   }
 
   bool canRiichi(int seat) {
