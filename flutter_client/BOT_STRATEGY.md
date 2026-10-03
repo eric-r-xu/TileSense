@@ -31,7 +31,9 @@ how that compares to how your own seat plays. Based on
 - **Autoplay starts on Speed** in all three rulesets, and on Aggressive under
   riichi — chosen from measured sweeps (see
   [How the guide measures up](#how-the-guide-measures-up)). The guide beats
-  the bots at a statistically significant level in all three rulesets.
+  the bots at a statistically significant level in all three rulesets. Under
+  MCR it was well behind them until 2026-10-02 and now edges ahead (see
+  [MCR](#mcr--from-last-place-to-just-ahead-of-the-bots)).
 
 - **Style is a riichi-only dial.** Hong Kong has no riichi or damaten for it
   to weigh, and a full sweep found no placement effect from it either, so the
@@ -53,6 +55,7 @@ The validated starting presets are:
 | Riichi | Aggressive | Speed | Points |
 | Hong Kong | Balanced (pinned) | Speed | Points (pinned) |
 | Taiwanese | Balanced (pinned) | Speed | Points (pinned) |
+| MCR | Balanced (pinned) | Speed | Points (pinned) |
 
 Taiwanese uses its own call-aware win model; its held-out measurement below
 validates that model with these dials. These are evidence-backed defaults,
@@ -511,6 +514,56 @@ the held-out −0.146 ± 0.108 recorded above. So the pivot was left at 32.
 The lesson: a constant being *inconsistent* is not the same as it being
 *costly*. Focus shifts the ranking between lines of similar value, and at
 either pivot the same line usually still wins.
+
+### MCR — from last place to just ahead of the bots
+
+**Result.** Held out on seeds 630000+, which no tuning run used: 1600 paired
+East-only games, `SimpleBot` opponents, the default dials. **Measured
+2026-10-02**
+(`MCR_TUNE_SEED=630000 MCR_TUNE_ARMS=before MCR_TUNE_GAMES=1600 flutter test test/mcr_tuning_sweep_test.dart`).
+
+| Measurement | Result |
+|---|---|
+| Guide vs. control bot in your seat, placement | **−0.082 ± 0.074**, p = 0.029 |
+| Guide vs. the guide before these changes, placement | **−0.858 ± 0.064**, p = 2e-152 |
+| Wins per game (four hands) | 0.880, to the bot's 0.875 (before: 0.202) |
+
+**What was wrong.** The guide finished last at almost every table, 0.78 of a
+placement behind the bot, winning a fifth as often. `test/mcr_guide_diag_test.dart`
+counted why:
+
+1. **It never called.** The guide took a call in 1% of hands to the bot's
+   83%, and kept 99% of hands closed. Every open MCR hand was worth nothing:
+   `McrEfficiencyCalculator.acceptance` worked out the exposed sets from the
+   tile count, so it saw one set fewer once a drawn tile took an open hand to
+   11 tiles, and no draw ever looked like progress. With no acceptance there
+   was no win chance, and every call priced at 0.
+2. **It walked away from ready.** It stepped back 4.6 times a hand, to the
+   bot's 0.57. MCR borrows riichi's win model, and MCR's shanten counts the
+   special shapes (knitted, honors and knitted, seven pairs), whose raw
+   acceptance runs far past an ordinary hand's — so a hand drifting toward one
+   looked unusually wide, and a wide two-away line outranked a narrow
+   one-away one.
+3. **Fixing the calculator alone did not help.** Once calls had a price, the
+   guide called in 59% of hands — and 26% of hands reached a ready shape worth
+   under 8 points, to the bot's 0.1%. The pre-ready estimate cannot tell an
+   open hand that still has a route to 8 from one a call has just killed; the
+   bot's own check refuses a ready shape with no qualifying wait.
+
+**The changes.** The calculator fix, plus two `HongKongGuideTuning` rules
+(`test/mcr_tuning_sweep_test.dart`, 800 paired games on seeds 620000+):
+
+| Arm | Placement vs. bot |
+|---|---|
+| Before (every rule off) | +0.743 ± 0.092 |
+| `mcrNeverStepBack` — a calm hand only weighs discards that keep it as close to ready | +0.141 ± 0.101 |
+| `mcrCallsOnlyToReady` — a pung or chow only when it leaves a ready hand with a wait worth 8 | +0.641 ± 0.094 |
+| `mcrTakeShantenCalls` — any call that advances the hand, as Hong Kong ships | +0.659 ± 0.093 |
+| **Never step back + calls only to ready (shipped)** | **−0.080 ± 0.105** |
+
+Neither rule does much alone; together they keep the hand moving and stop it
+calling into a dead end. They are a stopgap for what the estimate should know
+itself: which routes to 8 a hand still has.
 
 ### Style does nothing under Hong Kong
 
