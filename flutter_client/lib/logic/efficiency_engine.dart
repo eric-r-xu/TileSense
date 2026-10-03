@@ -274,6 +274,28 @@ class HongKongGuideTuning {
   /// such calls rather than overruling them. See [neverStepBack].
   static bool takeShantenCalls = true;
 
+  /// [neverStepBack] for MCR. MCR's pre-ready estimate rides riichi's win
+  /// model, which reads a hand near a special shape (knitted, honors and
+  /// knitted) as unusually wide and steps back toward it — 4.6 times a hand
+  /// in `mcr_guide_diag_test.dart` to the bot's 0.57. With
+  /// [mcrCallsOnlyToReady], worth 0.858 of a placement over the guide without
+  /// either, and 0.082 ± 0.074 ahead of the bot (p = 0.029), on 1600
+  /// held-out games (seeds 630000+, 2026-10-02) — see BOT_STRATEGY.md.
+  static bool mcrNeverStepBack = true;
+
+  /// [takeShantenCalls] for MCR. Off: an open MCR hand needs a route to 8
+  /// points that shanten alone cannot see, and taking every call that
+  /// advances the hand measured no better than the shipped guide
+  /// (`mcr_tuning_sweep_test.dart`).
+  static bool mcrTakeShantenCalls = false;
+
+  /// MCR: take a pung or chow only when it leaves a ready hand with a live
+  /// wait worth the 8-point minimum. The pre-ready estimate cannot tell an
+  /// open hand that still has a route to 8 from one a call has just killed:
+  /// with calls priced at all, the guide reached a ready shape under 8 in 26%
+  /// of hands to the bot's 0.1% (`mcr_guide_diag_test.dart`).
+  static bool mcrCallsOnlyToReady = true;
+
   /// The win-probability model the Taiwanese guide runs on.
   static WinModel taiwaneseWinModel = WinModel.taiwanese;
 }
@@ -1284,10 +1306,12 @@ class EfficiencyEngine {
     // random defending positions in `push_fold_sweep_test.dart` the two agreed
     // on better than 99% of decisions before the switch came out.
     //
-    // Under [HongKongGuideTuning.neverStepBack] a calm Hong Kong hand only
-    // weighs the discards that keep it as close to ready as it is.
+    // Under [HongKongGuideTuning.neverStepBack] (or its MCR twin) a calm hand
+    // only weighs the discards that keep it as close to ready as it is.
     final recommended =
-        ruleset.isHongKong && HongKongGuideTuning.neverStepBack && !defending
+        ((ruleset.isHongKong && HongKongGuideTuning.neverStepBack) ||
+                    (ruleset.isMcr && HongKongGuideTuning.mcrNeverStepBack)) &&
+                !defending
             ? lines.where((l) => l.shanten == currentShanten).firstOrNull
             : bestValue;
     // Every discard nothing in the panel separates from the recommended one
@@ -1530,11 +1554,14 @@ class EfficiencyEngine {
       }
     }
 
-    // Under [HongKongGuideTuning.takeShantenCalls], any call that brings a
-    // calm hand closer to ready is taken; value only picks among them.
+    // Under [HongKongGuideTuning.takeShantenCalls] (or its MCR twin), any call
+    // that brings a calm hand closer to ready is taken; value only picks
+    // among them.
     ActionAdvice? advancing;
-    if (context.ruleset.isHongKong &&
-        HongKongGuideTuning.takeShantenCalls &&
+    if (((context.ruleset.isHongKong &&
+                HongKongGuideTuning.takeShantenCalls) ||
+            (context.ruleset.isMcr &&
+                HongKongGuideTuning.mcrTakeShantenCalls)) &&
         !opponentRiichi) {
       for (final option in options) {
         if (option.action != GuidedAction.pon &&
@@ -1802,6 +1829,23 @@ class EfficiencyEngine {
       }
     }
     final shape = ruleset.shapeLabel(best.shanten);
+
+    if (ruleset.isMcr &&
+        HongKongGuideTuning.mcrCallsOnlyToReady &&
+        (action == GuidedAction.pon || action == GuidedAction.chi) &&
+        !(best.shanten == 0 && best.valuePlan == 'READY')) {
+      return ActionAdvice(
+        action: action,
+        expectedValue: 0,
+        shantenAfter: best.shanten,
+        eligible: false,
+        meldLow: meld.low,
+        discardAfter: best.discard,
+        discardSafety: best.safety,
+        reason: '$label would not leave a ready hand worth 8 points, and an '
+            'open hand has few routes left to get there.',
+      );
+    }
 
     // "Does it advance the hand" is a question about the shape the call makes
     // available, not about which line the value model then prefers — a call
