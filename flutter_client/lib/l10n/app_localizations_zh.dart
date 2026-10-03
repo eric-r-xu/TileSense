@@ -189,6 +189,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepPlaying => '继续对局';
 
   @override
+  String lengthChangeConfirmTitle(String length) {
+    return '切换为$length？';
+  }
+
+  @override
+  String get lengthChangeConfirm => '切换';
+
+  @override
   String get newGame => '新对局';
 
   @override
@@ -2221,6 +2229,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get keepPlaying => '繼續對局';
+
+  @override
+  String lengthChangeConfirmTitle(String length) {
+    return '切換為$length？';
+  }
+
+  @override
+  String get lengthChangeConfirm => '切換';
 
   @override
   String get newGame => '新對局';

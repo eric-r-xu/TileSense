@@ -191,6 +191,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepPlaying => '続ける';
 
   @override
+  String lengthChangeConfirmTitle(String length) {
+    return '$lengthに切り替えますか？';
+  }
+
+  @override
+  String get lengthChangeConfirm => '切り替える';
+
+  @override
   String get newGame => '新しい対局';
 
   @override

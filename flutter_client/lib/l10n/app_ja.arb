@@ -56,6 +56,8 @@
   "newGameConfirmTitle": "新しい対局を始めますか？",
   "newGameConfirmBody": "進行中の対局は失われます。",
   "keepPlaying": "続ける",
+  "lengthChangeConfirmTitle": "{length}に切り替えますか？",
+  "lengthChangeConfirm": "切り替える",
   "newGame": "新しい対局",
   "loadingTable": "卓を準備中…",
   "loadingBuilder": "手牌ビルダーを読み込み中…",

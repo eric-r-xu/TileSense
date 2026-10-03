@@ -56,6 +56,8 @@
   "newGameConfirmTitle": "开始新对局？",
   "newGameConfirmBody": "进行中的对局将会丢失。",
   "keepPlaying": "继续对局",
+  "lengthChangeConfirmTitle": "切换为{length}？",
+  "lengthChangeConfirm": "切换",
   "newGame": "新对局",
   "loadingTable": "正在准备牌桌…",
   "loadingBuilder": "正在加载手牌构建器…",

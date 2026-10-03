@@ -193,6 +193,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepPlaying => 'Keep playing';
 
   @override
+  String lengthChangeConfirmTitle(String length) {
+    return 'Switch to $length?';
+  }
+
+  @override
+  String get lengthChangeConfirm => 'Switch';
+
+  @override
   String get newGame => 'New game';
 
   @override

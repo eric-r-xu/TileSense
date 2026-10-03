@@ -84,6 +84,15 @@
   "newGameConfirmTitle": "Start a new game?",
   "newGameConfirmBody": "The game in progress will be lost.",
   "keepPlaying": "Keep playing",
+  "lengthChangeConfirmTitle": "Switch to {length}?",
+  "@lengthChangeConfirmTitle": {
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "lengthChangeConfirm": "Switch",
   "newGame": "New game",
   "loadingTable": "Preparing your table…",
   "loadingBuilder": "Loading hand builder…",
