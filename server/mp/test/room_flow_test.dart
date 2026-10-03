@@ -251,6 +251,7 @@ void main() {
     'smurf',
     'ricky',
     'finley',
+    'adri',
   ]) {
     test(
         'a guest requesting already-taken $character is assigned a '

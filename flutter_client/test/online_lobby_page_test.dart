@@ -243,20 +243,20 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('Finley can be selected for a new online room', (tester) async {
+  testWidgets('Adri can be selected for a new online room', (tester) async {
     final game = OnlineGameController();
     await pump(tester, game);
     await tester.tap(find.descendant(
       of: find.byType(CharacterRow),
-      matching: find.text('Finley'),
+      matching: find.text('Adri'),
     ));
     await tester.pump();
     expect(
         tester.widget<TextField>(find.byType(TextField).first).controller!.text,
-        'Finley');
+        'Adri');
     await tester.tap(find.byKey(const Key('createRoom')));
     await tester.pump();
-    expect(game.myCharacter, Character.finley);
+    expect(game.myCharacter, Character.adri);
     expect(tester.takeException(), isNull);
     game.dispose();
     await tester.pumpWidget(const SizedBox());
