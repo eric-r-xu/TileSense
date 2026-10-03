@@ -611,5 +611,12 @@
   "mathSpread": "ばらつき",
   "mathHandsLeft": "残り局数",
   "mathLogistic": "ロジスティック関数",
-  "mascotIntro": "ぼくは{mascot}。プレーリードッグとウーパールーパーの仲間。\nおすすめの打牌や鳴きを選ぶよ。\nオートプレイをオンにすると、きみの席を打つよ。\n打ち間違えたら、戻してもう一度。\n一緒に遊んで{app}を磨こう！"
+  "mascotIntro": "ぼくは{mascot}。プレーリードッグとウーパールーパーの仲間。\nおすすめの打牌や鳴きを選ぶよ。\nオートプレイをオンにすると、きみの席を打つよ。\n打ち間違えたら、戻してもう一度。\n一緒に遊んで{app}を磨こう！",
+  "rulesetMcr": "国標麻雀 (MCR)",
+  "rulesetSubtitleMcr": "番・花牌・最低8番",
+  "mcrFullGame": "全荘 · 16局",
+  "mcrPractice": "東場練習 · 4局",
+  "mcrScoreTotal": "{fan}番 + 花牌{flowers} · +{gain}点",
+  "yakuLineMcr": "{name}  {n}番",
+  "tipPayoutMcr": "番数＋花牌（F）：放銃者が F＋8、他の2人が各8、ツモなら全員が F＋8 を払います。聴牌時は正確な値で、花牌を除いて8番以上の待ちだけが和了できます。それ以前は推定です。\n"
 }

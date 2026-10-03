@@ -2025,4 +2025,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String mascotIntro(String mascot, String app) {
     return 'ぼくは$mascot。プレーリードッグとウーパールーパーの仲間。\nおすすめの打牌や鳴きを選ぶよ。\nオートプレイをオンにすると、きみの席を打つよ。\n打ち間違えたら、戻してもう一度。\n一緒に遊んで$appを磨こう！';
   }
+
+  @override
+  String get rulesetMcr => '国標麻雀 (MCR)';
+
+  @override
+  String get rulesetSubtitleMcr => '番・花牌・最低8番';
+
+  @override
+  String get mcrFullGame => '全荘 · 16局';
+
+  @override
+  String get mcrPractice => '東場練習 · 4局';
+
+  @override
+  String mcrScoreTotal(int fan, int flowers, int gain) {
+    return '$fan番 + 花牌$flowers · +$gain点';
+  }
+
+  @override
+  String yakuLineMcr(String name, int n) {
+    return '$name  $n番';
+  }
+
+  @override
+  String get tipPayoutMcr =>
+      '番数＋花牌（F）：放銃者が F＋8、他の2人が各8、ツモなら全員が F＋8 を払います。聴牌時は正確な値で、花牌を除いて8番以上の待ちだけが和了できます。それ以前は推定です。\n';
 }

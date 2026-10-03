@@ -308,9 +308,9 @@ class CharacterSelectPage extends StatelessWidget {
         Text(context.l10n.gameLength,
             style: const TextStyle(color: Colors.white54, fontSize: 14)),
         const SizedBox(width: 10),
-        option(const Key('lengthHanchan'), context.l10n.lengthHanchan, true),
+        option(const Key('lengthHanchan'), ((ruleset?.isMcr ?? false) ? context.l10n.mcrFullGame : context.l10n.lengthHanchan), true),
         option(
-            const Key('lengthEastOnly'), context.l10n.lengthEastOnly, false),
+            const Key('lengthEastOnly'), ((ruleset?.isMcr ?? false) ? context.l10n.mcrPractice : context.l10n.lengthEastOnly), false),
       ],
     );
   }

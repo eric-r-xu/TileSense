@@ -490,6 +490,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               values: const [
                                 Ruleset.hongKong,
                                 Ruleset.taiwanese,
+                                Ruleset.mcr,
                                 Ruleset.riichi
                               ],
                               current: s.ruleset,

@@ -429,6 +429,8 @@ class _ScoringViewState extends State<ScoringView> {
             for (final y in score.yaku)
               Text(
                   switch (context.l10n.scoringName(y.name, round.ruleset)) {
+                    final name when round.ruleset.isMcr =>
+                      context.l10n.yakuLineMcr(name, y.han),
                     final name when taiwanese => y.faan == 1
                         ? context.l10n.yakuLineTaiOne(name, y.faan)
                         : context.l10n.yakuLineTaiMany(name, y.faan),
@@ -447,7 +449,10 @@ class _ScoringViewState extends State<ScoringView> {
           // see taiwanese_scoring.dart — so there is nothing to show twice
           // the way "faan — chips" or "han fu — points" show two different
           // scales.
-          _totalLine(context.l10n, score, taiwanese: taiwanese, hk: hk),
+          round.ruleset.isMcr
+              ? context.l10n.mcrScoreTotal(score.mcrQualifyingPoints ?? score.han,
+                  score.mcrFlowerPoints ?? 0, score.points)
+              : _totalLine(context.l10n, score, taiwanese: taiwanese, hk: hk),
           style: const TextStyle(
               color: Color(0xffffdf76), fontWeight: FontWeight.bold),
         ),

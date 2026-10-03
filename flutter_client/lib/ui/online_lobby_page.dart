@@ -244,10 +244,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                         const SizedBox(height: 10),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(context.l10n.fullGameSwitch),
+                          title: Text(_ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.fullGameSwitch),
                           subtitle: Text(_hanchan
-                              ? context.l10n.fullGameSwitchOn
-                              : context.l10n.fullGameSwitchOff),
+                              ? (_ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.fullGameSwitchOn)
+                              : (_ruleset.isMcr ? context.l10n.mcrPractice : context.l10n.fullGameSwitchOff)),
                           value: _hanchan,
                           onChanged: (v) => setState(() => _hanchan = v),
                         ),
@@ -510,6 +510,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       option(Ruleset.riichi),
       option(Ruleset.hongKong),
       option(Ruleset.taiwanese),
+      option(Ruleset.mcr),
     ]);
   }
 
@@ -555,7 +556,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               context.l10n.roomFaanMin(game.minimumFaan),
             if (game.ruleset.isTaiwanese)
               context.l10n.roomTaiMin(game.minimumPoints),
-            game.hanchan ? context.l10n.roomFullGame : context.l10n.roomEastOnly,
+            game.ruleset.isMcr ? (game.hanchan ? context.l10n.mcrFullGame : context.l10n.mcrPractice) : (game.hanchan ? context.l10n.roomFullGame : context.l10n.roomEastOnly),
             context.l10n.roomClocks(game.turnSeconds, game.callSeconds),
           ].join(' · '),
           child: Column(

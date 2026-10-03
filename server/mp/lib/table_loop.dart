@@ -189,7 +189,7 @@ class TableLoop {
   /// Postgres, on top of whatever room state it already drops by design.
   Future<void> flushTelemetry() => _tel?.flush() ?? Future.value();
 
-  Wind get _roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
+  Wind get _roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < 4 ? Wind.east : Wind.south);
 
   /// Starts the game loop. Randomizes who sits where first (so join order
   /// doesn't decide who deals first), then fills any still-empty seat with a
@@ -589,10 +589,10 @@ class TableLoop {
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
     // An abortive draw (e.g. kyuushu kyuuhai) is a void hand — the dealer
     // always repeats, whoever they are, no tenpai check involved.
-    final dealerKept = r.kind == RoundEndKind.abortiveDraw ||
+    final dealerKept = !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
             ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
-            : r.winners.contains(_dealer));
+            : r.winners.contains(_dealer)));
 
     _tel?.roundEnd(
       matchId: _matchId,
@@ -691,6 +691,9 @@ class TableLoop {
     required int honba,
     required Ruleset ruleset,
   }) {
+    if (ruleset.isMcr) {
+      return (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+    }
     if (ruleset.isTaiwanese) {
       final nextHonba = (dealerKept && !exhaustiveDraw) ? honba + 1 : 0;
       return dealerKept

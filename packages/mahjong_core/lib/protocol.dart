@@ -80,6 +80,8 @@ Map<String, dynamic> handScoreToJson(HandScore s) => {
       'nonDealerPays': s.nonDealerPays,
       'limitName': s.limitName,
       'valid': s.valid,
+      if (s.mcrQualifyingPoints != null) 'mcrQualifyingPoints': s.mcrQualifyingPoints,
+      if (s.mcrFlowerPoints != null) 'mcrFlowerPoints': s.mcrFlowerPoints,
     };
 
 HandScore handScoreFromJson(Map<String, dynamic> json) => HandScore(
@@ -95,6 +97,8 @@ HandScore handScoreFromJson(Map<String, dynamic> json) => HandScore(
       nonDealerPays: json['nonDealerPays'] as int,
       limitName: json['limitName'] as String,
       valid: json['valid'] as bool,
+      mcrQualifyingPoints: json['mcrQualifyingPoints'] as int?,
+      mcrFlowerPoints: json['mcrFlowerPoints'] as int?,
     );
 
 Map<String, dynamic> roundResultToJson(RoundResult r) => {

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/game_controller.dart';
 
 void main() {
@@ -56,6 +57,26 @@ void main() {
       expect(r.dealer, 0);
       expect(r.roundNumber, 6);
       expect(r.honba, 0);
+    });
+
+    test('MCR passes the button after every hand, win or draw, with no honba',
+        () {
+      // Even a "kept" dealer (a dealer win or draw) passes in MCR (§3.4.8).
+      for (final kept in [true, false]) {
+        for (final draw in [true, false]) {
+          final r = GameController.rotateAfterRound(
+            exhaustiveDraw: draw,
+            dealerKept: kept,
+            dealer: 3,
+            roundNumber: 7,
+            honba: 0,
+            ruleset: Ruleset.mcr,
+          );
+          expect(r.dealer, 0);
+          expect(r.roundNumber, 8);
+          expect(r.honba, 0);
+        }
+      }
     });
   });
 }

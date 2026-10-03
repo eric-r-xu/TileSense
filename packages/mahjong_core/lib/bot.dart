@@ -9,6 +9,11 @@ import 'dart:math';
 
 import 'efficiency_calc.dart';
 import 'hand_parse.dart';
+import 'meld.dart';
+import 'mcr/mcr_efficiency.dart';
+import 'mcr/mcr_hand_parse.dart';
+import 'mcr/mcr_scoring.dart';
+import 'mcr/mcr_strategy.dart';
 import 'round.dart';
 import 'scoring.dart';
 import 'taiwanese/taiwanese_hand_parse.dart';
@@ -36,6 +41,7 @@ class BotTurn {
 class SimpleBot {
   SimpleBot(int seed) : _rng = Random(seed);
   final Random _rng;
+  final _mcrCalc = McrEfficiencyCalculator();
 
   BotTurn decideTurn(Round round, int seat) {
     final s = round.seats[seat];
@@ -74,6 +80,7 @@ class SimpleBot {
   CallType decideCall(
       Round round, int seat, Tile discard, Set<CallType> allowed) {
     if (allowed.contains(CallType.ron)) return CallType.ron;
+    if (round.ruleset.isMcr) return _mcrCall(round, seat, discard, allowed);
     if (round.ruleset.isChineseStyle) {
       return _decideHongKongCall(round, seat, discard, allowed);
     }
@@ -181,9 +188,61 @@ class SimpleBot {
     return null;
   }
 
+  double _mcrHandValue(Round round, SeatState seat, List<Tile> hand, List<Meld> melds) {
+    final shanten = _mcrCalc.calculateWaitingShanten(toTrainerCounts(hand));
+    final closed = melds.every((m) => m.concealed);
+    if (shanten <= 0) {
+      var value = 0.0;
+      for (final wait in waitTilesMcr(hand, openMelds: melds.length)) {
+        for (final self in [false,true]) {
+          final score = scoreMcrHand(hand, Tile(-1, wait), melds, ScoreContext(
+            roundWind: round.roundWind, seatWind: seat.wind, isTsumo: self,
+            closed: closed, flowers: seat.flowers.map((t) => t.type).toList()));
+          if (score.valid) value += score.points * (self ? 0.35 : 0.65);
+        }
+      }
+      if (value > 0) return 100 + value / 100;
+      return -15; // Shape complete but no qualifying finish: build value.
+    }
+    return -10 * shanten + 8 * mcrPatternPotential(hand, melds,
+        seatWind: seat.wind, roundWind: round.roundWind);
+  }
+
+  CallType _mcrCall(Round round, int seatIndex, Tile discard, Set<CallType> allowed) {
+    final seat = round.seats[seatIndex];
+    final before = _mcrHandValue(round, seat, seat.hand, seat.melds);
+    var best = before;
+    var choice = CallType.none;
+    for (final type in [CallType.pon, CallType.chi]) {
+      if (!allowed.contains(type)) continue;
+      final meld = Meld(kind: type == CallType.pon ? MeldKind.triplet : MeldKind.sequence,
+          low: type == CallType.pon ? discard.type : round.chiSequences(seatIndex, discard).first,
+          concealed: false);
+      final rest = [...seat.hand];
+      final needs = [...meld.types]..remove(discard.type);
+      for (final need in needs) { rest.removeAt(rest.indexWhere((t) => t.type == need)); }
+      final melds = [...seat.melds, meld];
+      for (final cut in rest) {
+        final value = _mcrHandValue(round, seat, [...rest]..remove(cut), melds);
+        if (value > best) { best = value; choice = type; }
+      }
+    }
+    if (allowed.contains(CallType.kan)) {
+      final rest = [...seat.hand]..removeWhere((t) => t.type == discard.type);
+      final melds = [...seat.melds, Meld(kind: MeldKind.kan, low: discard.type, concealed: false)];
+      if (_mcrHandValue(round, seat, rest, melds) >= best) choice = CallType.kan;
+    }
+    return choice;
+  }
+
   Tile _discardTile(Round round, int seat) {
     final s = round.seats[seat];
     var tiles = List<Tile>.of(round.legalDiscards(seat));
+    if (round.ruleset.isMcr) {
+      tiles.sort((a,b) => _mcrHandValue(round, s, [...s.hand]..remove(b), s.melds)
+          .compareTo(_mcrHandValue(round, s, [...s.hand]..remove(a), s.melds)));
+      return tiles.first;
+    }
     final taiwanese = round.ruleset.isTaiwanese;
 
     // (1) a discard that keeps tenpai.

@@ -95,6 +95,8 @@ class HandScore {
     required this.nonDealerPays,
     required this.limitName,
     required this.valid,
+    this.mcrQualifyingPoints,
+    this.mcrFlowerPoints,
   });
 
   final List<YakuResult> yaku;
@@ -116,6 +118,10 @@ class HandScore {
 
   final String limitName;
   final bool valid;
+
+  /// Present only for MCR; flowers do not count toward the eight-point minimum.
+  final int? mcrQualifyingPoints;
+  final int? mcrFlowerPoints;
 
   static HandScore invalid() => HandScore(
         yaku: const [],

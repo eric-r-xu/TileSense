@@ -611,5 +611,12 @@
   "mathSpread": "分散尺度",
   "mathHandsLeft": "剩餘局數",
   "mathLogistic": "邏輯函數",
-  "mascotIntro": "我是{mascot}，一半草原犬鼠，一半美西螈。\n我會幫你選擇最佳打牌和鳴牌。\n開啟自動打牌，我就替你打。\n打錯了？撤回再試一次。\n一起玩，提升你的{app}！"
+  "mascotIntro": "我是{mascot}，一半草原犬鼠，一半美西螈。\n我會幫你選擇最佳打牌和鳴牌。\n開啟自動打牌，我就替你打。\n打錯了？撤回再試一次。\n一起玩，提升你的{app}！",
+  "rulesetMcr": "國標麻將 (MCR)",
+  "rulesetSubtitleMcr": "番、花牌、最低8番",
+  "mcrFullGame": "全場 · 16局",
+  "mcrPractice": "東風練習 · 4局",
+  "mcrScoreTotal": "{fan}番 + 花牌{flowers} · +{gain}分",
+  "yakuLineMcr": "{name}  {n}番",
+  "tipPayoutMcr": "番數加花牌（F）：放槍者付 F＋8，其他兩家各付 8；自摸則每家付 F＋8。聽牌時為準確值，且不計花牌達到8番的聽牌才能和牌；之前為估計值。\n"
 }

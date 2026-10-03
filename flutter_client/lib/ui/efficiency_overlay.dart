@@ -520,6 +520,11 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               more: context.l10n.tipPayoutMore),
           _tipPart(context.l10n.tipCutTitle, context.l10n.tipCutChinese,
               more: context.l10n.tipCutMore),
+        ] else if (ruleset.isMcr) ...[
+          _tipPart(context.l10n.tipPayoutTitle, context.l10n.tipPayoutMcr,
+              more: context.l10n.tipPayoutMore),
+          _tipPart(context.l10n.tipCutTitle, context.l10n.tipCutChinese,
+              more: context.l10n.tipCutMore),
         ] else if (ruleset.isHongKong) ...[
           _tipPart(context.l10n.tipPayoutTitle, context.l10n.tipPayoutHk,
               more: context.l10n.tipPayoutMore),

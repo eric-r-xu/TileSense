@@ -1314,7 +1314,7 @@ class _GamePageState extends State<GamePage> {
                         ),
                         child: Text(
                           _game.hanchan
-                              ? context.l10n.hanchan
+                              ? (_game.ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.hanchan)
                               : context.l10n.eastOnly,
                           style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600),
@@ -1659,14 +1659,20 @@ class _WelcomeScreen extends StatelessWidget {
       );
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        option(Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
-        option(Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
-        option(Ruleset.taiwanese, context.l10n.rulesetSubtitleTaiwanese),
-      ],
+    // Scales down rather than overflowing on narrow screens, now that there
+    // are four options.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          option(Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
+          option(Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
+          option(Ruleset.taiwanese, context.l10n.rulesetSubtitleTaiwanese),
+          option(Ruleset.mcr, context.l10n.rulesetSubtitleMcr),
+        ],
+      ),
     );
   }
 

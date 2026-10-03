@@ -32,6 +32,10 @@ enum Ruleset {
     flag: '🇹🇼',
     unit: 'points',
     rulesUrl: 'https://app.ericrxu.com/static/Taiwanese.pdf',
+  ),
+  mcr(
+    label: 'MCR', flag: '🇨🇳', unit: 'points',
+    rulesUrl: 'https://app.ericrxu.com/static/MCR.pdf',
   );
 
   const Ruleset({
@@ -56,6 +60,8 @@ enum Ruleset {
   /// What scores are counted in.
   final String unit;
 
+  bool get isMcr => this == Ruleset.mcr;
+
   bool get isHongKong => this == Ruleset.hongKong;
   bool get isTaiwanese => this == Ruleset.taiwanese;
   bool get isRiichi => this == Ruleset.riichi;
@@ -64,12 +70,12 @@ enum Ruleset {
   /// replaced from the wall, no riichi, no furiten, and nothing callable off
   /// the last discard. They differ only in scoring vocabulary and payment —
   /// see `hong_kong_scoring.dart` and `taiwanese_scoring.dart`.
-  bool get isChineseStyle => isHongKong || isTaiwanese;
+  bool get isChineseStyle => isHongKong || isTaiwanese || isMcr;
 
   Ruleset get next => Ruleset.values[(index + 1) % Ruleset.values.length];
 
   /// Each seat's score at the start of a game.
-  int get startingPoints => isHongKong
+  int get startingPoints => isMcr ? 0 : isHongKong
       ? HongKongRules.startingChips
       : isTaiwanese
           ? TaiwaneseRules.startingChips
@@ -77,7 +83,7 @@ enum Ruleset {
 
   /// Scheduled hands in a game: East and South (hanchan) for every ruleset.
   /// [fullGame] false is East only in every ruleset.
-  int handsPerGame({required bool fullGame}) => fullGame ? 8 : 4;
+  int handsPerGame({required bool fullGame}) => fullGame ? (isMcr ? 16 : 8) : 4;
 
   /// Melds in a complete hand, beside its pair: 4 (a 14-tile hand) for riichi
   /// and Hong Kong, 5 (17 tiles) for Taiwanese.
@@ -89,13 +95,13 @@ enum Ruleset {
   /// Taiwanese lays a concealed kong down with all four tiles face down, so
   /// the other seats can't see what it is until the hand ends. Riichi and
   /// Hong Kong show the middle two.
-  bool get hidesConcealedKongs => isTaiwanese;
+  bool get hidesConcealedKongs => isTaiwanese || isMcr;
 
   /// Names for the calls and wins, in this game's vocabulary.
   String get chiLabel => isChineseStyle ? 'Chow' : 'Chi';
   String get ponLabel => isChineseStyle ? 'Pung' : 'Pon';
   String get kanLabel => isChineseStyle ? 'Kong' : 'Kan';
-  String get ronLabel => isTaiwanese ? 'Hu' : (isHongKong ? 'Win' : 'Ron');
+  String get ronLabel => (isTaiwanese || isMcr) ? 'Hu' : (isHongKong ? 'Win' : 'Ron');
   String get tsumoLabel => isChineseStyle ? 'Self-pick' : 'Tsumo';
 
   /// A hand's distance from ready, in this game's vocabulary.
@@ -115,7 +121,7 @@ enum Ruleset {
   /// there already clears that bar — so its threshold sits a tier higher, at
   /// the sheet's 10-Point patterns, the first tier that reads as a genuinely
   /// strong hand rather than just a legal one.
-  bool isBigHand(HandScore score) => isTaiwanese
+  bool isBigHand(HandScore score) => isMcr ? score.han >= 24 : isTaiwanese
       ? score.han >= 10
       : isHongKong
           ? score.han >= 5
