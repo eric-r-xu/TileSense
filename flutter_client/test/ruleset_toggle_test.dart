@@ -7,6 +7,7 @@ import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 
 import 'loading_helpers.dart';
+import 'lobby_helpers.dart';
 
 /// The Riichi / Hong Kong / Taiwanese choice: it is made on the welcome screen,
 /// carried into the character and online-lobby screens (still changeable
@@ -261,14 +262,11 @@ void main() {
     await pumpLoadedPage(tester);
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(picked(tester, const Key('onlineRuleset_taiwanese')), isTrue);
-    expect(picked(tester, const Key('onlineRuleset_riichi')), isFalse);
+    expect(onlineRulesetShown(tester), Ruleset.taiwanese);
 
     // Still changeable there.
-    await tester.tap(find.byKey(const Key('onlineRuleset_hongKong')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(picked(tester, const Key('onlineRuleset_hongKong')), isTrue);
-    expect(picked(tester, const Key('onlineRuleset_taiwanese')), isFalse);
+    await pickOnlineRuleset(tester, Ruleset.hongKong);
+    expect(onlineRulesetShown(tester), Ruleset.hongKong);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

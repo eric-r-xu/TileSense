@@ -10,6 +10,7 @@ import 'package:tilesense/ui/online_game_page.dart';
 import 'package:tilesense/ui/online_lobby_page.dart';
 
 import 'loading_helpers.dart';
+import 'lobby_helpers.dart';
 
 /// The pre-room setup screen: it runs two columns side by side (rather than
 /// one long stack) specifically so it fits in `kDesignSize`'s 820px height
@@ -89,10 +90,14 @@ void main() {
     expect(find.text('Calls buffer'), findsNothing);
     expect(find.text('40s per turn · 10s to call'), findsOneWidget,
         reason: 'Standard is the default');
-    for (final ruleset in ['riichi', 'hongKong', 'taiwanese']) {
-      await tester.tap(find.byKey(Key('onlineRuleset_$ruleset')));
-      await tester.pump();
-      expect(tester.takeException(), isNull, reason: ruleset);
+    for (final ruleset in [
+      Ruleset.hongKong,
+      Ruleset.taiwanese,
+      Ruleset.mcr,
+      Ruleset.riichi,
+    ]) {
+      await pickOnlineRuleset(tester, ruleset);
+      expect(tester.takeException(), isNull, reason: ruleset.name);
       expect(find.byKey(const Key('pace_relaxed')), findsOneWidget);
     }
     await tester.tap(find.byKey(const Key('pace_fast')));
@@ -117,8 +122,7 @@ void main() {
 
     expect(find.byKey(const Key('onlineMinimumFaan_0')), findsNothing,
         reason: 'riichi has no faan minimum to pick');
-    await tester.tap(find.byKey(const Key('onlineRuleset_hongKong')));
-    await tester.pump();
+    await pickOnlineRuleset(tester, Ruleset.hongKong);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byKey(const Key('onlineMinimumFaan_3')));
     await tester.pump();
@@ -139,8 +143,7 @@ void main() {
 
     expect(find.byKey(const Key('onlineMinimumPoints_5')), findsNothing,
         reason: 'riichi has no minimum to pick');
-    await tester.tap(find.byKey(const Key('onlineRuleset_taiwanese')));
-    await tester.pump();
+    await pickOnlineRuleset(tester, Ruleset.taiwanese);
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('onlineMinimumFaan_0')), findsNothing);
     await tester.tap(find.byKey(const Key('onlineMinimumPoints_3')));
@@ -149,6 +152,37 @@ void main() {
     await tester.pump();
     expect(game.ruleset, Ruleset.taiwanese);
     expect(game.minimumPoints, 3);
+
+    game.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('Rules and Game length are dropdowns that set the new room',
+      (tester) async {
+    final game = OnlineGameController();
+    await pump(tester, game);
+
+    // The old ruleset buttons and full-game switch are gone.
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.text('Rules'), findsOneWidget);
+    expect(find.text('Game length'), findsOneWidget);
+    expect(onlineRulesetShown(tester), Ruleset.riichi);
+    expect(find.text('半庄 Hanchan'), findsOneWidget, reason: 'full by default');
+
+    // MCR names its own lengths.
+    await pickOnlineRuleset(tester, Ruleset.mcr);
+    expect(onlineRulesetShown(tester), Ruleset.mcr);
+    expect(find.text('Full game · 16 hands'), findsOneWidget);
+    await pickLobbyDropdown(tester, const Key('onlineLengthDropdown'),
+        const Key('onlineLength_east'));
+    expect(find.text('East practice · 4 hands'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('createRoom')));
+    await tester.pump();
+    expect(game.ruleset, Ruleset.mcr);
+    expect(game.hanchan, isFalse);
 
     game.dispose();
     await tester.pumpWidget(const SizedBox());

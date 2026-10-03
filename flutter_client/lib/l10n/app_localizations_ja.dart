@@ -1323,15 +1323,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get createARoom => 'ルームを作成';
 
   @override
-  String get fullGameSwitch => '半荘戦（8局以上）';
-
-  @override
-  String get fullGameSwitchOn => 'オフで東風戦（4局以上）';
-
-  @override
-  String get fullGameSwitchOff => '東風戦 — 4局以上';
-
-  @override
   String get createRoomButton => 'ルームを作成';
 
   @override

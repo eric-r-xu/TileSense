@@ -2465,24 +2465,6 @@ abstract class AppLocalizations {
   /// **'Create a room'**
   String get createARoom;
 
-  /// No description provided for @fullGameSwitch.
-  ///
-  /// In en, this message translates to:
-  /// **'Full game — hanchan/半庄 (8+ hands)'**
-  String get fullGameSwitch;
-
-  /// No description provided for @fullGameSwitchOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Off switches to East-only/东风战 (4+ hands)'**
-  String get fullGameSwitchOn;
-
-  /// No description provided for @fullGameSwitchOff.
-  ///
-  /// In en, this message translates to:
-  /// **'East-only/东风战 — 4+ hands'**
-  String get fullGameSwitchOff;
-
   /// No description provided for @createRoomButton.
   ///
   /// In en, this message translates to:

@@ -240,18 +240,18 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                         style: TextStyle(fontSize: 18)),
                     child: Column(
                       children: [
-                        _rulesetPicker(),
-                        const SizedBox(height: 10),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(_ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.fullGameSwitch),
-                          subtitle: Text(_hanchan
-                              ? (_ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.fullGameSwitchOn)
-                              : (_ruleset.isMcr ? context.l10n.mcrPractice : context.l10n.fullGameSwitchOff)),
-                          value: _hanchan,
-                          onChanged: (v) => setState(() => _hanchan = v),
+                        const SizedBox(height: 12),
+                        // Two dropdowns on one row rather than a row of
+                        // ruleset buttons over a switch: the same choices in
+                        // half the height.
+                        Row(
+                          children: [
+                            Expanded(child: _rulesetDropdown()),
+                            const SizedBox(width: 12),
+                            Expanded(child: _lengthDropdown()),
+                          ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         // Side by side rather than stacked, so the minimum
                         // picker costs no height on this screen.
                         Row(
@@ -481,38 +481,97 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         onChange: (n) => setState(() => _minimumPoints = n),
       );
 
-  Widget _rulesetPicker() {
-    Widget option(Ruleset value) {
-      final selected = _ruleset == value;
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: OutlinedButton(
-            key: Key('onlineRuleset_${value.name}'),
-            onPressed: () => setState(() => _ruleset = value),
-            style: OutlinedButton.styleFrom(
-              backgroundColor: selected ? const Color(0x33caa24e) : null,
-              foregroundColor:
-                  selected ? const Color(0xffffdf76) : Colors.white54,
-              side: BorderSide(
-                color: selected ? const Color(0xffcaa24e) : Colors.white24,
-                width: selected ? 2 : 1,
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-            ),
-            child: Text(context.l10n.rulesetFlagLabel(value)),
-          ),
+  /// The frame both create-room dropdowns sit in: outlined like the name
+  /// field above them, with the card's gold for the label and focus.
+  Widget _dropdownField<T>({
+    required Key key,
+    required String label,
+    required T value,
+    required List<(T, Key, String)> items,
+    required ValueChanged<T> onChanged,
+  }) {
+    const gold = Color(0xffcaa24e);
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xffe9d58f)),
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.white24),
         ),
-      );
-    }
-
-    return Row(children: [
-      option(Ruleset.riichi),
-      option(Ruleset.hongKong),
-      option(Ruleset.taiwanese),
-      option(Ruleset.mcr),
-    ]);
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: gold, width: 2),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          key: key,
+          value: value,
+          isDense: true,
+          isExpanded: true,
+          dropdownColor: const Color(0xff0b2f2f),
+          // No grey fill left behind on the field just picked from; the
+          // pair should look alike whichever was used last.
+          focusColor: Colors.transparent,
+          iconEnabledColor: gold,
+          borderRadius: BorderRadius.circular(8),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+          items: [
+            for (final (v, itemKey, text) in items)
+              DropdownMenuItem<T>(
+                key: itemKey,
+                value: v,
+                child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _rulesetDropdown() => _dropdownField<Ruleset>(
+        key: const Key('onlineRulesetDropdown'),
+        label: context.l10n.rules,
+        value: _ruleset,
+        items: [
+          for (final r in const [
+            Ruleset.riichi,
+            Ruleset.hongKong,
+            Ruleset.taiwanese,
+            Ruleset.mcr,
+          ])
+            (r, Key('onlineRuleset_${r.name}'), context.l10n.rulesetFlagLabel(r)),
+        ],
+        onChanged: (r) => setState(() => _ruleset = r),
+      );
+
+  /// Full game or the short one, named as the offline setup screen names
+  /// them — MCR's own counts for MCR.
+  Widget _lengthDropdown() => _dropdownField<bool>(
+        key: const Key('onlineLengthDropdown'),
+        label: context.l10n.gameLength,
+        value: _hanchan,
+        items: [
+          (
+            true,
+            const Key('onlineLength_full'),
+            _ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.lengthHanchan,
+          ),
+          (
+            false,
+            const Key('onlineLength_east'),
+            _ruleset.isMcr ? context.l10n.mcrPractice : context.l10n.lengthEastOnly,
+          ),
+        ],
+        onChanged: (v) => setState(() => _hanchan = v),
+      );
 
   // --- a room exists: code + roster ----------------------------------------
 
@@ -722,9 +781,9 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         border: Border.all(color: const Color(0x66caa24e)),
       ),
       // Transparent so the Container's own background/border still show —
-      // it only exists so the SwitchListTile inside `child` has a Material
-      // ancestor to paint its background/ink splashes on, since those never
-      // paint on a plain DecoratedBox.
+      // it only exists so the controls inside `child` (the create card's
+      // dropdowns) have a Material ancestor to paint their ink splashes on,
+      // since those never paint on a plain DecoratedBox.
       child: Material(
         type: MaterialType.transparency,
         child: Column(

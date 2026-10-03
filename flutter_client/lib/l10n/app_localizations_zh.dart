@@ -1311,15 +1311,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createARoom => '创建房间';
 
   @override
-  String get fullGameSwitch => '半庄（8局以上）';
-
-  @override
-  String get fullGameSwitchOn => '关闭则改为东风战（4局以上）';
-
-  @override
-  String get fullGameSwitchOff => '东风战——4局以上';
-
-  @override
   String get createRoomButton => '创建房间';
 
   @override
@@ -3378,15 +3369,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get createARoom => '建立房間';
-
-  @override
-  String get fullGameSwitch => '半莊（8局以上）';
-
-  @override
-  String get fullGameSwitchOn => '關閉則改為東風戰（4局以上）';
-
-  @override
-  String get fullGameSwitchOff => '東風戰——4局以上';
 
   @override
   String get createRoomButton => '建立房間';
