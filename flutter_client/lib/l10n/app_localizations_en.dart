@@ -1338,15 +1338,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createARoom => 'Create a room';
 
   @override
-  String get fullGameSwitch => 'Full game — hanchan/半庄 (8+ hands)';
-
-  @override
-  String get fullGameSwitchOn => 'Off switches to East-only/东风战 (4+ hands)';
-
-  @override
-  String get fullGameSwitchOff => 'East-only/东风战 — 4+ hands';
-
-  @override
   String get createRoomButton => 'Create Room';
 
   @override
