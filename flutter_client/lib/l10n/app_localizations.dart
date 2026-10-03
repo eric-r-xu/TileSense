@@ -3772,6 +3772,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I\'m {mascot}: part prairie dog, part axolotl.\nI pick your best discards and calls.\nTurn on Auto-Play and I\'ll play your seat.\nMisplayed? Take it back and try again.\nPlay along and level up your {app}.'**
   String mascotIntro(String mascot, String app);
+
+  /// No description provided for @rulesetMcr.
+  ///
+  /// In en, this message translates to:
+  /// **'MCR'**
+  String get rulesetMcr;
+
+  /// No description provided for @rulesetSubtitleMcr.
+  ///
+  /// In en, this message translates to:
+  /// **'fan, flowers, 8 fan minimum'**
+  String get rulesetSubtitleMcr;
+
+  /// No description provided for @mcrFullGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Full game · 16 hands'**
+  String get mcrFullGame;
+
+  /// No description provided for @mcrPractice.
+  ///
+  /// In en, this message translates to:
+  /// **'East practice · 4 hands'**
+  String get mcrPractice;
+
+  /// No description provided for @mcrScoreTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{fan} fan + {flowers} flowers · +{gain} points'**
+  String mcrScoreTotal(int fan, int flowers, int gain);
+
+  /// No description provided for @yakuLineMcr.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}  {n} fan'**
+  String yakuLineMcr(String name, int n);
+
+  /// No description provided for @tipPayoutMcr.
+  ///
+  /// In en, this message translates to:
+  /// **'Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n'**
+  String get tipPayoutMcr;
 }
 
 class _AppLocalizationsDelegate

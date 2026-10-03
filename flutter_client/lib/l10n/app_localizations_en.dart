@@ -2064,4 +2064,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String mascotIntro(String mascot, String app) {
     return 'I\'m $mascot: part prairie dog, part axolotl.\nI pick your best discards and calls.\nTurn on Auto-Play and I\'ll play your seat.\nMisplayed? Take it back and try again.\nPlay along and level up your $app.';
   }
+
+  @override
+  String get rulesetMcr => 'MCR';
+
+  @override
+  String get rulesetSubtitleMcr => 'fan, flowers, 8 fan minimum';
+
+  @override
+  String get mcrFullGame => 'Full game · 16 hands';
+
+  @override
+  String get mcrPractice => 'East practice · 4 hands';
+
+  @override
+  String mcrScoreTotal(int fan, int flowers, int gain) {
+    return '$fan fan + $flowers flowers · +$gain points';
+  }
+
+  @override
+  String yakuLineMcr(String name, int n) {
+    return '$name  $n fan';
+  }
+
+  @override
+  String get tipPayoutMcr =>
+      'Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n';
 }

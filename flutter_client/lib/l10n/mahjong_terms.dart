@@ -16,6 +16,7 @@ extension MahjongTerms on AppLocalizations {
         Ruleset.riichi => rulesetRiichi,
         Ruleset.hongKong => rulesetHongKong,
         Ruleset.taiwanese => rulesetTaiwanese,
+        Ruleset.mcr => rulesetMcr,
       };
 
   /// [rulesetName] with the ruleset's flag in front, for toggles and badges.
@@ -97,6 +98,7 @@ extension MahjongTerms on AppLocalizations {
       Ruleset.riichi => _riichiNames,
       Ruleset.hongKong => _hongKongNames,
       Ruleset.taiwanese => _taiwaneseNames,
+      Ruleset.mcr => _hongKongNames,
     };
     if (table[name] case final known?) return known(this);
     if (_yakuhai.firstMatch(name) case final m?) {
@@ -140,6 +142,7 @@ extension MahjongTerms on AppLocalizations {
         Ruleset.riichi => riichi,
         Ruleset.hongKong => hongKong,
         Ruleset.taiwanese => taiwanese,
+        Ruleset.mcr => taiwanese,
       };
 }
 

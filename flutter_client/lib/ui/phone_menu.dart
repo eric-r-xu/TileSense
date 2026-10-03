@@ -123,7 +123,7 @@ Future<void> showPhoneMenu(
                               key: const Key('phoneMenuLength'),
                               icon: Icons.timelapse,
                               label: game.hanchan
-                                  ? context.l10n.hanchan
+                                  ? (game.ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.hanchan)
                                   : context.l10n.eastOnly,
                               onTap: () => game.setHanchan(!game.hanchan),
                             ),

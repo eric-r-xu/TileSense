@@ -1224,5 +1224,35 @@
         "type": "String"
       }
     }
-  }
+  },
+  "rulesetMcr": "MCR",
+  "rulesetSubtitleMcr": "fan, flowers, 8 fan minimum",
+  "mcrFullGame": "Full game · 16 hands",
+  "mcrPractice": "East practice · 4 hands",
+  "mcrScoreTotal": "{fan} fan + {flowers} flowers · +{gain} points",
+  "@mcrScoreTotal": {
+    "placeholders": {
+      "fan": {
+        "type": "int"
+      },
+      "flowers": {
+        "type": "int"
+      },
+      "gain": {
+        "type": "int"
+      }
+    }
+  },
+  "yakuLineMcr": "{name}  {n} fan",
+  "@yakuLineMcr": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "tipPayoutMcr": "Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n"
 }

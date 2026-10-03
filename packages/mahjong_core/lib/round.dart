@@ -17,6 +17,8 @@ import 'hand_parse.dart';
 import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_scoring.dart';
 import 'hong_kong/hong_kong_wall.dart';
+import 'mcr/mcr_hand_parse.dart';
+import 'mcr/mcr_scoring.dart';
 import 'meld.dart';
 import 'ruleset.dart';
 import 'scoring.dart';
@@ -146,7 +148,7 @@ class Round {
   })  : wall = wall ??
             (ruleset.isTaiwanese
                 ? TaiwaneseWall(seed, rng: shuffleRng)
-                : ruleset.isHongKong
+                : (ruleset.isHongKong || ruleset.isMcr)
                     ? HongKongWall(seed, rng: shuffleRng)
                     : Wall(seed, rng: shuffleRng)),
         startPoints = List.of(startingPoints) {
@@ -278,7 +280,7 @@ class Round {
   /// its seven-pairs-and-a-pung alternate), or the 4-meld, 14-tile shape
   /// riichi and Hong Kong share.
   List<TileType> _waitTiles(List<Tile> hand, {required int openMelds}) =>
-      ruleset.isTaiwanese
+      ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds) : ruleset.isTaiwanese
           ? waitTilesTaiwanese(hand, openMelds: openMelds)
           : waitTiles(hand, openMelds: openMelds);
 
@@ -293,12 +295,12 @@ class Round {
       _waitTiles(seats[seat].hand, openMelds: seats[seat].melds.length);
 
   bool _isTenpaiFor(List<Tile> hand, {required int openMelds}) =>
-      ruleset.isTaiwanese
+      ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds).isNotEmpty : ruleset.isTaiwanese
           ? isTenpaiTaiwanese(hand, openMelds: openMelds)
           : isTenpai(hand, openMelds: openMelds);
 
   bool _isAgari(List<int> counts34, {required int meldCount}) =>
-      ruleset.isTaiwanese
+      ruleset.isMcr ? isAgariMcr(counts34, meldCount: meldCount) : ruleset.isTaiwanese
           ? isAgariTaiwanese(counts34, meldCount: meldCount)
           : isAgari(counts34, meldCount: meldCount);
 
@@ -324,7 +326,7 @@ class Round {
     // Hong Kong's own seventh flower is already an independent win; Taiwanese
     // only scores "All Flowers" at the eighth (and last) one.
     final pauseAt = ruleset.isTaiwanese ? 8 : 7;
-    if (seat.flowers.length >= pauseAt) {
+    if (!ruleset.isMcr && seat.flowers.length >= pauseAt) {
       turn = seat.seat;
       seat.drawn = null;
       _flowerSeat = seat.seat;
@@ -349,6 +351,7 @@ class Round {
     }
     final tile = replacement ? wall.drawDeadWall() : wall.drawLive();
     if (tile.type.isBonus) {
+      if (ruleset.isMcr) seat.replacementDraw = false;
       _exposeFlower(
           seat, tile, () => _drawFor(seat, replacement: true, onTile: onTile));
     } else {
@@ -409,7 +412,7 @@ class Round {
     final s = seats[seat];
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
-    if (!ruleset.isHongKong && _isFuriten(s)) return false;
+    if (!ruleset.isHongKong && !ruleset.isMcr && _isFuriten(s)) return false;
     return _winsWith(s, s.hand, discard, isTsumo: false, chankan: chankan);
   }
 
@@ -417,7 +420,7 @@ class Round {
   /// the UI's furiten marker; the same check gates every seat's [canRon] so no
   /// player — human or bot — can ron off a furiten wait.
   bool isFuriten(int seat) {
-    if (ruleset.isHongKong) return false;
+    if (ruleset.isHongKong || ruleset.isMcr) return false;
     final s = seats[seat];
     if (_waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
     return _isFuriten(s);
@@ -528,7 +531,7 @@ class Round {
 
   List<TileType> closedKanTypes(int seat) {
     final s = seats[seat];
-    if (!wall.canKan || _flowerSeat != null) return const [];
+    if (!wall.canKan || _flowerSeat != null || (ruleset.isMcr && s.drawn == null)) return const [];
     final byType = <TileType, int>{};
     for (final t in s.hand) {
       byType[t.type] = (byType[t.type] ?? 0) + 1;
@@ -551,7 +554,7 @@ class Round {
   /// but this trainer keeps riichi hands fixed for simplicity.
   List<TileType> addedKanTypes(int seat) {
     final s = seats[seat];
-    if (_locked(s) || !wall.canKan || _flowerSeat != null) return const [];
+    if (_locked(s) || !wall.canKan || _flowerSeat != null || (ruleset.isMcr && s.drawn == null)) return const [];
     final ponTypes = {
       for (final m in s.melds)
         if (m.kind == MeldKind.triplet) m.low,
@@ -595,7 +598,7 @@ class Round {
   /// at all; Taiwanese's own "Taiwanese Furiten" is temporary only, the same
   /// as riichi's non-permanent case.
   void _registerMissedRon(Tile discard, int discarder) {
-    if (ruleset.isHongKong) return;
+    if (ruleset.isHongKong || ruleset.isMcr) return;
     for (var i = 0; i < 4; i++) {
       if (i == discarder) continue;
       final s = seats[i];
@@ -1036,19 +1039,26 @@ class Round {
       ronners.sort((a, b) =>
           ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     }
+    if (ruleset.isMcr && ronners.length > 1) ronners = [ronners.first];
     HandScore? firstScore;
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     // Taiwanese has its own dealer-streak bonus (below) in place of honba
     // payments, which mean nothing there — its honba instead counts the
     // dealer's consecutive wins. See TaiwaneseRules.dealerBonus.
-    final honbaPay = ruleset.isTaiwanese ? 0 : honba * 300;
+    final honbaPay = (ruleset.isTaiwanese || ruleset.isMcr) ? 0 : honba * 300;
     for (final w in ronners) {
       final s = seats[w];
       final score =
           _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
       firstScore ??= score;
       deltas[w] = deltas[w]! + score.points + honbaPay;
-      deltas[discarder] = deltas[discarder]! - score.points - honbaPay;
+      if (ruleset.isMcr) {
+        for (var i = 0; i < 4; i++) {
+          if (i != w) deltas[i] = deltas[i]! - (i == discarder ? score.han + 8 : 8);
+        }
+      } else {
+        deltas[discarder] = deltas[discarder]! - score.points - honbaPay;
+      }
     }
     // Taiwanese dealer-streak bonus: on a ron, paid only by the discarder —
     // by the winner collecting it off East when East is among the ronners,
@@ -1113,7 +1123,7 @@ class Round {
     final bonus = ruleset.isTaiwanese && seats[w].isDealer
         ? TaiwaneseRules.dealerBonus(honba)
         : 0;
-    final honbaPay = ruleset.isTaiwanese ? 0 : honba * 100;
+    final honbaPay = (ruleset.isTaiwanese || ruleset.isMcr) ? 0 : honba * 100;
 
     // Tsumo only (ron goes through _applyRon).
     for (var i = 0; i < 4; i++) {
@@ -1208,6 +1218,25 @@ class Round {
 
   HandScore _score(SeatState s, List<Tile> concealed, Tile winTile,
       {required bool isTsumo, bool dryRun = false, bool chankan = false}) {
+    if (ruleset.isMcr) {
+      // Count physical public tiles once; the offered tile is excluded.
+      final visible = <int, Tile>{};
+      for (final seat in seats) {
+        for (final tile in seat.pond) { visible[tile.id] = tile; }
+        for (final meld in seat.melds.where((m) => !m.concealed)) {
+          for (final tile in meld.tiles) { visible[tile.id] = tile; }
+        }
+      }
+      visible.remove(winTile.id);
+      return scoreMcrHand(concealed, winTile, s.melds, ScoreContext(
+        roundWind: roundWind, seatWind: s.wind, isTsumo: isTsumo,
+        closed: s.closed, flowers: s.flowers.map((t) => t.type).toList(),
+        rinshan: isTsumo && s.replacementDraw,
+        haitei: isTsumo && wall.isEmpty, houtei: !isTsumo && wall.isEmpty,
+        chankan: chankan,
+      ), mcr: McrScoreContext(lastTile:
+          visible.values.where((t) => t.type == winTile.type).length == 3));
+    }
     if (ruleset.isHongKong) {
       final ctx = ScoreContext(
         roundWind: roundWind,

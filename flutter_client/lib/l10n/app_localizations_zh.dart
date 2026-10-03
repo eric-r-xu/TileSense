@@ -2010,6 +2010,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String mascotIntro(String mascot, String app) {
     return '我是$mascot，一半草原犬鼠，一半美西螈。\n我会帮你选择最佳打牌和鸣牌。\n开启自动打牌，我就替你打。\n打错了？撤回再试一次。\n一起玩，提升你的$app！';
   }
+
+  @override
+  String get rulesetMcr => '国标麻将 (MCR)';
+
+  @override
+  String get rulesetSubtitleMcr => '番、花牌、最低8番';
+
+  @override
+  String get mcrFullGame => '全场 · 16局';
+
+  @override
+  String get mcrPractice => '东风练习 · 4局';
+
+  @override
+  String mcrScoreTotal(int fan, int flowers, int gain) {
+    return '$fan番 + 花牌$flowers · +$gain分';
+  }
+
+  @override
+  String yakuLineMcr(String name, int n) {
+    return '$name  $n番';
+  }
+
+  @override
+  String get tipPayoutMcr =>
+      '番数加花牌（F）：点炮者付 F＋8，其他两家各付 8；自摸则每家付 F＋8。听牌时为准确值，且不计花牌达到8番的听牌才能和牌；之前为估计值。\n';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4018,4 +4044,30 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String mascotIntro(String mascot, String app) {
     return '我是$mascot，一半草原犬鼠，一半美西螈。\n我會幫你選擇最佳打牌和鳴牌。\n開啟自動打牌，我就替你打。\n打錯了？撤回再試一次。\n一起玩，提升你的$app！';
   }
+
+  @override
+  String get rulesetMcr => '國標麻將 (MCR)';
+
+  @override
+  String get rulesetSubtitleMcr => '番、花牌、最低8番';
+
+  @override
+  String get mcrFullGame => '全場 · 16局';
+
+  @override
+  String get mcrPractice => '東風練習 · 4局';
+
+  @override
+  String mcrScoreTotal(int fan, int flowers, int gain) {
+    return '$fan番 + 花牌$flowers · +$gain分';
+  }
+
+  @override
+  String yakuLineMcr(String name, int n) {
+    return '$name  $n番';
+  }
+
+  @override
+  String get tipPayoutMcr =>
+      '番數加花牌（F）：放槍者付 F＋8，其他兩家各付 8；自摸則每家付 F＋8。聽牌時為準確值，且不計花牌達到8番的聽牌才能和牌；之前為估計值。\n';
 }

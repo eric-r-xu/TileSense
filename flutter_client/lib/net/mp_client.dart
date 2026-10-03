@@ -77,7 +77,10 @@ class MpClient {
     channel.ready.then((_) {
       if (_closed || !identical(channel, _channel)) return;
       try {
-        channel.sink.add(jsonEncode(message));
+        channel.sink.add(jsonEncode({...message,
+          if (const ['create_room', 'join_room', 'reconnect'].contains(message['type']))
+            'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr'],
+        }));
       } catch (_) {
         // The next drop/reconnect cycle will surface this; nothing to do here.
       }

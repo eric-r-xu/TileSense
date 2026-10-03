@@ -12,6 +12,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/efficiency_calc.dart';
+import 'package:mahjong_core/mcr/mcr_efficiency.dart';
+import 'package:mahjong_core/mcr/mcr_scoring.dart';
+import 'package:mahjong_core/mcr/mcr_strategy.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_safety.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_scoring.dart';
@@ -891,6 +894,8 @@ class EfficiencyEngine {
   static const _dealerDamatenMinPoints = 7700;
 
   final _calc = TileEfficiencyCalculator();
+  final _mcrCalc = McrEfficiencyCalculator();
+  TileEfficiencyCalculator _calcFor(Ruleset r) => r.isMcr ? _mcrCalc : _calc;
 
   /// [hand] is the 14-tile concealed hand on the player's turn (13 + draw).
   /// [visibleCounts34] counts every tile the player can see (own hand, all
@@ -990,7 +995,7 @@ class EfficiencyEngine {
       ..sort((a, b) => b.rating.compareTo(a.rating));
 
     final raw =
-        _calc.calculate(concealed, remaining, totalMelds: ruleset.totalMelds);
+        _calcFor(ruleset).calculate(concealed, remaining, totalMelds: ruleset.totalMelds);
 
     // Deduplicate by tile type (multiple copies of the same tile in hand).
     final byType = <TileType, TileEfficiencyResult>{};
@@ -1045,7 +1050,7 @@ class EfficiencyEngine {
     final drawsNow = math.max(1, (valueContext.wallTilesRemaining + 3) ~/ 4);
     ({double win, double reached, List<WinTurn> series})? tenpaiLookahead(
         TileEfficiencyResult r) {
-      if (!hasTenpaiLine || r.shanten != 1 || unseenNow <= 1) return null;
+      if (ruleset.isMcr || !hasTenpaiLine || r.shanten != 1 || unseenNow <= 1) return null;
       final after = toTrainerCounts(_handAfterDiscard(hand, r.discard));
       // One entry per improving draw: its live copies and the widest wait it
       // leaves the hand on.
@@ -1058,7 +1063,7 @@ class EfficiencyEngine {
         remaining[draw]--;
         reachable.add((
           live: live,
-          wait: _calc.bestTenpaiWait(after, remaining,
+          wait: _calcFor(ruleset).bestTenpaiWait(after, remaining,
               totalMelds: ruleset.totalMelds)
         ));
         remaining[draw]++;
@@ -1953,9 +1958,9 @@ class EfficiencyEngine {
     final counts = toTrainerCounts(concealed);
     final totalMelds = context.ruleset.totalMelds;
     final shanten =
-        _calc.calculateWaitingShanten(counts, totalMelds: totalMelds);
+        _calcFor(context.ruleset).calculateWaitingShanten(counts, totalMelds: totalMelds);
     final acceptance =
-        _calc.acceptance(counts, remaining, totalMelds: totalMelds);
+        _calcFor(context.ruleset).acceptance(counts, remaining, totalMelds: totalMelds);
     final value = _assessValue(
       result: TileEfficiencyResult(
         tileIndex: 1,
@@ -2438,7 +2443,7 @@ class EfficiencyEngine {
     final winModel = _winModelFor(context.ruleset);
     var width = result.ukeire.toDouble();
     if (winModel.countsCalls && result.shanten >= 1) {
-      final calls = _calc.callAcceptance(toTrainerCounts(concealed), remaining,
+      final calls = _calcFor(context.ruleset).callAcceptance(toTrainerCounts(concealed), remaining,
           totalMelds: context.ruleset.totalMelds);
       width += winModel.pungRate * calls.pung + winModel.chowRate * calls.chow;
     }
@@ -2483,7 +2488,7 @@ class EfficiencyEngine {
     // [_assessHongKongTenpaiValue] and [_scoreWait]).
     if (context.ruleset.isChineseStyle) {
       final projectedPoints = projectedPointsOverride ??
-          (context.ruleset.isTaiwanese
+          (context.ruleset.isMcr ? 40.0 * mcrPatternPotential(concealed, context.melds, seatWind: context.seatWind, roundWind: context.roundWind) : context.ruleset.isTaiwanese
               ? _taiwaneseProjectedPoints(concealed, context)
               : _hongKongProjectedPoints(concealed, context));
       final tilted = context.focus.chanceWorth(completionProbability) *
@@ -2492,7 +2497,7 @@ class EfficiencyEngine {
         expectedValue: tilted,
         averagePoints: projectedPoints,
         valueTilt: tilted - completionProbability * projectedPoints,
-        plan: 'BUILD HAND',
+        plan: context.ruleset.isMcr ? 'BUILD 8-POINT HAND (ESTIMATE)' : 'BUILD HAND',
         winProbability: completionProbability,
         winBreakdown: breakdown,
         turnsExposed: outlook.turns,
@@ -2819,7 +2824,7 @@ class EfficiencyEngine {
     List<Meld> threatMelds = const [],
     Wind roundWind = Wind.east,
   }) =>
-      ruleset.isTaiwanese
+      ruleset.isMcr ? 24.0 : ruleset.isTaiwanese
           ? _taiwaneseDealInCost
           : ruleset.isHongKong
               ? (HongKongGuideTuning.dealInByVisibleFaan
@@ -3225,6 +3230,11 @@ class EfficiencyEngine {
         points += copies * share * _selfDrawTotal(self, context);
         continue;
       }
+      if (context.ruleset.isMcr && discard.valid && !self.valid) {
+        liveWaits += copies * 0.65;
+        points += copies * 0.65 * discard.points;
+        continue;
+      }
       if (!discard.valid || !self.valid) continue;
       liveWaits += copies;
       points += copies *
@@ -3257,7 +3267,7 @@ class EfficiencyEngine {
         ),
         turnsExposed: outlook.turns,
         plan: 'READY',
-        reason: context.ruleset.isTaiwanese
+        reason: context.ruleset.isMcr ? 'Ready shape — only waits worth at least eight points excluding flowers can win.' : context.ruleset.isTaiwanese
             ? 'Ready — any wait scored above needs at least '
                 '${context.minimumPoints} points to declare hu.'
             : context.minimumFaan == 0
@@ -3509,6 +3519,13 @@ class EfficiencyEngine {
     required bool assumeRiichi,
     required EfficiencyValueContext context,
   }) {
+    if (context.ruleset.isMcr) {
+      return scoreMcrHand(concealed, winTile, context.melds, ScoreContext(
+        roundWind: context.roundWind, seatWind: context.seatWind,
+        isTsumo: isTsumo, closed: context.closed, flowers: context.flowers,
+        flowersEnabled: context.flowersEnabled,
+      ));
+    }
     if (context.ruleset.isTaiwanese) {
       return scoreTaiwaneseHand(
         concealed,

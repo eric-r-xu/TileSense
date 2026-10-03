@@ -600,7 +600,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   int get riichiSticks => _riichiSticks;
 
   /// East for hands 1-4, South for 5-8 — hanchan, same for both rulesets.
-  Wind get roundWind => _roundNumber < 4 ? Wind.east : Wind.south;
+  Wind get roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < 4 ? Wind.east : Wind.south);
 
   /// 1-4 within the current round wind.
   @override
@@ -799,6 +799,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
     required int honba,
     Ruleset ruleset = Ruleset.riichi,
   }) {
+    if (ruleset.isMcr) {
+      return (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+    }
     if (ruleset.isTaiwanese) {
       // Taiwanese's honba isn't a payment multiplier (see Round._applyRon) —
       // it counts the dealer's consecutive *wins* for TaiwaneseRules
@@ -837,10 +840,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // always repeats, whoever they are, no tenpai check involved.
     // Hong Kong and Taiwanese: the dealer also repeats on any (ordinary) draw,
     // tenpai or not.
-    final dealerKept = r.kind == RoundEndKind.abortiveDraw ||
+    final dealerKept = !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
             ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
-            : r.winners.contains(_dealer));
+            : r.winners.contains(_dealer)));
 
     _tel?.roundEnd(
       matchId: _matchId,

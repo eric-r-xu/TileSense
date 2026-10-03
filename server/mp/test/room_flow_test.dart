@@ -109,6 +109,7 @@ StreamSubscription<void> _autoplay(TestClient client,
 
 void main() {
   taiwaneseRoomMain();
+  mcrRoomMain();
   test('two humans + two bots play a full hand with no hand leakage, then continue',
       () async {
     final manager = RoomManager();
@@ -908,5 +909,87 @@ void taiwaneseRoomMain() {
       expect(size, s.seat == round.turn ? 17 : 16,
           reason: 'seat ${s.seat} (turn ${round.turn})');
     }
+  });
+}
+
+/// MCR (Mahjong Competition Rules) rooms.
+void mcrRoomMain() {
+  test('MCR rooms need a client that lists MCR support; other rooms do not',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final current = await TestClient.connect(server.port);
+    final old = await TestClient.connect(server.port);
+    addTearDown(current.close);
+    addTearDown(old.close);
+    const supported = ['riichi', 'hongKong', 'taiwanese', 'mcr'];
+
+    old.send({
+      'type': 'create_room',
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'ruleset': 'mcr',
+    });
+    final refused = await old.waitFor((m) => m['type'] == 'error');
+    expect(refused['code'], 'update_required');
+
+    current.send({
+      'type': 'create_room',
+      'guestId': 'guest-new',
+      'name': 'New',
+      'ruleset': 'mcr',
+      'supportedRulesets': supported,
+    });
+    final created = await current.waitFor((m) => m['type'] == 'room_state');
+    final code = created['code'] as String;
+    expect(manager.find(code)?.ruleset, Ruleset.mcr);
+
+    old.log.clear();
+    old.send({
+      'type': 'join_room',
+      'roomCode': code,
+      'guestId': 'guest-old',
+      'name': 'Old',
+    });
+    final joinRefused = await old.waitFor((m) => m['type'] == 'error');
+    expect(joinRefused['code'], 'update_required');
+    expect(manager.find(code)!.seatIndexForGuest('guest-old'), isNull);
+
+    // The same old client still creates a riichi room as before.
+    old.log.clear();
+    old.send({
+      'type': 'create_room',
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'ruleset': 'riichi',
+    });
+    expect((await old.waitFor((m) => m['type'] == 'room_state'))['code'],
+        isNot(code));
+  });
+
+  test('an MCR table plays a hand to its result', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'mcr',
+      'hanchan': false,
+      'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr'],
+    });
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+    final sub = _autoplay(a);
+    addTearDown(sub.cancel);
+    final result = await a.waitFor((m) => m['type'] == 'round_result',
+        timeout: const Duration(seconds: 30));
+    final deltas =
+        (result['round']['result']['pointDeltas'] as Map).values.cast<int>();
+    expect(deltas.fold<int>(0, (x, y) => x + y), 0);
   });
 }

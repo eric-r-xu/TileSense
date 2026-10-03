@@ -104,6 +104,13 @@ Handler buildMultiplayerHandler(
       r.loop?.handleReconnect(s);
     }
 
+    bool supportsMcr(Map<String, dynamic> msg) {
+      final supported = msg['supportedRulesets'];
+      if (supported is List && supported.length <= 16 && supported.contains('mcr')) return true;
+      send(errorFrame('update_required', 'Update TileSense to play MCR.'));
+      return false;
+    }
+
     void handle(Map<String, dynamic> msg) {
       final type = msg['type'] as String?;
       switch (type) {
@@ -120,11 +127,12 @@ Handler buildMultiplayerHandler(
           // One connection holds at most one seat, so a socket can't pile up
           // rooms by creating or joining repeatedly.
           if (room != null) detach();
-          final ruleset = msg['ruleset'] == 'hongKong'
+          final ruleset = msg['ruleset'] == 'mcr' ? Ruleset.mcr : msg['ruleset'] == 'hongKong'
               ? Ruleset.hongKong
               : msg['ruleset'] == 'taiwanese'
                   ? Ruleset.taiwanese
                   : Ruleset.riichi;
+          if (ruleset.isMcr && !supportsMcr(msg)) return;
           final hanchan = msg['hanchan'] as bool? ?? true;
           final r = manager.createRoom(
             hostGuestId: requestedGuestId,
@@ -159,6 +167,7 @@ Handler buildMultiplayerHandler(
             send(errorFrame('room_not_found', 'room not found'));
             return;
           }
+          if (r.ruleset.isMcr && !supportsMcr(msg)) return;
           if (r.phase == RoomPhase.playing &&
               r.seatIndexForGuest(requestedGuestId) != null) {
             // Your own game, still going: the code (or a shared link) takes
@@ -225,6 +234,7 @@ Handler buildMultiplayerHandler(
             send(errorFrame('room_gone', 'room no longer exists'));
             return;
           }
+          if (r.ruleset.isMcr && !supportsMcr(msg)) return;
           rejoin(r, requestedGuestId);
 
         case 'room_status':
