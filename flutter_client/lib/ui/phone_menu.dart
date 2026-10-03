@@ -23,6 +23,7 @@ Future<void> showPhoneMenu(
   GameController game, {
   required VoidCallback onMainMenu,
   required VoidCallback onNewGame,
+  required VoidCallback onToggleLength,
 }) =>
     showModalBottomSheet<void>(
       context: context,
@@ -125,7 +126,7 @@ Future<void> showPhoneMenu(
                               label: game.hanchan
                                   ? (game.ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.hanchan)
                                   : context.l10n.eastOnly,
-                              onTap: () => game.setHanchan(!game.hanchan),
+                              onTap: closeThen(onToggleLength),
                             ),
                           ],
                         ]),

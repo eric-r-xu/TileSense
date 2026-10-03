@@ -132,6 +132,33 @@ void main() {
     await tearDownApp(tester);
   });
 
+  testWidgets('switching game length asks first while a game is being played',
+      (tester) async {
+    await startGame(tester);
+    final game = tester.widget<TableView>(find.byType(TableView)).game
+        as GameController;
+    final firstRound = game.round;
+    expect(game.hanchan, isTrue);
+
+    await tester.tap(find.byKey(const Key('hanchan')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Switch to East only?'), findsOneWidget);
+    expect(find.text('The game in progress will be lost.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('lengthChangeCancel')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(game.hanchan, isTrue);
+    expect(identical(game.round, firstRound), isTrue,
+        reason: 'keep playing leaves the game alone');
+
+    await tester.tap(find.byKey(const Key('hanchan')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('lengthChangeConfirm')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(game.hanchan, isFalse);
+    expect(identical(game.round, firstRound), isFalse);
+    await tearDownApp(tester);
+  });
+
   testWidgets('take back shows once you have moved, and undoes the move',
       (tester) async {
     await startGame(tester);
@@ -289,6 +316,32 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Single Player'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tearDownApp(tester);
+    });
+
+    testWidgets('Length asks first too', (tester) async {
+      await startGame(tester, size: iPhone);
+      final game = tester.widget<TableView>(find.byType(TableView)).game
+          as GameController;
+      await openMenu(tester);
+      await tester.tap(find.byKey(const Key('phoneMenuLength')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byKey(const Key('lengthChangeConfirm')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('lengthChangeCancel')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(game.hanchan, isTrue);
+
+      await openMenu(tester);
+      await tester.tap(find.byKey(const Key('phoneMenuLength')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byKey(const Key('lengthChangeConfirm')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(game.hanchan, isFalse);
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
     });

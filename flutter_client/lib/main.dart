@@ -1036,31 +1036,61 @@ class _GamePageState extends State<GamePage> {
   /// New game sits beside pause, an easy mis-tap on a phone, and throws away
   /// the game in progress — so a game that is still being played asks first.
   /// One that has already ended starts straight away.
-  Future<void> _confirmNewGame() async {
+  Future<void> _confirmNewGame() => _confirmLosingGame(
+        keyPrefix: 'newGame',
+        title: context.l10n.newGameConfirmTitle,
+        confirm: context.l10n.newGame,
+        then: _game.newGame,
+      );
+
+  /// Switching between the full game and East only deals a new game too, so
+  /// it asks the same way.
+  Future<void> _confirmToggleLength() {
+    final full = !_game.hanchan;
+    return _confirmLosingGame(
+      keyPrefix: 'lengthChange',
+      title: context.l10n.lengthChangeConfirmTitle(full
+          ? (_game.ruleset.isMcr
+              ? context.l10n.mcrFullGame
+              : context.l10n.hanchan)
+          : context.l10n.eastOnly),
+      confirm: context.l10n.lengthChangeConfirm,
+      then: () => _game.setHanchan(full),
+    );
+  }
+
+  /// Runs [then], which abandons the game in progress, once the player
+  /// confirms — or straight away if the game has already ended.
+  Future<void> _confirmLosingGame({
+    required String keyPrefix,
+    required String title,
+    required String confirm,
+    required VoidCallback then,
+  }) async {
     if (_game.phase == GamePhase.gameEnd) {
-      _game.newGame();
+      then();
       return;
     }
     final go = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(context.l10n.newGameConfirmTitle),
+        title: Text(title),
         content: Text(context.l10n.newGameConfirmBody),
         actions: [
           TextButton(
-            key: const Key('newGameCancel'),
+            key: Key('${keyPrefix}Cancel'),
             onPressed: () => Navigator.pop(context, false),
             child: Text(context.l10n.keepPlaying),
           ),
           FilledButton(
-            key: const Key('newGameConfirm'),
+            key: Key('${keyPrefix}Confirm'),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(context.l10n.newGame),
+            child: Text(confirm),
           ),
         ],
       ),
     );
-    if (go ?? false) _game.newGame();
+    if ((go ?? false) && mounted) then();
   }
 
   // Leaving a game in progress for the welcome screen — the only way there to
@@ -1307,7 +1337,7 @@ class _GamePageState extends State<GamePage> {
                               : l10n.eastOnlyTooltipRiichi(caveat)),
                       child: TextButton(
                         key: const Key('hanchan'),
-                        onPressed: () => _game.setHanchan(!_game.hanchan),
+                        onPressed: _confirmToggleLength,
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
                           foregroundColor: const Color(0xffe9d58f),
@@ -1517,7 +1547,8 @@ class _GamePageState extends State<GamePage> {
                       onMenu: phone
                           ? () => showPhoneMenu(context, _game,
                               onMainMenu: _backToMenu,
-                              onNewGame: _confirmNewGame)
+                              onNewGame: _confirmNewGame,
+                              onToggleLength: _confirmToggleLength)
                           : null,
                     ),
                   ],

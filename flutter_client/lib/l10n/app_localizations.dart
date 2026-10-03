@@ -437,6 +437,18 @@ abstract class AppLocalizations {
   /// **'Keep playing'**
   String get keepPlaying;
 
+  /// No description provided for @lengthChangeConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {length}?'**
+  String lengthChangeConfirmTitle(String length);
+
+  /// No description provided for @lengthChangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get lengthChangeConfirm;
+
   /// No description provided for @newGame.
   ///
   /// In en, this message translates to:
