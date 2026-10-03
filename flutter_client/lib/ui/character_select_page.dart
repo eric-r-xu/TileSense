@@ -120,7 +120,7 @@ class CharacterSelectPage extends StatelessWidget {
     final wind = seatStartingWind(seat, startingDealer);
     return Container(
       key: Key('seatCard_$seat'),
-      // Seven choices per row keep the expanded roster in two rows.
+      // Eight choices per row keep the expanded roster in two rows.
       width: 344,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
@@ -198,7 +198,7 @@ class CharacterSelectPage extends StatelessWidget {
           const SizedBox(height: 8),
           CharacterRow(
             options: kSelectableCharacters,
-            columns: 7,
+            columns: 8,
             selected: character,
             keyPrefix: 'seatCharacterPick_$seat',
             onSelect: (c) => onSeatCharacter(seat, c),
