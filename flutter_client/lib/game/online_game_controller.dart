@@ -1074,6 +1074,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       _roundReady && !round.finished && round.isFuriten(kHumanSeat);
 
   @override
+  MinimumShortfall get humanMinimumShortfall => _roundReady && !round.finished
+      ? round.minimumShortfall(kHumanSeat)
+      : MinimumShortfall.none;
+
+  @override
   int? get safetyOpponentSeat => _roundReady ? _threatOpponent()?.seat : null;
 
   @override

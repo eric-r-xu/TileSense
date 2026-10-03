@@ -5,7 +5,8 @@
 /// only ever for display. English here is exactly what those getters say.
 library;
 
-import 'package:mahjong_core/round.dart' show CallType;
+import 'package:mahjong_core/mcr/mcr_rules.dart';
+import 'package:mahjong_core/round.dart' show CallType, MinimumShortfall;
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart' show TileType, Wind;
 
@@ -37,6 +38,28 @@ extension MahjongTerms on AppLocalizations {
         CallType.kan => _pick(r, callKanRiichi, callKanHongKong, callKanTaiwanese),
         CallType.ron => _pick(r, callRonRiichi, callRonHongKong, callRonTaiwanese),
         CallType.none => '',
+      };
+
+  /// The under-minimum badge: what [r] calls a hand too cheap to win (no
+  /// yaku, or under the table's faan / tai / fan floor), with "no win" added
+  /// when not even a self-draw reaches it. Empty for [MinimumShortfall.none].
+  String minimumShortfallLabel(Ruleset r, MinimumShortfall s,
+      {required int minimumFaan, required int minimumPoints}) {
+    if (s == MinimumShortfall.none) return '';
+    final label = switch (r) {
+      Ruleset.riichi => noYaku,
+      Ruleset.hongKong => underFaan(minimumFaan),
+      Ruleset.taiwanese => underTai(minimumPoints),
+      Ruleset.mcr => underFan(McrRules.minimumPoints),
+    };
+    return s == MinimumShortfall.dead ? '$label · $noWin' : label;
+  }
+
+  /// The under-minimum badge's tooltip; empty for [MinimumShortfall.none].
+  String minimumShortfallTooltip(MinimumShortfall s) => switch (s) {
+        MinimumShortfall.none => '',
+        MinimumShortfall.ronOnly => minimumRonOnlyTooltip,
+        MinimumShortfall.dead => minimumDeadTooltip,
       };
 
   String tsumoLabel(Ruleset r) =>

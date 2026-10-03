@@ -1925,6 +1925,48 @@ abstract class AppLocalizations {
   /// **'FURITEN'**
   String get furiten;
 
+  /// No description provided for @noYaku.
+  ///
+  /// In en, this message translates to:
+  /// **'NO YAKU'**
+  String get noYaku;
+
+  /// No description provided for @underFaan.
+  ///
+  /// In en, this message translates to:
+  /// **'UNDER {n} FAAN'**
+  String underFaan(int n);
+
+  /// No description provided for @underTai.
+  ///
+  /// In en, this message translates to:
+  /// **'UNDER {n} TAI'**
+  String underTai(int n);
+
+  /// No description provided for @underFan.
+  ///
+  /// In en, this message translates to:
+  /// **'UNDER {n} FAN'**
+  String underFan(int n);
+
+  /// No description provided for @noWin.
+  ///
+  /// In en, this message translates to:
+  /// **'NO WIN'**
+  String get noWin;
+
+  /// No description provided for @minimumRonOnlyTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Ron unavailable: no wait reaches the minimum off a discard, but a self-draw can still win'**
+  String get minimumRonOnlyTooltip;
+
+  /// No description provided for @minimumDeadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'No wait reaches the minimum, even self-drawn, so this hand cannot win as it stands'**
+  String get minimumDeadTooltip;
+
   /// No description provided for @secondsShort.
   ///
   /// In en, this message translates to:

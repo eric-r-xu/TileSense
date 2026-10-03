@@ -63,6 +63,17 @@ void main() {
     }
   });
 
+  test('minimumShortfall reports a wait too cheap for the minimum', () {
+    for (final (minimum, expected) in [
+      (0, MinimumShortfall.none),
+      (1, MinimumShortfall.ronOnly), // the Self-Pick faan reaches it
+      (2, MinimumShortfall.dead),
+    ]) {
+      expect(_chickenTable(minimum).minimumShortfall(1), expected,
+          reason: 'minimum $minimum');
+    }
+  });
+
   test('each faan of the hand counts toward the minimum', () {
     // No flowers adds 1 faan: 1 on a discard.
     for (final (minimum, legal) in [(0, true), (1, true), (2, false)]) {

@@ -463,6 +463,34 @@
   "noCalls": "calls",
   "autoPlaySeatTooltip": "Auto-Play — TileSensor is playing your seat",
   "furiten": "FURITEN",
+  "noYaku": "NO YAKU",
+  "underFaan": "UNDER {n} FAAN",
+  "@underFaan": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "underTai": "UNDER {n} TAI",
+  "@underTai": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "underFan": "UNDER {n} FAN",
+  "@underFan": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "noWin": "NO WIN",
+  "minimumRonOnlyTooltip": "Ron unavailable: no wait reaches the minimum off a discard, but a self-draw can still win",
+  "minimumDeadTooltip": "No wait reaches the minimum, even self-drawn, so this hand cannot win as it stands",
   "secondsShort": "{n}s",
   "@secondsShort": {
     "placeholders": {

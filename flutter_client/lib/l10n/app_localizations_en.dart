@@ -983,6 +983,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get furiten => 'FURITEN';
 
   @override
+  String get noYaku => 'NO YAKU';
+
+  @override
+  String underFaan(int n) {
+    return 'UNDER $n FAAN';
+  }
+
+  @override
+  String underTai(int n) {
+    return 'UNDER $n TAI';
+  }
+
+  @override
+  String underFan(int n) {
+    return 'UNDER $n FAN';
+  }
+
+  @override
+  String get noWin => 'NO WIN';
+
+  @override
+  String get minimumRonOnlyTooltip =>
+      'Ron unavailable: no wait reaches the minimum off a discard, but a self-draw can still win';
+
+  @override
+  String get minimumDeadTooltip =>
+      'No wait reaches the minimum, even self-drawn, so this hand cannot win as it stands';
+
+  @override
   String secondsShort(int n) {
     return '${n}s';
   }

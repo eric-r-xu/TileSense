@@ -74,6 +74,10 @@ abstract class GuideHost implements Listenable {
 
   bool get humanFuriten;
 
+  /// Whether the human seat is tenpai but no wait reaches the table's
+  /// minimum off a discard — drives the under-minimum badge beside FURITEN.
+  MinimumShortfall get humanMinimumShortfall;
+
   /// Discard animation cues: [discardSerial] ticks once per discard, and the
   /// other two describe that discard. A static table (the scenario builder)
   /// holds the serial at 0 so nothing ever animates.
