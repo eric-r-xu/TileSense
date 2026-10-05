@@ -1,7 +1,7 @@
 /// A riichi [Round] as mjai events — the protocol Mortal reads — so the
-/// Mortal-backed Grant bot can be asked for its move. Only the Grant persona
-/// uses this, only in offline games and only under riichi rules; every other
-/// seat stays on `SimpleBot`. See flutter_client/BOT_STRATEGY.md.
+/// Mortal-backed Saeko bot (offline, and on the multiplayer server) and the
+/// guide's Mortal column can ask for a move. Only under riichi rules; every
+/// other bot stays on `SimpleBot`. See flutter_client/BOT_STRATEGY.md.
 ///
 /// [MjaiRecorder] is not told what happened; it watches. Call [sync] after
 /// every action on the round and it turns whatever changed since the last

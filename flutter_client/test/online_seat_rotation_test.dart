@@ -85,4 +85,15 @@ void main() {
     expect(OnlineGameController.characterForLocalSeat(sparse, 0, 2),
         Character.hubert);
   });
+
+  test('table points rotate into the local frame like the seats do', () {
+    // The reported game: server seats Melissa, Eric, Saeko, Matthew, viewed
+    // by Eric (server seat 1) — his own 5900 must land at local seat 0.
+    const server = [45100, 5900, 17400, 31600];
+    expect(OnlineGameController.localTablePoints(server, 0), server);
+    expect(OnlineGameController.localTablePoints(server, 1),
+        [5900, 17400, 31600, 45100]);
+    expect(OnlineGameController.localTablePoints(server, 3),
+        [31600, 45100, 5900, 17400]);
+  });
 }

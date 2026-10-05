@@ -280,6 +280,56 @@ void main() {
       await tester.pump();
     }
   });
+
+  for (final size in [kDesignSize, const Size(568, 320)]) {
+    testWidgets(
+        'final standings rank by score with a portrait each, unclipped at '
+        '${size.width.toInt()}x${size.height.toInt()}', (tester) async {
+      Sfx.i.enabled = false;
+      final game = _EndGame([5900, 17400, 31600, 45100]);
+      game.togglePause();
+      try {
+        game.round
+          ..phase = RoundPhase.finished
+          ..result = RoundResult(
+            kind: RoundEndKind.exhaustiveDraw,
+            winners: const [],
+            pointDeltas: const {},
+            label: 'Game over',
+          );
+        game.phase = GamePhase.gameEnd;
+        CallCallout.i.clear();
+        await tester.binding.setSurfaceSize(size);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+            MaterialApp(home: Scaffold(body: ScoringView(game: game))));
+        await tester.pump();
+
+        final standings = find.byKey(const Key('scoreStandings'));
+        expect(standings, findsOneWidget);
+        expect(
+            find.descendant(of: standings, matching: find.byType(Image)),
+            findsNWidgets(4));
+        final ranked = [
+          for (final t in tester.widgetList<Text>(
+              find.descendant(of: standings, matching: find.byType(Text))))
+            t.data!
+        ].where((t) => t.contains(':')).toList();
+        expect(ranked, [
+          '${game.seatLabel(3)}: 45100',
+          '${game.seatLabel(2)}: 31600',
+          '${game.seatLabel(1)}: 17400',
+          '${game.seatLabel(0)}: 5900',
+        ]);
+        expect(tester.takeException(), isNull);
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      }
+    });
+  }
 }
 
 class _ScoreGame extends GameController {
@@ -289,4 +339,13 @@ class _ScoreGame extends GameController {
 
   @override
   void continueFromRoundEnd() => continues++;
+}
+
+class _EndGame extends GameController {
+  _EndGame(this._final) : super(seed: 5);
+
+  final List<int> _final;
+
+  @override
+  List<int> get tablePoints => _final;
 }

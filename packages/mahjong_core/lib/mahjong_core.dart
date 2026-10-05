@@ -15,6 +15,7 @@ export 'mcr/mcr_rules.dart';
 export 'mcr/mcr_scoring.dart';
 export 'meld.dart';
 export 'mjai.dart';
+export 'mortal_move.dart';
 export 'protocol.dart';
 export 'round.dart';
 export 'ruleset.dart';

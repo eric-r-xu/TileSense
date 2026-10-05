@@ -713,7 +713,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     mySeat = seat;
     phase = GamePhase.values.byName(msg['gamePhase'] as String);
     if (phase == GamePhase.gameEnd) _identity.saveActiveRoom(null);
-    _tablePoints = List<int>.from(msg['tablePoints'] as List);
+    _tablePoints = localTablePoints(
+        List<int>.from(msg['tablePoints'] as List), seat);
     _handInWind = msg['handInWind'] as int;
     _discardSerial = msg['discardSerial'] as int;
     _lastDiscardSeat = msg['lastDiscardSeat'] as int?;
@@ -1165,6 +1166,16 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     final match = lobbySeats.where((s) => s.seat == serverSeat);
     return match.isEmpty ? null : match.first;
   }
+
+  /// The server sends `tablePoints` by real seat, but [tablePoints] — like
+  /// `round` and [seatLabel] — is read in the local frame (you at 0). Left
+  /// unrotated, the final standings paired every name but seat 0's with
+  /// someone else's score.
+  @visibleForTesting
+  static List<int> localTablePoints(List<int> serverPoints, int mySeat) => [
+        for (var local = 0; local < serverPoints.length; local++)
+          serverPoints[(local + mySeat) % serverPoints.length]
+      ];
 
   @visibleForTesting
   static String labelForLocalSeat(

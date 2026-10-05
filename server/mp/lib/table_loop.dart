@@ -11,6 +11,7 @@ import 'dart:math';
 import 'package:mahjong_core/mahjong_core.dart';
 import 'package:mahjong_core/game_timing.dart';
 
+import 'mortal.dart';
 import 'room.dart';
 import 'telemetry.dart';
 
@@ -41,7 +42,9 @@ class TableLoop {
     Duration callDiscardHold = const Duration(milliseconds: 600),
     Duration? afterCallPace,
     MpTelemetry? telemetry,
-  })  : _turnTimeout = turnTimeout ??
+    MortalAsk? mortal,
+  })  : _mortal = mortal ?? MortalClient.maybe()?.ask,
+        _turnTimeout = turnTimeout ??
             Duration(seconds: room.discardSeconds + room.callSeconds),
         _callTimeout = callTimeout ?? Duration(seconds: room.callSeconds),
         _disconnectGrace = disconnectGrace,
@@ -63,6 +66,14 @@ class TableLoop {
   final Room room;
   final Random _rng = Random.secure();
   final MpTelemetry? _tel;
+
+  /// Mortal, when the server runs with `MORTAL_URL` (tests may pass one);
+  /// see [_playsMortal].
+  final MortalAsk? _mortal;
+
+  /// This hand as mjai events, for Mortal; null when nobody here plays on
+  /// Mortal. Kept in step with the round by [_syncMjai].
+  MjaiRecorder? _mjai;
   late final String _matchId;
   late String _roundId;
 
@@ -199,9 +210,14 @@ class TableLoop {
     _started = true;
     _points = List.filled(4, ruleset.startingPoints);
     _shuffleSeats();
+    // Under riichi the first bot is Saeko, who plays on Mortal, unless a
+    // player already has her.
+    var wantSaeko = ruleset.isRiichi;
     for (var i = 0; i < 4; i++) {
       if (room.seats[i] == null) {
-        final character = room.resolveCharacter(null, _rng);
+        final character =
+            room.resolveCharacter(wantSaeko ? 'saeko' : null, _rng);
+        wantSaeko = false;
         room.seats[i] = Seat(
           guestId: 'bot-$i',
           name: Room.characterName[character]!,
@@ -277,6 +293,11 @@ class TableLoop {
       minimumFaan: room.minimumFaan,
       minimumPoints: room.minimumPoints,
     );
+    _mjai = _mortal != null &&
+            ruleset.isRiichi &&
+            room.seats.any((s) => s?.character == 'saeko')
+        ? MjaiRecorder(round, kyoku: (_roundNumber % 4) + 1)
+        : null;
     _discardSerial = 0;
     _justCalled = null;
     _lastDiscardSeat = null;
@@ -370,7 +391,9 @@ class TableLoop {
         ? _afterCallPace
         : _botPace();
     _justCalled = null;
-    final decision = _botFor(seat).decideTurn(round, seat);
+    shownAt ??= DateTime.now();
+    final decision = await _botTurn(seat);
+    if (_ended) return;
     if (decision.tsumo) {
       round.declareTsumo(seat);
     } else if (decision.closedKan != null) {
@@ -384,10 +407,75 @@ class TableLoop {
       _noteDiscard(seat, tile);
       round.discard(seat, tile, declareRiichi: decision.riichi);
     }
-    final wait =
-        shownAt == null ? pace : pace - DateTime.now().difference(shownAt);
+    // Mortal's thinking time comes out of the pause, not on top of it.
+    final wait = pace - DateTime.now().difference(shownAt);
     if (wait > Duration.zero) await Future.delayed(wait);
     _broadcastState();
+  }
+
+  // --- Saeko on Mortal -----------------------------------------------------
+
+  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi game,
+  /// on a server run with `MORTAL_URL` — as in single player. A timed-out
+  /// human Saeko's one-off move stays on [SimpleBot].
+  bool _playsMortal(int seat) =>
+      _mjai != null &&
+      _bots.containsKey(seat) &&
+      room.seats[seat]?.character == 'saeko';
+
+  /// Brings [_mjai] up to date with the round. It must see every action
+  /// separately to keep them in order, so this runs at every broadcast (each
+  /// follows exactly one action) and before every question to Mortal.
+  void _syncMjai() {
+    try {
+      _mjai?.sync();
+    } catch (e) {
+      // A recorder that can't follow the table would only feed Mortal a
+      // wrong hand: Saeko finishes this one on SimpleBot instead.
+      print('[mp] mjai recorder stopped: $e');
+      _mjai = null;
+    }
+  }
+
+  /// Mortal's reply read by [read], or [fallback]'s answer if Mortal fails
+  /// or names a move this table doesn't offer.
+  Future<T> _askMortal<T>(int seat, T Function(Map<String, Object?>) read,
+      T Function() fallback) async {
+    _syncMjai();
+    final mjai = _mjai;
+    if (mjai == null) return fallback();
+    try {
+      return read(await _mortal!(seat, List.of(mjai.events)));
+    } catch (e) {
+      print('[mp] Saeko (Mortal) fell back to SimpleBot: $e');
+      return fallback();
+    }
+  }
+
+  Future<BotTurn> _botTurn(int seat) async {
+    BotTurn simple() => _botFor(seat).decideTurn(round, seat);
+    if (!_playsMortal(seat)) return simple();
+    return _askMortal(
+        seat, (reply) => MortalMove.turn(reply, round, seat), simple);
+  }
+
+  /// [opt]'s bot answer; a chi names its run in `chiLow`.
+  Future<({CallType call, TileType? chiLow})> _botCall(CallOption opt) async {
+    ({CallType call, TileType? chiLow}) simple() => (
+          call: _botFor(opt.seat)
+              .decideCall(round, opt.seat, round.pendingDiscard!, opt.types),
+          chiLow: null
+        );
+    if (!_playsMortal(opt.seat)) return simple();
+    return _askMortal(opt.seat,
+        (reply) => MortalMove.call(reply, round, opt.seat, opt.types), simple);
+  }
+
+  void _noteBotCall(int seat, ({CallType call, TileType? chiLow}) answer,
+      Map<int, CallType> choices, Map<int, TileType> chiLow) {
+    if (answer.call == CallType.none) return;
+    choices[seat] = answer.call;
+    if (answer.chiLow != null) chiLow[seat] = answer.chiLow!;
   }
 
   bool _tryApplyHumanTurnAction(int seat, Map<String, dynamic> action) {
@@ -478,11 +566,11 @@ class TableLoop {
     final choices = <int, CallType>{};
     final chiLow = <int, TileType>{};
     final humanSeats = <int>[];
+    // Bots answer while the humans think: Mortal may take a moment.
+    final botAnswers = <int, Future<({CallType call, TileType? chiLow})>>{};
     for (final opt in round.callOptions) {
       if (isBotControlled(opt.seat)) {
-        final c = _botFor(opt.seat)
-            .decideCall(round, opt.seat, round.pendingDiscard!, opt.types);
-        if (c != CallType.none) choices[opt.seat] = c;
+        botAnswers[opt.seat] = _botCall(opt);
       } else {
         humanSeats.add(opt.seat);
       }
@@ -509,9 +597,8 @@ class TableLoop {
           continue; // the option evaporated (e.g. a ron elsewhere)
         if (isBotControlled(seat)) {
           // Converted to a bot while this call was pending; let it answer.
-          final c = _botFor(seat)
-              .decideCall(round, seat, round.pendingDiscard!, opt.types);
-          if (c != CallType.none) choices[seat] = c;
+          _noteBotCall(seat, await _botCall(opt), choices, chiLow);
+          if (_ended) return;
           continue;
         }
         // Timed out while still human: the offer is passed, a ron included,
@@ -543,6 +630,11 @@ class TableLoop {
         );
       }
     }
+
+    for (final e in botAnswers.entries) {
+      _noteBotCall(e.key, await e.value, choices, chiLow);
+    }
+    if (_ended) return;
 
     // A chi / pon / kan takes the discard out of the pond: let it be seen
     // landing first. (A ron ends the hand, and its panel already waits out
@@ -867,6 +959,7 @@ class TableLoop {
   }
 
   void _broadcastState() {
+    _syncMjai();
     if (_discardSerial != _shownSerial) {
       _shownSerial = _discardSerial;
       _discardShownAt = DateTime.now();
