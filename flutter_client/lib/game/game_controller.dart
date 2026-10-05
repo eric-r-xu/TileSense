@@ -1486,7 +1486,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi game,
   /// in an app built with MORTAL_URL. Every other character, and Saeko under
-  /// Hong Kong or Taiwanese rules or online, stays on [SimpleBot].
+  /// Hong Kong or Taiwanese rules, stays on [SimpleBot]. (Online, the server
+  /// plays its own bot Saeko on Mortal: server/mp/lib/table_loop.dart.)
   bool _playsMortal(int seat) =>
       _mortal != null &&
       ruleset.isRiichi &&

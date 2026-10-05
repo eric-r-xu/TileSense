@@ -17,6 +17,9 @@ Wants=network-online.target
 Environment=PORT=8789
 Environment=BIND_ADDR=127.0.0.1
 Environment=INGEST_URL=http://127.0.0.1:8787/ingest
+# Bot Saeko plays Mortal's moves in riichi rooms (server/mp/lib/mortal.dart);
+# with the sidecar down or absent she falls back to SimpleBot.
+Environment=MORTAL_URL=http://127.0.0.1:8790
 ExecStart=/usr/local/bin/tilesense-mp
 Restart=always
 RestartSec=2

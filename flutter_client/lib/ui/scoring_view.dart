@@ -5,6 +5,7 @@ import 'package:mahjong_core/game_timing.dart';
 
 import '../game/call_callout.dart';
 import '../game/guide_host.dart';
+import '../game/sfx.dart' show Character, kCharacterPortrait;
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import 'package:mahjong_core/round.dart';
@@ -295,18 +296,8 @@ class _ScoringViewState extends State<ScoringView> {
                           ),
                         if (gameOver)
                           Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            // One line: the final standings scale down to fit rather
-                            // than wrapping.
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                _standings(game),
-                                maxLines: 1,
-                                softWrap: false,
-                                style: const TextStyle(color: Colors.white70),
-                              ),
-                            ),
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _standings(game),
                           ),
                       ],
                     ),
@@ -614,13 +605,58 @@ class _ScoringViewState extends State<ScoringView> {
 
   String _delta(int n) => n >= 0 ? '+$n' : '$n';
 
-  String _standings(TableGameHost game) {
-    final entries = [
-      for (var i = 0; i < 4; i++) (game.seatLabel(i), game.tablePoints[i])
-    ]..sort((a, b) => b.$2.compareTo(a.$2));
-    return [
-      for (var i = 0; i < entries.length; i++)
-        '#${i + 1}  ${entries[i].$1}: ${entries[i].$2}'
-    ].join('     ');
+  /// Final placements, best first: rank, the player's portrait, name and
+  /// score. Entries wrap onto a second line on a narrow panel rather than
+  /// shrinking or being cut off.
+  Widget _standings(TableGameHost game) {
+    final seats = [for (var i = 0; i < 4; i++) i]
+      ..sort((a, b) => game.tablePoints[b].compareTo(game.tablePoints[a]));
+    const style = TextStyle(color: Colors.white70);
+    return Wrap(
+      key: const Key('scoreStandings'),
+      alignment: WrapAlignment.center,
+      spacing: 22,
+      runSpacing: 8,
+      children: [
+        for (var i = 0; i < seats.length; i++)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('#${i + 1}',
+                  style: style.copyWith(
+                      color: i == 0 ? const Color(0xffffdf76) : null,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(width: 6),
+              _standingsAvatar(game.characterForSeat(seats[i]), first: i == 0),
+              const SizedBox(width: 6),
+              Text(
+                  '${game.seatLabel(seats[i])}: '
+                  '${game.tablePoints[seats[i]]}',
+                  style: style),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _standingsAvatar(Character character, {required bool first}) {
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xff0c4747),
+        border: Border.all(
+            color: first ? const Color(0xffffdf76) : _gold.withValues(alpha: 0.6),
+            width: first ? 1.5 : 1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.asset(
+        kCharacterPortrait[character]!,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      ),
+    );
   }
 }
