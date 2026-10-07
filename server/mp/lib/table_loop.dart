@@ -39,7 +39,7 @@ class TableLoop {
     Duration? continueTimeout,
     Duration botTurnPace = const Duration(milliseconds: 900),
     Duration continueLock = kScoreContinueLock,
-    Duration callDiscardHold = const Duration(milliseconds: 600),
+    Duration callDiscardHold = kBotCallHold,
     Duration? afterCallPace,
     MpTelemetry? telemetry,
     MortalAsk? mortal,
@@ -636,15 +636,14 @@ class TableLoop {
     }
     if (_ended) return;
 
-    // A chi / pon / kan takes the discard out of the pond: let it be seen
-    // landing first. (A ron ends the hand, and its panel already waits out
-    // the bubble; a pass leaves the tile where it is.)
     final meldCalls = {
       for (final e in choices.entries)
         if (e.value != CallType.ron) e.key: e.value
     };
     final ron = choices.values.contains(CallType.ron);
-    if (meldCalls.isNotEmpty && !ron) {
+    // Any claim on the discard (chi / pon / kan / ron) waits until the tile
+    // has been seen landing; a pass leaves the tile where it is.
+    if (choices.isNotEmpty) {
       final wait =
           _callDiscardHold - DateTime.now().difference(_discardShownAt);
       if (wait > Duration.zero) await Future.delayed(wait);
