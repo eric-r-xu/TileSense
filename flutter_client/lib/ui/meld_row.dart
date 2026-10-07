@@ -14,11 +14,17 @@ class MeldRow extends StatelessWidget {
       {super.key,
       this.size = TileSize.normal,
       this.scale = 1.0,
-      this.faceDown = false});
+      this.faceDown = false,
+      this.mirrored = false});
   final Meld meld;
   final TileSize size;
   final double scale;
   final bool faceDown;
+
+  /// The row is drawn upright for a seat that faces the viewer (the across
+  /// seat), where the owner's left is the viewer's right. Side seats get this
+  /// for free by being turned a quarter, so only the across seat sets it.
+  final bool mirrored;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +73,9 @@ class MeldRow extends StatelessWidget {
         if (!identical(t, called)) t,
     ];
     final off = m.calledFromSeatOffset ?? 1;
-    final slot = off == 3 ? 0 : (off == 2 ? 1 : rest.length);
+    final fromLeft = mirrored ? off == 1 : off == 3;
+    final fromRight = mirrored ? off == 3 : off == 1;
+    final slot = fromLeft ? 0 : (fromRight ? rest.length : 1);
     final ordered = <Tile?>[...rest];
     if (called != null) ordered.insert(slot.clamp(0, ordered.length), called);
     return Row(

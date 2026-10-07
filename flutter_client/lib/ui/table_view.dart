@@ -683,6 +683,9 @@ class TableView extends StatelessWidget {
             MeldRow(m,
                 size: TileSize.small,
                 scale: _pondScale,
+                // The across seat's row isn't turned like the side seats', so
+                // its tilted tile must be placed from the owner's viewpoint.
+                mirrored: s.seat == 2,
                 // The builder poses the whole table, so it shows everything.
                 faceDown: edits == null &&
                     s.seat != kHumanSeat &&
