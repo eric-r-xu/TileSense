@@ -8,6 +8,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/bot.dart';
+import 'package:mahjong_core/game_timing.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
@@ -934,7 +935,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void _scheduleLoop() {
     if (_disposed || paused || (_loopTimer?.isActive ?? false)) return;
     // A call bubble is on screen: hold the next step until it has gone.
-    _loopTimer = Timer(_stepDelay + CallCallout.i.remaining, _tick);
+    // Bots reacting to a fresh discard give the tile its air time, even in
+    // fast mode.
+    final step = round.phase == RoundPhase.callOffer && _stepDelay < kBotCallHold
+        ? kBotCallHold
+        : _stepDelay;
+    _loopTimer = Timer(step + CallCallout.i.remaining, _tick);
   }
 
   void _tick() {

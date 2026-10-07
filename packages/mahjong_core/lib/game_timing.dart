@@ -22,3 +22,7 @@ const Duration kReplayGap = Duration(milliseconds: 420);
 
 /// The shorter gap a long backlog replays at, so the table catches up fast.
 const Duration kReplayCatchUpGap = Duration(milliseconds: 200);
+
+/// How long a discard stays on the table, untouched, before a bot reacts to it
+/// (chi / pon / kan / ron), so viewers get to see the tile land.
+const Duration kBotCallHold = Duration(milliseconds: 700);
