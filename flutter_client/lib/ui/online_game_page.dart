@@ -252,6 +252,28 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 minimumPoints: game.minimumPoints,
                 fontSize: phone ? 20 : 16,
               ),
+              const SizedBox(width: 8),
+              // How long the game is: full game (hanchan) or East-only.
+              Tooltip(
+                message: game.hanchan
+                    ? context.l10n.lengthHanchan
+                    : context.l10n.lengthEastOnly,
+                child: Text(
+                  game.ruleset.isMcr && !phone
+                      ? (game.hanchan
+                          ? context.l10n.mcrFullGame
+                          : context.l10n.mcrPractice)
+                      : (game.hanchan
+                          ? context.l10n.roomFullGame
+                          : context.l10n.roomEastOnly),
+                  key: const Key('gameLengthLabel'),
+                  style: TextStyle(
+                    color: const Color(0xffffdf76).withValues(alpha: 0.75),
+                    fontSize: phone ? 14 : 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
               SizedBox(width: phone ? 16 : 12),
               if (!phone) ...[
                 // This screen's language picker (on a phone: the Menu sheet).

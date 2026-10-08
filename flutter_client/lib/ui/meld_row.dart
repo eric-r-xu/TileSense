@@ -6,7 +6,8 @@ import 'tile_face.dart';
 
 /// One called set, rendered with real riichi notation: the called tile is
 /// turned 90° and slotted at the end matching the seat it came from
-/// (kamicha = left, toimen = middle, shimocha = right). A concealed kan shows
+/// (kamicha = left, toimen = middle, shimocha = right). An added kan's 4th
+/// tile lies sideways on top of the called one. A concealed kan shows
 /// its two outer tiles face down — or all four when [faceDown], as another
 /// seat sees one under Taiwanese rules.
 class MeldRow extends StatelessWidget {
@@ -68,9 +69,13 @@ class MeldRow extends StatelessWidget {
     // (index 2), matching a plain pon's "need" rather than a kan's.
     final need = m.kind == MeldKind.kan && !m.addedKan ? 3 : 2;
     final Tile? called = m.tiles.length > need ? m.tiles[need] : null;
+    // An added kan's 4th tile (last) lies sideways on top of the called one.
+    final Tile? added = m.kind == MeldKind.kan && m.addedKan && called != null
+        ? m.tiles.last
+        : null;
     final rest = [
       for (final t in m.tiles)
-        if (!identical(t, called)) t,
+        if (!identical(t, called) && !identical(t, added)) t,
     ];
     final off = m.calledFromSeatOffset ?? 1;
     final fromLeft = mirrored ? off == 1 : off == 3;
@@ -78,17 +83,32 @@ class MeldRow extends StatelessWidget {
     final slot = fromLeft ? 0 : (fromRight ? rest.length : 1);
     final ordered = <Tile?>[...rest];
     if (called != null) ordered.insert(slot.clamp(0, ordered.length), called);
+    Widget face(Tile? t) => TileFace(
+          tile: t,
+          size: size,
+          scale: scale,
+          rotationQuarterTurns: identical(t, called) ? 1 : 0,
+        );
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         for (final t in ordered)
-          TileFace(
-            tile: t,
-            size: size,
-            scale: scale,
-            rotationQuarterTurns: identical(t, called) ? 1 : 0,
-          ),
+          if (identical(t, called) && added != null)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TileFace(
+                  tile: added,
+                  size: size,
+                  scale: scale,
+                  rotationQuarterTurns: 1,
+                ),
+                face(t),
+              ],
+            )
+          else
+            face(t),
       ],
     );
   }
