@@ -14,6 +14,7 @@ import 'game/game_controller.dart';
 import 'game/gesture_unlock.dart';
 import 'game/guide_host.dart' show AutoplayBrain, GuideHost;
 import 'game/sfx.dart';
+import 'game/touch_device.dart';
 import 'l10n/app_language.dart';
 import 'l10n/l10n.dart';
 import 'l10n/mahjong_terms.dart';
@@ -858,9 +859,26 @@ class _LandscapeGate extends StatelessWidget {
           maintainState: true,
           child: child,
         ),
-        if (!landscape) const _RotatePrompt(),
+        if (!landscape) _RotatePrompt(canRotate: _canRotateDevice),
       ],
     );
+  }
+}
+
+/// Whether the person can fix a portrait viewport by turning the device, as
+/// opposed to widening a desktop browser window. iPadOS Safari reports a macOS
+/// platform, so a Mac user agent with a multi-touch screen is an iPad.
+bool get _canRotateDevice {
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.android:
+    case TargetPlatform.iOS:
+    case TargetPlatform.fuchsia:
+      return true;
+    case TargetPlatform.macOS:
+      return hasMultiTouch;
+    case TargetPlatform.windows:
+    case TargetPlatform.linux:
+      return false;
   }
 }
 
@@ -868,7 +886,10 @@ class _LandscapeGate extends StatelessWidget {
 /// so nothing reaches the game held behind it — all but its language picker,
 /// so the prompt itself can be read in your own language.
 class _RotatePrompt extends StatelessWidget {
-  const _RotatePrompt();
+  const _RotatePrompt({required this.canRotate});
+
+  /// Phones and tablets are asked to turn; desktop browsers to widen the window.
+  final bool canRotate;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -881,11 +902,13 @@ class _RotatePrompt extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.screen_rotation,
+                  Icon(canRotate ? Icons.screen_rotation : Icons.open_in_full,
                       color: Colors.white70, size: 48),
                   const SizedBox(height: 16),
                   Text(
-                    context.l10n.rotatePrompt,
+                    canRotate
+                        ? context.l10n.rotatePrompt
+                        : context.l10n.widenPrompt,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,

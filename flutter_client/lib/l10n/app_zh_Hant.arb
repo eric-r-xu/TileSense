@@ -49,6 +49,7 @@
   "working": "處理中…",
   "update": "更新",
   "rotatePrompt": "請將裝置橫放以使用 TileSense",
+  "widenPrompt": "請將瀏覽器視窗調寬以使用 TileSense",
   "minimumFaanSentence": "，最低{n}番",
   "minimumTaiSentence": "，最低{n}台",
   "minimumFaanTag": "最低{n}番",

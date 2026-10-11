@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/online_game_controller.dart';
@@ -163,5 +164,19 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Rotate your device'), findsOneWidget);
     await switchToJapanese(tester, ja.rotatePrompt);
+  });
+
+  testWidgets('the widen-your-window prompt on a desktop browser',
+      (tester) async {
+    debugDefaultTargetPlatform = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatform = null);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('browser window wider'), findsOneWidget);
+    expect(find.textContaining('Rotate your device'), findsNothing);
+    await switchToJapanese(tester, ja.widenPrompt);
   });
 }

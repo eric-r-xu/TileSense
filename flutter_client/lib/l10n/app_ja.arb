@@ -49,6 +49,7 @@
   "working": "処理中…",
   "update": "アップデート",
   "rotatePrompt": "端末を横向きにして TileSense をプレイしてください",
+  "widenPrompt": "TileSense をプレイするには、ブラウザのウィンドウを広げてください",
   "minimumFaanSentence": "、最低{n}翻",
   "minimumTaiSentence": "、最低{n}台",
   "minimumFaanTag": "最低{n}翻",

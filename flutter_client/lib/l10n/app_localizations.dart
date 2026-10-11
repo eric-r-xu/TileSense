@@ -395,6 +395,12 @@ abstract class AppLocalizations {
   /// **'Rotate your device to landscape to play TileSense'**
   String get rotatePrompt;
 
+  /// No description provided for @widenPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your browser window wider to play TileSense'**
+  String get widenPrompt;
+
   /// No description provided for @minimumFaanSentence.
   ///
   /// In en, this message translates to:
