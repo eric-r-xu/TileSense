@@ -168,8 +168,8 @@ void main() {
 
   testWidgets('the widen-your-window prompt on a desktop browser',
       (tester) async {
-    debugDefaultTargetPlatform = TargetPlatform.macOS;
-    addTearDown(() => debugDefaultTargetPlatform = null);
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
     addTearDown(tester.view.reset);
