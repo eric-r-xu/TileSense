@@ -169,14 +169,18 @@ void main() {
   testWidgets('the widen-your-window prompt on a desktop browser',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugDefaultTargetPlatformOverride = null);
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const TileSenseApp());
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('browser window wider'), findsOneWidget);
-    expect(find.textContaining('Rotate your device'), findsNothing);
-    await switchToJapanese(tester, ja.widenPrompt);
+    try {
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.textContaining('browser window wider'), findsOneWidget);
+      expect(find.textContaining('Rotate your device'), findsNothing);
+      await switchToJapanese(tester, ja.widenPrompt);
+    } finally {
+      // Must be reset before the test ends, not in a tearDown.
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
