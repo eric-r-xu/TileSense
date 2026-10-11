@@ -49,6 +49,7 @@
   "working": "Working…",
   "update": "Update",
   "rotatePrompt": "Rotate your device to landscape to play TileSense",
+  "widenPrompt": "Make your browser window wider to play TileSense",
   "minimumFaanSentence": ", {n}-faan minimum",
   "@minimumFaanSentence": {
     "placeholders": {

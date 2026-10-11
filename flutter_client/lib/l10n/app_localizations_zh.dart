@@ -160,6 +160,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rotatePrompt => '请将设备横置以使用 TileSense';
 
   @override
+  String get widenPrompt => '请将浏览器窗口调宽以使用 TileSense';
+
+  @override
   String minimumFaanSentence(int n) {
     return '，最低$n番';
   }
@@ -2218,6 +2221,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get rotatePrompt => '請將裝置橫放以使用 TileSense';
+
+  @override
+  String get widenPrompt => '請將瀏覽器視窗調寬以使用 TileSense';
 
   @override
   String minimumFaanSentence(int n) {

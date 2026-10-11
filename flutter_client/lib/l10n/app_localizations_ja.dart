@@ -162,6 +162,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rotatePrompt => '端末を横向きにして TileSense をプレイしてください';
 
   @override
+  String get widenPrompt => 'TileSense をプレイするには、ブラウザのウィンドウを広げてください';
+
+  @override
   String minimumFaanSentence(int n) {
     return '、最低$n翻';
   }

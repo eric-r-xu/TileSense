@@ -164,6 +164,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Rotate your device to landscape to play TileSense';
 
   @override
+  String get widenPrompt => 'Make your browser window wider to play TileSense';
+
+  @override
   String minimumFaanSentence(int n) {
     return ', $n-faan minimum';
   }
