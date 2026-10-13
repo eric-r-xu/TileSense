@@ -417,6 +417,13 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           key: const Key('paceCaption'),
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
+        const SizedBox(height: 4),
+        Text(
+          context.l10n.noPauseOnlineHint,
+          key: const Key('noPauseHint'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white38, fontSize: 12),
+        ),
       ],
     );
   }
