@@ -1426,6 +1426,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get leaveGameBody => '戻るまでボットがあなたの席を打ちます — 対局中はメインメニューから戻れます。';
 
   @override
+  String get noPauseOnlineHint => 'オンライン対局は一時停止できません。持ち時間を増やすには「ゆっくり」を選んでください。';
+
+  @override
+  String get noPauseOnlineTooltip =>
+      'オンライン対局は一時停止できません。離席する場合、時間切れや切断の後はボットが席を代わり、メインメニューから戻れます。';
+
+  @override
   String get stay => '残る';
 
   @override

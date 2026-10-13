@@ -144,6 +144,13 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                       ),
                     ],
                   ]),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.l10n.noPauseOnlineTooltip,
+                    key: const Key('onlineMenuNoPause'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
                 ],
               ),
             ),
@@ -278,6 +285,17 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
               if (!phone) ...[
                 // This screen's language picker (on a phone: the Menu sheet).
                 const LanguageButton(compact: true),
+                // Online play has no pause: a dimmed, inert one says why.
+                Tooltip(
+                  message: context.l10n.noPauseOnlineTooltip,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(Icons.pause,
+                        key: Key('noPauseIcon'),
+                        size: 24,
+                        color: Colors.white24),
+                  ),
+                ),
                 const ClientIdButton(),
                 const SizedBox(width: 8),
                 IconButton(

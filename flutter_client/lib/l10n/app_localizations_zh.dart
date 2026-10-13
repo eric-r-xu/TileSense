@@ -1414,6 +1414,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get leaveGameBody => '你回来之前由电脑替你打——对局进行期间可在主菜单重新加入。';
 
   @override
+  String get noPauseOnlineHint => '在线对局无法暂停。想要每回合更多时间，请选择“悠闲”。';
+
+  @override
+  String get noPauseOnlineTooltip =>
+      '在线对局无法暂停。如需离开，超时或断线后由电脑代打你的座位，你可从主菜单重新加入。';
+
+  @override
   String get stay => '留下';
 
   @override
@@ -3475,6 +3482,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get leaveGameBody => '你回來之前由電腦替你打——對局進行期間可在主選單重新加入。';
+
+  @override
+  String get noPauseOnlineHint => '線上對局無法暫停。想要每回合更多時間，請選擇「悠閒」。';
+
+  @override
+  String get noPauseOnlineTooltip =>
+      '線上對局無法暫停。如需離開，逾時或斷線後由電腦代打你的座位，你可從主選單重新加入。';
 
   @override
   String get stay => '留下';

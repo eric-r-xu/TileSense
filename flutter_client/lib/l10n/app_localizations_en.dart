@@ -1442,6 +1442,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'A bot plays your seat until you come back — Rejoin is on the main menu while the game is on.';
 
   @override
+  String get noPauseOnlineHint =>
+      'Online games can\'t be paused. Pick Relaxed for more time per turn.';
+
+  @override
+  String get noPauseOnlineTooltip =>
+      'Online games can\'t be paused. If you need to step away, a bot covers your seat after a timeout or disconnect, and you can rejoin from the main menu.';
+
+  @override
   String get stay => 'Stay';
 
   @override

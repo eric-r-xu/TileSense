@@ -425,6 +425,8 @@
   "rejoin": "重新加入",
   "leaveGameTitle": "離開本局？",
   "leaveGameBody": "你回來之前由電腦替你打——對局進行期間可在主選單重新加入。",
+  "noPauseOnlineHint": "線上對局無法暫停。想要每回合更多時間，請選擇「悠閒」。",
+  "noPauseOnlineTooltip": "線上對局無法暫停。如需離開，逾時或斷線後由電腦代打你的座位，你可從主選單重新加入。",
   "stay": "留下",
   "leave": "離開",
   "leaveRoom": "離開房間",

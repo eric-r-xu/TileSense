@@ -2651,6 +2651,18 @@ abstract class AppLocalizations {
   /// **'A bot plays your seat until you come back — Rejoin is on the main menu while the game is on.'**
   String get leaveGameBody;
 
+  /// No description provided for @noPauseOnlineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Online games can\'t be paused. Pick Relaxed for more time per turn.'**
+  String get noPauseOnlineHint;
+
+  /// No description provided for @noPauseOnlineTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Online games can\'t be paused. If you need to step away, a bot covers your seat after a timeout or disconnect, and you can rejoin from the main menu.'**
+  String get noPauseOnlineTooltip;
+
   /// No description provided for @stay.
   ///
   /// In en, this message translates to:
