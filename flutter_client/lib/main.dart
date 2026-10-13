@@ -36,6 +36,7 @@ import 'ui/ruleset_badge.dart';
 import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
+import 'ui/small_window_hint.dart';
 import 'ui/table_view.dart';
 import 'ui/tilesensor.dart';
 
@@ -1623,6 +1624,11 @@ class _GamePageState extends State<GamePage> {
                     ),
                   ),
                 if (_game.phase != GamePhase.playing) ScoringView(game: _game),
+                const Positioned(
+                    top: 6,
+                    left: 0,
+                    right: 0,
+                    child: Center(child: SmallWindowHint())),
               ],
             );
           },

@@ -1421,6 +1421,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '在线对局无法暂停。如需离开，超时或断线后由电脑代打你的座位，你可从主菜单重新加入。';
 
   @override
+  String get smallWindowHint => '窗口较小，工具栏已收进手牌旁的菜单按钮。放大窗口即可恢复完整工具栏。';
+
+  @override
+  String get smallWindowHintOnline =>
+      '窗口较小，声音、语言和你的 ID 已收进手牌旁的菜单按钮。放大窗口即可恢复完整工具栏。';
+
+  @override
   String get stay => '留下';
 
   @override
@@ -3489,6 +3496,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get noPauseOnlineTooltip =>
       '線上對局無法暫停。如需離開，逾時或斷線後由電腦代打你的座位，你可從主選單重新加入。';
+
+  @override
+  String get smallWindowHint => '視窗較小，工具列已收進手牌旁的選單按鈕。放大視窗即可恢復完整工具列。';
+
+  @override
+  String get smallWindowHintOnline =>
+      '視窗較小，聲音、語言和你的 ID 已收進手牌旁的選單按鈕。放大視窗即可恢復完整工具列。';
 
   @override
   String get stay => '留下';

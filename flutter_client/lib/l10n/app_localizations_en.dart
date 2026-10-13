@@ -1450,6 +1450,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Online games can\'t be paused. If you need to step away, a bot covers your seat after a timeout or disconnect, and you can rejoin from the main menu.';
 
   @override
+  String get smallWindowHint =>
+      'The window is small, so the toolbar is in the Menu button by your hand. Enlarge the window for the full toolbar.';
+
+  @override
+  String get smallWindowHintOnline =>
+      'The window is small, so sound, language and your ID are in the Menu button by your hand. Enlarge the window for the full toolbar.';
+
+  @override
   String get stay => 'Stay';
 
   @override

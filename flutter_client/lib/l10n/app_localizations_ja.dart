@@ -1433,6 +1433,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンライン対局は一時停止できません。離席する場合、時間切れや切断の後はボットが席を代わり、メインメニューから戻れます。';
 
   @override
+  String get smallWindowHint =>
+      'ウィンドウが小さいため、ツールバーは手牌の横のメニューボタンにあります。ウィンドウを広げると通常のツールバーに戻ります。';
+
+  @override
+  String get smallWindowHintOnline =>
+      'ウィンドウが小さいため、サウンド・言語・IDは手牌の横のメニューボタンにあります。ウィンドウを広げると通常のツールバーに戻ります。';
+
+  @override
   String get stay => '残る';
 
   @override

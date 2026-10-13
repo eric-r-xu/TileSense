@@ -427,6 +427,8 @@
   "leaveGameBody": "你回来之前由电脑替你打——对局进行期间可在主菜单重新加入。",
   "noPauseOnlineHint": "在线对局无法暂停。想要每回合更多时间，请选择“悠闲”。",
   "noPauseOnlineTooltip": "在线对局无法暂停。如需离开，超时或断线后由电脑代打你的座位，你可从主菜单重新加入。",
+  "smallWindowHint": "窗口较小，工具栏已收进手牌旁的菜单按钮。放大窗口即可恢复完整工具栏。",
+  "smallWindowHintOnline": "窗口较小，声音、语言和你的 ID 已收进手牌旁的菜单按钮。放大窗口即可恢复完整工具栏。",
   "stay": "留下",
   "leave": "离开",
   "leaveRoom": "离开房间",

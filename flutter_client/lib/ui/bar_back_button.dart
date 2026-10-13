@@ -18,7 +18,13 @@ class BarBackButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.foregroundColor = Colors.white,
+    this.phoneSized,
   });
+
+  /// Overrides whether to size for a thumb. Null follows [isPhoneLayout]; a
+  /// mouse user in a shrunken window passes false, so it fits a bar that
+  /// stayed desktop height.
+  final bool? phoneSized;
 
   /// The width a bar's `leadingWidth` should give this button.
   static const double leadingWidth = 132;
@@ -37,7 +43,7 @@ class BarBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final phone = isPhoneLayout(context);
+    final phone = phoneSized ?? isPhoneLayout(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
       child: Tooltip(

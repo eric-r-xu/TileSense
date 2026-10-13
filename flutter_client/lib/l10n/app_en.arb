@@ -911,6 +911,8 @@
   "leaveGameBody": "A bot plays your seat until you come back — Rejoin is on the main menu while the game is on.",
   "noPauseOnlineHint": "Online games can't be paused. Pick Relaxed for more time per turn.",
   "noPauseOnlineTooltip": "Online games can't be paused. If you need to step away, a bot covers your seat after a timeout or disconnect, and you can rejoin from the main menu.",
+  "smallWindowHint": "The window is small, so the toolbar is in the Menu button by your hand. Enlarge the window for the full toolbar.",
+  "smallWindowHintOnline": "The window is small, so sound, language and your ID are in the Menu button by your hand. Enlarge the window for the full toolbar.",
   "stay": "Stay",
   "leave": "Leave",
   "leaveRoom": "Leave room",
