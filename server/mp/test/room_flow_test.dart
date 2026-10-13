@@ -596,6 +596,124 @@ void main() {
     },
   );
 
+  test('a double ron won by the dealer and another seat keeps the deal',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(
+      manager,
+      loop: (room) => TableLoop(
+        room,
+        turnTimeout: const Duration(seconds: 30),
+        callTimeout: const Duration(seconds: 5),
+        botTurnPace: Duration.zero,
+        continueLock: Duration.zero,
+        callDiscardHold: Duration.zero,
+        afterCallPace: Duration.zero,
+      ),
+    );
+    addTearDown(server.close);
+    final clients = <TestClient>[];
+    for (var i = 0; i < 4; i++) {
+      final client = await TestClient.connect(server.port);
+      clients.add(client);
+      addTearDown(client.close);
+    }
+    clients.first.send({...createMsg('guest-0'), 'hanchan': true});
+    final code = (await clients.first
+        .waitFor((m) => m['type'] == 'room_state'))['code'] as String;
+    for (var i = 1; i < 4; i++) {
+      clients[i].send(
+          {'type': 'join_room', 'roomCode': code, 'guestId': 'guest-$i'});
+      await clients[i].waitFor((m) => m['type'] == 'room_state');
+    }
+    clients.first.send({'type': 'start_game'});
+    final bySeat = <int, TestClient>{};
+    for (final client in clients) {
+      final state = await client.waitFor((m) => m['type'] == 'state');
+      bySeat[state['yourSeat'] as int] = client;
+    }
+    final loop = manager.find(code)!.loop!;
+    final dealer = loop.round.dealer;
+    final turnSeat = loop.round.turn;
+    expect(turnSeat, dealer);
+
+    // A reproducible round with the same dealer. The dealer cuts a harmless
+    // north wind; the next seat then cuts 5p, which the dealer and the seat
+    // across from the cutter both win on (a double ron).
+    final round = loop.round = Round(
+      seed: 0,
+      dealer: dealer,
+      roundWind: Wind.east,
+      startingPoints: List.filled(4, 25000),
+    );
+    var id = 1000;
+    List<Tile> tiles(List<TileType> types) =>
+        [for (final t in types) Tile(id++, t)];
+    const junk = [
+      TileType.man1, TileType.man4, TileType.man7, TileType.pin1,
+      TileType.pin4, TileType.pin7, TileType.sou1, TileType.sou4,
+      TileType.sou7, TileType.ton, TileType.nan, TileType.shaa,
+      TileType.haku,
+    ];
+    final waitA = [ // 345m 678m 234s 67p 44s  (waits 5p/8p)
+      TileType.man3, TileType.man4, TileType.man5, TileType.man6,
+      TileType.man7, TileType.man8, TileType.sou2, TileType.sou3,
+      TileType.sou4, TileType.pin6, TileType.pin7, TileType.sou4,
+      TileType.sou4,
+    ];
+    final waitB = [ // 234m 567m 234p 67p 88s  (waits 5p/8p)
+      TileType.man2, TileType.man3, TileType.man4, TileType.man5,
+      TileType.man6, TileType.man7, TileType.pin2, TileType.pin3,
+      TileType.pin4, TileType.pin6, TileType.pin7, TileType.sou8,
+      TileType.sou8,
+    ];
+    final cutter = (dealer + 1) % 4;
+    final second = (dealer + 2) % 4;
+    for (final seat in round.seats) {
+      seat.hand = tiles(junk);
+      seat.drawn = null;
+    }
+    round.seats[dealer].hand = tiles(waitA);
+    round.seats[second].hand = tiles(waitB);
+    final north = Tile(id++, TileType.pei);
+    round.seats[dealer].hand.add(north);
+    round.seats[dealer].drawn = north;
+
+    bySeat[dealer]!.send(
+        {'type': 'action', 'kind': 'discard', 'tileId': north.id});
+    // The cutter draws; swap its draw for the 5p the others wait on.
+    await bySeat[cutter]!.waitFor((m) =>
+        m['type'] == 'state' &&
+        m['round']['phase'] == 'discarding' &&
+        m['round']['turn'] == cutter);
+    final feed = Tile(id++, TileType.pin5);
+    round.seats[cutter].hand = [...tiles(junk), feed];
+    round.seats[cutter].drawn = feed;
+    bySeat[cutter]!
+        .send({'type': 'action', 'kind': 'discard', 'tileId': feed.id});
+
+    for (final seat in [dealer, second]) {
+      await bySeat[seat]!.waitFor((m) =>
+          m['type'] == 'state' &&
+          (m['round']['callOptions'] as List).any((o) =>
+              o['seat'] == seat && (o['types'] as List).contains('ron')));
+      bySeat[seat]!.send(
+          {'type': 'action', 'kind': 'call', 'callType': 'ron'});
+    }
+    final result = await bySeat[cutter]!
+        .waitFor((m) => m['type'] == 'round_result');
+    final winners = (result['round']['result']['winners'] as List).cast<int>();
+    expect(winners, containsAll([dealer, second]));
+
+    for (final c in clients) {
+      c.send({'type': 'continue_round'});
+    }
+    await eventually(() => !identical(loop.round, round));
+    expect(loop.round.dealer, dealer,
+        reason: 'the dealer won, so the deal stays');
+    expect(loop.round.honba, 1, reason: 'and the repeat is counted');
+  });
+
   test('every error carries a code a client can translate, and its message',
       () async {
     final manager = RoomManager();
