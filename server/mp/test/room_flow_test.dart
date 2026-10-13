@@ -28,9 +28,10 @@ TableLoop _fastLoop(Room room) => TableLoop(
     );
 
 Future<HttpServer> _startServer(RoomManager manager,
-    {TableLoop Function(Room room) loop = _fastLoop}) async {
-  final handler = const Pipeline()
-      .addHandler(buildMultiplayerHandler(manager, tableLoopFactory: loop));
+    {TableLoop Function(Room room) loop = _fastLoop,
+    Duration heartbeat = kHeartbeatInterval}) async {
+  final handler = const Pipeline().addHandler(buildMultiplayerHandler(manager,
+      tableLoopFactory: loop, heartbeatInterval: heartbeat));
   return shelf_io.serve(handler, '127.0.0.1', 0);
 }
 
@@ -638,6 +639,44 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 900));
     expect(manager.find(code), isNotNull);
     expect(room.phase, RoomPhase.playing);
+  });
+
+  test('an old socket closing after a reconnect does not drop the new one',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final (a, code) = await startSolo(server.port, 'guest-a');
+    final room = manager.find(code)!;
+    final seat = room.seatIndexForGuest('guest-a')!;
+
+    // The player's connection goes half-dead: the server hasn't noticed, so
+    // the client reconnects on a fresh socket while the old one lingers.
+    final back = await TestClient.connect(server.port);
+    addTearDown(back.close);
+    back.send({'type': 'reconnect', 'roomCode': code, 'guestId': 'guest-a'});
+    await back.waitFor((m) => m['type'] == 'state' && m['yourSeat'] == seat);
+
+    // The old socket finally times out, after the new one has the seat.
+    await a.close();
+
+    // Past the disconnect grace, the still-connected player keeps the seat.
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    expect(room.loop!.isBotControlled(seat), isFalse,
+        reason: 'a bot took over a player who is connected');
+    expect(room.seats[seat]!.send, isNotNull,
+        reason: 'the live socket was detached by the stale one closing');
+  });
+
+  test('the server sends a heartbeat so a client can tell it is alive',
+      () async {
+    final server = await _startServer(RoomManager(),
+        heartbeat: const Duration(milliseconds: 100));
+    addTearDown(server.close);
+    final client = await TestClient.connect(server.port);
+    addTearDown(client.close);
+    await client.waitFor((m) => m['type'] == 'heartbeat');
+    await client.waitFor((m) => m['type'] == 'heartbeat');
   });
 
   test('joining your own started game by its code takes you back to your seat',

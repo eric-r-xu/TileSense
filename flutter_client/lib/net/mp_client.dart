@@ -7,12 +7,44 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class MpClient {
-  MpClient() {
+  /// [endpoint], [silenceLimit], [retryBase], [retryMax] and [random] are for
+  /// tests; the app uses the defaults.
+  MpClient({
+    String? endpoint,
+    Duration silenceLimit = defaultSilenceLimit,
+    Duration retryBase = const Duration(seconds: 1),
+    Duration retryMax = const Duration(seconds: 15),
+    math.Random? random,
+  })  : _uri = Uri.parse(endpoint ?? _endpoint),
+        _silenceLimit = silenceLimit,
+        _retryBase = retryBase,
+        _retryMax = retryMax,
+        _random = random ?? math.Random() {
     _connect();
+  }
+
+  final Uri _uri;
+  final Duration _silenceLimit;
+  final Duration _retryBase;
+  final Duration _retryMax;
+  final math.Random _random;
+
+  /// Failed attempts in a row since the last time a socket opened.
+  int _attempts = 0;
+
+  /// How long to wait before the next try: doubling from [_retryBase] up to
+  /// [_retryMax], each jittered by +-25%, so a server restart does not bring
+  /// every player back in the same instant, and a server that stays down is
+  /// not hammered.
+  Duration _retryDelay() {
+    final exp = _retryBase * (1 << _attempts.clamp(0, 10));
+    final capped = exp > _retryMax ? _retryMax : exp;
+    return capped * (0.75 + _random.nextDouble() * 0.5);
   }
 
   /// The production server by default (mirrors how `telemetry.dart` defaults
@@ -29,6 +61,17 @@ class MpClient {
   Timer? _reconnectTimer;
   bool _closed = false;
 
+  /// How long the server may stay silent, once it has shown it sends
+  /// `heartbeat`s, before the connection is treated as dead. Browsers answer
+  /// the server's pings without telling the page, so a half-dead socket
+  /// (a sleeping laptop, a lost Wi-Fi) would otherwise look open forever.
+  /// An older server never sends one, so it is never timed out.
+  static const Duration defaultSilenceLimit = Duration(seconds: 45);
+
+  Timer? _watchdog;
+  DateTime? _lastFrame;
+  bool _heartbeats = false;
+
   /// Every decoded server message, plus two synthetic ones this client emits
   /// itself: `{'type': '_connection_lost'}` right when the socket drops, and
   /// `{'type': '_reconnected'}` once a fresh socket is open (at which point
@@ -36,33 +79,70 @@ class MpClient {
   Stream<Map<String, dynamic>> get messages => _controller.stream;
 
   void _connect() {
-    final channel = WebSocketChannel.connect(Uri.parse(_endpoint));
+    _heartbeats = false;
+    _lastFrame = DateTime.now();
+    _watchdog?.cancel();
+    final channel = WebSocketChannel.connect(_uri);
     _channel = channel;
     // The channel is returned before the socket is actually open — sending
     // on its sink before `ready` completes throws (silently, if nothing
     // awaits it). A failure here (bad host, refused connection) also only
     // ever surfaces through `ready`, never through `stream`, so this is also
     // the only way an unreachable server gets detected on the first attempt.
-    channel.ready.catchError((Object _) => _handleDrop());
+    channel.ready.then((_) {
+      if (identical(channel, _channel)) _attempts = 0;
+    }, onError: (Object _) => _handleDrop(channel));
     _sub = channel.stream.listen(
       (raw) {
+        _lastFrame = DateTime.now();
         try {
-          _controller.add(jsonDecode(raw as String) as Map<String, dynamic>);
+          final msg = jsonDecode(raw as String) as Map<String, dynamic>;
+          if (msg['type'] == 'heartbeat') {
+            _heartbeats = true;
+            _armWatchdog();
+            return;
+          }
+          _controller.add(msg);
         } catch (_) {
           // Malformed frame — ignore rather than crash the connection.
         }
       },
-      onDone: _handleDrop,
-      onError: (Object _) => _handleDrop(),
+      onDone: () => _handleDrop(channel),
+      onError: (Object _) => _handleDrop(channel),
       cancelOnError: true,
     );
   }
 
-  void _handleDrop() {
+  /// Starts the silence check, only once a server has shown it sends
+  /// heartbeats, so a connection to one that doesn't carries no timer.
+  void _armWatchdog() {
+    if (_watchdog?.isActive ?? false) return;
+    _watchdog = Timer.periodic(_silenceLimit ~/ 9, (_) {
+      final last = _lastFrame;
+      if (_closed || !_heartbeats || last == null) return;
+      if (DateTime.now().difference(last) < _silenceLimit) return;
+      // Silent for too long: drop this socket and start over. Disarmed first,
+      // or it would trip again and again, each time pushing the retry back.
+      _watchdog?.cancel();
+      _heartbeats = false;
+      _sub?.cancel();
+      _channel.sink.close();
+      _handleDrop();
+    });
+  }
+
+  /// [from] is the socket that dropped; one already replaced by a newer
+  /// socket closing late must not start another round of retries.
+  void _handleDrop([WebSocketChannel? from]) {
     if (_closed || _controller.isClosed) return;
+    if (from != null && !identical(from, _channel)) return;
+    // One drop is often reported twice (a failed open, then the close): the
+    // retry is already on its way.
+    if (_reconnectTimer?.isActive ?? false) return;
     _controller.add(const {'type': '_connection_lost'});
-    _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 2), () {
+    final delay = _retryDelay();
+    _attempts++;
+    _reconnectTimer = Timer(delay, () {
       if (_closed) return;
       _connect();
       _controller.add(const {'type': '_reconnected'});
@@ -92,6 +172,7 @@ class MpClient {
   Future<void> close() async {
     _closed = true;
     _reconnectTimer?.cancel();
+    _watchdog?.cancel();
     await _sub?.cancel();
     await _channel.sink.close();
     if (!_controller.isClosed) await _controller.close();
