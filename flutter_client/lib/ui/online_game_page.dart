@@ -21,6 +21,7 @@ import 'language_button.dart';
 import 'phone_menu.dart';
 import 'ruleset_badge.dart';
 import 'scoring_view.dart';
+import 'small_window_hint.dart';
 import 'table_view.dart';
 import 'tilesensor.dart';
 
@@ -196,6 +197,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
         // in the offline game, the bar keeps only its information and the
         // controls move to one Menu button under the right thumb.
         final phone = isPhoneLayout(context);
+        final leaveInBar = !phone || !SmallWindowHint.touchPlatform;
         return Scaffold(
           appBar: AppBar(
             toolbarHeight: 50,
@@ -203,9 +205,12 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
             leadingWidth: BarBackButton.leadingWidth,
             // A labelled Leave with nothing beside it to mis-tap: the client
             // id is behind the ID chip at the other end of the bar.
-            leading: phone
+            // A phone keeps it in the Menu instead; a mouse user in a shrunken
+            // window still gets it here, desktop-sized, as the bar is.
+            leading: !leaveInBar
                 ? null
                 : BarBackButton(
+                    phoneSized: false,
                     buttonKey: const Key('onlineLeave'),
                     label: context.l10n.leave,
                     tooltip: context.l10n.leaveRoom,
@@ -216,7 +221,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
             title: TableBarTitle(
               game: game,
               // leadingWidth, when there is a leading, + titleSpacing.
-              titleStart: phone ? 12 : BarBackButton.leadingWidth + 12,
+              titleStart: leaveInBar ? BarBackButton.leadingWidth + 12 : 12,
               leading: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -333,6 +338,11 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                       game: game,
                       onGameEnd: _leave,
                       continueLock: kScoreContinueLock),
+                const Positioned(
+                    top: 6,
+                    left: 0,
+                    right: 0,
+                    child: Center(child: SmallWindowHint(online: true))),
               ],
             ),
           ),

@@ -2663,6 +2663,18 @@ abstract class AppLocalizations {
   /// **'Online games can\'t be paused. If you need to step away, a bot covers your seat after a timeout or disconnect, and you can rejoin from the main menu.'**
   String get noPauseOnlineTooltip;
 
+  /// No description provided for @smallWindowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The window is small, so the toolbar is in the Menu button by your hand. Enlarge the window for the full toolbar.'**
+  String get smallWindowHint;
+
+  /// No description provided for @smallWindowHintOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'The window is small, so sound, language and your ID are in the Menu button by your hand. Enlarge the window for the full toolbar.'**
+  String get smallWindowHintOnline;
+
   /// No description provided for @stay.
   ///
   /// In en, this message translates to:
