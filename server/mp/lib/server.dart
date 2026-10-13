@@ -4,6 +4,7 @@
 /// joins.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:mahjong_core/mahjong_core.dart';
@@ -18,6 +19,16 @@ const _maxNameLength = 24;
 
 /// Real client messages are a few hundred bytes; anything far larger is abuse.
 const _maxMessageLength = 4096;
+
+/// How often the server pings each socket at the protocol level. A client
+/// that does not answer by the next ping is closed, so a dead connection
+/// (a sleeping laptop, lost Wi-Fi) frees its seat in about this long plus the
+/// reconnect grace, rather than whenever a proxy or the OS gives up.
+const Duration kPingInterval = Duration(seconds: 20);
+
+/// How often the server sends a `heartbeat` message. Browsers answer pings
+/// but never expose them, so this is how a client notices a silent server.
+const Duration kHeartbeatInterval = Duration(seconds: 15);
 
 /// A backstop on live rooms so no flood of them can exhaust the process's
 /// memory cap (see deploy/tilesense-mp.service).
@@ -34,8 +45,11 @@ String _sanitizeName(Object? raw) {
 Handler buildMultiplayerHandler(
   RoomManager manager, {
   TableLoop Function(Room room) tableLoopFactory = TableLoop.new,
+  Duration pingInterval = kPingInterval,
+  Duration heartbeatInterval = kHeartbeatInterval,
 }) {
-  return webSocketHandler((WebSocketChannel webSocket) {
+  return webSocketHandler(pingInterval: pingInterval,
+      (WebSocketChannel webSocket) {
     Room? room;
     // The seat a connection occupies is looked up by guest ID on every use
     // rather than cached as an int at join time: `TableLoop.start` randomizes
@@ -57,6 +71,10 @@ Handler buildMultiplayerHandler(
       }
     }
 
+    // The one function object this connection hands to a seat, so a seat can
+    // tell whose socket it is currently attached to.
+    final mySend = send;
+
     /// Releases this connection's seat: a lobby seat is freed, a seat in a
     /// running game starts its reconnect grace period.
     void detach() {
@@ -65,6 +83,11 @@ Handler buildMultiplayerHandler(
       room = null;
       guestId = null;
       if (r == null || s == null) return;
+      // A dead socket can be noticed late: if the player has since
+      // reconnected, the seat belongs to the new socket, and this one closing
+      // must not detach it (which would start the bot-takeover clock on a
+      // player who is connected).
+      if (!identical(r.seats[s]?.send, mySend)) return;
       r.seats[s]?.send = null;
       if (r.loop != null) {
         r.loop!.handleDisconnect(s);
@@ -99,7 +122,7 @@ Handler buildMultiplayerHandler(
       if (room != null && room != r) detach();
       room = r;
       guestId = requestedGuestId;
-      r.seats[s]!.send = send;
+      r.seats[s]!.send = mySend;
       r.broadcastRoomState();
       r.loop?.handleReconnect(s);
     }
@@ -152,7 +175,7 @@ Handler buildMultiplayerHandler(
           );
           room = r;
           guestId = requestedGuestId;
-          r.seats[0]!.send = send;
+          r.seats[0]!.send = mySend;
           r.broadcastRoomState();
 
         case 'join_room':
@@ -193,7 +216,7 @@ Handler buildMultiplayerHandler(
           );
           room = r;
           guestId = requestedGuestId;
-          r.seats[openSeat]!.send = send;
+          r.seats[openSeat]!.send = mySend;
           r.broadcastRoomState();
 
         case 'leave_room':
@@ -269,6 +292,9 @@ Handler buildMultiplayerHandler(
       }
     }
 
+    final beat = Timer.periodic(
+        heartbeatInterval, (_) => send(const {'type': 'heartbeat'}));
+
     webSocket.stream.listen(
       (raw) {
         if (raw is! String || raw.length > _maxMessageLength) {
@@ -288,7 +314,10 @@ Handler buildMultiplayerHandler(
           send(errorFrame('bad_request', 'bad request'));
         }
       },
-      onDone: detach,
+      onDone: () {
+        beat.cancel();
+        detach();
+      },
     );
   });
 }
