@@ -2099,6 +2099,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voidSuitHint => '必须先打完这一门的牌才能打其他牌，手中仍有这一门的牌时不能和牌。';
 
   @override
+  String get voidSuitWaiting => '等待其他玩家选择…';
+
+  @override
   String get suitMan => '万';
 
   @override
@@ -4273,6 +4276,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get voidSuitHint => '必須先打完這一門的牌才能打其他牌，手中仍有這一門的牌時不能和牌。';
+
+  @override
+  String get voidSuitWaiting => '等待其他玩家選擇…';
 
   @override
   String get suitMan => '萬';

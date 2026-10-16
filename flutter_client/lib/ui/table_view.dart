@@ -954,11 +954,14 @@ class TableView extends StatelessWidget {
       if (seat == kHumanSeat && autoplaying) _autoplayBadge(),
       // Sichuan: the suit this seat gave up (shown once its first discard has
       // revealed it, or always for you), and the order it went out in.
-      if (round.ruleset.isSichuan && s.voidSuit != null) _voidSuitBadge(s),
+      if (round.ruleset.isSichuan && (s.voidSuit != null || s.voidHidden))
+        _voidSuitBadge(s),
       if (round.ruleset.isSichuan && s.out) _huBadge(s),
       // Online play only — see [GuideHost.turnDeadlineMs] — a per-turn
       // countdown next to whoever's actually on the clock.
-      if (active && deadline != null) CountdownBadge(deadlineMs: deadline),
+      // (Sichuan's suit step has its own clock, on the prompt.)
+      if (active && deadline != null && !round.awaitingVoidSuit)
+        CountdownBadge(deadlineMs: deadline),
     ];
     if (badges.isEmpty) return placard;
     return Row(
@@ -971,7 +974,9 @@ class TableView extends StatelessWidget {
   }
 
   Widget _voidSuitBadge(SeatState s) => Builder(builder: (context) {
-        final shown = s.seat == kHumanSeat || s.voidRevealed;
+        // Online, another seat's suit stays unknown until its first discard.
+        final shown =
+            s.voidSuit != null && (s.seat == kHumanSeat || s.voidRevealed);
         final l10n = context.l10n;
         return Tooltip(
           message: l10n.voidSuitHint,

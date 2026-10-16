@@ -2158,6 +2158,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'You must discard every tile of this suit before any other, and a hand still holding one can\'t win.';
 
   @override
+  String get voidSuitWaiting => 'Waiting for the other players to choose…';
+
+  @override
   String get suitMan => 'Characters';
 
   @override

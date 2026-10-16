@@ -145,7 +145,7 @@ bar (which deals a new game) or the builder's chip row. Riichi is the default.
 
 Taiwanese scores flat, additive points and adds a dealer win-streak bonus.
 
-Sichuan is bloody-battle mahjong: each seat gives up a suit, and a win takes that seat out while the others play on. It is single player only for now.
+Sichuan is bloody-battle mahjong: each seat gives up a suit, and a win takes that seat out while the others play on. It can be played online too: the server runs the table, and a seat's void suit stays hidden from the others until its first discard.
 
 All three share one engine: `packages/mahjong_core/lib/ruleset.dart` defines
 `Ruleset.riichi`, `Ruleset.hongKong` and `Ruleset.taiwanese`, and the round, guide,

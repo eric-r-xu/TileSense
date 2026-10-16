@@ -636,6 +636,7 @@
   "sichuanPractice": "练习 · 4局",
   "voidSuitTitle": "选择定缺花色",
   "voidSuitHint": "必须先打完这一门的牌才能打其他牌，手中仍有这一门的牌时不能和牌。",
+  "voidSuitWaiting": "等待其他玩家选择…",
   "suitMan": "万",
   "suitPin": "筒",
   "suitSou": "条",

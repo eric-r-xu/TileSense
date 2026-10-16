@@ -2115,6 +2115,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voidSuitHint => 'この色の牌をすべて先に捨てる必要があり、持ったままでは和了できません。';
 
   @override
+  String get voidSuitWaiting => '他のプレイヤーの選択を待っています…';
+
+  @override
   String get suitMan => '萬子';
 
   @override

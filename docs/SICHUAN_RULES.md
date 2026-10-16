@@ -1,8 +1,8 @@
 # <img src="../flutter_client/assets/flags/sichuan.png" height="22" alt="Sichuan"> Sichuan rules
 
 Chosen with the ruleset toggle on the welcome and character screens; Riichi
-remains the default. **Single player only for now**: the online lobby does not
-offer it yet. Rules reference:
+remains the default. It is also offered in the online lobby (see
+[Online](#online)). Rules reference:
 [Sichuan.pdf](https://app.ericrxu.com/static/Sichuan.pdf).
 
 The source is the **Sichuan Bloody Rules (SBR)** quick reference on
@@ -95,7 +95,18 @@ numbered.
 | May you pung or kong your void suit? | Yes, but the hand then can never win; the bots never do. |
 | Dice, wall-breaking, face-down first discard | Not modelled; the suit is simply hidden until the first discard. |
 
+## Online
+
+The server runs the table. Every seat names its void suit at the start, all at
+once, under the turn clock; a seat that runs out of time gets the suit a bot
+would pick, and counts a strike like a missed discard. Other seats are told only
+*that* you have chosen: your suit stays hidden until your first discard shows
+it, and your hand never leaves the server. A seat that has gone out is skipped
+by the turn, the call windows and the clocks. A client from before Sichuan is
+asked to update rather than being dealt a table it cannot draw, and there is
+no guide or Auto-Play online, as in every ruleset.
+
 ## Not yet
 
-Online play, and the guide's expected-value columns: the guide ranks discards
-by shanten and acceptance, with the void suit counted as dead weight.
+The guide's expected-value columns: the guide ranks discards by shanten and
+acceptance, with the void suit counted as dead weight.

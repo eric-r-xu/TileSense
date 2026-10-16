@@ -3917,6 +3917,12 @@ abstract class AppLocalizations {
   /// **'You must discard every tile of this suit before any other, and a hand still holding one can\'t win.'**
   String get voidSuitHint;
 
+  /// No description provided for @voidSuitWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the other players to choose…'**
+  String get voidSuitWaiting;
+
   /// No description provided for @suitMan.
   ///
   /// In en, this message translates to:

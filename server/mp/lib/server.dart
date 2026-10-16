@@ -127,10 +127,19 @@ Handler buildMultiplayerHandler(
       r.loop?.handleReconnect(s);
     }
 
-    bool supportsMcr(Map<String, dynamic> msg) {
+    /// Whether the client says it can play [ruleset]. MCR and Sichuan need a
+    /// client that knows them; an older one is asked to update rather than
+    /// being dealt a table it cannot draw.
+    bool clientSupports(Map<String, dynamic> msg, Ruleset ruleset) {
+      if (!ruleset.isMcr && !ruleset.isSichuan) return true;
       final supported = msg['supportedRulesets'];
-      if (supported is List && supported.length <= 16 && supported.contains('mcr')) return true;
-      send(errorFrame('update_required', 'Update TileSense to play MCR.'));
+      if (supported is List &&
+          supported.length <= 16 &&
+          supported.contains(ruleset.name)) {
+        return true;
+      }
+      send(errorFrame(
+          'update_required', 'Update TileSense to play ${ruleset.label}.'));
       return false;
     }
 
@@ -147,22 +156,17 @@ Handler buildMultiplayerHandler(
             send(errorFrame('server_full', 'server is full, try again shortly'));
             return;
           }
-          // Sichuan is single-player for now; without this an unknown name
-          // would quietly become a riichi room.
-          if (msg['ruleset'] == 'sichuan') {
-            send(errorFrame('unsupported_ruleset',
-                'Sichuan is not available online yet.'));
-            return;
-          }
           // One connection holds at most one seat, so a socket can't pile up
           // rooms by creating or joining repeatedly.
           if (room != null) detach();
-          final ruleset = msg['ruleset'] == 'mcr' ? Ruleset.mcr : msg['ruleset'] == 'hongKong'
-              ? Ruleset.hongKong
-              : msg['ruleset'] == 'taiwanese'
-                  ? Ruleset.taiwanese
-                  : Ruleset.riichi;
-          if (ruleset.isMcr && !supportsMcr(msg)) return;
+          final ruleset = switch (msg['ruleset']) {
+            'mcr' => Ruleset.mcr,
+            'hongKong' => Ruleset.hongKong,
+            'taiwanese' => Ruleset.taiwanese,
+            'sichuan' => Ruleset.sichuan,
+            _ => Ruleset.riichi,
+          };
+          if (!clientSupports(msg, ruleset)) return;
           final hanchan = msg['hanchan'] as bool? ?? true;
           final r = manager.createRoom(
             hostGuestId: requestedGuestId,
@@ -197,7 +201,7 @@ Handler buildMultiplayerHandler(
             send(errorFrame('room_not_found', 'room not found'));
             return;
           }
-          if (r.ruleset.isMcr && !supportsMcr(msg)) return;
+          if (!clientSupports(msg, r.ruleset)) return;
           if (r.phase == RoomPhase.playing &&
               r.seatIndexForGuest(requestedGuestId) != null) {
             // Your own game, still going: the code (or a shared link) takes
@@ -264,7 +268,7 @@ Handler buildMultiplayerHandler(
             send(errorFrame('room_gone', 'room no longer exists'));
             return;
           }
-          if (r.ruleset.isMcr && !supportsMcr(msg)) return;
+          if (!clientSupports(msg, r.ruleset)) return;
           rejoin(r, requestedGuestId);
 
         case 'room_status':

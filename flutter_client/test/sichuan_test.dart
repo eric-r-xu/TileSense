@@ -6,11 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/mahjong_core.dart';
 import 'package:tilesense/game/game_controller.dart';
-import 'package:tilesense/game/online_game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:tilesense/main.dart';
-import 'package:tilesense/ui/online_lobby_page.dart';
 import 'package:tilesense/ui/ruleset_flag.dart';
 import 'package:tilesense/ui/scoring_view.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -275,23 +273,6 @@ void main() {
       expect(find.textContaining('Void-suit penalty'), findsNWidgets(3));
       expect(find.textContaining('48'), findsWidgets);
       expect(find.textContaining('-144'), findsOneWidget);
-    });
-  });
-
-  group('online', () {
-    testWidgets('the lobby never opens on Sichuan, which is single-player '
-        'for now', (tester) async {
-      final game = OnlineGameController();
-      addTearDown(game.dispose);
-      await pumpLocalized(
-          tester,
-          OnlineLobbyPage(
-              controller: game,
-              initialRuleset: Ruleset.sichuan,
-              onExit: () {}));
-      expect(tester.takeException(), isNull);
-      expect(find.byKey(const Key('onlineRulesetDropdown')), findsOneWidget);
-      expect(find.byKey(const Key('onlineRuleset_sichuan')), findsNothing);
     });
   });
 

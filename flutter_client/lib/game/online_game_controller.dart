@@ -27,6 +27,7 @@ import '../l10n/l10n.dart' show currentL10n;
 import 'guide_host.dart';
 import 'mortal_advisor.dart' show MortalAdvice;
 import 'sfx.dart';
+import 'sichuan_announce.dart';
 
 /// How long each player gets per turn and per call offer, picked by the host
 /// as one setting when the room is created. A call is a quick yes/no the whole
@@ -480,7 +481,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   bool dialsAuto = true;
 
   int get _handsLeft {
-    final played = (round.roundWind == Wind.east ? 0 : 4) + _handInWind - 1;
+    // Sichuan has no round wind: its hands are simply numbered.
+    final played = round.ruleset.isSichuan
+        ? _handInWind - 1
+        : (round.roundWind == Wind.east ? 0 : 4) + _handInWind - 1;
     return max(1, ruleset.handsPerGame(fullGame: hanchan) - played);
   }
 
@@ -735,6 +739,10 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     _roundReady = true;
     _updateCallState();
     _refreshReport();
+    if (round.ruleset.isSichuan) {
+      _announceSichuanHu(msg['round'] as Map<String, dynamic>, seat,
+          catchUp: previousRound == null);
+    }
     if (isResult) {
       _playRoundEndSfx();
     } else {
@@ -838,6 +846,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         round.finished ||
         round.turn != kHumanSeat ||
         round.phase != RoundPhase.discarding) {
+      return;
+    }
+    // Sichuan: the void suit goes first, so nothing else is a legal cut.
+    if (round.ruleset.isSichuan &&
+        !round.legalDiscards(kHumanSeat).contains(tile)) {
       return;
     }
     _send({
@@ -948,12 +961,34 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     }
   }
 
-  // Sichuan is single-player for now; the online table never asks.
+  /// Whether the table is waiting on you to name your void suit.
   @override
-  bool get awaitingHumanVoidSuit => false;
+  bool get awaitingHumanVoidSuit =>
+      _roundReady &&
+      round.awaitingVoidSuit &&
+      !round.hasDeclaredVoidSuit(kHumanSeat);
 
   @override
-  void humanDeclareVoidSuit(int suit) {}
+  void humanDeclareVoidSuit(int suit) {
+    if (!awaitingHumanVoidSuit || suit < 0 || suit > 2) return;
+    _send({'type': 'action', 'kind': 'void_suit', 'suit': suit});
+  }
+
+  /// How many of the hand's Hu have been announced with a bubble and a voice
+  /// line. A Hu does not end a Sichuan hand, so each is announced as the
+  /// snapshot that reports it arrives; the first snapshot after joining (or
+  /// rejoining) only catches the count up.
+  int _huAnnounced = 0;
+
+  void _announceSichuanHu(Map<String, dynamic> roundJson, int seat,
+      {required bool catchUp}) {
+    final all = sichuanHuFromSnapshot(roundJson, mySeat: seat);
+    if (all.length < _huAnnounced || catchUp) _huAnnounced = all.length;
+    for (var i = _huAnnounced; i < all.length; i++) {
+      announceSichuanHu(all[i], round.ruleset, characterForSeat(all[i].seat));
+    }
+    _huAnnounced = all.length;
+  }
 
   @override
   void humanDeclareKyuushu() {
@@ -1332,6 +1367,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         flowers: seat.flowers.map((t) => t.type).toList(),
         minimumFaan: round.minimumFaan,
         minimumPoints: round.minimumPoints,
+        voidSuit: seat.voidSuit,
       );
 
   SeatState? _threatOpponent() {

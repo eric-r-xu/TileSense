@@ -202,6 +202,11 @@ class TableLoop {
 
   Wind get _roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < 4 ? Wind.east : Wind.south);
 
+  /// The hand's number shown to players: 1-4 within the round wind, except in
+  /// Sichuan, which has no round wind and simply counts its hands.
+  int get _handNumber =>
+      ruleset.isSichuan ? _roundNumber + 1 : (_roundNumber % 4) + 1;
+
   /// Starts the game loop. Randomizes who sits where first (so join order
   /// doesn't decide who deals first), then fills any still-empty seat with a
   /// bot.
@@ -308,7 +313,7 @@ class TableLoop {
       roundId: _roundId,
       roundIndex: _roundNumber,
       roundWind: _roundWind.name,
-      handNumber: (_roundNumber % 4) + 1,
+      handNumber: _handNumber,
       dealerSeat: _dealer,
       honba: _honba,
       riichiSticks: _riichiSticks,
@@ -326,14 +331,69 @@ class TableLoop {
           await _resolveCallPhase();
         case RoundPhase.discarding:
           await _discardingPhase();
+        case RoundPhase.choosingVoidSuit:
+          await _voidSuitPhase();
         case RoundPhase.drawing:
         case RoundPhase.finished:
-        case RoundPhase.choosingVoidSuit:
           // Round transitions synchronously out of `drawing` inside its own
           // draw methods; this is only ever a transient value between two
           // Round calls, never a state the loop should sit in.
           break;
       }
+    }
+  }
+
+  // --- Sichuan: naming the void suit ---------------------------------------
+
+  /// Every seat names the suit it gives up before anyone draws. Bots do so at
+  /// once; the humans answer together, each under the turn clock, and a seat
+  /// that runs out of time gets the suit a bot would pick (and a strike, as
+  /// for a missed discard). The hand begins when the last seat has named one.
+  Future<void> _voidSuitPhase() async {
+    for (var seat = 0; seat < 4; seat++) {
+      if (isBotControlled(seat) && !round.hasDeclaredVoidSuit(seat)) {
+        round.declareVoidSuit(seat, round.suggestVoidSuit(seat));
+      }
+    }
+    if (!round.awaitingVoidSuit) {
+      _broadcastState();
+      return;
+    }
+    // Shown to the humans as the clock on the suit prompt.
+    final deadline = DateTime.now().add(_turnTimeout);
+    _actionDeadline = deadline;
+    _broadcastState();
+    await Future.wait([
+      for (var seat = 0; seat < 4; seat++)
+        if (!round.hasDeclaredVoidSuit(seat)) _awaitVoidSuit(seat, deadline),
+    ]);
+    _actionDeadline = null;
+  }
+
+  /// One human seat's void-suit answer. Applies it and tells the table, so the
+  /// others see who is still choosing.
+  Future<void> _awaitVoidSuit(int seat, DateTime deadline) async {
+    while (true) {
+      final left = deadline.difference(DateTime.now());
+      final action =
+          await _awaitHumanAction(seat, left.isNegative ? Duration.zero : left);
+      if (_ended || !round.awaitingVoidSuit || round.hasDeclaredVoidSuit(seat)) {
+        return;
+      }
+      if (action == null) {
+        round.declareVoidSuit(seat, round.suggestVoidSuit(seat));
+        if (!isBotControlled(seat)) _strike(seat);
+        _broadcastState();
+        return;
+      }
+      final suit = action['suit'];
+      if (action['kind'] == 'void_suit' && suit is int && suit >= 0 && suit < 3) {
+        round.declareVoidSuit(seat, suit);
+        _timeoutStrikes[seat] = 0;
+        _broadcastState();
+        return;
+      }
+      room.sendError(seat, 'illegal_action', 'name a suit: 0, 1 or 2');
     }
   }
 
@@ -679,9 +739,13 @@ class TableLoop {
   Future<void> _handleRoundEnd() async {
     final r = round.result!;
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
+    // Sichuan names its next dealer itself (see `RoundResult.nextDealer`).
+    final sichuanDealer = ruleset.isSichuan ? (r.nextDealer ?? _dealer) : null;
     // An abortive draw (e.g. kyuushu kyuuhai) is a void hand — the dealer
     // always repeats, whoever they are, no tenpai check involved.
-    final dealerKept = !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
+    final dealerKept = ruleset.isSichuan
+        ? sichuanDealer == _dealer
+        : !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
             ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
             : r.winners.contains(_dealer)));
@@ -702,21 +766,25 @@ class TableLoop {
     );
 
     _riichiSticks = round.riichiSticks;
-    final rot = _rotateAfterRound(
-      exhaustiveDraw: isExhaustiveDraw,
-      dealerKept: dealerKept,
-      dealer: _dealer,
-      roundNumber: _roundNumber,
-      honba: _honba,
-      ruleset: ruleset,
-    );
+    // Every Sichuan hand counts toward the game, whoever deals it.
+    final rot = ruleset.isSichuan
+        ? (dealer: sichuanDealer!, roundNumber: _roundNumber + 1, honba: 0)
+        : _rotateAfterRound(
+            exhaustiveDraw: isExhaustiveDraw,
+            dealerKept: dealerKept,
+            dealer: _dealer,
+            roundNumber: _roundNumber,
+            honba: _honba,
+            ruleset: ruleset,
+          );
     _dealer = rot.dealer;
     _roundNumber = rot.roundNumber;
     _honba = rot.honba;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
     final tobi = ruleset.isRiichi && _points.any((p) => p < 0);
-    final gameOver = tobi || (_roundNumber >= _handsPerGame && !dealerKept);
+    final gameOver = tobi ||
+        (_roundNumber >= _handsPerGame && (!dealerKept || ruleset.isSichuan));
 
     _broadcastRoundResult(gameOver: gameOver);
 
@@ -988,7 +1056,7 @@ class TableLoop {
       'type': 'state',
       'yourSeat': seat,
       'gamePhase': 'playing',
-      'handInWind': (_roundNumber % 4) + 1,
+      'handInWind': _handNumber,
       'tablePoints': _points,
       'discardSerial': _discardSerial,
       'lastDiscardSeat': _lastDiscardSeat,
@@ -999,10 +1067,18 @@ class TableLoop {
   }
 
   /// Who plays once the open call window closes unclaimed: the discarder's
-  /// next seat — or, for a kan nobody robbed, the kan's own seat.
-  int get _nextToPlay => round.chankanPending
-      ? round.turn
-      : (round.pendingDiscardSeat + 1) % 4;
+  /// next seat still in the hand — or, for a kan nobody robbed, the kan's own
+  /// seat.
+  int get _nextToPlay {
+    if (round.chankanPending) return round.turn;
+    var next = (round.pendingDiscardSeat + 1) % 4;
+    // Sichuan: a seat that has gone out never plays again. The discarder is
+    // still in, so this ends.
+    while (ruleset.isSichuan && round.seats[next].out) {
+      next = (next + 1) % 4;
+    }
+    return next;
+  }
 
   /// What a seat with no offer of its own is shown while others answer one:
   /// the next player's turn already under way, exactly as it looks when
@@ -1047,7 +1123,7 @@ class TableLoop {
         'type': 'round_result',
         'yourSeat': i,
         'gamePhase': gameOver ? 'gameEnd' : 'roundEnd',
-        'handInWind': (_roundNumber % 4) + 1,
+        'handInWind': _handNumber,
         'tablePoints': _points,
         'discardSerial': _discardSerial,
         'lastDiscardSeat': _lastDiscardSeat,

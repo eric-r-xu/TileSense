@@ -832,6 +832,16 @@ class _HandViewState extends State<HandView> {
               () => game.humanDeclareVoidSuit(suit)),
         ));
       }
+      final deadline = game.turnDeadlineMs;
+      if (deadline != null) buttons.add(CountdownBadge(deadlineMs: deadline));
+    } else if (game.round.ruleset.isSichuan && game.round.awaitingVoidSuit) {
+      // Online: you have chosen; the table starts when the others have.
+      buttons.add(Text(context.l10n.voidSuitWaiting,
+          key: const Key('voidSuitWaiting'),
+          style: const TextStyle(
+              color: Color(0xffe9d58f),
+              fontSize: 14,
+              fontStyle: FontStyle.italic)));
     } else if (game.awaitingHumanCall) {
       final opt = game.humanCallOption!;
       if (opt.types.contains(CallType.ron)) {
@@ -956,6 +966,7 @@ class _HandViewState extends State<HandView> {
       game.humanAddedKanTypes,
       game.humanCanRiichi,
       game.awaitingHumanVoidSuit,
+      game.round.awaitingVoidSuit,
       game.round.ruleset.isSichuan && game.round.mustDiscardVoid(kHumanSeat),
       showGuide && game.report.recommendRiichi,
       showGuide ? game.recommendedChiRun : null,
