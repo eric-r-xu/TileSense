@@ -28,6 +28,7 @@ import 'package:mahjong_core/tile.dart';
 
 import 'placement_utility.dart';
 import 'sichuan_guide.dart';
+import 'sichuan_value.dart';
 
 /// Round and hand-value inputs used by the discard EV model.
 ///
@@ -435,6 +436,7 @@ class EfficiencyValueContext {
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     this.voidSuit,
+    this.sichuanRivals = const [],
   });
 
   final List<Meld> melds;
@@ -442,6 +444,11 @@ class EfficiencyValueContext {
   /// Sichuan: the suit (0 man, 1 pin, 2 sou) this seat gave up. Its tiles are
   /// dead weight and must be discarded before anything else.
   final int? voidSuit;
+
+  /// Sichuan: what the table shows of each other seat — who is out, which void
+  /// suits have been revealed, what each has discarded. The guide prices a
+  /// discard's danger from this; empty gives it no one to fear.
+  final List<SichuanRival> sichuanRivals;
 
   /// Which game's scoring, safety and vocabulary apply.
   final Ruleset ruleset;
@@ -545,6 +552,7 @@ class EfficiencyValueContext {
         minimumFaan: minimumFaan,
         minimumPoints: minimumPoints,
         voidSuit: voidSuit,
+        sichuanRivals: sichuanRivals,
       );
 
   /// The same context with one or more of the three guide dials swapped —
@@ -577,6 +585,7 @@ class EfficiencyValueContext {
         minimumFaan: minimumFaan,
         minimumPoints: minimumPoints,
         voidSuit: voidSuit,
+        sichuanRivals: sichuanRivals,
       );
 }
 

@@ -813,7 +813,7 @@ class _HandViewState extends State<HandView> {
       // Sichuan: name the suit you give up before play begins. The guide's
       // pick, when it is showing, carries a star.
       final suggested =
-          showGuide ? game.round.suggestVoidSuit(kHumanSeat) : null;
+          showGuide ? game.suggestedVoidSuit : null;
       buttons.add(Tooltip(
         message: context.l10n.voidSuitHint,
         child: Text(context.l10n.voidSuitTitle,

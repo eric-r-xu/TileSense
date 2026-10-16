@@ -18,6 +18,8 @@ import 'package:mahjong_core/mahjong_core.dart';
 
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/sichuan_guide.dart';
+import '../logic/sichuan_value.dart';
 import '../net/guest_identity.dart';
 import '../net/mp_client.dart';
 import 'call_callout.dart';
@@ -969,6 +971,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
       !round.hasDeclaredVoidSuit(kHumanSeat);
 
   @override
+  int get suggestedVoidSuit => SichuanGuide.suggestVoidSuit(
+      round.seats[kHumanSeat].hand,
+      fallback: round.suggestVoidSuit(kHumanSeat));
+
+  @override
   void humanDeclareVoidSuit(int suit) {
     if (!awaitingHumanVoidSuit || suit < 0 || suit > 2) return;
     _send({'type': 'action', 'kind': 'void_suit', 'suit': suit});
@@ -1368,6 +1375,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         minimumFaan: round.minimumFaan,
         minimumPoints: round.minimumPoints,
         voidSuit: seat.voidSuit,
+        sichuanRivals: round.ruleset.isSichuan
+            ? SichuanRival.of(round, kHumanSeat)
+            : const [],
       );
 
   SeatState? _threatOpponent() {

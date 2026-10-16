@@ -14,6 +14,8 @@ import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/sichuan_guide.dart';
+import '../logic/sichuan_value.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/safety.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -958,6 +960,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
     }
   }
 
+  /// The suit the guide would give up from your hand: the one whose loss
+  /// leaves the rest nearest to ready (see `SichuanGuide.suggestVoidSuit`).
+  @override
+  int get suggestedVoidSuit => SichuanGuide.suggestVoidSuit(
+      round.seats[kHumanSeat].hand,
+      fallback: round.suggestVoidSuit(kHumanSeat));
+
   /// Names [suit] (0 man, 1 pin, 2 sou) as the one you give up; the hand then
   /// begins.
   @override
@@ -1037,7 +1046,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         // Sichuan: the table waits for your void suit, unless Auto-Play
         // names it for you.
         if (autoplay && !round.hasDeclaredVoidSuit(kHumanSeat)) {
-          humanDeclareVoidSuit(round.suggestVoidSuit(kHumanSeat));
+          humanDeclareVoidSuit(suggestedVoidSuit);
         } else {
           _refreshReport();
           notifyListeners();
@@ -1762,6 +1771,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
         minimumFaan: round.minimumFaan,
         minimumPoints: round.minimumPoints,
         voidSuit: seat.voidSuit,
+        sichuanRivals: round.ruleset.isSichuan
+            ? SichuanRival.of(round, kHumanSeat)
+            : const [],
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong
