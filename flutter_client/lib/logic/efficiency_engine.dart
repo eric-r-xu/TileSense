@@ -27,6 +27,7 @@ import 'package:mahjong_core/taiwanese/taiwanese_scoring.dart';
 import 'package:mahjong_core/tile.dart';
 
 import 'placement_utility.dart';
+import 'sichuan_guide.dart';
 
 /// Round and hand-value inputs used by the discard EV model.
 ///
@@ -433,9 +434,14 @@ class EfficiencyValueContext {
     this.flowersEnabled = true,
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
+    this.voidSuit,
   });
 
   final List<Meld> melds;
+
+  /// Sichuan: the suit (0 man, 1 pin, 2 sou) this seat gave up. Its tiles are
+  /// dead weight and must be discarded before anything else.
+  final int? voidSuit;
 
   /// Which game's scoring, safety and vocabulary apply.
   final Ruleset ruleset;
@@ -538,6 +544,7 @@ class EfficiencyValueContext {
         flowersEnabled: flowersEnabled,
         minimumFaan: minimumFaan,
         minimumPoints: minimumPoints,
+        voidSuit: voidSuit,
       );
 
   /// The same context with one or more of the three guide dials swapped —
@@ -569,6 +576,7 @@ class EfficiencyValueContext {
         flowersEnabled: flowersEnabled,
         minimumFaan: minimumFaan,
         minimumPoints: minimumPoints,
+        voidSuit: voidSuit,
       );
 }
 
@@ -937,6 +945,12 @@ class EfficiencyEngine {
     List<RiichiThreat> otherThreats = const [],
     List<Meld> opponentMelds = const [],
   }) {
+    if (valueContext.ruleset.isSichuan) {
+      return SichuanGuide.analyze(
+          hand: hand,
+          visibleCounts34: visibleCounts34,
+          context: valueContext);
+    }
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
     ];
@@ -1400,6 +1414,14 @@ class EfficiencyEngine {
     List<RiichiThreat> otherThreats = const [],
     List<Meld> opponentMelds = const [],
   }) {
+    if (context.ruleset.isSichuan) {
+      return SichuanGuide.adviseCall(
+          hand: hand,
+          offered: offered,
+          available: available,
+          visibleCounts34: visibleCounts34,
+          context: context);
+    }
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
     ];
@@ -1614,6 +1636,14 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
   }) {
+    if (context.ruleset.isSichuan) {
+      return SichuanGuide.adviseKan(
+          hand: hand,
+          kanType: kanType,
+          visibleCounts34: visibleCounts34,
+          context: context,
+          concealed: true);
+    }
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
     ];
@@ -1674,6 +1704,14 @@ class EfficiencyEngine {
     List<TileType> passedDiscardsAfterRiichi = const [],
     List<Meld> opponentMelds = const [],
   }) {
+    if (context.ruleset.isSichuan) {
+      return SichuanGuide.adviseKan(
+          hand: hand,
+          kanType: kanType,
+          visibleCounts34: visibleCounts34,
+          context: context,
+          concealed: false);
+    }
     final remaining34 = [
       for (var i = 0; i < 34; i++) (4 - visibleCounts34[i]).clamp(0, 4)
     ];
@@ -1759,6 +1797,10 @@ class EfficiencyEngine {
     required Tile drawn,
     required EfficiencyValueContext context,
   }) {
+    if (context.ruleset.isSichuan) {
+      return SichuanGuide.adviseTsumo(
+          hand: hand, drawn: drawn, context: context);
+    }
     final concealed = List<Tile>.of(hand)..remove(drawn);
     final score = _scoreWait(concealed, drawn,
         isTsumo: true, assumeRiichi: context.inRiichi, context: context);

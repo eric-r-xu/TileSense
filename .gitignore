@@ -12,3 +12,4 @@ mortal_sidecar/libriichi.so
 mortal_sidecar/*.onnx
 mortal_sidecar/*.pth
 mortal_sidecar/step0_positions.npz
+HANDOFF.md

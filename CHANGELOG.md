@@ -9,6 +9,32 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-16 — Sichuan mahjong
+
+### Added
+- **Sichuan (Bloody Rules) joins the rulesets**, single player only for now: 108
+  tiles in three suits, a void suit every seat names before the first draw,
+  no chow calls, and a bloody battle in which a seat that declares Hu goes out
+  while the others play on, until three have won or the wall runs out. Scoring
+  is the sheet's fan table (Root, All Pungs, Full Flush, Seven Pairs, Golden
+  Single Wait, kong and last-tile wins) turned into a hand value of 1, 2, 4 or
+  8, with kong payments, unready-pays-ready at the end, and the dealer rule
+  (the first winner deals next). Rules page: `docs/SICHUAN_RULES.md`.
+- **Sichuan has its own flag**, an image rather than an emoji (`Ruleset.flagAsset`,
+  drawn by `RulesetFlag`) on the welcome screen, the character screen and the
+  table's badge.
+- **The guide plays Sichuan on shanten and acceptance**, with your void suit
+  counted as dead weight and the void suit always first; its expected-value
+  columns are not there yet.
+- **Sichuan's one-page rules sheet is hosted** at
+  `https://app.ericrxu.com/static/Sichuan.pdf` (the Rules button and the README
+  link to it), beside the other rulesets' PDFs.
+
+### Changed
+- The online lobby opens on riichi if Sichuan was the table you had picked,
+  and the server refuses a Sichuan room outright instead of turning it into a
+  riichi one.
+
 ## 2026-09-30 — Rejoin and smoother online play, bigger Back buttons, win pause
 
 ### Added

@@ -45,6 +45,7 @@ void _playToCompletion(Ruleset ruleset) {
         }
       case RoundPhase.drawing:
       case RoundPhase.finished:
+      case RoundPhase.choosingVoidSuit:
         break;
     }
   }
@@ -126,6 +127,7 @@ void main() {
             }
           case RoundPhase.drawing:
           case RoundPhase.finished:
+          case RoundPhase.choosingVoidSuit:
             break;
         }
       }

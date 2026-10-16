@@ -49,7 +49,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           : widget.controller.displayName);
   late final TextEditingController _joinCtl =
       TextEditingController(text: widget.initialJoinCode ?? '');
-  late Ruleset _ruleset = widget.initialRuleset;
+  // Sichuan is single-player for now, so a table picked there opens the lobby
+  // on riichi rather than on a rule the dropdown does not offer.
+  late Ruleset _ruleset =
+      widget.initialRuleset.isSichuan ? Ruleset.riichi : widget.initialRuleset;
   bool _hanchan = true;
   TimerPace _pace = TimerPace.standard;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;

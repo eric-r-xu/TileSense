@@ -1126,6 +1126,25 @@ void mcrRoomMain() {
         isNot(code));
   });
 
+  test('Sichuan is single-player for now: the server refuses the room, '
+      'not a riichi one in its place', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final c = await TestClient.connect(server.port);
+    addTearDown(c.close);
+    c.send({
+      'type': 'create_room',
+      'guestId': 'guest-s',
+      'name': 'Sam',
+      'ruleset': 'sichuan',
+      'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr', 'sichuan'],
+    });
+    final refused = await c.waitFor((m) => m['type'] == 'error');
+    expect(refused['code'], 'unsupported_ruleset');
+    expect(manager.roomCount, 0);
+  });
+
   test('an MCR table plays a hand to its result', () async {
     final manager = RoomManager();
     final server = await _startServer(manager);

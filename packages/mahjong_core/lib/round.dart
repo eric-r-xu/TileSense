@@ -22,6 +22,11 @@ import 'mcr/mcr_scoring.dart';
 import 'meld.dart';
 import 'ruleset.dart';
 import 'scoring.dart';
+import 'sichuan/sichuan_hand_parse.dart';
+import 'sichuan/sichuan_ledger.dart';
+import 'sichuan/sichuan_rules.dart';
+import 'sichuan/sichuan_scoring.dart';
+import 'sichuan/sichuan_wall.dart';
 import 'taiwanese/taiwanese_hand_parse.dart';
 import 'taiwanese/taiwanese_rules.dart';
 import 'taiwanese/taiwanese_scoring.dart';
@@ -29,9 +34,13 @@ import 'taiwanese/taiwanese_wall.dart';
 import 'tile.dart';
 import 'wall.dart';
 
-enum RoundPhase { drawing, discarding, callOffer, finished }
+/// [choosingVoidSuit] is Sichuan's opening step: every seat names the suit it
+/// gives up before the dealer's first draw.
+enum RoundPhase { drawing, discarding, callOffer, finished, choosingVoidSuit }
 
-enum RoundEndKind { tsumo, ron, exhaustiveDraw, abortiveDraw }
+/// [bloodBattle] is how a Sichuan hand ends: wins do not end the hand there,
+/// so the result carries every Hu and every payment line instead.
+enum RoundEndKind { tsumo, ron, exhaustiveDraw, abortiveDraw, bloodBattle }
 
 enum CallType { none, chi, pon, kan, ron }
 
@@ -100,6 +109,23 @@ class SeatState {
   /// tile it can never declare ron for the rest of the round. Never cleared.
   bool riichiFuriten = false;
 
+  /// Sichuan: the suit (0 man, 1 pin, 2 sou) this seat gave up; null until
+  /// declared. It stays hidden from the other seats until [voidRevealed].
+  int? voidSuit;
+
+  /// Sichuan: this seat has made its first discard, which shows its void suit.
+  bool voidRevealed = false;
+
+  /// Sichuan: this seat has declared Hu and no longer plays.
+  bool out = false;
+
+  /// Sichuan: when this seat went out (1 for the first Hu of the hand).
+  int huOrder = 0;
+
+  /// Sichuan: the best hand value this seat has passed up on a discard since
+  /// its last turn. It may Hu a later discard only if that is worth more.
+  int passedHuValue = 0;
+
   bool get isOpen => melds.any((m) => !(m.kind == MeldKind.kan && m.concealed));
   bool get closed => melds.every((m) => m.kind == MeldKind.kan && m.concealed);
 }
@@ -115,6 +141,9 @@ class RoundResult {
     this.scores = const [],
     this.winTiles = const {},
     this.tenpaiAtDraw = const [],
+    this.sichuanHu = const [],
+    this.sichuanPayments = const [],
+    this.nextDealer,
   });
 
   final RoundEndKind kind;
@@ -133,6 +162,14 @@ class RoundResult {
   final Map<int, int> pointDeltas;
   final List<int> tenpaiAtDraw;
   final String label;
+
+  /// Sichuan: every Hu of the hand in order, and every payment line (Hu,
+  /// kong, ready, penalty) behind [pointDeltas].
+  final List<SichuanHu> sichuanHu;
+  final List<SichuanPayment> sichuanPayments;
+
+  /// Sichuan: the seat that deals next hand, by the Sichuan dealer rule.
+  final int? nextDealer;
 }
 
 /// A pending call opportunity for one seat after a discard.
@@ -160,11 +197,13 @@ class Round {
     TileWall? wall,
     Random? shuffleRng,
   })  : wall = wall ??
-            (ruleset.isTaiwanese
-                ? TaiwaneseWall(seed, rng: shuffleRng)
-                : (ruleset.isHongKong || ruleset.isMcr)
-                    ? HongKongWall(seed, rng: shuffleRng)
-                    : Wall(seed, rng: shuffleRng)),
+            (ruleset.isSichuan
+                ? SichuanWall(seed, rng: shuffleRng)
+                : ruleset.isTaiwanese
+                    ? TaiwaneseWall(seed, rng: shuffleRng)
+                    : (ruleset.isHongKong || ruleset.isMcr)
+                        ? HongKongWall(seed, rng: shuffleRng)
+                        : Wall(seed, rng: shuffleRng)),
         startPoints = List.of(startingPoints) {
     seats = List.generate(4, (i) {
       final wind = Wind.values[(i - dealer + 4) % 4];
@@ -173,6 +212,12 @@ class Round {
     final dealt = this.wall.deal();
     for (var i = 0; i < 4; i++) {
       seats[i].hand = sortByType(dealt[i]);
+    }
+    if (ruleset.isSichuan) {
+      // Every seat names its void suit before anyone draws.
+      turn = dealer;
+      phase = RoundPhase.choosingVoidSuit;
+      return;
     }
     _replaceDealBonuses(0);
   }
@@ -294,9 +339,11 @@ class Round {
   /// its seven-pairs-and-a-pung alternate), or the 4-meld, 14-tile shape
   /// riichi and Hong Kong share.
   List<TileType> _waitTiles(List<Tile> hand, {required int openMelds}) =>
-      ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds) : ruleset.isTaiwanese
-          ? waitTilesTaiwanese(hand, openMelds: openMelds)
-          : waitTiles(hand, openMelds: openMelds);
+      ruleset.isSichuan
+          ? waitTilesSichuan(hand, openMelds: openMelds)
+          : ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds) : ruleset.isTaiwanese
+              ? waitTilesTaiwanese(hand, openMelds: openMelds)
+              : waitTiles(hand, openMelds: openMelds);
 
   /// Whether [m] is a concealed kong the other seats can't see into yet —
   /// see [Ruleset.hidesConcealedKongs]. Every kong is shown once the hand
@@ -305,18 +352,28 @@ class Round {
       ruleset.hidesConcealedKongs && m.isKan && m.concealed && result == null;
 
   /// The tiles [seat]'s current hand waits on, under this round's rules.
-  List<TileType> waitsFor(int seat) =>
-      _waitTiles(seats[seat].hand, openMelds: seats[seat].melds.length);
+  List<TileType> waitsFor(int seat) {
+    // A Sichuan hand still holding its void suit cannot win, so it waits on
+    // nothing.
+    if (ruleset.isSichuan && _holdsVoid(seats[seat], seats[seat].hand)) {
+      return const [];
+    }
+    return _waitTiles(seats[seat].hand, openMelds: seats[seat].melds.length);
+  }
 
   bool _isTenpaiFor(List<Tile> hand, {required int openMelds}) =>
-      ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds).isNotEmpty : ruleset.isTaiwanese
-          ? isTenpaiTaiwanese(hand, openMelds: openMelds)
-          : isTenpai(hand, openMelds: openMelds);
+      ruleset.isSichuan
+          ? isTenpaiSichuan(hand, openMelds: openMelds)
+          : ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds).isNotEmpty : ruleset.isTaiwanese
+              ? isTenpaiTaiwanese(hand, openMelds: openMelds)
+              : isTenpai(hand, openMelds: openMelds);
 
   bool _isAgari(List<int> counts34, {required int meldCount}) =>
-      ruleset.isMcr ? isAgariMcr(counts34, meldCount: meldCount) : ruleset.isTaiwanese
-          ? isAgariTaiwanese(counts34, meldCount: meldCount)
-          : isAgari(counts34, meldCount: meldCount);
+      ruleset.isSichuan
+          ? isAgariSichuan(counts34, meldCount: meldCount)
+          : ruleset.isMcr ? isAgariMcr(counts34, meldCount: meldCount) : ruleset.isTaiwanese
+              ? isAgariTaiwanese(counts34, meldCount: meldCount)
+              : isAgari(counts34, meldCount: meldCount);
 
   // --- flowers (Hong Kong) -------------------------------------------------
 
@@ -349,6 +406,317 @@ class Round {
     } else {
       resume();
     }
+  }
+
+  // --- Sichuan: void suit, ledger and bloody battle -----------------------
+
+  /// Kongs owed a payment, settled (or cancelled) when the hand ends.
+  final List<SichuanKong> _kongs = [];
+
+  /// Each seat's latest kong, for cancelling it if the discard that follows is
+  /// shot.
+  final Map<int, SichuanKong> _lastKong = {};
+
+  /// The added kong waiting out its robbery window.
+  SichuanKong? _pendingAddedKong;
+
+  /// The kong the pending discard follows, if its discarder had just made one.
+  SichuanKong? _discardKong;
+  bool _discardAfterKong = false;
+
+  final List<SichuanHu> _huEvents = [];
+  final List<SichuanPayment> _payments = [];
+  bool _firstHuDecided = false;
+  int? _nextDealer;
+
+  /// Every Hu declared so far this hand, in order.
+  List<SichuanHu> get sichuanHu => List.unmodifiable(_huEvents);
+
+  /// Every payment line so far this hand (Hu payments immediately; the rest at
+  /// the end).
+  List<SichuanPayment> get sichuanPayments => List.unmodifiable(_payments);
+
+  /// Kongs still owed a payment, with those the rules have cancelled marked.
+  List<SichuanKong> get sichuanKongs => List.unmodifiable(_kongs);
+
+  /// Seats still to name their void suit.
+  bool get awaitingVoidSuit => phase == RoundPhase.choosingVoidSuit;
+
+  bool hasDeclaredVoidSuit(int seat) => seats[seat].voidSuit != null;
+
+  /// Whether [s] holds a tile of its void suit in [hand] or its melds. A hand
+  /// that does may not win.
+  bool _holdsVoid(SeatState s, List<Tile> hand) {
+    final v = s.voidSuit;
+    if (v == null) return false;
+    return hand.any((t) => t.type.suit == v) ||
+        s.melds.any((m) => m.low.suit == v);
+  }
+
+  /// Whether [seat] still holds a tile of its void suit in its hand, which it
+  /// must discard before anything else.
+  bool mustDiscardVoid(int seat) {
+    final s = seats[seat];
+    final v = s.voidSuit;
+    return ruleset.isSichuan &&
+        v != null &&
+        s.hand.any((t) => t.type.suit == v);
+  }
+
+  /// The suit [seat] should give up: the one it holds fewest tiles of, ties
+  /// going to the suit whose tiles connect least (pairs and neighbours).
+  int suggestVoidSuit(int seat) {
+    final counts = List<int>.filled(3, 0);
+    final links = List<int>.filled(3, 0);
+    final hand = seats[seat].hand;
+    for (final t in hand) {
+      if (!t.type.isSuit) continue;
+      counts[t.type.suit]++;
+      for (final o in hand) {
+        if (o.id == t.id || o.type.suit != t.type.suit) continue;
+        final gap = (o.type.number - t.type.number).abs();
+        if (gap <= 2) links[t.type.suit] += gap == 0 ? 2 : (gap == 1 ? 2 : 1);
+      }
+    }
+    var best = 0;
+    for (var suit = 1; suit < 3; suit++) {
+      if (counts[suit] < counts[best] ||
+          (counts[suit] == counts[best] && links[suit] < links[best])) {
+        best = suit;
+      }
+    }
+    return best;
+  }
+
+  /// [seat] gives up [suit] (0 man, 1 pin, 2 sou). Once all four seats have, the
+  /// dealer draws and play begins.
+  void declareVoidSuit(int seat, int suit) {
+    if (!awaitingVoidSuit) throw StateError('No void suit to declare');
+    if (suit < 0 || suit > 2) throw ArgumentError('Not a suit: $suit');
+    if (seats[seat].voidSuit != null) {
+      throw StateError('Seat $seat has already declared');
+    }
+    seats[seat].voidSuit = suit;
+    if (seats.every((s) => s.voidSuit != null)) {
+      turn = dealer;
+      _beginDraw();
+    }
+  }
+
+  SichuanKong? _recordKong(int seat, SichuanKongKind kind, TileType type,
+      {int? discarder, bool voided = false}) {
+    if (!ruleset.isSichuan) return null;
+    final payers = kind == SichuanKongKind.melded
+        ? [discarder!]
+        : [
+            for (final o in seats)
+              if (o.seat != seat && !o.out) o.seat
+          ];
+    final kong = SichuanKong(
+      seat: seat,
+      kind: kind,
+      type: type,
+      payers: payers,
+      each: switch (kind) {
+        SichuanKongKind.concealed => SichuanRules.concealedKongPayment,
+        SichuanKongKind.melded => SichuanRules.meldedKongPayment,
+        SichuanKongKind.added => SichuanRules.addedKongPayment,
+      },
+      voided: voided,
+    );
+    _kongs.add(kong);
+    _lastKong[seat] = kong;
+    return kong;
+  }
+
+  void _pay(SichuanPaymentKind kind, int from, int to, int points,
+      String label) {
+    seats[from].points -= points;
+    seats[to].points += points;
+    _payments.add(SichuanPayment(
+        kind: kind, from: from, to: to, points: points, label: label));
+  }
+
+  /// Every seat that could Hu [discard] now and did not has passed it up: it
+  /// may not Hu the same tile, or anything worth no more, until its own turn.
+  void _registerPassedHu(Tile discard, int discarder, {bool chankan = false}) {
+    for (final s in seats) {
+      if (s.seat == discarder || s.out) continue;
+      if (!canRon(s.seat, discard, chankan: chankan)) continue;
+      final value = _score(s, s.hand, discard,
+              isTsumo: false, dryRun: true, chankan: chankan)
+          .points;
+      if (value > s.passedHuValue) s.passedHuValue = value;
+    }
+  }
+
+  /// The hand value of the best hand [seat] is ready for, or 0 if it is not
+  /// ready: one tile from a legal win (void suit gone), counting a wait even
+  /// when every copy is visible on the table but not when all four are in its
+  /// own hand. Situational fan do not count.
+  int sichuanReadyValue(int seat) {
+    final s = seats[seat];
+    if (!ruleset.isSichuan ||
+        s.out ||
+        s.hand.length % 3 != 1 ||
+        _holdsVoid(s, s.hand)) {
+      return 0;
+    }
+    final owned = [...s.hand.map((t) => t.type), ...s.melds.expand((m) => m.types)];
+    var best = 0;
+    for (final t in waitTilesSichuan(s.hand, openMelds: s.melds.length)) {
+      if (owned.where((o) => o == t).length >= 4) continue;
+      final score = scoreSichuanHand(
+          s.hand,
+          Tile(-1, t),
+          s.melds,
+          ScoreContext(
+              roundWind: roundWind,
+              seatWind: s.wind,
+              isTsumo: false,
+              closed: s.closed));
+      if (score.valid && score.points > best) best = score.points;
+    }
+    return best;
+  }
+
+  /// A Hu by [winners] on [winTile]: a discard from [discarder] (the kong
+  /// declarer, when [chankan]), or a self-draw when [discarder] is null. Hu
+  /// payments move now; the winners go out; the hand carries on unless one seat
+  /// is left playing.
+  void _applySichuanHu(List<int> winners, Tile winTile, int? discarder,
+      {bool chankan = false}) {
+    final tsumo = discarder == null;
+    final order = List<int>.of(winners);
+    if (!tsumo) {
+      order.sort((a, b) =>
+          ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
+      // Seats that could Hu this discard and did not have passed it up.
+      for (final option in callOptions) {
+        if (!option.types.contains(CallType.ron) ||
+            order.contains(option.seat)) {
+          continue;
+        }
+        final s = seats[option.seat];
+        final value = _score(s, s.hand, winTile,
+                isTsumo: false, dryRun: true, chankan: chankan)
+            .points;
+        if (value > s.passedHuValue) s.passedHuValue = value;
+      }
+    }
+    if (chankan) {
+      // A robbed kong never happened: no payment for it.
+      _pendingAddedKong?.voided = true;
+      _pendingAddedKong = null;
+    } else if (!tsumo) {
+      // A Hu on the discard after a kong cancels that kong's payment.
+      _discardKong?.voided = true;
+    }
+    final playing = [
+      for (final s in seats)
+        if (!s.out) s.seat
+    ];
+    for (final w in order) {
+      final s = seats[w];
+      final concealed = tsumo ? ([...s.hand]..remove(winTile)) : s.hand;
+      final score =
+          _score(s, concealed, winTile, isTsumo: tsumo, chankan: chankan);
+      final value = score.points;
+      if (tsumo) {
+        for (final p in playing) {
+          if (p == w) continue;
+          _pay(SichuanPaymentKind.hu, p, w,
+              value + SichuanRules.selfDrawBonus, 'Self-draw Hu');
+        }
+      } else {
+        _pay(SichuanPaymentKind.hu, discarder, w, value,
+            chankan ? 'Robbed kong' : 'Hu on discard');
+      }
+      _huEvents.add(SichuanHu(
+          seat: w,
+          tile: winTile,
+          score: score,
+          from: discarder,
+          robbedKong: chankan));
+      s.out = true;
+      s.huOrder = _huEvents.length;
+    }
+    if (!_firstHuDecided) {
+      _firstHuDecided = true;
+      _nextDealer = order.length == 1 ? order.first : discarder;
+    }
+    pendingDiscard = null;
+    pendingDiscardSeat = -1;
+    callOptions = const [];
+    _chankanPending = false;
+    _pendingPung = null;
+    if (seats.where((s) => !s.out).length <= 1) {
+      _finishSichuan(wallEnded: false);
+      return;
+    }
+    turn = discarder ?? order.first;
+    phase = RoundPhase.drawing;
+    _advanceTurn();
+  }
+
+  /// Ends a Sichuan hand — three seats have gone out, or the wall has run
+  /// out — and settles what is left: unready seats pay ready ones, kong
+  /// payments are collected, and a seat that finished holding its void suit
+  /// pays the penalty.
+  void _finishSichuan({required bool wallEnded}) {
+    final remaining = [
+      for (final s in seats)
+        if (!s.out) s.seat
+    ];
+    final ready = <int, int>{
+      for (final i in remaining)
+        if (sichuanReadyValue(i) > 0) i: sichuanReadyValue(i),
+    };
+    if (remaining.length >= 2) {
+      for (final loser in remaining) {
+        if (ready.containsKey(loser)) continue;
+        for (final winner in remaining) {
+          if (!ready.containsKey(winner)) continue;
+          _pay(SichuanPaymentKind.ready, loser, winner, ready[winner]!,
+              'Unready pays ready');
+        }
+      }
+    }
+    for (final k in _kongs) {
+      if (k.voided) continue;
+      // A seat still playing and not ready collects no kong payments.
+      if (!seats[k.seat].out && !ready.containsKey(k.seat)) continue;
+      for (final payer in k.payers) {
+        _pay(SichuanPaymentKind.kong, payer, k.seat, k.each, 'Kong');
+      }
+    }
+    for (final i in remaining) {
+      final s = seats[i];
+      final v = s.voidSuit;
+      if (v == null ||
+          !s.hand.any((t) => t.type.suit == v) ||
+          !s.allDiscards.any((t) => t.type.suit != v)) {
+        continue;
+      }
+      for (final other in seats) {
+        if (other.seat == i) continue;
+        _pay(SichuanPaymentKind.penalty, i, other.seat,
+            SichuanRules.voidedSuitPenalty, 'Void suit penalty');
+      }
+    }
+    phase = RoundPhase.finished;
+    result = RoundResult(
+      kind: RoundEndKind.bloodBattle,
+      winners: [for (final h in _huEvents) h.seat],
+      pointDeltas: _handDeltas(),
+      score: _huEvents.isEmpty ? null : _huEvents.first.score,
+      scores: [for (final h in _huEvents) h.score],
+      winTiles: {for (final h in _huEvents) h.seat: h.tile},
+      label: wallEnded ? 'Wall Ends' : 'Three Hu',
+      sichuanHu: List.of(_huEvents),
+      sichuanPayments: List.of(_payments),
+      nextDealer: _nextDealer ?? dealer,
+    );
   }
 
   // --- turn flow -----------------------------------------------------------
@@ -388,6 +756,8 @@ class Round {
     seat.replacementDraw = false;
     seat.kongChain = 0;
     seat.drawCount++;
+    // Its own turn ends any Hu it passed up (Sichuan's skip rule).
+    seat.passedHuValue = 0;
     _drawFor(seat,
         replacement: false, onTile: (tile) => _acceptDraw(seat, tile));
   }
@@ -405,6 +775,9 @@ class Round {
   List<Tile> legalDiscards(int seat) {
     if (_flowerSeat != null) return const [];
     final s = seats[seat];
+    if (mustDiscardVoid(seat)) {
+      return [for (final t in s.hand) if (t.type.suit == s.voidSuit) t];
+    }
     if (_locked(s)) {
       // Must discard the drawn tile (tsumogiri) unless it forms a closed kan.
       return s.drawn != null ? [s.drawn!] : s.hand;
@@ -426,7 +799,10 @@ class Round {
     final s = seats[seat];
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
-    if (!ruleset.isHongKong && !ruleset.isMcr && _isFuriten(s)) return false;
+    if (ruleset.isSichuan && s.out) return false;
+    if (!ruleset.isHongKong && !ruleset.isMcr && !ruleset.isSichuan && _isFuriten(s)) {
+      return false;
+    }
     return _winsWith(s, s.hand, discard, isTsumo: false, chankan: chankan);
   }
 
@@ -434,7 +810,7 @@ class Round {
   /// the UI's furiten marker; the same check gates every seat's [canRon] so no
   /// player — human or bot — can ron off a furiten wait.
   bool isFuriten(int seat) {
-    if (ruleset.isHongKong || ruleset.isMcr) return false;
+    if (ruleset.isHongKong || ruleset.isMcr || ruleset.isSichuan) return false;
     final s = seats[seat];
     if (_waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
     return _isFuriten(s);
@@ -444,6 +820,8 @@ class Round {
   /// discard — the reason ron never gets offered, shown beside the furiten
   /// marker. Furiten itself is ignored here; [isFuriten] reports that.
   MinimumShortfall minimumShortfall(int seat) {
+    // Sichuan has no minimum to win.
+    if (ruleset.isSichuan) return MinimumShortfall.none;
     final s = seats[seat];
     if (s.hand.length % 3 != 1) return MinimumShortfall.none;
     final waits = _waitTiles(s.hand, openMelds: s.melds.length);
@@ -516,6 +894,8 @@ class Round {
   /// Chi is open only to the seat immediately after the discarder — its
   /// kamicha — and only on a suit tile it can complete a run with.
   bool canChi(int seat, Tile discard) {
+    // Sichuan allows chows in the hand but never claims a discard for one.
+    if (ruleset.isSichuan) return false;
     if (seat == pendingDiscardSeat) return false;
     if (seat != (pendingDiscardSeat + 1) % 4) return false;
     if (ruleset.isChineseStyle && wall.isEmpty) return false;
@@ -603,6 +983,12 @@ class Round {
     if (!_isAgari(counts, meldCount: s.melds.length)) return false;
     final score = _score(s, concealed, winTile,
         isTsumo: isTsumo, dryRun: true, chankan: chankan);
+    if (ruleset.isSichuan) {
+      // No minimum, but the void suit must be gone, and a Hu passed up on a
+      // discard stays passed up unless a later discard is worth more.
+      if (!score.valid || _holdsVoid(s, [...concealed, winTile])) return false;
+      return isTsumo || score.points > s.passedHuValue;
+    }
     if (ruleset.isHongKong) {
       return score.valid && score.faan >= minimumFaan;
     }
@@ -631,7 +1017,11 @@ class Round {
   /// riichi, permanently for the rest of the round. Hong Kong has no furiten
   /// at all; Taiwanese's own "Taiwanese Furiten" is temporary only, the same
   /// as riichi's non-permanent case.
-  void _registerMissedRon(Tile discard, int discarder) {
+  void _registerMissedRon(Tile discard, int discarder, {bool chankan = false}) {
+    if (ruleset.isSichuan) {
+      _registerPassedHu(discard, discarder, chankan: chankan);
+      return;
+    }
     if (ruleset.isHongKong || ruleset.isMcr) return;
     for (var i = 0; i < 4; i++) {
       if (i == discarder) continue;
@@ -699,6 +1089,15 @@ class Round {
         throw ArgumentError('Tile is not in this hand');
       }
     }
+    if (ruleset.isSichuan) {
+      if (mustDiscardVoid(seat) && tile.type.suit != s.voidSuit) {
+        throw StateError('Discard the void suit first');
+      }
+      // The first discard shows the void suit to the table.
+      s.voidRevealed = true;
+      _discardAfterKong = s.replacementDraw;
+      _discardKong = s.replacementDraw ? _lastKong[seat] : null;
+    }
     s.replacementDraw = false;
     s.kongChain = 0;
 
@@ -752,6 +1151,7 @@ class Round {
     final options = <CallOption>[];
     for (var i = 0; i < 4; i++) {
       if (i == discarder) continue;
+      if (ruleset.isSichuan && seats[i].out) continue;
       final types = <CallType>{};
       if (canRon(i, discard)) types.add(CallType.ron);
       if (canPon(i, discard)) types.add(CallType.pon);
@@ -795,7 +1195,7 @@ class Round {
       }
       // No one robbed the kan: the missed tile satisfied a real wait, so it
       // counts as a missed ron exactly like an unclaimed discard.
-      _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
+      _registerMissedRon(pendingDiscard!, pendingDiscardSeat, chankan: true);
       _completeAddedKan();
       return;
     }
@@ -863,6 +1263,10 @@ class Round {
       return;
     }
     final winTile = s.drawn!;
+    if (ruleset.isSichuan) {
+      _applySichuanHu([seat], winTile, null);
+      return;
+    }
     final concealed = [...s.hand]..remove(winTile);
     final score = _score(s, concealed, winTile, isTsumo: true);
     _finishWin([seat], score, loser: null, winTile: winTile);
@@ -898,6 +1302,7 @@ class Round {
     });
     s.melds.add(
         Meld(kind: MeldKind.kan, low: type, concealed: true, tiles: taken));
+    _recordKong(seat, SichuanKongKind.concealed, type);
     s.drawn = null;
     _drawReplacement();
   }
@@ -928,6 +1333,9 @@ class Round {
     final pon = s.melds[ponIndex];
     _pendingPung = pon;
     _pendingPungIndex = ponIndex;
+    // Pays only when the kong is made on the tile just drawn, not one held.
+    _pendingAddedKong = _recordKong(seat, SichuanKongKind.added, type,
+        voided: s.drawn?.type != type);
     final addedIndex = s.hand.indexWhere((t) => t.type == type);
     final added = s.hand.removeAt(addedIndex);
     s.melds[ponIndex] = Meld(
@@ -963,6 +1371,7 @@ class Round {
     // [resolveCalls] instead of its own — drawing a second replacement tile and
     // flipping a dora indicator that no kan had earned.
     _pendingPung = null;
+    _pendingAddedKong = null;
     _chankanPending = false;
     // The kan went through, so it breaks every seat's ippatsu. Not cleared in
     // [addKan] itself: a chankan ron on the added tile can still be ippatsu.
@@ -1041,6 +1450,11 @@ class Round {
       calledFromSeatOffset: offset,
       tiles: [...taken, discard],
     ));
+    if (kan) {
+      _recordKong(seat, SichuanKongKind.melded, discard.type,
+          discarder: discarder);
+    }
+    s.passedHuValue = 0;
     // ippatsu / first-go-around broken by a call
     for (final o in seats) {
       o.ippatsu = false;
@@ -1062,6 +1476,10 @@ class Round {
 
   void _applyRon(List<int> ronners, Tile discard, int discarder,
       {bool chankan = false}) {
+    if (ruleset.isSichuan) {
+      _applySichuanHu(ronners, discard, discarder, chankan: chankan);
+      return;
+    }
     // Score each winner; sum deltas. Head-bump is not modelled — all valid
     // ronners win (double/triple ron).
     //
@@ -1193,6 +1611,10 @@ class Round {
   }
 
   void _exhaustiveDraw() {
+    if (ruleset.isSichuan) {
+      _finishSichuan(wallEnded: true);
+      return;
+    }
     final tenpai = <int>[];
     for (var i = 0; i < 4; i++) {
       if (_isTenpaiFor(seats[i].hand, openMelds: seats[i].melds.length)) {
@@ -1245,6 +1667,10 @@ class Round {
     // own draw below, so a tsumo right on that draw still counts.
     seats[turn].drawn = null;
     turn = (turn + 1) % 4;
+    // Seats that have declared Hu no longer play.
+    while (ruleset.isSichuan && seats[turn].out) {
+      turn = (turn + 1) % 4;
+    }
     _beginDraw();
   }
 
@@ -1252,6 +1678,23 @@ class Round {
 
   HandScore _score(SeatState s, List<Tile> concealed, Tile winTile,
       {required bool isTsumo, bool dryRun = false, bool chankan = false}) {
+    if (ruleset.isSichuan) {
+      return scoreSichuanHand(
+          concealed,
+          winTile,
+          s.melds,
+          ScoreContext(
+            roundWind: roundWind,
+            seatWind: s.wind,
+            isTsumo: isTsumo,
+            closed: s.closed,
+            rinshan: isTsumo && s.replacementDraw,
+            haitei: isTsumo && wall.isEmpty,
+            houtei: !isTsumo && wall.isEmpty,
+            chankan: chankan,
+            afterKong: !isTsumo && !chankan && _discardAfterKong,
+          ));
+    }
     if (ruleset.isMcr) {
       // Count physical public tiles once; the offered tile is excluded.
       final visible = <int, Tile>{};

@@ -2137,4 +2137,104 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tipPayoutMcr =>
       'Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n';
+
+  @override
+  String get rulesetSichuan => 'Sichuan';
+
+  @override
+  String get rulesetSubtitleSichuan => 'bloody battle, void suit, no chows';
+
+  @override
+  String get sichuanFullGame => 'Full game · 8 hands';
+
+  @override
+  String get sichuanPractice => 'Practice · 4 hands';
+
+  @override
+  String get voidSuitTitle => 'Choose your void suit';
+
+  @override
+  String get voidSuitHint =>
+      'You must discard every tile of this suit before any other, and a hand still holding one can\'t win.';
+
+  @override
+  String get suitMan => 'Characters';
+
+  @override
+  String get suitPin => 'Dots';
+
+  @override
+  String get suitSou => 'Bamboo';
+
+  @override
+  String get voidSuitSuggested => 'Suggested';
+
+  @override
+  String voidSuitBadge(String suit) {
+    return 'Void: $suit';
+  }
+
+  @override
+  String get voidSuitUnknown => 'Void: ?';
+
+  @override
+  String get voidFirstNotice => 'Discard your void suit first';
+
+  @override
+  String get huOutBadge => 'HU';
+
+  @override
+  String get sichuanPayHu => 'Hu';
+
+  @override
+  String get sichuanPayKong => 'Kong';
+
+  @override
+  String get sichuanPayReady => 'Unready pays ready';
+
+  @override
+  String get sichuanPayPenalty => 'Void-suit penalty';
+
+  @override
+  String get resultWallEnds => 'Wall ends';
+
+  @override
+  String get resultThreeHu => 'Three players out';
+
+  @override
+  String get scRoot => 'Root';
+
+  @override
+  String get scAllPungs => 'All Pungs';
+
+  @override
+  String get scFullFlush => 'Full Flush';
+
+  @override
+  String get scSevenPairs => 'Seven Pairs';
+
+  @override
+  String get scGoldenSingleWait => 'Golden Single Wait';
+
+  @override
+  String get scWinAfterKong => 'Win after Kong';
+
+  @override
+  String get scRobbingTheKong => 'Robbing the Kong';
+
+  @override
+  String get scShootAfterKong => 'Shoot after Kong';
+
+  @override
+  String get scUnderTheSea => 'Under the Sea';
+
+  @override
+  String statusHandNumber(int n) {
+    return 'Hand $n';
+  }
+
+  @override
+  String sichuanScoreTotal(int fan, int value) {
+    return '$fan fan · hand value $value';
+  }
 }

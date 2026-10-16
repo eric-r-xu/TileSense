@@ -43,6 +43,12 @@ class _UkeireResult {
 }
 
 class TileEfficiencyCalculator {
+  /// [sichuan] plays Sichuan's hand shapes: seven pairs may use four identical
+  /// tiles as two pairs, and there is no thirteen orphans (no honors to make
+  /// one with). Everything else is the ordinary search.
+  TileEfficiencyCalculator({bool sichuan = false}) : _sichuan = sichuan;
+
+  final bool _sichuan;
   final List<int> _workHand = List<int>.filled(38, 0);
   int _completeSets = 0;
   int _pair = 0;
@@ -262,7 +268,7 @@ class TileEfficiencyCalculator {
     final chiitoitsu = _chiitoitsuShanten(hand);
     if (chiitoitsu < 0) return chiitoitsu;
 
-    final kokushi = _kokushiShanten(hand);
+    final kokushi = _sichuan ? 13 : _kokushiShanten(hand);
     if (kokushi < 3) return kokushi;
 
     final standard =
@@ -272,6 +278,13 @@ class TileEfficiencyCalculator {
   }
 
   int _chiitoitsuShanten(List<int> hand) {
+    if (_sichuan) {
+      var pairs = 0;
+      for (var i = 1; i < hand.length; i++) {
+        pairs += hand[i] ~/ 2;
+      }
+      return 6 - pairs;
+    }
     var pairs = 0;
     var unique = 0;
     for (var i = 1; i < hand.length; i++) {

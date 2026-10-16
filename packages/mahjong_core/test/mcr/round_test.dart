@@ -38,6 +38,7 @@ Round _play(int seed, {int dealer = 0}) {
         }
       case RoundPhase.drawing:
       case RoundPhase.finished:
+      case RoundPhase.choosingVoidSuit:
         break;
     }
   }

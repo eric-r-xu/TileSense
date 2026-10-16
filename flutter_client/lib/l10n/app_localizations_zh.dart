@@ -2079,6 +2079,105 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get tipPayoutMcr =>
       '番数加花牌（F）：点炮者付 F＋8，其他两家各付 8；自摸则每家付 F＋8。听牌时为准确值，且不计花牌达到8番的听牌才能和牌；之前为估计值。\n';
+
+  @override
+  String get rulesetSichuan => '四川麻将';
+
+  @override
+  String get rulesetSubtitleSichuan => '血战到底、定缺、不能吃';
+
+  @override
+  String get sichuanFullGame => '全场 · 8局';
+
+  @override
+  String get sichuanPractice => '练习 · 4局';
+
+  @override
+  String get voidSuitTitle => '选择定缺花色';
+
+  @override
+  String get voidSuitHint => '必须先打完这一门的牌才能打其他牌，手中仍有这一门的牌时不能和牌。';
+
+  @override
+  String get suitMan => '万';
+
+  @override
+  String get suitPin => '筒';
+
+  @override
+  String get suitSou => '条';
+
+  @override
+  String get voidSuitSuggested => '推荐';
+
+  @override
+  String voidSuitBadge(String suit) {
+    return '缺：$suit';
+  }
+
+  @override
+  String get voidSuitUnknown => '缺：?';
+
+  @override
+  String get voidFirstNotice => '请先打出定缺的牌';
+
+  @override
+  String get huOutBadge => '胡';
+
+  @override
+  String get sichuanPayHu => '胡牌';
+
+  @override
+  String get sichuanPayKong => '杠';
+
+  @override
+  String get sichuanPayReady => '查叫';
+
+  @override
+  String get sichuanPayPenalty => '定缺罚分';
+
+  @override
+  String get resultWallEnds => '牌墙结束';
+
+  @override
+  String get resultThreeHu => '三家胡牌';
+
+  @override
+  String get scRoot => '根';
+
+  @override
+  String get scAllPungs => '对对胡';
+
+  @override
+  String get scFullFlush => '清一色';
+
+  @override
+  String get scSevenPairs => '七对';
+
+  @override
+  String get scGoldenSingleWait => '金钩钓';
+
+  @override
+  String get scWinAfterKong => '杠上开花';
+
+  @override
+  String get scRobbingTheKong => '抢杠胡';
+
+  @override
+  String get scShootAfterKong => '杠上炮';
+
+  @override
+  String get scUnderTheSea => '海底';
+
+  @override
+  String statusHandNumber(int n) {
+    return '第$n局';
+  }
+
+  @override
+  String sichuanScoreTotal(int fan, int value) {
+    return '$fan番 · 牌值$value分';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4156,4 +4255,103 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get tipPayoutMcr =>
       '番數加花牌（F）：放槍者付 F＋8，其他兩家各付 8；自摸則每家付 F＋8。聽牌時為準確值，且不計花牌達到8番的聽牌才能和牌；之前為估計值。\n';
+
+  @override
+  String get rulesetSichuan => '四川麻將';
+
+  @override
+  String get rulesetSubtitleSichuan => '血戰到底、定缺、不能吃';
+
+  @override
+  String get sichuanFullGame => '全場 · 8局';
+
+  @override
+  String get sichuanPractice => '練習 · 4局';
+
+  @override
+  String get voidSuitTitle => '選擇定缺花色';
+
+  @override
+  String get voidSuitHint => '必須先打完這一門的牌才能打其他牌，手中仍有這一門的牌時不能和牌。';
+
+  @override
+  String get suitMan => '萬';
+
+  @override
+  String get suitPin => '筒';
+
+  @override
+  String get suitSou => '條';
+
+  @override
+  String get voidSuitSuggested => '推薦';
+
+  @override
+  String voidSuitBadge(String suit) {
+    return '缺：$suit';
+  }
+
+  @override
+  String get voidSuitUnknown => '缺：?';
+
+  @override
+  String get voidFirstNotice => '請先打出定缺的牌';
+
+  @override
+  String get huOutBadge => '胡';
+
+  @override
+  String get sichuanPayHu => '胡牌';
+
+  @override
+  String get sichuanPayKong => '槓';
+
+  @override
+  String get sichuanPayReady => '查叫';
+
+  @override
+  String get sichuanPayPenalty => '定缺罰分';
+
+  @override
+  String get resultWallEnds => '牌牆結束';
+
+  @override
+  String get resultThreeHu => '三家胡牌';
+
+  @override
+  String get scRoot => '根';
+
+  @override
+  String get scAllPungs => '對對胡';
+
+  @override
+  String get scFullFlush => '清一色';
+
+  @override
+  String get scSevenPairs => '七對';
+
+  @override
+  String get scGoldenSingleWait => '金鉤釣';
+
+  @override
+  String get scWinAfterKong => '槓上開花';
+
+  @override
+  String get scRobbingTheKong => '搶槓胡';
+
+  @override
+  String get scShootAfterKong => '槓上炮';
+
+  @override
+  String get scUnderTheSea => '海底';
+
+  @override
+  String statusHandNumber(int n) {
+    return '第$n局';
+  }
+
+  @override
+  String sichuanScoreTotal(int fan, int value) {
+    return '$fan番 · 牌值$value分';
+  }
 }

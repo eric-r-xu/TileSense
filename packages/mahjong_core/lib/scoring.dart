@@ -35,6 +35,7 @@ class ScoreContext {
     this.blessingOfMan = false,
     this.doubleKong = false,
     this.discardCount = 0,
+    this.afterKong = false,
   });
 
   final Wind roundWind;
@@ -72,6 +73,10 @@ class ScoreContext {
   /// Taiwanese only: total discards on the table when this hand won, for its
   /// "Win Within N Discards" patterns.
   final int discardCount;
+
+  /// Sichuan only: a win on a discard thrown right after its discarder made a
+  /// kong ("Shoot after Kong").
+  final bool afterKong;
 }
 
 class YakuResult {

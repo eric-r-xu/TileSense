@@ -1293,5 +1293,60 @@
       }
     }
   },
-  "tipPayoutMcr": "Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n"
+  "tipPayoutMcr": "Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n",
+  "rulesetSichuan": "Sichuan",
+  "rulesetSubtitleSichuan": "bloody battle, void suit, no chows",
+  "sichuanFullGame": "Full game · 8 hands",
+  "sichuanPractice": "Practice · 4 hands",
+  "voidSuitTitle": "Choose your void suit",
+  "voidSuitHint": "You must discard every tile of this suit before any other, and a hand still holding one can't win.",
+  "suitMan": "Characters",
+  "suitPin": "Dots",
+  "suitSou": "Bamboo",
+  "voidSuitSuggested": "Suggested",
+  "voidSuitBadge": "Void: {suit}",
+  "@voidSuitBadge": {
+    "placeholders": {
+      "suit": {
+        "type": "String"
+      }
+    }
+  },
+  "voidSuitUnknown": "Void: ?",
+  "voidFirstNotice": "Discard your void suit first",
+  "huOutBadge": "HU",
+  "sichuanPayHu": "Hu",
+  "sichuanPayKong": "Kong",
+  "sichuanPayReady": "Unready pays ready",
+  "sichuanPayPenalty": "Void-suit penalty",
+  "resultWallEnds": "Wall ends",
+  "resultThreeHu": "Three players out",
+  "scRoot": "Root",
+  "scAllPungs": "All Pungs",
+  "scFullFlush": "Full Flush",
+  "scSevenPairs": "Seven Pairs",
+  "scGoldenSingleWait": "Golden Single Wait",
+  "scWinAfterKong": "Win after Kong",
+  "scRobbingTheKong": "Robbing the Kong",
+  "scShootAfterKong": "Shoot after Kong",
+  "scUnderTheSea": "Under the Sea",
+  "statusHandNumber": "Hand {n}",
+  "@statusHandNumber": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sichuanScoreTotal": "{fan} fan · hand value {value}",
+  "@sichuanScoreTotal": {
+    "placeholders": {
+      "fan": {
+        "type": "int"
+      },
+      "value": {
+        "type": "int"
+      }
+    }
+  }
 }

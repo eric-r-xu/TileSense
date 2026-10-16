@@ -10,6 +10,7 @@ import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/scoring.dart';
+import 'package:mahjong_core/sichuan/sichuan_ledger.dart';
 import 'package:mahjong_core/tile.dart';
 import 'tile_face.dart';
 
@@ -234,6 +235,7 @@ class _ScoringViewState extends State<ScoringView> {
                           _tenpaiReveal(round, r),
                         const SizedBox(height: 12),
                         _transfers(round, r),
+                        if (round.ruleset.isSichuan) _sichuanPayments(round, r),
                         const SizedBox(height: 16),
                         // Continue on the left, Pause on the right, the same
                         // size and gold; the countdown they control sits
@@ -402,7 +404,9 @@ class _ScoringViewState extends State<ScoringView> {
           ),
         ),
         const SizedBox(height: 8),
-        if (hk)
+        if (round.ruleset.isSichuan)
+          const SizedBox.shrink()
+        else if (hk)
           _indicatorRow(context.l10n.flowersSeasons,
               w.flowers.map((t) => t.type).toList(),
               indicators: false)
@@ -440,7 +444,9 @@ class _ScoringViewState extends State<ScoringView> {
           // see taiwanese_scoring.dart — so there is nothing to show twice
           // the way "faan — chips" or "han fu — points" show two different
           // scales.
-          round.ruleset.isMcr
+          round.ruleset.isSichuan
+              ? context.l10n.sichuanScoreTotal(score.han, score.points)
+              : round.ruleset.isMcr
               ? context.l10n.mcrScoreTotal(score.mcrQualifyingPoints ?? score.han,
                   score.mcrFlowerPoints ?? 0, score.points)
               : _totalLine(context.l10n, score, taiwanese: taiwanese, hk: hk),
@@ -604,6 +610,44 @@ class _ScoringViewState extends State<ScoringView> {
   }
 
   String _delta(int n) => n >= 0 ? '+$n' : '$n';
+
+  /// Sichuan: where the points came from, grouped by what paid them — Hu,
+  /// kong, unready-pays-ready and the void-suit penalty — one line per payer
+  /// and payee, so a hand that kept going after its first win can still be
+  /// read at a glance.
+  Widget _sichuanPayments(Round round, RoundResult r) {
+    final l10n = context.l10n;
+    String kindName(SichuanPaymentKind k) => switch (k) {
+          SichuanPaymentKind.hu => l10n.sichuanPayHu,
+          SichuanPaymentKind.kong => l10n.sichuanPayKong,
+          SichuanPaymentKind.ready => l10n.sichuanPayReady,
+          SichuanPaymentKind.penalty => l10n.sichuanPayPenalty,
+        };
+    // Sum repeated lines (three kongs by one seat from the same payer).
+    final sums = <(SichuanPaymentKind, int, int), int>{};
+    for (final p in r.sichuanPayments) {
+      final key = (p.kind, p.from, p.to);
+      sums[key] = (sums[key] ?? 0) + p.points;
+    }
+    if (sums.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        key: const Key('sichuanPayments'),
+        children: [
+          for (final e in sums.entries)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1),
+              child: Text(
+                '${kindName(e.key.$1)}: ${game.seatLabel(e.key.$2)} → '
+                '${game.seatLabel(e.key.$3)}  ${e.value}',
+                style: const TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   /// Final placements, best first: rank, the player's portrait, name and
   /// score. Entries wrap onto a second line on a narrow panel rather than

@@ -133,6 +133,9 @@ void main() {
     expect(Ruleset.hongKong.rulesUrl, 'https://app.ericrxu.com/static/HK.pdf');
     expect(Ruleset.taiwanese.rulesUrl,
         'https://app.ericrxu.com/static/Taiwanese.pdf');
+    expect(Ruleset.mcr.rulesUrl, 'https://app.ericrxu.com/static/MCR.pdf');
+    expect(Ruleset.sichuan.rulesUrl,
+        'https://app.ericrxu.com/static/Sichuan.pdf');
   });
 
   /// Back arrow → welcome screen → [ruleset] → Single Player → Start: the

@@ -328,6 +328,7 @@ class TableLoop {
           await _discardingPhase();
         case RoundPhase.drawing:
         case RoundPhase.finished:
+        case RoundPhase.choosingVoidSuit:
           // Round transitions synchronously out of `drawing` inside its own
           // draw methods; this is only ever a transient value between two
           // Round calls, never a state the loop should sit in.

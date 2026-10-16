@@ -271,6 +271,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _humanCallAdvice = null;
     lastDiscardSeat = null;
     lastDiscardTsumogiri = false;
+    _huAnnounced = round.sichuanHu.length;
     discardSerial++;
     _tel?.humanDecision(
       matchId: _matchId,
@@ -605,7 +606,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   /// 1-4 within the current round wind.
   @override
-  int get handInWind => (_roundNumber % 4) + 1;
+  int get handInWind =>
+      // Sichuan has no round wind: this is simply the hand's number.
+      ruleset.isSichuan ? _roundNumber + 1 : (_roundNumber % 4) + 1;
   @override
   List<int> get tablePoints => _points;
 
@@ -758,9 +761,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
     round = _dealRound();
     _log.clear();
     _undoStack.clear();
+    _huAnnounced = 0;
     _bots = [
       for (var i = 0; i < 4; i++) _botFactory(_seed + i * 7 + _roundNumber)
     ];
+    // Sichuan: the opponents name their void suits now, out of sight; yours
+    // is the last one the table waits for.
+    _declareBotVoidSuits();
     _mortalMoves.clear();
     _mortalMovesAsked.clear();
     _mortalReplies.clear();
@@ -841,7 +848,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
     // always repeats, whoever they are, no tenpai check involved.
     // Hong Kong and Taiwanese: the dealer also repeats on any (ordinary) draw,
     // tenpai or not.
-    final dealerKept = !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
+    // Sichuan names its next dealer itself: the dealer stays if nobody won, the
+    // first winner deals next, or — if several won on one discard — the one
+    // who paid them.
+    final sichuanDealer = ruleset.isSichuan ? (r.nextDealer ?? _dealer) : null;
+    final dealerKept = ruleset.isSichuan
+        ? sichuanDealer == _dealer
+        : !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
             ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
             : r.winners.contains(_dealer)));
@@ -862,14 +875,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
     );
 
     _riichiSticks = round.riichiSticks; // leftover sticks (draw) carry
-    final rot = rotateAfterRound(
-      exhaustiveDraw: isExhaustiveDraw,
-      dealerKept: dealerKept,
-      dealer: _dealer,
-      roundNumber: _roundNumber,
-      honba: _honba,
-      ruleset: ruleset,
-    );
+    // Every Sichuan hand counts toward the game, whoever deals it.
+    final rot = ruleset.isSichuan
+        ? (dealer: sichuanDealer!, roundNumber: _roundNumber + 1, honba: 0)
+        : rotateAfterRound(
+            exhaustiveDraw: isExhaustiveDraw,
+            dealerKept: dealerKept,
+            dealer: _dealer,
+            roundNumber: _roundNumber,
+            honba: _honba,
+            ruleset: ruleset,
+          );
     _dealer = rot.dealer;
     _roundNumber = rot.roundNumber;
     _honba = rot.honba;
@@ -878,7 +894,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
     // Riichi ends the game when anyone goes below zero; Hong Kong plays on.
     final tobi = ruleset.isRiichi && _points.any((p) => p < 0);
-    if (tobi || (_roundNumber >= _handsPerGame && !dealerKept)) {
+    if (tobi ||
+        (_roundNumber >= _handsPerGame &&
+            (!dealerKept || ruleset.isSichuan))) {
       phase = GamePhase.gameEnd;
       _tel?.matchEnd(
         matchId: _matchId,
@@ -921,6 +939,60 @@ class GameController extends ChangeNotifier implements TableGameHost {
     }
     _tel?.dispose();
     super.dispose();
+  }
+
+  // --- Sichuan: void suit and mid-hand wins ------------------------------
+
+  /// How many of [Round.sichuanHu] have been announced with a bubble and a
+  /// voice line. A Hu there does not end the hand, so it is announced as it
+  /// happens rather than at the round's end; undo resets this so a replay is
+  /// silent.
+  int _huAnnounced = 0;
+
+  void _declareBotVoidSuits() {
+    if (!round.awaitingVoidSuit) return;
+    for (var seat = 0; seat < 4; seat++) {
+      if (seat == kHumanSeat || round.hasDeclaredVoidSuit(seat)) continue;
+      _apply(_VoidSuit(seat, round.suggestVoidSuit(seat)));
+    }
+  }
+
+  /// Names [suit] (0 man, 1 pin, 2 sou) as the one you give up; the hand then
+  /// begins.
+  @override
+  void humanDeclareVoidSuit(int suit) {
+    if (!round.awaitingVoidSuit || round.hasDeclaredVoidSuit(kHumanSeat)) {
+      return;
+    }
+    _apply(_VoidSuit(kHumanSeat, suit));
+    _refreshReport();
+    notifyListeners();
+    _scheduleLoop();
+  }
+
+  /// Whether the table is waiting on you to name your void suit.
+  @override
+  bool get awaitingHumanVoidSuit =>
+      round.awaitingVoidSuit && !round.hasDeclaredVoidSuit(kHumanSeat);
+
+  /// Bubble, chime and voice for every Hu declared since the last call.
+  void _announceSichuanHu() {
+    if (!ruleset.isSichuan) return;
+    final all = round.sichuanHu;
+    for (var i = _huAnnounced; i < all.length; i++) {
+      final hu = all[i];
+      final line = hu.selfDrawn ? VoiceKind.tsumo : VoiceKind.ron;
+      Sfx.i.play(hu.selfDrawn ? SfxKind.tsumo : SfxKind.ron);
+      CallCallout.i.show(hu.seat, line.name);
+      final big = ruleset.isBigHand(hu.score);
+      final who = _characterForSeat(hu.seat);
+      if (big) {
+        Sfx.i.voiceChain([(who, line), (who, VoiceKind.yeah)]);
+      } else {
+        Sfx.i.voice(line, character: who);
+      }
+    }
+    _huAnnounced = all.length;
   }
 
   // --- the loop -------------------------------------------------------
@@ -968,6 +1040,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
           }
         } else {
           _botOrAutoTurn(round.turn);
+        }
+        break;
+      case RoundPhase.choosingVoidSuit:
+        // Sichuan: the table waits for your void suit, unless Auto-Play
+        // names it for you.
+        if (autoplay && !round.hasDeclaredVoidSuit(kHumanSeat)) {
+          humanDeclareVoidSuit(round.suggestVoidSuit(kHumanSeat));
+        } else {
+          _refreshReport();
+          notifyListeners();
         }
         break;
       case RoundPhase.drawing:
@@ -1290,6 +1372,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
         round.phase != RoundPhase.discarding) {
       return;
     }
+    // Sichuan: the void suit goes first, so nothing else is a legal cut.
+    if (ruleset.isSichuan && !round.legalDiscards(kHumanSeat).contains(tile)) {
+      return;
+    }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
     if (declareRiichi) {
       Sfx.i.voice(VoiceKind.riichi, character: _characterForSeat(kHumanSeat));
@@ -1330,9 +1416,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void humanTsumo() {
     if (round.canTsumo(kHumanSeat) && round.turn == kHumanSeat) {
       _apply(const _Tsumo(kHumanSeat));
-      phase = GamePhase.roundEnd;
-      _playRoundEndSfx();
+      if (round.finished) {
+        phase = GamePhase.roundEnd;
+        _playRoundEndSfx();
+      }
+      // A Sichuan win does not end the hand: the others play on.
+      _refreshReport();
       notifyListeners();
+      _scheduleLoop();
     }
   }
 
@@ -1601,6 +1692,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   // --- efficiency report -------------------------------------------
 
   void _refreshReport() {
+    _announceSichuanHu();
     _askMortal();
     // Paused on a flower win, there is no discard to advise on.
     if (round.canFlowerWin(kHumanSeat)) {
@@ -1678,6 +1770,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         flowers: seat.flowers.map((t) => t.type).toList(),
         minimumFaan: round.minimumFaan,
         minimumPoints: round.minimumPoints,
+        voidSuit: seat.voidSuit,
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong
@@ -1857,6 +1950,15 @@ class GameController extends ChangeNotifier implements TableGameHost {
 sealed class _Move {
   const _Move();
   void applyTo(Round round);
+}
+
+final class _VoidSuit extends _Move {
+  const _VoidSuit(this.seat, this.suit);
+  final int seat;
+  final int suit;
+
+  @override
+  void applyTo(Round round) => round.declareVoidSuit(seat, suit);
 }
 
 final class _Discard extends _Move {

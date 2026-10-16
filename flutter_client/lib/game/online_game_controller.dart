@@ -948,6 +948,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     }
   }
 
+  // Sichuan is single-player for now; the online table never asks.
+  @override
+  bool get awaitingHumanVoidSuit => false;
+
+  @override
+  void humanDeclareVoidSuit(int suit) {}
+
   @override
   void humanDeclareKyuushu() {
     if (_roundReady && round.canDeclareKyuushu(kHumanSeat)) {

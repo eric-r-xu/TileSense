@@ -36,6 +36,7 @@ import 'ui/ruleset_badge.dart';
 import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
+import 'ui/ruleset_flag.dart';
 import 'ui/small_window_hint.dart';
 import 'ui/table_view.dart';
 import 'ui/tilesensor.dart';
@@ -1074,9 +1075,11 @@ class _GamePageState extends State<GamePage> {
     return _confirmLosingGame(
       keyPrefix: 'lengthChange',
       title: context.l10n.lengthChangeConfirmTitle(full
-          ? (_game.ruleset.isMcr
-              ? context.l10n.mcrFullGame
-              : context.l10n.hanchan)
+          ? (_game.ruleset.isSichuan
+              ? context.l10n.sichuanFullGame
+              : _game.ruleset.isMcr
+                  ? context.l10n.mcrFullGame
+                  : context.l10n.hanchan)
           : context.l10n.eastOnly),
       confirm: context.l10n.lengthChangeConfirm,
       then: () => _game.setHanchan(full),
@@ -1313,12 +1316,9 @@ class _GamePageState extends State<GamePage> {
                       key: const Key('ruleset'),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 6),
-                      child: Text(
-                        switch (_minimumTag()) {
-                          final tag? =>
-                            '${context.l10n.rulesetFlagLabel(_game.ruleset)} · $tag',
-                          null => context.l10n.rulesetFlagLabel(_game.ruleset),
-                        },
+                      child: RulesetFlagLabel(
+                        _game.ruleset,
+                        suffix: _minimumTag(),
                         style: const TextStyle(
                           color: Color(0xffffdf76),
                           fontSize: 12,
@@ -1368,8 +1368,14 @@ class _GamePageState extends State<GamePage> {
                         ),
                         child: Text(
                           _game.hanchan
-                              ? (_game.ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.hanchan)
-                              : context.l10n.eastOnly,
+                              ? (_game.ruleset.isSichuan
+                                  ? context.l10n.sichuanFullGame
+                                  : _game.ruleset.isMcr
+                                      ? context.l10n.mcrFullGame
+                                      : context.l10n.hanchan)
+                              : (_game.ruleset.isSichuan
+                                  ? context.l10n.sichuanPractice
+                                  : context.l10n.eastOnly),
                           style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600),
                         ),
@@ -1695,7 +1701,7 @@ class _WelcomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(context.l10n.rulesetFlagLabel(value),
+                  RulesetFlagLabel(value,
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
                   Text(subtitle, style: const TextStyle(fontSize: 11)),
@@ -1731,6 +1737,7 @@ class _WelcomeScreen extends StatelessWidget {
           option(Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
           option(Ruleset.taiwanese, context.l10n.rulesetSubtitleTaiwanese),
           option(Ruleset.mcr, context.l10n.rulesetSubtitleMcr),
+          option(Ruleset.sichuan, context.l10n.rulesetSubtitleSichuan),
         ],
       ),
     );
