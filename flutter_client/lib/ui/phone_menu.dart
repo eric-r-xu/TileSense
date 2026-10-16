@@ -124,8 +124,14 @@ Future<void> showPhoneMenu(
                               key: const Key('phoneMenuLength'),
                               icon: Icons.timelapse,
                               label: game.hanchan
-                                  ? (game.ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.hanchan)
-                                  : context.l10n.eastOnly,
+                                  ? (game.ruleset.isSichuan
+                                      ? context.l10n.sichuanFullGame
+                                      : game.ruleset.isMcr
+                                          ? context.l10n.mcrFullGame
+                                          : context.l10n.hanchan)
+                                  : (game.ruleset.isSichuan
+                                      ? context.l10n.sichuanPractice
+                                      : context.l10n.eastOnly),
                               onTap: closeThen(onToggleLength),
                             ),
                           ],

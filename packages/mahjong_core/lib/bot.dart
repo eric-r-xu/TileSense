@@ -16,6 +16,7 @@ import 'mcr/mcr_scoring.dart';
 import 'mcr/mcr_strategy.dart';
 import 'round.dart';
 import 'scoring.dart';
+import 'sichuan/sichuan_efficiency.dart';
 import 'taiwanese/taiwanese_hand_parse.dart';
 import 'tile.dart';
 
@@ -42,6 +43,7 @@ class SimpleBot {
   SimpleBot(int seed) : _rng = Random(seed);
   final Random _rng;
   final _mcrCalc = McrEfficiencyCalculator();
+  final _sichuanCalc = SichuanEfficiencyCalculator();
 
   BotTurn decideTurn(Round round, int seat) {
     final s = round.seats[seat];
@@ -62,12 +64,14 @@ class SimpleBot {
 
     // closedKanTypes already filters to wait-preserving kans while in riichi,
     // so a riichi hand may still declare a concealed kan.
-    final kanTypes = round.closedKanTypes(seat);
+    // A Sichuan seat has no use for a kong of the suit it gave up.
+    bool wanted(TileType t) => !(round.ruleset.isSichuan && t.suit == s.voidSuit);
+    final kanTypes = round.closedKanTypes(seat).where(wanted).toList();
     if (kanTypes.isNotEmpty) return BotTurn(closedKan: kanTypes.first);
 
     // Extending an existing pon into a kan never changes this hand's shape
     // or waits, so SimpleBot always takes it, same as a closed kan.
-    final addedKanTypes = round.addedKanTypes(seat);
+    final addedKanTypes = round.addedKanTypes(seat).where(wanted).toList();
     if (addedKanTypes.isNotEmpty) {
       return BotTurn(addedKan: addedKanTypes.first);
     }
@@ -80,6 +84,9 @@ class SimpleBot {
   CallType decideCall(
       Round round, int seat, Tile discard, Set<CallType> allowed) {
     if (allowed.contains(CallType.ron)) return CallType.ron;
+    if (round.ruleset.isSichuan) {
+      return _sichuanCall(round, seat, discard, allowed);
+    }
     if (round.ruleset.isMcr) return _mcrCall(round, seat, discard, allowed);
     if (round.ruleset.isChineseStyle) {
       return _decideHongKongCall(round, seat, discard, allowed);
@@ -137,6 +144,58 @@ class SimpleBot {
       if (improves(rest)) return CallType.chi;
     }
     return CallType.none;
+  }
+
+  /// Sichuan: never call the void suit, always take a kong (it pays), and take
+  /// a pung only when it brings the rest of the hand closer — the void suit
+  /// counted as dead weight. There is no chow to take.
+  CallType _sichuanCall(
+      Round round, int seat, Tile discard, Set<CallType> allowed) {
+    final s = round.seats[seat];
+    final v = s.voidSuit;
+    if (v != null && discard.type.suit == v) return CallType.none;
+    if (allowed.contains(CallType.kan)) return CallType.kan;
+    if (!allowed.contains(CallType.pon)) return CallType.none;
+    final live = withoutVoidSuit(toTrainerCounts(s.hand), v);
+    final before = _sichuanCalc.calculateWaitingShanten(live);
+    final rest = List<int>.of(live);
+    rest[trainerIndexOf(discard.type)] -= 2;
+    final remaining = List<int>.filled(38, 4);
+    final lines = _sichuanCalc.calculate(rest, remaining);
+    return lines.any((line) => line.shanten < before)
+        ? CallType.pon
+        : CallType.none;
+  }
+
+  /// Sichuan discards: the void suit first (the rules force it), then the tile
+  /// that leaves the rest of the hand fewest away from ready, then the widest
+  /// acceptance.
+  Tile _sichuanDiscard(Round round, int seat) {
+    final s = round.seats[seat];
+    final tiles = round.legalDiscards(seat);
+    if (round.mustDiscardVoid(seat)) return tiles[_rng.nextInt(tiles.length)];
+    final counts = toTrainerCounts(s.hand);
+    final remaining = List<int>.filled(38, 4);
+    for (final o in round.seats) {
+      for (final t in [...o.pond, ...o.melds.expand((m) => m.tiles)]) {
+        final i = trainerIndexOf(t.type);
+        if (remaining[i] > 0) remaining[i]--;
+      }
+    }
+    for (var i = 0; i < 38; i++) {
+      remaining[i] = (remaining[i] - counts[i]).clamp(0, 4);
+    }
+    final lines = _sichuanCalc.calculate(
+        withoutVoidSuit(counts, s.voidSuit), remaining);
+    lines.sort((a, b) {
+      final c = a.shanten.compareTo(b.shanten);
+      return c != 0 ? c : b.ukeire.compareTo(a.ukeire);
+    });
+    for (final line in lines) {
+      final pick = tiles.where((t) => trainerIndexOf(t.type) == line.tileIndex);
+      if (pick.isNotEmpty) return pick.first;
+    }
+    return tiles[_rng.nextInt(tiles.length)];
   }
 
   List<Tile> _tenpaiKeepingDiscards(Round round, int seat) {
@@ -238,6 +297,7 @@ class SimpleBot {
   Tile _discardTile(Round round, int seat) {
     final s = round.seats[seat];
     var tiles = List<Tile>.of(round.legalDiscards(seat));
+    if (round.ruleset.isSichuan) return _sichuanDiscard(round, seat);
     if (round.ruleset.isMcr) {
       tiles.sort((a,b) => _mcrHandValue(round, s, [...s.hand]..remove(b), s.melds)
           .compareTo(_mcrHandValue(round, s, [...s.hand]..remove(a), s.melds)));

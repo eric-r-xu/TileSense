@@ -38,6 +38,7 @@ flutter:
   assets:
     - assets/tilesense.png
     - assets/tilesensor.png
+    - assets/flags/
     - assets/TileClink.wav
     - assets/tiles/
     - assets/sfx/

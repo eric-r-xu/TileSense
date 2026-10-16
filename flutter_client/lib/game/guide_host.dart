@@ -143,6 +143,11 @@ abstract class TableGameHost implements GuideHost {
   void humanPassFlowerWin();
   void humanDeclareKyuushu();
 
+  /// Sichuan: whether the table is waiting for you to name your void suit,
+  /// and naming it (0 man, 1 pin, 2 sou). Never true online or elsewhere.
+  bool get awaitingHumanVoidSuit;
+  void humanDeclareVoidSuit(int suit);
+
   /// Answers the pending call. [chiLow] names which run a chi takes when
   /// several are possible (see [humanChiRuns]); left null it is the guide's
   /// best run, or the first one the hand can make.

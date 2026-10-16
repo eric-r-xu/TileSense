@@ -18,10 +18,20 @@ extension MahjongTerms on AppLocalizations {
         Ruleset.hongKong => rulesetHongKong,
         Ruleset.taiwanese => rulesetTaiwanese,
         Ruleset.mcr => rulesetMcr,
+        Ruleset.sichuan => rulesetSichuan,
       };
 
   /// [rulesetName] with the ruleset's flag in front, for toggles and badges.
+  /// Plain text: a ruleset with a flag image (see [Ruleset.flagAsset]) shows
+  /// its text stand-in here; widgets that can draw the image use `RulesetFlag`.
   String rulesetFlagLabel(Ruleset r) => '${r.flag} ${rulesetName(r)}';
+
+  /// Sichuan's suit names (0 man, 1 pin, 2 sou) — the void suit's.
+  String suitName(int suit) => switch (suit) {
+        0 => suitMan,
+        1 => suitPin,
+        _ => suitSou,
+      };
 
   String windName(Wind w) => switch (w) {
         Wind.east => windEast,
@@ -51,6 +61,8 @@ extension MahjongTerms on AppLocalizations {
       Ruleset.hongKong => underFaan(minimumFaan),
       Ruleset.taiwanese => underTai(minimumPoints),
       Ruleset.mcr => underFan(McrRules.minimumPoints),
+      // Sichuan has no minimum, so nothing is ever under it.
+      Ruleset.sichuan => '',
     };
     return s == MinimumShortfall.dead ? '$label · $noWin' : label;
   }
@@ -122,6 +134,7 @@ extension MahjongTerms on AppLocalizations {
       Ruleset.hongKong => _hongKongNames,
       Ruleset.taiwanese => _taiwaneseNames,
       Ruleset.mcr => _hongKongNames,
+      Ruleset.sichuan => _sichuanNames,
     };
     if (table[name] case final known?) return known(this);
     if (_yakuhai.firstMatch(name) case final m?) {
@@ -166,6 +179,7 @@ extension MahjongTerms on AppLocalizations {
         Ruleset.hongKong => hongKong,
         Ruleset.taiwanese => taiwanese,
         Ruleset.mcr => taiwanese,
+        Ruleset.sichuan => taiwanese,
       };
 }
 
@@ -302,6 +316,21 @@ final Map<String, String Function(AppLocalizations)> _resultNames = {
   'Ron': (l) => l.resultRon,
   'Self Draw': (l) => l.resultSelfDraw,
   'Tsumo': (l) => l.resultTsumo,
+  'Wall Ends': (l) => l.resultWallEnds,
+  'Three Hu': (l) => l.resultThreeHu,
+};
+
+// Sichuan's fan, by mahjong_core's English identifier.
+final Map<String, String Function(AppLocalizations)> _sichuanNames = {
+  'Root': (l) => l.scRoot,
+  'All Pungs': (l) => l.scAllPungs,
+  'Full Flush': (l) => l.scFullFlush,
+  'Seven Pairs': (l) => l.scSevenPairs,
+  'Golden Single Wait': (l) => l.scGoldenSingleWait,
+  'Win after Kong': (l) => l.scWinAfterKong,
+  'Robbing the Kong': (l) => l.scRobbingTheKong,
+  'Shoot after Kong': (l) => l.scShootAfterKong,
+  'Under the Sea': (l) => l.scUnderTheSea,
 };
 
 final Map<String, String Function(AppLocalizations)> _limitNames = {

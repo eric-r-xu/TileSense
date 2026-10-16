@@ -141,8 +141,11 @@ bar (which deals a new game) or the builder's chip row. Riichi is the default.
 | 🇭🇰 Hong Kong | 144 with flowers | **0 faan** by default; 1, 2 or 3 | [Hong Kong rules](docs/HONG_KONG_RULES.md) | [HK.pdf](https://app.ericrxu.com/static/HK.pdf) |
 | 🇹🇼 Taiwanese | 144 with flowers, 16-tile hands (5 melds and a pair) | **5 tai** by default; 1 or 3 | [Taiwanese rules](docs/TAIWANESE_RULES.md) | [Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf) |
 | 🇨🇳 MCR | 144 with flowers, 13-tile hands | **8 points**, flowers excluded | [MCR rules](docs/MCR_RULES.md) | [MCR.pdf](https://app.ericrxu.com/static/MCR.pdf) |
+| <img src="flutter_client/assets/flags/sichuan.png" height="14" alt="Sichuan"> Sichuan | 108, no honors or flowers, 13-tile hands | none; void suit, no chows, play on after a win | [Sichuan rules](docs/SICHUAN_RULES.md) | [Sichuan.pdf](https://app.ericrxu.com/static/Sichuan.pdf) |
 
 Taiwanese scores flat, additive points and adds a dealer win-streak bonus.
+
+Sichuan is bloody-battle mahjong: each seat gives up a suit, and a win takes that seat out while the others play on. It is single player only for now.
 
 All three share one engine: `packages/mahjong_core/lib/ruleset.dart` defines
 `Ruleset.riichi`, `Ruleset.hongKong` and `Ruleset.taiwanese`, and the round, guide,

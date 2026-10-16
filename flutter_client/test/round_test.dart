@@ -77,6 +77,7 @@ void main() {
             break;
           case RoundPhase.drawing:
           case RoundPhase.finished:
+          case RoundPhase.choosingVoidSuit:
             break;
         }
       }
@@ -125,6 +126,7 @@ void main() {
             break;
           case RoundPhase.drawing:
           case RoundPhase.finished:
+          case RoundPhase.choosingVoidSuit:
             guard = 200;
             break;
         }
@@ -184,6 +186,7 @@ void main() {
           break;
         case RoundPhase.drawing:
         case RoundPhase.finished:
+        case RoundPhase.choosingVoidSuit:
           guard = 200;
           break;
       }
@@ -309,6 +312,7 @@ void main() {
             break;
           case RoundPhase.drawing:
           case RoundPhase.finished:
+          case RoundPhase.choosingVoidSuit:
             break;
         }
       }

@@ -1,10 +1,11 @@
-/// Which mahjong rules a table plays: Japanese riichi, Hong Kong, or
-/// Taiwanese.
+/// Which mahjong rules a table plays: Japanese riichi, Hong Kong, Taiwanese,
+/// MCR, or Sichuan.
 ///
 /// The round, guide, bots and UI are shared. Each asks the ruleset only where
 /// the games actually differ — how a hand scores, what the wall holds, which
 /// declarations exist and how a game is paced — and the Hong Kong-only pieces
-/// live under `hong_kong/`, the Taiwanese-only pieces under `taiwanese/`.
+/// live under `hong_kong/`, the Taiwanese-only pieces under `taiwanese/`, the
+/// Sichuan-only pieces under `sichuan/`.
 /// Hong Kong and Taiwanese share the same discard-based flow (flowers, no
 /// riichi, no furiten, nothing callable off the last discard) — see
 /// [isChineseStyle] — and differ mainly in scoring vocabulary and payment.
@@ -12,6 +13,7 @@ library;
 
 import 'hong_kong/hong_kong_rules.dart';
 import 'scoring.dart';
+import 'sichuan/sichuan_rules.dart';
 import 'taiwanese/taiwanese_rules.dart';
 
 enum Ruleset {
@@ -36,6 +38,13 @@ enum Ruleset {
   mcr(
     label: 'MCR', flag: '🇨🇳', unit: 'points',
     rulesUrl: 'https://app.ericrxu.com/static/MCR.pdf',
+  ),
+  sichuan(
+    label: 'Sichuan',
+    flag: '🐼',
+    flagAsset: 'assets/flags/sichuan.png',
+    unit: 'points',
+    rulesUrl: 'https://app.ericrxu.com/static/Sichuan.pdf',
   );
 
   const Ruleset({
@@ -43,6 +52,7 @@ enum Ruleset {
     required this.flag,
     required this.unit,
     required this.rulesUrl,
+    this.flagAsset,
   });
 
   /// Short name for prose and headers.
@@ -50,6 +60,11 @@ enum Ruleset {
 
   /// The country flag shown beside [label] wherever the rules are picked.
   final String flag;
+
+  /// An image to show in place of [flag] where the UI can draw one (a Flutter
+  /// asset path), for rules with no emoji flag: Sichuan is a province. [flag]
+  /// stays as the text stand-in for labels, semantics and plain-text docs.
+  final String? flagAsset;
 
   /// [label] with its [flag] in front, for toggles.
   String get flagLabel => '$flag $label';
@@ -65,17 +80,22 @@ enum Ruleset {
   bool get isHongKong => this == Ruleset.hongKong;
   bool get isTaiwanese => this == Ruleset.taiwanese;
   bool get isRiichi => this == Ruleset.riichi;
+  bool get isSichuan => this == Ruleset.sichuan;
 
   /// Hong Kong and Taiwanese share the same table flow: flowers exposed and
   /// replaced from the wall, no riichi, no furiten, and nothing callable off
   /// the last discard. They differ only in scoring vocabulary and payment —
   /// see `hong_kong_scoring.dart` and `taiwanese_scoring.dart`.
-  bool get isChineseStyle => isHongKong || isTaiwanese || isMcr;
+  ///
+  /// Sichuan shares that table flow too (no riichi, no furiten, nothing
+  /// callable off the last discard) but has no flowers, and its wins do not end
+  /// the hand — see `Round`'s Sichuan paths.
+  bool get isChineseStyle => isHongKong || isTaiwanese || isMcr || isSichuan;
 
   Ruleset get next => Ruleset.values[(index + 1) % Ruleset.values.length];
 
   /// Each seat's score at the start of a game.
-  int get startingPoints => isMcr ? 0 : isHongKong
+  int get startingPoints => isMcr ? 0 : isSichuan ? SichuanRules.startingPoints : isHongKong
       ? HongKongRules.startingChips
       : isTaiwanese
           ? TaiwaneseRules.startingChips
@@ -101,7 +121,7 @@ enum Ruleset {
   String get chiLabel => isChineseStyle ? 'Chow' : 'Chi';
   String get ponLabel => isChineseStyle ? 'Pung' : 'Pon';
   String get kanLabel => isChineseStyle ? 'Kong' : 'Kan';
-  String get ronLabel => (isTaiwanese || isMcr) ? 'Hu' : (isHongKong ? 'Win' : 'Ron');
+  String get ronLabel => (isTaiwanese || isMcr || isSichuan) ? 'Hu' : (isHongKong ? 'Win' : 'Ron');
   String get tsumoLabel => isChineseStyle ? 'Self-pick' : 'Tsumo';
 
   /// A hand's distance from ready, in this game's vocabulary.
@@ -121,7 +141,7 @@ enum Ruleset {
   /// there already clears that bar — so its threshold sits a tier higher, at
   /// the sheet's 10-Point patterns, the first tier that reads as a genuinely
   /// strong hand rather than just a legal one.
-  bool isBigHand(HandScore score) => isMcr ? score.han >= 24 : isTaiwanese
+  bool isBigHand(HandScore score) => isSichuan ? score.han >= 3 : isMcr ? score.han >= 24 : isTaiwanese
       ? score.han >= 10
       : isHongKong
           ? score.han >= 5

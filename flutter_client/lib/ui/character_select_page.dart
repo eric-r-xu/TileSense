@@ -17,6 +17,7 @@ import '../game/sfx.dart'
 import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'language_button.dart';
+import 'ruleset_flag.dart';
 
 /// The wind [seat] starts on when [startingDealer] deals first (and so is
 /// East); the other seats follow counter-clockwise, as in `Round`.
@@ -270,7 +271,7 @@ class CharacterSelectPage extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               ),
-              child: Text(context.l10n.rulesetFlagLabel(r),
+              child: RulesetFlagLabel(r,
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -308,9 +309,22 @@ class CharacterSelectPage extends StatelessWidget {
         Text(context.l10n.gameLength,
             style: const TextStyle(color: Colors.white54, fontSize: 14)),
         const SizedBox(width: 10),
-        option(const Key('lengthHanchan'), ((ruleset?.isMcr ?? false) ? context.l10n.mcrFullGame : context.l10n.lengthHanchan), true),
         option(
-            const Key('lengthEastOnly'), ((ruleset?.isMcr ?? false) ? context.l10n.mcrPractice : context.l10n.lengthEastOnly), false),
+            const Key('lengthHanchan'),
+            (ruleset?.isSichuan ?? false)
+                ? context.l10n.sichuanFullGame
+                : ((ruleset?.isMcr ?? false)
+                    ? context.l10n.mcrFullGame
+                    : context.l10n.lengthHanchan),
+            true),
+        option(
+            const Key('lengthEastOnly'),
+            (ruleset?.isSichuan ?? false)
+                ? context.l10n.sichuanPractice
+                : ((ruleset?.isMcr ?? false)
+                    ? context.l10n.mcrPractice
+                    : context.l10n.lengthEastOnly),
+            false),
       ],
     );
   }

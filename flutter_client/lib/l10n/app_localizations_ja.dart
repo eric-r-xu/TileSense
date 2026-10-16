@@ -2095,4 +2095,103 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get tipPayoutMcr =>
       '番数＋花牌（F）：放銃者が F＋8、他の2人が各8、ツモなら全員が F＋8 を払います。聴牌時は正確な値で、花牌を除いて8番以上の待ちだけが和了できます。それ以前は推定です。\n';
+
+  @override
+  String get rulesetSichuan => '四川麻雀';
+
+  @override
+  String get rulesetSubtitleSichuan => '血戦到底・定缺・チーなし';
+
+  @override
+  String get sichuanFullGame => 'フルゲーム · 8局';
+
+  @override
+  String get sichuanPractice => '練習 · 4局';
+
+  @override
+  String get voidSuitTitle => '捨てる色を選ぶ';
+
+  @override
+  String get voidSuitHint => 'この色の牌をすべて先に捨てる必要があり、持ったままでは和了できません。';
+
+  @override
+  String get suitMan => '萬子';
+
+  @override
+  String get suitPin => '筒子';
+
+  @override
+  String get suitSou => '索子';
+
+  @override
+  String get voidSuitSuggested => 'おすすめ';
+
+  @override
+  String voidSuitBadge(String suit) {
+    return '欠け：$suit';
+  }
+
+  @override
+  String get voidSuitUnknown => '欠け：?';
+
+  @override
+  String get voidFirstNotice => '欠けた色の牌を先に捨ててください';
+
+  @override
+  String get huOutBadge => '和了';
+
+  @override
+  String get sichuanPayHu => '和了';
+
+  @override
+  String get sichuanPayKong => '槓';
+
+  @override
+  String get sichuanPayReady => 'テンパイ料';
+
+  @override
+  String get sichuanPayPenalty => '欠け牌の罰符';
+
+  @override
+  String get resultWallEnds => '牌山が尽きた';
+
+  @override
+  String get resultThreeHu => '3人和了';
+
+  @override
+  String get scRoot => '根';
+
+  @override
+  String get scAllPungs => '対々和';
+
+  @override
+  String get scFullFlush => '清一色';
+
+  @override
+  String get scSevenPairs => '七対子';
+
+  @override
+  String get scGoldenSingleWait => '金鉤釣';
+
+  @override
+  String get scWinAfterKong => '嶺上開花';
+
+  @override
+  String get scRobbingTheKong => '搶槓';
+
+  @override
+  String get scShootAfterKong => '槓上砲';
+
+  @override
+  String get scUnderTheSea => '海底';
+
+  @override
+  String statusHandNumber(int n) {
+    return '第$n局';
+  }
+
+  @override
+  String sichuanScoreTotal(int fan, int value) {
+    return '$fan翻 · $value点';
+  }
 }

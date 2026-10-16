@@ -147,6 +147,13 @@ Handler buildMultiplayerHandler(
             send(errorFrame('server_full', 'server is full, try again shortly'));
             return;
           }
+          // Sichuan is single-player for now; without this an unknown name
+          // would quietly become a riichi room.
+          if (msg['ruleset'] == 'sichuan') {
+            send(errorFrame('unsupported_ruleset',
+                'Sichuan is not available online yet.'));
+            return;
+          }
           // One connection holds at most one seat, so a socket can't pile up
           // rooms by creating or joining repeatedly.
           if (room != null) detach();

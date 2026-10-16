@@ -952,6 +952,10 @@ class TableView extends StatelessWidget {
           game.humanMinimumShortfall != MinimumShortfall.none)
         _minimumShortfallBadge(),
       if (seat == kHumanSeat && autoplaying) _autoplayBadge(),
+      // Sichuan: the suit this seat gave up (shown once its first discard has
+      // revealed it, or always for you), and the order it went out in.
+      if (round.ruleset.isSichuan && s.voidSuit != null) _voidSuitBadge(s),
+      if (round.ruleset.isSichuan && s.out) _huBadge(s),
       // Online play only — see [GuideHost.turnDeadlineMs] — a per-turn
       // countdown next to whoever's actually on the clock.
       if (active && deadline != null) CountdownBadge(deadlineMs: deadline),
@@ -965,6 +969,26 @@ class TableView extends StatelessWidget {
       ],
     );
   }
+
+  Widget _voidSuitBadge(SeatState s) => Builder(builder: (context) {
+        final shown = s.seat == kHumanSeat || s.voidRevealed;
+        final l10n = context.l10n;
+        return Tooltip(
+          message: l10n.voidSuitHint,
+          child: _statusBadge(
+            shown ? l10n.voidSuitBadge(l10n.suitName(s.voidSuit!)) : l10n.voidSuitUnknown,
+            shown ? const Color(0xff8d3b3b) : const Color(0xff455a64),
+            key: Key('voidSuitBadge_${s.seat}'),
+          ),
+        );
+      });
+
+  Widget _huBadge(SeatState s) => Builder(
+      builder: (context) => _statusBadge(
+            '${context.l10n.huOutBadge} ${s.huOrder}',
+            const Color(0xffb8860b),
+            key: Key('huBadge_${s.seat}'),
+          ));
 
   Widget _autoplayBadge() => Builder(
       builder: (context) => Tooltip(
@@ -1257,9 +1281,11 @@ class _OpponentHandState extends State<_OpponentHand> {
       tiles.add(back());
     }
 
-    final content = widget.vertical
+    final strip = widget.vertical
         ? Column(mainAxisSize: MainAxisSize.min, children: tiles)
         : Row(mainAxisSize: MainAxisSize.min, children: tiles);
+    // A Sichuan seat that has declared Hu stops playing and lays its hand down.
+    final content = s.out ? Opacity(opacity: 0.4, child: strip) : strip;
 
     // Fixed-size box, content anchored to its start edge: the strip's
     // footprint never changes, so nothing around it needs to recentre while
@@ -1446,6 +1472,7 @@ class TableStatusLine extends StatelessWidget {
     final round = game.round;
     final rules = round.ruleset;
     final l10n = context.l10n;
+    final sichuan = rules.isSichuan;
     final rest = [
       l10n.statusWall(round.wall.remaining),
       if (rules.isChineseStyle) ...[
@@ -1465,8 +1492,11 @@ class TableStatusLine extends StatelessWidget {
               color: _colour, fontSize: 13, fontWeight: FontWeight.w600),
           children: [
             TextSpan(
-              text: l10n.statusRound(round.roundWind.kanji,
-                  l10n.windName(round.roundWind), game.handInWind),
+              // Sichuan has no round wind; its hands are simply numbered.
+              text: sichuan
+                  ? l10n.statusHandNumber(game.handInWind)
+                  : l10n.statusRound(round.roundWind.kanji,
+                      l10n.windName(round.roundWind), game.handInWind),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
             for (final r in rest) TextSpan(text: '  ·  $r'),

@@ -107,6 +107,9 @@ class _HandViewState extends State<HandView> {
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);
 
+  /// Tint on the tiles of your void suit while they must go first.
+  static const _voidRed = Color(0xffef9a9a);
+
   /// How far a raised tile lifts off the row, in logical pixels.
   static const double _liftHeight = 12;
 
@@ -237,13 +240,21 @@ class _HandViewState extends State<HandView> {
             ? mortal!.discard
             : null;
 
+    // Sichuan: while any tile of the void suit is held, it is the only thing
+    // that may be discarded, so everything else is dimmed and cannot be tapped.
+    final voidFirst = round.ruleset.isSichuan && round.mustDiscardVoid(kHumanSeat);
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
+      final isVoidTile = voidFirst && tile.type.suit == seat.voidSuit;
+      final voidBlocked = voidFirst && !isVoidTile;
       final tappable = canPlay &&
           (!riichiLocked || isDrawn) &&
+          !voidBlocked &&
           !round.canFlowerWin(kHumanSeat);
       final isTop = tappable && topTypes.contains(tile.type);
-      final Color? hc = isTop ? _green : (isDrawn ? _yellow : null);
+      final Color? hc = isTop
+          ? _green
+          : (isDrawn ? _yellow : (isVoidTile && canPlay ? _voidRed : null));
       final Color? border = (isDrawn && isTop) ? _yellow : null;
       final raised = tappable && tile.id == _selectedTileId;
       final starred = tappable &&
@@ -283,7 +294,7 @@ class _HandViewState extends State<HandView> {
                   scale: _handScale,
                   highlightColor: hc,
                   borderColorOverride: border,
-                  dimmed: riichiLocked && !isDrawn,
+                  dimmed: (riichiLocked && !isDrawn) || (voidBlocked && canPlay),
                   hovered: _hoveredTileId == tile.id,
                 ),
               ),
@@ -798,6 +809,29 @@ class _HandViewState extends State<HandView> {
           context.l10n.flowerWin, const Color(0xff2e7d32), game.humanTsumo));
       buttons.add(_btn(context.l10n.continueDrawing, const Color(0xff37474f),
           game.humanPassFlowerWin));
+    } else if (game.awaitingHumanVoidSuit) {
+      // Sichuan: name the suit you give up before play begins. The guide's
+      // pick, when it is showing, carries a star.
+      final suggested =
+          showGuide ? game.round.suggestVoidSuit(kHumanSeat) : null;
+      buttons.add(Tooltip(
+        message: context.l10n.voidSuitHint,
+        child: Text(context.l10n.voidSuitTitle,
+            key: const Key('voidSuitTitle'),
+            style: const TextStyle(
+                color: Color(0xffe9d58f),
+                fontSize: 15,
+                fontWeight: FontWeight.w700)),
+      ));
+      for (var suit = 0; suit < 3; suit++) {
+        buttons.add(KeyedSubtree(
+          key: Key('voidSuit_$suit'),
+          child: _btn(
+              '${context.l10n.suitName(suit)}${suit == suggested ? ' ★' : ''}',
+              const Color(0xff00695c),
+              () => game.humanDeclareVoidSuit(suit)),
+        ));
+      }
     } else if (game.awaitingHumanCall) {
       final opt = game.humanCallOption!;
       if (opt.types.contains(CallType.ron)) {
@@ -848,6 +882,18 @@ class _HandViewState extends State<HandView> {
         ));
       }
     } else if (game.isHumanTurn) {
+      if (ruleset.isSichuan && game.round.mustDiscardVoid(kHumanSeat)) {
+        buttons.add(Chip(
+          key: const Key('voidFirstChip'),
+          label: Text(context.l10n.voidFirstNotice,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+          backgroundColor: const Color(0xffb71c1c),
+          visualDensity: VisualDensity.compact,
+        ));
+      }
       // Nine kinds of terminals/honors — only ever on your own first
       // uninterrupted draw, so this never overlaps a real turn's usual
       // choices; it just sits alongside them when it's on offer at all.
@@ -909,6 +955,8 @@ class _HandViewState extends State<HandView> {
       game.humanClosedKanTypes,
       game.humanAddedKanTypes,
       game.humanCanRiichi,
+      game.awaitingHumanVoidSuit,
+      game.round.ruleset.isSichuan && game.round.mustDiscardVoid(kHumanSeat),
       showGuide && game.report.recommendRiichi,
       showGuide ? game.recommendedChiRun : null,
     ].join('|');

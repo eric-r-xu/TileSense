@@ -3880,6 +3880,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fan plus flowers (F): the discarder pays F + 8 and the others 8 each, or everyone pays F + 8 on a self-draw. Exact once ready, where only waits worth 8 fan without flowers can win; before that, an estimate.\n'**
   String get tipPayoutMcr;
+
+  /// No description provided for @rulesetSichuan.
+  ///
+  /// In en, this message translates to:
+  /// **'Sichuan'**
+  String get rulesetSichuan;
+
+  /// No description provided for @rulesetSubtitleSichuan.
+  ///
+  /// In en, this message translates to:
+  /// **'bloody battle, void suit, no chows'**
+  String get rulesetSubtitleSichuan;
+
+  /// No description provided for @sichuanFullGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Full game · 8 hands'**
+  String get sichuanFullGame;
+
+  /// No description provided for @sichuanPractice.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice · 4 hands'**
+  String get sichuanPractice;
+
+  /// No description provided for @voidSuitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your void suit'**
+  String get voidSuitTitle;
+
+  /// No description provided for @voidSuitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You must discard every tile of this suit before any other, and a hand still holding one can\'t win.'**
+  String get voidSuitHint;
+
+  /// No description provided for @suitMan.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters'**
+  String get suitMan;
+
+  /// No description provided for @suitPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get suitPin;
+
+  /// No description provided for @suitSou.
+  ///
+  /// In en, this message translates to:
+  /// **'Bamboo'**
+  String get suitSou;
+
+  /// No description provided for @voidSuitSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested'**
+  String get voidSuitSuggested;
+
+  /// No description provided for @voidSuitBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Void: {suit}'**
+  String voidSuitBadge(String suit);
+
+  /// No description provided for @voidSuitUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Void: ?'**
+  String get voidSuitUnknown;
+
+  /// No description provided for @voidFirstNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard your void suit first'**
+  String get voidFirstNotice;
+
+  /// No description provided for @huOutBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'HU'**
+  String get huOutBadge;
+
+  /// No description provided for @sichuanPayHu.
+  ///
+  /// In en, this message translates to:
+  /// **'Hu'**
+  String get sichuanPayHu;
+
+  /// No description provided for @sichuanPayKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Kong'**
+  String get sichuanPayKong;
+
+  /// No description provided for @sichuanPayReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Unready pays ready'**
+  String get sichuanPayReady;
+
+  /// No description provided for @sichuanPayPenalty.
+  ///
+  /// In en, this message translates to:
+  /// **'Void-suit penalty'**
+  String get sichuanPayPenalty;
+
+  /// No description provided for @resultWallEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'Wall ends'**
+  String get resultWallEnds;
+
+  /// No description provided for @resultThreeHu.
+  ///
+  /// In en, this message translates to:
+  /// **'Three players out'**
+  String get resultThreeHu;
+
+  /// No description provided for @scRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get scRoot;
+
+  /// No description provided for @scAllPungs.
+  ///
+  /// In en, this message translates to:
+  /// **'All Pungs'**
+  String get scAllPungs;
+
+  /// No description provided for @scFullFlush.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Flush'**
+  String get scFullFlush;
+
+  /// No description provided for @scSevenPairs.
+  ///
+  /// In en, this message translates to:
+  /// **'Seven Pairs'**
+  String get scSevenPairs;
+
+  /// No description provided for @scGoldenSingleWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Single Wait'**
+  String get scGoldenSingleWait;
+
+  /// No description provided for @scWinAfterKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Win after Kong'**
+  String get scWinAfterKong;
+
+  /// No description provided for @scRobbingTheKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Robbing the Kong'**
+  String get scRobbingTheKong;
+
+  /// No description provided for @scShootAfterKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoot after Kong'**
+  String get scShootAfterKong;
+
+  /// No description provided for @scUnderTheSea.
+  ///
+  /// In en, this message translates to:
+  /// **'Under the Sea'**
+  String get scUnderTheSea;
+
+  /// No description provided for @statusHandNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand {n}'**
+  String statusHandNumber(int n);
+
+  /// No description provided for @sichuanScoreTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{fan} fan · hand value {value}'**
+  String sichuanScoreTotal(int fan, int value);
 }
 
 class _AppLocalizationsDelegate

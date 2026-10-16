@@ -7,6 +7,7 @@ import 'package:mahjong_core/ruleset.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
+import 'ruleset_flag.dart';
 
 class RulesetBadge extends StatelessWidget {
   const RulesetBadge({
@@ -41,15 +42,30 @@ class RulesetBadge extends StatelessWidget {
     return Tooltip(
       message: l10n.badgeTooltip(l10n.rulesetName(ruleset),
           minimum == null ? '' : l10n.badgeMinimum(minimum)),
-      child: Text(
-        minimum == null ? ruleset.flag : '${ruleset.flag} $minimum',
-        key: const Key('rulesetBadge'),
-        style: TextStyle(
-          color: const Color(0xffffdf76),
-          fontSize: fontSize,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+      child: ruleset.flagAsset != null
+          ? Row(
+              key: const Key('rulesetBadge'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RulesetFlag(ruleset, size: fontSize),
+                if (minimum != null)
+                  Text(' $minimum',
+                      style: TextStyle(
+                        color: const Color(0xffffdf76),
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.w800,
+                      )),
+              ],
+            )
+          : Text(
+              minimum == null ? ruleset.flag : '${ruleset.flag} $minimum',
+              key: const Key('rulesetBadge'),
+              style: TextStyle(
+                color: const Color(0xffffdf76),
+                fontSize: fontSize,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
     );
   }
 }
