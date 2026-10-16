@@ -1300,6 +1300,7 @@
   "sichuanPractice": "Practice · 4 hands",
   "voidSuitTitle": "Choose your void suit",
   "voidSuitHint": "You must discard every tile of this suit before any other, and a hand still holding one can't win.",
+  "voidSuitWaiting": "Waiting for the other players to choose…",
   "suitMan": "Characters",
   "suitPin": "Dots",
   "suitSou": "Bamboo",

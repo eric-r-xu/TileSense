@@ -49,10 +49,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           : widget.controller.displayName);
   late final TextEditingController _joinCtl =
       TextEditingController(text: widget.initialJoinCode ?? '');
-  // Sichuan is single-player for now, so a table picked there opens the lobby
-  // on riichi rather than on a rule the dropdown does not offer.
-  late Ruleset _ruleset =
-      widget.initialRuleset.isSichuan ? Ruleset.riichi : widget.initialRuleset;
+  late Ruleset _ruleset = widget.initialRuleset;
   bool _hanchan = true;
   TimerPace _pace = TimerPace.standard;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
@@ -556,6 +553,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             Ruleset.hongKong,
             Ruleset.taiwanese,
             Ruleset.mcr,
+            Ruleset.sichuan,
           ])
             (r, Key('onlineRuleset_${r.name}'), context.l10n.rulesetFlagLabel(r)),
         ],
@@ -572,12 +570,20 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           (
             true,
             const Key('onlineLength_full'),
-            _ruleset.isMcr ? context.l10n.mcrFullGame : context.l10n.lengthHanchan,
+            _ruleset.isSichuan
+                ? context.l10n.sichuanFullGame
+                : _ruleset.isMcr
+                    ? context.l10n.mcrFullGame
+                    : context.l10n.lengthHanchan,
           ),
           (
             false,
             const Key('onlineLength_east'),
-            _ruleset.isMcr ? context.l10n.mcrPractice : context.l10n.lengthEastOnly,
+            _ruleset.isSichuan
+                ? context.l10n.sichuanPractice
+                : _ruleset.isMcr
+                    ? context.l10n.mcrPractice
+                    : context.l10n.lengthEastOnly,
           ),
         ],
         onChanged: (v) => setState(() => _hanchan = v),
@@ -625,7 +631,9 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               context.l10n.roomFaanMin(game.minimumFaan),
             if (game.ruleset.isTaiwanese)
               context.l10n.roomTaiMin(game.minimumPoints),
-            game.ruleset.isMcr ? (game.hanchan ? context.l10n.mcrFullGame : context.l10n.mcrPractice) : (game.hanchan ? context.l10n.roomFullGame : context.l10n.roomEastOnly),
+            game.ruleset.isSichuan
+                ? (game.hanchan ? context.l10n.sichuanFullGame : context.l10n.sichuanPractice)
+                : game.ruleset.isMcr ? (game.hanchan ? context.l10n.mcrFullGame : context.l10n.mcrPractice) : (game.hanchan ? context.l10n.roomFullGame : context.l10n.roomEastOnly),
             context.l10n.roomClocks(game.turnSeconds, game.callSeconds),
           ].join(' · '),
           child: Column(

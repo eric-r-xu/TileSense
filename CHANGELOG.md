@@ -9,6 +9,22 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-16 — Sichuan online
+
+### Added
+- **Sichuan can be played online.** The lobby offers it, the server runs the
+  table, and every seat names its void suit at the start (a new `void_suit`
+  action, timed like a discard, with the suit a bot would pick if time runs
+  out). Another seat's suit stays hidden until its first discard; a seat that
+  has gone out is skipped; each Hu is announced as it happens; and the score
+  screen shows the Hu, kong, unready-pays-ready and void-suit lines. A client
+  from before Sichuan is asked to update (`update_required`) instead of being
+  dealt a table it cannot draw.
+
+### Changed
+- The online lobby no longer falls back to riichi when Sichuan was the table
+  picked, and the server no longer refuses a Sichuan room.
+
 ## 2026-10-16 — Sichuan mahjong
 
 ### Added

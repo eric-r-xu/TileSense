@@ -271,10 +271,14 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                     ? context.l10n.lengthHanchan
                     : context.l10n.lengthEastOnly,
                 child: Text(
-                  game.ruleset.isMcr && !phone
-                      ? (game.hanchan
-                          ? context.l10n.mcrFullGame
-                          : context.l10n.mcrPractice)
+                  (game.ruleset.isMcr || game.ruleset.isSichuan) && !phone
+                      ? (game.ruleset.isSichuan
+                          ? (game.hanchan
+                              ? context.l10n.sichuanFullGame
+                              : context.l10n.sichuanPractice)
+                          : (game.hanchan
+                              ? context.l10n.mcrFullGame
+                              : context.l10n.mcrPractice))
                       : (game.hanchan
                           ? context.l10n.roomFullGame
                           : context.l10n.roomEastOnly),

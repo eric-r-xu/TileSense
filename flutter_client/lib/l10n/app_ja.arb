@@ -636,6 +636,7 @@
   "sichuanPractice": "練習 · 4局",
   "voidSuitTitle": "捨てる色を選ぶ",
   "voidSuitHint": "この色の牌をすべて先に捨てる必要があり、持ったままでは和了できません。",
+  "voidSuitWaiting": "他のプレイヤーの選択を待っています…",
   "suitMan": "萬子",
   "suitPin": "筒子",
   "suitSou": "索子",

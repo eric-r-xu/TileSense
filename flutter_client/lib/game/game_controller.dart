@@ -25,6 +25,7 @@ import '../l10n/mahjong_terms.dart';
 import 'guide_host.dart';
 import 'mortal_advisor.dart';
 import 'sfx.dart';
+import 'sichuan_announce.dart';
 
 export 'guide_host.dart' show GamePhase;
 
@@ -980,17 +981,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (!ruleset.isSichuan) return;
     final all = round.sichuanHu;
     for (var i = _huAnnounced; i < all.length; i++) {
-      final hu = all[i];
-      final line = hu.selfDrawn ? VoiceKind.tsumo : VoiceKind.ron;
-      Sfx.i.play(hu.selfDrawn ? SfxKind.tsumo : SfxKind.ron);
-      CallCallout.i.show(hu.seat, line.name);
-      final big = ruleset.isBigHand(hu.score);
-      final who = _characterForSeat(hu.seat);
-      if (big) {
-        Sfx.i.voiceChain([(who, line), (who, VoiceKind.yeah)]);
-      } else {
-        Sfx.i.voice(line, character: who);
-      }
+      announceSichuanHu(all[i], ruleset, _characterForSeat(all[i].seat));
     }
     _huAnnounced = all.length;
   }

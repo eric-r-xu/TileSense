@@ -10,7 +10,8 @@
 /// The only things ever redacted are a seat's concealed [SeatState.hand],
 /// which tile in it is the current draw, and — under Taiwanese rules, until
 /// the hand ends — what its concealed kongs are made of (see
-/// [Round.isHiddenKong]). Everything else on a mahjong table (discards, other
+/// [Round.isHiddenKong]). Under Sichuan rules the suit a seat gave up is
+/// redacted too, until that seat's first discard shows it. Everything else on a mahjong table (discards, other
 /// melds, flowers, riichi declarations, points, dora) is public knowledge in
 /// the real game and is always sent in full.
 library;
@@ -21,6 +22,8 @@ import 'meld.dart';
 import 'round.dart';
 import 'ruleset.dart';
 import 'scoring.dart';
+import 'sichuan/sichuan_ledger.dart';
+import 'sichuan/sichuan_wall.dart';
 import 'taiwanese/taiwanese_rules.dart';
 import 'tile.dart';
 import 'wall.dart';
@@ -101,6 +104,42 @@ HandScore handScoreFromJson(Map<String, dynamic> json) => HandScore(
       mcrFlowerPoints: json['mcrFlowerPoints'] as int?,
     );
 
+Map<String, dynamic> sichuanHuToJson(SichuanHu h) => {
+      'seat': h.seat,
+      'tile': tileToJson(h.tile),
+      'score': handScoreToJson(h.score),
+      'from': h.from,
+      'robbedKong': h.robbedKong,
+    };
+
+SichuanHu sichuanHuFromJson(Map<String, dynamic> json,
+        {required int Function(int) localSeat}) =>
+    SichuanHu(
+      seat: localSeat(json['seat'] as int),
+      tile: tileFromJson(json['tile'] as Map<String, dynamic>),
+      score: handScoreFromJson(json['score'] as Map<String, dynamic>),
+      from: json['from'] == null ? null : localSeat(json['from'] as int),
+      robbedKong: json['robbedKong'] as bool? ?? false,
+    );
+
+Map<String, dynamic> sichuanPaymentToJson(SichuanPayment p) => {
+      'kind': p.kind.name,
+      'from': p.from,
+      'to': p.to,
+      'points': p.points,
+      'label': p.label,
+    };
+
+SichuanPayment sichuanPaymentFromJson(Map<String, dynamic> json,
+        {required int Function(int) localSeat}) =>
+    SichuanPayment(
+      kind: SichuanPaymentKind.values.byName(json['kind'] as String),
+      from: localSeat(json['from'] as int),
+      to: localSeat(json['to'] as int),
+      points: json['points'] as int,
+      label: json['label'] as String,
+    );
+
 Map<String, dynamic> roundResultToJson(RoundResult r) => {
       'kind': r.kind.name,
       'winners': r.winners,
@@ -115,6 +154,13 @@ Map<String, dynamic> roundResultToJson(RoundResult r) => {
       },
       'tenpaiAtDraw': r.tenpaiAtDraw,
       'label': r.label,
+      if (r.sichuanHu.isNotEmpty)
+        'sichuanHu': [for (final h in r.sichuanHu) sichuanHuToJson(h)],
+      if (r.sichuanPayments.isNotEmpty)
+        'sichuanPayments': [
+          for (final p in r.sichuanPayments) sichuanPaymentToJson(p)
+        ],
+      if (r.nextDealer != null) 'nextDealer': r.nextDealer,
     };
 
 /// [localSeat] remaps a server seat index to the recipient's local index
@@ -146,6 +192,17 @@ RoundResult roundResultFromJson(
       for (final s in json['tenpaiAtDraw'] as List) localSeat(s as int)
     ],
     label: json['label'] as String,
+    sichuanHu: [
+      for (final h in (json['sichuanHu'] as List? ?? const []))
+        sichuanHuFromJson(h as Map<String, dynamic>, localSeat: localSeat)
+    ],
+    sichuanPayments: [
+      for (final p in (json['sichuanPayments'] as List? ?? const []))
+        sichuanPaymentFromJson(p as Map<String, dynamic>, localSeat: localSeat)
+    ],
+    nextDealer: json['nextDealer'] == null
+        ? null
+        : localSeat(json['nextDealer'] as int),
   );
 }
 
@@ -195,8 +252,22 @@ Map<String, dynamic> roundSnapshotToJson(
       for (final s in round.seats) _seatToJson(round, s, reveal(s.seat))
     ],
     'result': round.result == null ? null : roundResultToJson(round.result!),
+    // Every Hu is public, and a Hu does not end a Sichuan hand, so the table
+    // hears of each as it happens rather than at the end.
+    if (round.ruleset.isSichuan)
+      'sichuanHu': [for (final h in round.sichuanHu) sichuanHuToJson(h)],
   };
 }
+
+/// The Hu a snapshot reports so far this hand, in order, with seats as the
+/// recipient [mySeat] numbers them (see [buildRoundFromSnapshot]).
+List<SichuanHu> sichuanHuFromSnapshot(Map<String, dynamic> json,
+        {required int mySeat}) =>
+    [
+      for (final h in (json['sichuanHu'] as List? ?? const []))
+        sichuanHuFromJson(h as Map<String, dynamic>,
+            localSeat: (seat) => (seat - mySeat + 4) % 4)
+    ];
 
 Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       'seat': s.seat,
@@ -223,6 +294,20 @@ Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       'passedDiscardsAfterRiichi': [
         for (final t in s.passedDiscardsAfterRiichi) t.name,
       ],
+      if (round.ruleset.isSichuan) ..._sichuanSeatToJson(s, revealed),
+    };
+
+/// A Sichuan seat's own state. Whether it has named its void suit is public
+/// (the table waits on it), but the suit is not: it goes out only to its own
+/// seat, or to everyone once the seat's first discard has shown it.
+Map<String, dynamic> _sichuanSeatToJson(SeatState s, bool revealed) => {
+      'voidDeclared': s.voidSuit != null,
+      'voidRevealed': s.voidRevealed,
+      if (s.voidSuit != null && (revealed || s.voidRevealed))
+        'voidSuit': s.voidSuit,
+      'out': s.out,
+      'huOrder': s.huOrder,
+      if (revealed) 'passedHuValue': s.passedHuValue,
     };
 
 /// [m] as another seat sees it face down: four blanks, same tile ids.
@@ -251,9 +336,11 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     for (final d in (json['uraDoraIndicators'] as List? ?? const []))
       TileType.values.byName(d as String)
   ];
-  final wall = ruleset.isChineseStyle
-      ? HongKongWall.posed(remaining: wallRemaining)
-      : Wall.posed(remaining: wallRemaining, dora: dora, ura: ura);
+  final wall = ruleset.isSichuan
+      ? SichuanWall.posed(remaining: wallRemaining)
+      : ruleset.isChineseStyle
+          ? HongKongWall.posed(remaining: wallRemaining)
+          : Wall.posed(remaining: wallRemaining, dora: dora, ura: ura);
 
   final seatsJson = [
     for (final s in json['seats'] as List) s as Map<String, dynamic>
@@ -313,6 +400,12 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     seat.ippatsu = sj['ippatsu'] as bool;
     seat.tempFuriten = sj['tempFuriten'] as bool;
     seat.riichiFuriten = sj['riichiFuriten'] as bool;
+    seat.voidSuit = sj['voidSuit'] as int?;
+    seat.voidHidden = seat.voidSuit == null && (sj['voidDeclared'] as bool? ?? false);
+    seat.voidRevealed = sj['voidRevealed'] as bool? ?? false;
+    seat.out = sj['out'] as bool? ?? false;
+    seat.huOrder = sj['huOrder'] as int? ?? 0;
+    seat.passedHuValue = sj['passedHuValue'] as int? ?? 0;
     seat.allDiscards.addAll(tilesFromJson(sj['allDiscards'] as List));
     seat.passedDiscardsAfterRiichi.addAll([
       for (final t in sj['passedDiscardsAfterRiichi'] as List)

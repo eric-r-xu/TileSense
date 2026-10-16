@@ -113,6 +113,10 @@ class SeatState {
   /// declared. It stays hidden from the other seats until [voidRevealed].
   int? voidSuit;
 
+  /// Sichuan, on an online client: this seat has declared, but its suit is
+  /// still hidden from this client, so [voidSuit] stays null.
+  bool voidHidden = false;
+
   /// Sichuan: this seat has made its first discard, which shows its void suit.
   bool voidRevealed = false;
 
@@ -442,7 +446,8 @@ class Round {
   /// Seats still to name their void suit.
   bool get awaitingVoidSuit => phase == RoundPhase.choosingVoidSuit;
 
-  bool hasDeclaredVoidSuit(int seat) => seats[seat].voidSuit != null;
+  bool hasDeclaredVoidSuit(int seat) =>
+      seats[seat].voidSuit != null || seats[seat].voidHidden;
 
   /// Whether [s] holds a tile of its void suit in [hand] or its melds. A hand
   /// that does may not win.

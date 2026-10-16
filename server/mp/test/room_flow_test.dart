@@ -111,6 +111,7 @@ StreamSubscription<void> _autoplay(TestClient client,
 void main() {
   taiwaneseRoomMain();
   mcrRoomMain();
+  sichuanRoomMain();
   test('two humans + two bots play a full hand with no hand leakage, then continue',
       () async {
     final manager = RoomManager();
@@ -1126,25 +1127,6 @@ void mcrRoomMain() {
         isNot(code));
   });
 
-  test('Sichuan is single-player for now: the server refuses the room, '
-      'not a riichi one in its place', () async {
-    final manager = RoomManager();
-    final server = await _startServer(manager);
-    addTearDown(server.close);
-    final c = await TestClient.connect(server.port);
-    addTearDown(c.close);
-    c.send({
-      'type': 'create_room',
-      'guestId': 'guest-s',
-      'name': 'Sam',
-      'ruleset': 'sichuan',
-      'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr', 'sichuan'],
-    });
-    final refused = await c.waitFor((m) => m['type'] == 'error');
-    expect(refused['code'], 'unsupported_ruleset');
-    expect(manager.roomCount, 0);
-  });
-
   test('an MCR table plays a hand to its result', () async {
     final manager = RoomManager();
     final server = await _startServer(manager);
@@ -1170,3 +1152,451 @@ void mcrRoomMain() {
     expect(deltas.fold<int>(0, (x, y) => x + y), 0);
   });
 }
+
+const _allRulesets = ['riichi', 'hongKong', 'taiwanese', 'mcr', 'sichuan'];
+
+/// A seat's Sichuan play for a test client: names the suit a bot would, then
+/// discards what is legal and takes every Hu. Without [takeHu] it passes them,
+/// so a hand can only end at the wall.
+StreamSubscription<void> _sichuanAutoplay(TestClient client,
+    {bool takeHu = true}) {
+  return client._controller.stream.listen((msg) {
+    if (msg['type'] != 'state') return;
+    final mySeat = msg['yourSeat'] as int;
+    final round = buildRoundFromSnapshot(
+        msg['round'] as Map<String, dynamic>, mySeat: mySeat);
+    if (round.phase == RoundPhase.choosingVoidSuit) {
+      if (!round.hasDeclaredVoidSuit(0)) {
+        client.send({
+          'type': 'action',
+          'kind': 'void_suit',
+          'suit': round.suggestVoidSuit(0),
+        });
+      }
+      return;
+    }
+    if (round.phase == RoundPhase.callOffer &&
+        round.callOptions.any((o) => o.seat == 0)) {
+      final hu = takeHu &&
+          round.callOptions.firstWhere((o) => o.seat == 0).types
+              .contains(CallType.ron);
+      client.send(hu
+          ? {'type': 'action', 'kind': 'call', 'callType': 'ron'}
+          : {'type': 'action', 'kind': 'pass_call'});
+      return;
+    }
+    if (round.turn != 0 || round.phase != RoundPhase.discarding) return;
+    if (takeHu && round.canTsumo(0)) {
+      client.send({'type': 'action', 'kind': 'tsumo'});
+      return;
+    }
+    final tile = round.legalDiscards(0).first;
+    client.send({
+      'type': 'action',
+      'kind': 'discard',
+      'tileId': tile.id,
+      'riichi': false,
+    });
+  });
+}
+
+/// Everything a Sichuan `state` may tell [msg]'s recipient: other seats'
+/// hands never, and their void suit only once their first discard showed it.
+void _expectNoSichuanLeak(Map<String, dynamic> msg) {
+  final me = msg['yourSeat'] as int;
+  final round = msg['round'] as Map<String, dynamic>;
+  for (final sj in (round['seats'] as List).cast<Map<String, dynamic>>()) {
+    final seat = sj['seat'] as int;
+    if (seat == me) continue;
+    expect(sj.containsKey('hand'), isFalse, reason: 'seat $seat hand leaked');
+    expect(sj.containsKey('voidSuit'), sj['voidRevealed'] == true,
+        reason: 'seat $seat void suit leaked to seat $me');
+    expect(sj.containsKey('passedHuValue'), isFalse);
+  }
+  for (final c in (round['callOptions'] as List).cast<Map<String, dynamic>>()) {
+    expect(c['seat'], me, reason: 'a call option for another seat leaked');
+  }
+}
+
+/// Sichuan (Bloody Rules) rooms.
+void sichuanRoomMain() {
+  test('Sichuan rooms need a client that lists Sichuan support', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final current = await TestClient.connect(server.port);
+    final old = await TestClient.connect(server.port);
+    addTearDown(current.close);
+    addTearDown(old.close);
+
+    // A client from before Sichuan, even one that knows MCR, is told to update
+    // rather than being dealt a riichi room in its place.
+    old.send({
+      'type': 'create_room',
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'ruleset': 'sichuan',
+      'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr'],
+    });
+    final refused = await old.waitFor((m) => m['type'] == 'error');
+    expect(refused['code'], 'update_required');
+    expect(manager.roomCount, 0);
+
+    current.send({
+      'type': 'create_room',
+      'guestId': 'guest-new',
+      'name': 'New',
+      'ruleset': 'sichuan',
+      'supportedRulesets': _allRulesets,
+    });
+    final created = await current.waitFor((m) => m['type'] == 'room_state');
+    expect(created['ruleset'], 'sichuan');
+    final code = created['code'] as String;
+    expect(manager.find(code)?.ruleset, Ruleset.sichuan);
+
+    // It cannot join one either, nor reconnect to one.
+    old.log.clear();
+    old.send({
+      'type': 'join_room',
+      'roomCode': code,
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr'],
+    });
+    expect((await old.waitFor((m) => m['type'] == 'error'))['code'],
+        'update_required');
+    old.log.clear();
+    old.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-old'});
+    expect((await old.waitFor((m) => m['type'] == 'error'))['code'],
+        'update_required');
+    expect(manager.find(code)!.seatIndexForGuest('guest-old'), isNull);
+
+    // Other rooms are unaffected.
+    old.log.clear();
+    old.send({
+      'type': 'create_room',
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'ruleset': 'riichi',
+    });
+    expect((await old.waitFor((m) => m['type'] == 'room_state'))['code'],
+        isNot(code));
+  });
+
+  test('every seat names a void suit first, and no one sees another\'s',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sichuan',
+      'hanchan': false,
+      'supportedRulesets': _allRulesets,
+    });
+    final code = (await a.waitFor((m) => m['type'] == 'room_state'))['code'];
+    a.send({'type': 'start_game'});
+
+    final choosing = await a.waitFor((m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] == 'choosingVoidSuit');
+    final me = choosing['yourSeat'] as int;
+    final seats =
+        ((choosing['round'] as Map)['seats'] as List).cast<Map<String, dynamic>>();
+    // The bots have named theirs; you have not, and the table is waiting on you.
+    expect(seats.where((s) => s['seat'] != me).every((s) => s['voidDeclared']),
+        isTrue);
+    expect(seats.firstWhere((s) => s['seat'] == me)['voidDeclared'], isFalse);
+    expect(choosing['turnDeadlineMs'], isNotNull);
+    expect((seats.firstWhere((s) => s['seat'] == me)['hand'] as List).length, 13);
+    _expectNoSichuanLeak(choosing);
+
+    // Nothing but a suit will do, and a discard has to wait.
+    for (final bad in [
+      {'kind': 'void_suit', 'suit': 3},
+      {'kind': 'void_suit', 'suit': -1},
+      {'kind': 'void_suit', 'suit': 'man'},
+      {'kind': 'void_suit'},
+      {'kind': 'discard', 'tileId': 0},
+    ]) {
+      a.log.clear();
+      a.send({'type': 'action', ...bad});
+      expect((await a.waitFor((m) => m['type'] == 'error'))['code'],
+          'illegal_action',
+          reason: '$bad');
+    }
+
+    a.log.clear();
+    a.send({'type': 'action', 'kind': 'void_suit', 'suit': 1});
+    final begun = await a.waitFor((m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] != 'choosingVoidSuit');
+    final mine = ((begun['round'] as Map)['seats'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((s) => s['seat'] == me);
+    expect(mine['voidSuit'], 1);
+    _expectNoSichuanLeak(begun);
+    expect(manager.find(code as String)!.loop, isNotNull);
+  });
+
+  test('a seat that does not answer in time gets the suit a bot would pick',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(
+        manager,
+        loop: (room) => TableLoop(room,
+            turnTimeout: const Duration(milliseconds: 300),
+            callTimeout: const Duration(milliseconds: 200),
+            continueTimeout: const Duration(milliseconds: 500),
+            botTurnPace: Duration.zero,
+            continueLock: Duration.zero,
+            callDiscardHold: Duration.zero,
+            afterCallPace: Duration.zero));
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sichuan',
+      'supportedRulesets': _allRulesets,
+    });
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+
+    final choosing = await a.waitFor((m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] == 'choosingVoidSuit');
+    final me = choosing['yourSeat'] as int;
+    final expected =
+        buildRoundFromSnapshot(choosing['round'] as Map<String, dynamic>,
+                mySeat: me)
+            .suggestVoidSuit(0);
+
+    final begun = await a.waitFor((m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] != 'choosingVoidSuit');
+    final mine = ((begun['round'] as Map)['seats'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((s) => s['seat'] == me);
+    expect(mine['voidDeclared'], isTrue);
+    expect(mine['voidSuit'], expected);
+  });
+
+  test('two humans both name a suit before the hand begins, and see who is '
+      'still choosing', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    final b = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    addTearDown(b.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sichuan',
+      'supportedRulesets': _allRulesets,
+    });
+    final code = (await a.waitFor((m) => m['type'] == 'room_state'))['code'];
+    b.send({
+      'type': 'join_room',
+      'roomCode': code,
+      'guestId': 'guest-b',
+      'name': 'Bob',
+      'supportedRulesets': _allRulesets,
+    });
+    await b.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+
+    bool choosing(Map<String, dynamic> m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] == 'choosingVoidSuit';
+    final startA = await a.waitFor(choosing);
+    final startB = await b.waitFor(choosing);
+    final seatA = startA['yourSeat'] as int;
+    final seatB = startB['yourSeat'] as int;
+
+    a.send({'type': 'action', 'kind': 'void_suit', 'suit': 0});
+    // Bob now sees Alice has chosen, but not what, and the hand has not begun.
+    final seen = await b.waitFor((m) =>
+        choosing(m) &&
+        ((m['round'] as Map)['seats'] as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((s) => s['seat'] == seatA)['voidDeclared'] ==
+            true);
+    _expectNoSichuanLeak(seen);
+    expect(
+        ((seen['round'] as Map)['seats'] as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((s) => s['seat'] == seatB)['voidDeclared'],
+        isFalse);
+    expect(a.log.where((m) => m['type'] == 'state').last['round']['phase'],
+        'choosingVoidSuit');
+
+    b.send({'type': 'action', 'kind': 'void_suit', 'suit': 2});
+    for (final c in [a, b]) {
+      final begun = await c.waitFor((m) =>
+          m['type'] == 'state' &&
+          (m['round'] as Map)['phase'] != 'choosingVoidSuit');
+      _expectNoSichuanLeak(begun);
+    }
+  });
+
+  test('a player who drops while choosing still gets a suit and a seat back',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sichuan',
+      'supportedRulesets': _allRulesets,
+    });
+    final code = (await a.waitFor((m) => m['type'] == 'room_state'))['code'];
+    a.send({'type': 'start_game'});
+    await a.waitFor((m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] == 'choosingVoidSuit');
+    await a.close();
+
+    final back = await TestClient.connect(server.port);
+    addTearDown(back.close);
+    back.send({
+      'type': 'reconnect',
+      'roomCode': code,
+      'guestId': 'guest-a',
+      'supportedRulesets': _allRulesets,
+    });
+    // The table did not stall on the missing answer.
+    final begun = await back.waitFor((m) =>
+        m['type'] == 'state' &&
+        (m['round'] as Map)['phase'] != 'choosingVoidSuit');
+    final me = begun['yourSeat'] as int;
+    final mine = ((begun['round'] as Map)['seats'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((s) => s['seat'] == me);
+    expect(mine['voidDeclared'], isTrue);
+    expect(mine['voidSuit'], isNotNull);
+  });
+
+  test('a Sichuan table plays a hand to its settlement, skipping seats that '
+      'went out', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sichuan',
+      'hanchan': false,
+      'supportedRulesets': _allRulesets,
+    });
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+    final sub = _sichuanAutoplay(a);
+    addTearDown(sub.cancel);
+    final result = await a.waitFor((m) => m['type'] == 'round_result',
+        timeout: const Duration(seconds: 30));
+
+    final round = result['round'] as Map<String, dynamic>;
+    final res = round['result'] as Map<String, dynamic>;
+    expect(res['kind'], 'bloodBattle');
+    final deltas = (res['pointDeltas'] as Map).values.cast<int>();
+    expect(deltas.fold<int>(0, (x, y) => x + y), 0);
+    expect(res['nextDealer'], isNotNull);
+    // The settlement lines add up to what each seat gained or lost.
+    final net = <int, int>{for (var i = 0; i < 4; i++) i: 0};
+    for (final p in (res['sichuanPayments'] as List).cast<Map<String, dynamic>>()) {
+      net[p['from'] as int] = net[p['from'] as int]! - (p['points'] as int);
+      net[p['to'] as int] = net[p['to'] as int]! + (p['points'] as int);
+    }
+    for (var i = 0; i < 4; i++) {
+      expect(net[i], (res['pointDeltas'] as Map)['$i'], reason: 'seat $i');
+    }
+    // Everyone's suit is out once the hand is over.
+    for (final sj in (round['seats'] as List).cast<Map<String, dynamic>>()) {
+      expect(sj['voidSuit'], isNotNull);
+    }
+
+    // Never a turn for a seat that had gone out, in any state along the way.
+    for (final m in a.log.where((m) => m['type'] == 'state')) {
+      final r = m['round'] as Map<String, dynamic>;
+      // The last Hu of a hand leaves the turn where it was.
+      if (r['phase'] == 'choosingVoidSuit' || r['phase'] == 'finished') continue;
+      final turnSeat = (r['seats'] as List)
+          .cast<Map<String, dynamic>>()
+          .firstWhere((s) => s['seat'] == r['turn']);
+      expect(turnSeat['out'], isFalse,
+          reason: 'turn ${r['turn']} belongs to a seat that is out');
+      _expectNoSichuanLeak(m);
+    }
+  });
+
+  test('a full Sichuan game runs its hands, naming each next dealer',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sichuan',
+      'hanchan': false,
+      'supportedRulesets': _allRulesets,
+    });
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+    final sub = _sichuanAutoplay(a);
+    addTearDown(sub.cancel);
+    final end = await a.waitFor((m) => m['gamePhase'] == 'gameEnd',
+        timeout: const Duration(seconds: 60));
+
+    // Hands are numbered 1-4 (a result already counts the hand to come), and
+    // each hand's dealer is the one the last result named — or the same seat,
+    // if nobody went out.
+    final results = a.log.where((m) => m['type'] == 'round_result').toList();
+    expect(results.length, 4);
+    expect({
+      for (final m in a.log)
+        if (m['type'] == 'state') m['handInWind']
+    }, {1, 2, 3, 4});
+    for (var i = 0; i + 1 < results.length; i++) {
+      final named =
+          (results[i]['round']['result'] as Map)['nextDealer'] as int;
+      final next = a.log.firstWhere((m) =>
+          m['type'] == 'state' &&
+          m['handInWind'] == i + 2 &&
+          (m['round'] as Map)['phase'] != 'finished');
+      expect((next['round'] as Map)['dealer'], named, reason: 'hand ${i + 2}');
+    }
+    // Some hand went on after a Hu, and the others kept playing without it.
+    expect(
+        a.log.any((m) =>
+            m['type'] == 'state' &&
+            (m['round'] as Map)['phase'] != 'finished' &&
+            ((m['round'] as Map)['seats'] as List)
+                .any((s) => (s as Map)['out'] == true)),
+        isTrue,
+        reason: 'no seat ever went out mid-hand in four hands');
+    final total = (end['tablePoints'] as List).cast<int>().fold<int>(0, (x, y) => x + y);
+    expect(total, 0);
+  });
+}
+
