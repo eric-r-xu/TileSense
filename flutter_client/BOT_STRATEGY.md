@@ -610,6 +610,79 @@ python3 tools/fit_hk_win_model.py calib.csv holdout.csv
 HK_DIAG=600 flutter test test/hong_kong/hk_guide_diag_test.dart
 ```
 
+### Sichuan — the guide ties the bots
+
+Unlike the other rulesets, **the Sichuan guide does not beat the bots, and this
+page does not claim it does.** Over 3000 paired games on seeds it was never
+tuned on, seat 0 on Auto-Play against a SimpleBot in the same seat:
+
+| 3000 games, seeds 30000+, 8 hands | Δ points vs bot (95% CI) | Δ placement |
+|---|---|---|
+| guide as shipped | −0.16 ± 0.51 | −0.003 ± 0.051 |
+| without defence (danger priced at zero) | +0.24 ± 0.49 | 0.000 |
+| without the wall-end settlement | −0.52 ± 0.50 (p = 0.04) | +0.043 |
+| without the guide's void-suit pick | −0.03 ± 0.49 | −0.013 |
+| without the flush chase | −0.27 ± 0.49 | −0.002 |
+
+What the guide does differently shows in the per-hand counts, and they cancel:
+
+| Seat 0, per hand | SimpleBot | Guide |
+|---|---|---|
+| Hu value, mean | 1.36 | 1.49 |
+| Deals in | 0.424 | 0.406 |
+| Wins | 0.657 | 0.639 |
+
+It wins bigger hands and deals in a little less, and gives up about as many wins.
+No single part of it separates from noise on fresh seeds. The wall-end
+settlement comes closest (p = 0.04 without it, one comparison of five), and it
+is not claimed either.
+
+**An earlier reading was wrong.** On the seeds the dials were tuned on (9000-11999)
+the same configuration measured +1.18 ± 0.48 points a game (p = 1.5e-6). It did
+not replicate. That figure was the best of about fifteen configurations tried on
+those seeds, and the fresh-seed table above is the one to believe. Any future
+dial change should be judged on seeds nobody has looked at.
+
+**Why the bots are hard to beat here.** A SimpleBot already plays shanten and
+acceptance, which is most of what Sichuan rewards: hands win 2.63 times a table on
+average, 65% by ron, and 76% of Hu are the 1-point base hand. There is little
+fan to find and no furiten to exploit. The one big leak is dealing in (a fresh
+tile completes a ready rival 12.2% of the time, against 0.6% for a tile that
+rival has already thrown), and the guide's defence does shave deal-ins (0.428 to
+0.406-0.420 a hand across runs) but pays for the safer cuts in wins.
+
+**Things that lost, so they are not tried again** (tuning seeds, 1500-3000 games):
+
+| Change | Δ points a game |
+|---|---|
+| value-chasing at full weight, flush odds 0.72 per off-suit tile | −12.2 |
+| the same at half weight | −5.0 |
+| all-pungs potential (flush chase otherwise as shipped) | −1.75 |
+| seven-pairs potential | −0.76 |
+| win model fitted to how often SimpleBot hands win | −9.8 |
+| the same, plus a 4% chance per turn that the hand ends first | −12.5 |
+| the same, with 6% | −14.2 |
+
+The fitted model is the instructive one. It reproduces the bots' win rate from
+each shanten (54%, 58%, 55% for one, two and three steps away) and plays far
+worse: it wins 0.31-0.42 hands per hand against 0.65. Matching the *level* of the win
+rate is not matching the *slope*; a model that believes every hand eventually
+gets home stops caring which discard gets it there first. So the shipped
+widths are ranking weights chosen by play (`SichuanValueTuning`), the guide does
+not quote a win chance for a hand two or more steps from ready (where it would
+read 18% against a true 58%), and the panel's figures for a ready or one-away hand
+are about right (67% against 62%, 46% against 54%).
+
+What the guide is for under Sichuan, then: a table that shows the danger of each
+discard, what a ready hand is worth, and what a kong or pung is worth, at a
+strength level with the bots. Method and constants:
+[`EXPECTED_VALUE.md`](EXPECTED_VALUE.md#under-sichuan-rules).
+
+```sh
+SC_TUNE_GAMES=3000 SC_TUNE_SEED=30000 flutter test test/sichuan_tuning_sweep_test.dart
+SC_CAL_GAMES=4000 flutter test test/sichuan_calibration_test.dart
+```
+
 ## Bottom line
 
 The opponents don't out-think you. They're a short, fixed checklist with no
@@ -617,3 +690,6 @@ sense of point value and zero defense, ported from the original desktop game's
 simplest bot. Your seat plays a genuinely different game — one that counts
 points, weighs calls, and folds when it should — and in both rulesets that
 wins, measurably.
+
+Sichuan is the exception: there the guide's value model is informative but
+measures level with the bots (see above).

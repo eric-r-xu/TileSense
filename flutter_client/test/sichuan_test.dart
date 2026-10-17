@@ -148,7 +148,7 @@ void main() {
       expect(report.headline, contains('void suit'));
     });
 
-    test('with the void suit gone it ranks by shanten then acceptance', () {
+    test('with the void suit gone a ready hand ranks above one a step off', () {
       final hand = parseTiles('123m 456m 789p 11p 23p 5m');
       final report = EfficiencyEngine().analyze(
           hand: hand,

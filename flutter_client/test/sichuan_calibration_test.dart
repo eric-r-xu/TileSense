@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/mahjong_core.dart';
+import 'package:tilesense/logic/sichuan_value.dart';
 
 /// Measures what the Sichuan value model (`sichuan_value.dart`) is built on,
 /// from four SimpleBots playing each other:
@@ -38,6 +39,10 @@ class _Counts {
 
   // Ready transitions: predicted vs. actual win, bucketed by live outs.
   final transitions = <_Transition>[];
+
+  // Every sixth discard: shanten, outs, unseen, draws, rivals, and whether the
+  // seat went on to win.
+  final samples = <_Sample>[];
 
   // Deal-in: [class][genbutsu] -> (trials with a ready rival, hits).
   final trials = <String, int>{};
@@ -114,9 +119,89 @@ class _Counts {
         hi = mid;
       }
     }
+    print('\nwin chance of a hand after a discard, by shanten: model vs. actual');
+    for (var s = 0; s <= 5; s++) {
+      final rows = samples.where((x) => x.shanten == s).toList();
+      if (rows.length < 50) continue;
+      double predicted(double scale) => _mean([
+            for (final x in rows)
+              SichuanValue.chain(
+                shanten: x.shanten,
+                outs: x.outs,
+                unseen: x.unseen,
+                draws: x.draws,
+                rivals: x.rivals,
+              ).win
+          ]);
+      final actualRate = rows.where((x) => x.won).length / rows.length;
+      print('  $s away: actual ${(actualRate * 100).toStringAsFixed(1)}%, '
+          'model ${(predicted(1) * 100).toStringAsFixed(1)}% '
+          '(${rows.length}, mean outs ${_mean([for (final x in rows) x.outs]).toStringAsFixed(1)})');
+    }
+    // Fit the widths, from the hands nearest ready outward: s=1 settles the
+    // width of a ready hand's wait, s=2 the step from one away, and so on.
+    double modelAt(int s) => _mean([
+          for (final x in samples.where((x) => x.shanten == s))
+            SichuanValue.chain(
+              shanten: x.shanten,
+              outs: x.outs,
+              unseen: x.unseen,
+              draws: x.draws,
+              rivals: x.rivals,
+            ).win
+        ]);
+    double actualAt(int s) {
+      final rows = samples.where((x) => x.shanten == s).toList();
+      return rows.where((x) => x.won).length / rows.length;
+    }
+
+    double bisect(void Function(double) set, int s) {
+      var lo = 0.5, hi = 120.0;
+      for (var i = 0; i < 40; i++) {
+        final mid = (lo + hi) / 2;
+        set(mid);
+        if (modelAt(s) < actualAt(s)) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      return (lo + hi) / 2;
+    }
+
+    for (final h in [0.0, 0.02, 0.04, 0.06, 0.09]) {
+      SichuanValueTuning.handEnds = h;
+      print('\nhand ends each turn with chance $h');
+    if (samples.where((x) => x.shanten == 1).length > 200) {
+        final fitted = <String>[];
+        final tw = bisect((v) => SichuanValueTuning.tenpaiWait = v, 1);
+        SichuanValueTuning.tenpaiWait = tw;
+        fitted.add('tenpaiWait ${tw.toStringAsFixed(1)}');
+        for (var k = 1; k <= 3; k++) {
+          if (samples.where((x) => x.shanten == k + 1).length < 200) break;
+          final w = bisect((v) => SichuanValueTuning.stepWidth[k] = v, k + 1);
+          SichuanValueTuning.stepWidth[k] = w;
+          fitted.add('stepWidth[$k] ${w.toStringAsFixed(1)}');
+        }
+        print('\nfitted: ${fitted.join(', ')}');
+        for (var s = 0; s <= 4; s++) {
+          if (samples.where((x) => x.shanten == s).length < 50) continue;
+          print('  $s away: actual ${(actualAt(s) * 100).toStringAsFixed(1)}%, '
+              'refitted model ${(modelAt(s) * 100).toStringAsFixed(1)}%');
+        }
+      }
+    }
+    SichuanValueTuning.handEnds = 0;
     print('actual win rate once ready ${(actual * 100).toStringAsFixed(1)}%; '
         'fitted ron factor per rival ${lo.toStringAsFixed(2)}');
   }
+}
+
+class _Sample {
+  _Sample(this.shanten, this.outs, this.unseen, this.draws, this.rivals,
+      this.won);
+  final int shanten, outs, unseen, draws, rivals;
+  final bool won;
 }
 
 class _Transition {
@@ -153,6 +238,7 @@ void _playHand(_Counts c, int seed) {
   }
   // (seat, transition record) for seats that became ready; resolved at the end.
   final pending = <(int, _Transition Function(bool))>[];
+  final sampled = <(int, _Sample)>[];
   final wasReady = List<bool>.filled(4, false);
 
   for (var guard = 0; guard < 2000 && !round.finished; guard++) {
@@ -190,6 +276,23 @@ void _playHand(_Counts c, int seed) {
         c.seatsAt[n]++;
         if (ready) c.readyAt[n]++;
       }
+      if (round.wall.remaining > 0 && (seed + n + mover) % 6 == 0) {
+        final vis = _visible(round, mover);
+        final counts = _dead(toTrainerCounts(s.hand), s.voidSuit);
+        final remaining = withoutVoidSuit(
+            trainerCountsFromTypeCounts([for (final c in vis) (4 - c).clamp(0, 4)]),
+            s.voidSuit);
+        final shanten = _calc.calculateWaitingShanten(counts);
+        final outs = _calc.acceptance(counts, remaining).count;
+        final rivals = round.seats.where((o) => o.seat != mover && !o.out).length;
+        final voidLeft = s.voidSuit == null
+            ? 0
+            : s.hand.where((t) => t.type.suit == s.voidSuit).length;
+        final draws = max(0,
+            SichuanValue.draws(round.wall.remaining, rivals) - voidLeft);
+        final unseen = max(1, 108 - vis.fold<int>(0, (a, b) => a + b));
+        sampled.add((mover, _Sample(shanten, outs, unseen, draws, rivals, false)));
+      }
       if (ready && !wasReady[mover]) {
         final vis = _visible(round, mover);
         final outs = _outs(s, vis);
@@ -211,6 +314,11 @@ void _playHand(_Counts c, int seed) {
   final won = {for (final h in result.sichuanHu) h.seat};
   for (final p in pending) {
     c.transitions.add(p.$2(won.contains(p.$1)));
+  }
+  for (final p in sampled) {
+    final x = p.$2;
+    c.samples.add(_Sample(x.shanten, x.outs, x.unseen, x.draws, x.rivals,
+        won.contains(p.$1)));
   }
   c.huSeatsTotal += result.sichuanHu.length;
   for (final h in result.sichuanHu) {
@@ -289,4 +397,21 @@ void _beforeDiscard(_Counts c, Round round, int seat, Tile tile) {
     c.trials[all] = (c.trials[all] ?? 0) + 1;
     if (waits.contains(tile.type)) c.hits[all] = (c.hits[all] ?? 0) + 1;
   }
+}
+
+final _calc = SichuanEfficiencyCalculator();
+
+/// The guide's dead-weight trick: void-suit tiles become lone honors.
+List<int> _dead(List<int> counts, int? voidSuit) {
+  if (voidSuit == null) return counts;
+  final out = List<int>.of(counts);
+  var dead = 0;
+  for (var n = 1; n <= 9; n++) {
+    dead += out[voidSuit * 10 + n];
+    out[voidSuit * 10 + n] = 0;
+  }
+  for (var i = 0; i < dead; i++) {
+    out[31 + i % 7]++;
+  }
+  return out;
 }

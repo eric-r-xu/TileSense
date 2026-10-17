@@ -220,7 +220,7 @@ void main() {
           closeTo(1, 0.05));
 
       final flushy = parseTiles('123m 456m 789m 11m 22m');
-      final rooted = parseTiles('1111m 258p 369s 14m');
+      final rooted = parseTiles('1111m 258p 369s 47m');
       expect(SichuanValue.potentialValue(flushy, const [], null),
           greaterThan(SichuanValue.potentialValue(scattered, const [], null)));
       expect(SichuanValue.potentialValue(rooted, const [], null),
@@ -230,6 +230,12 @@ void main() {
       SichuanValueTuning.valueScale = 0;
       expect(SichuanValue.potentialValue(flushy, const [], null), 1);
       expect(SichuanValue.potentialValue(rooted, const [], null), 2);
+    });
+
+    test('a tile that is not a suit tile is ignored, not a crash', () {
+      final hand = parseTiles('123m 456m 789p 11p 5s 9s E');
+      expect(SichuanValue.potentialValue(hand, const [], 2), greaterThanOrEqualTo(1));
+      expect(SichuanValue.dealInCost(TileType.ton, [rival()]), greaterThanOrEqualTo(0));
     });
 
     test('the void suit counts for nothing', () {

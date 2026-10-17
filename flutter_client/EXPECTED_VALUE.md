@@ -568,6 +568,99 @@ use it — `WinModel.taiwanese` is that fitted call-aware model, which measured
 [`BOT_STRATEGY.md`](BOT_STRATEGY.md#hong-kong--the-guide-beats-the-bots) and
 [Taiwanese](BOT_STRATEGY.md#taiwanese--the-guide-beats-the-bots).
 
+## Under Sichuan rules
+
+Sichuan does not use the riichi / Hong Kong / Taiwanese pipeline at all.
+`EfficiencyEngine` hands every Sichuan call to `SichuanGuide`
+(`logic/sichuan_guide.dart`), which uses the formulas in `logic/sichuan_value.dart`.
+The reason is the rule that changes everything: **another seat's win does not
+end your hand.** A seat that wins goes out, the others play on, and the hand
+ends when the wall does or when three have won. So the clock on a hand is the
+wall, not the other seats, and "chance this hand is still running" is not the
+quantity the other models multiply by.
+
+A discard's value is, in points,
+
+    EV = P(win) × payoff  +  end settlement  −  dealInCost
+
+with no style, focus or placement dials (Sichuan pins them like Hong Kong).
+
+**P(win)** (`SichuanValue.chain`) walks the hand toward ready one turn at a time
+for the draws it has left: the wall shared by the seats still in, less one per
+void-suit tile it still holds, since those must go before it can win. Each turn a
+hand moves one step closer with width/unseen, using its *actual* acceptance on the
+first step and `SichuanValueTuning.stepWidth` after that; a ready hand wins with
+its live outs over unseen, plus 0.81 of a draw per rival still in for what their
+discards add (fitted). A ready hand with a dead wait, or no draws left, wins
+nothing.
+
+**Payoff** is what a Hu of value V pays across the table: a self-draw pays each
+seat still in V + 1, a Hu off a discard pays V from the discarder alone, in the
+proportion the model gives them (34.6% of Hu are self-draws in bot play). V is the
+true score of each live wait, averaged by live copies, once the hand is ready
+with its void suit gone; before that it is the base 1 plus the hand's roots plus
+its chance of a full flush (`flushDecay` 0.3 per off-suit tile, so five off-suit
+tiles read as 0.2%).
+
+**End settlement** is what an unwon hand settles for if the hand ends on the wall:
+a ready seat collects its ready value from each seat that is not ready, and an
+unready one pays each ready seat. Charged at 0.5 of unwon hands (the rest end on
+a third Hu and settle nothing), with 77.6% of the seats still in at a wall end
+ready, worth 1.69 on average.
+
+**dealInCost** (`SichuanValue.dealInCost`) is, for each rival still in, the chance
+it is ready (from its discard count and melds, table below) × the chance this
+tile completes it (by how central the tile is) × 1.5 points. A suit the rival
+gave up can never complete it, a tile it has already thrown is 20 times safer, and
+a suit it has not shown yet could be its void with probability one in three.
+Everything it reads is public: the rival's revealed void suit, `allDiscards`, melds.
+
+Measured by `test/sichuan_calibration_test.dart`, four SimpleBots, 4000 hands:
+
+| Rival's discards so far | 3 | 5 | 7 | 9 | 11 | 13 | 15 | 17 | 20 |
+|---|---|---|---|---|---|---|---|---|---|
+| Chance it is ready | 2.6% | 12% | 27% | 43% | 56% | 67% | 76% | 84% | 92% |
+
+| Tile | Completes a ready rival who is not void in it |
+|---|---|
+| terminal | 8.1% |
+| 2 or 8 | 11.2% |
+| 3 or 7 | 15.9% |
+| 4, 5 or 6 | 13.5% |
+| any, if that rival has already thrown it | 0.6% |
+| any other | 12.2% |
+
+A table that goes to a wall end: 27.4% of hands; 2.63 Hu a hand; 76% of Hu
+are the 1-point base hand (mean value 1.37); 71.9% of seats that become ready go on
+to win.
+
+**Calls and kongs** compare the hand after the action, discarding its best tile,
+with the hand left as it is: a pung must beat passing, an open kong adds the 2
+points the discarder owes if the hand finishes ready or won, a concealed kong 2
+from each seat still in, an added kong 1 less the chance a ready rival robs it.
+A Hu on offer is always taken.
+
+**The void-suit pick** (`SichuanGuide.suggestVoidSuit`) gives up the suit whose
+loss leaves the rest nearest to ready, then widest, then costing fewest tiles; it
+replaces the fewest-tiles rule on the suit prompt's star and on Auto-Play. Bots
+still use the fewest-tiles rule.
+
+**What the figures in the panel mean.** The widths are ranking weights chosen
+by play, not calibrated probabilities (see `SichuanValueTuning.tenpaiWait`). The
+win chance is a good figure for a hand ready or one step off and is not shown
+beyond that. The EV is a way to compare discards, not a forecast of points.
+
+**Known simplifications.** Chasing all pungs or seven pairs is off
+(`pungWeight`, `pairsWeight` 0): both lost points. The ready check does not read
+a rival's specific tiles beyond its void suit and what it has thrown. Kong
+payments are priced only for the seat's own chance of finishing ready. A rival's
+Hu is priced at 1.5 whatever its hand shows. An added kong is assumed to be on
+the tile just drawn (the rules void one made on a tile already held), and only an
+added kong is priced for being robbed.
+
+**How well it plays.** Level with the bots, not better — see
+[Sichuan — the guide ties the bots](BOT_STRATEGY.md#sichuan--the-guide-ties-the-bots).
+
 ## Calls, kan, ron, tsumo  (`adviseCall`)
 
 Every option is turned into "the 13-tile hand it leaves you with" and run back
