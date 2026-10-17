@@ -105,6 +105,21 @@ class _Arm {
           SichuanValueTuning.dealInScale = e.value;
         case 'endSettlement':
           SichuanValueTuning.endSettlement = e.value != 0;
+        case 'handEnds':
+          SichuanValueTuning.handEnds = e.value;
+        case 'tenpaiWait':
+          SichuanValueTuning.tenpaiWait = e.value;
+        case 'step1':
+          SichuanValueTuning.stepWidth[1] = e.value;
+        case 'step2':
+          SichuanValueTuning.stepWidth[2] = e.value;
+        case 'step3':
+          SichuanValueTuning.stepWidth = [
+            ...SichuanValueTuning.stepWidth.take(3),
+            for (var i = 3; i < 7; i++) e.value,
+          ];
+        case 'guideVoidPick':
+          SichuanValueTuning.guideVoidPick = e.value != 0;
         case 'ronPerRival':
           SichuanValueTuning.ronPerRival = e.value;
         case 'flushDecay':
@@ -124,15 +139,13 @@ class _Arm {
   }
 }
 
-const _arms = [
-  _Arm('control', guide: false),
-  _Arm('ev-v0', dials: {'valueScale': 0}),
-  _Arm('flush.5', dials: {'pungWeight': 0, 'pairsWeight': 0, 'flushDecay': 0.5}),
-  _Arm('flush.3', dials: {'pungWeight': 0, 'pairsWeight': 0, 'flushDecay': 0.3}),
-  _Arm('flush.15',
-      dials: {'pungWeight': 0, 'pairsWeight': 0, 'flushDecay': 0.15}),
-  _Arm('pungs', dials: {'pungWeight': 1, 'pairsWeight': 0, 'flushDecay': 0.0001}),
-  _Arm('pairs', dials: {'pungWeight': 0, 'pairsWeight': 1, 'flushDecay': 0.0001}),
+final _arms = [
+  const _Arm('control', guide: false),
+  const _Arm('shipped'),
+  const _Arm('no-defence', dials: {'dealInScale': 0}),
+  const _Arm('no-end', dials: {'endSettlement': 0}),
+  const _Arm('no-void-pick', dials: {'guideVoidPick': 0}),
+  const _Arm('no-flush', dials: {'flushDecay': 0.0001}),
 ];
 
 /// One game of seat 0: where it finished and what happened in its hands.

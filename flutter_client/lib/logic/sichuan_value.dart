@@ -29,14 +29,31 @@ class SichuanValueTuning {
   /// actually wins (71.9% over 4000 hands).
   static double ronPerRival = 0.81;
 
-  /// Live tiles on the wait of a typical hand that reaches ready, for the
-  /// turns after the one in front of you.
+  /// Live tiles on the wait of a typical hand that reaches ready, and the
+  /// width of each step before it ([stepWidth], index = shanten before the
+  /// step, 1..6).
+  ///
+  /// These are ranking weights, not calibrated probabilities. They were chosen
+  /// by play: against SimpleBot over 3000 games they gain about +1.2 points a
+  /// game. Fitting them instead to how often a SimpleBot hand at each shanten
+  /// goes on to win (`sichuan_calibration_test.dart`: tenpaiWait 5.9, steps
+  /// 25 / 64 / 120) reproduces those win rates, and plays far worse: -10
+  /// points a game, and 0.42 wins a hand against 0.65. Matching the level is
+  /// not matching the slope; a model that thinks every hand eventually gets
+  /// home stops caring which discard gets it there first. Adding a per-turn
+  /// chance that the hand ends first ([handEnds] 0.04-0.06, widths refitted)
+  /// made it worse still, -12 to -14. So the win chance the panel quotes is a
+  /// good figure for a hand ready or one step off (67% against 62%, and 46%
+  /// against 54%) and an understatement beyond that (18% where hands two away
+  /// win 58%); the guide does not quote it there.
   static double tenpaiWait = 4.3;
-
-  /// The width a typical hand behaves as if it had at each shanten step
-  /// (index = shanten before the step, 1..6). Fitted so a hand of ordinary
-  /// width at each step wins as often as the bots' hands do.
   static List<double> stepWidth = [0, 5.5, 8.5, 11, 13, 15, 17];
+
+  /// Chance, each turn, that the hand ends before you finish — three other
+  /// seats have won and you are the one left over. It is what makes speed
+  /// matter in a game with a long wall: without it every hand eventually gets
+  /// home and the shape of the hand stops mattering.
+  static double handEnds = 0.0;
 
   /// A draw that is one of your outs is taken at most this often; keeps a
   /// freak count from promising more than a draw can.
@@ -47,11 +64,17 @@ class SichuanValueTuning {
   static double valueScale = 1.0;
 
   /// Chance multiplier per off-suit tile left in a hand for a full flush to
-  /// still be on.
-  static double flushDecay = 0.72;
+  /// still be on. Swept at 0.15-0.72 over 3000 games each: 0.2-0.4 all gain
+  /// about a point a game on SimpleBot; 0.72 (a flush looks 10% likely with
+  /// seven off-suit tiles) loses 12.
+  static double flushDecay = 0.3;
   static double flushWeight = 1.0;
-  static double pungWeight = 1.0;
-  static double pairsWeight = 1.0;
+
+  /// All pungs and seven pairs, as potential. Both measured as losses (-1.75
+  /// and -0.76 points a game): chasing them costs more wins than the extra
+  /// fan pays. Off; the code stays so the sweep can re-test them.
+  static double pungWeight = 0.0;
+  static double pairsWeight = 0.0;
 
   /// Charged against a discard: this much of the expected points it deals
   /// into the ready seats. 0 turns defence off; 1 prices it as measured.
@@ -234,8 +257,9 @@ class SichuanValue {
           next[k] += m * (1 - a);
         }
       }
+      final survive = 1 - SichuanValueTuning.handEnds;
       for (var k = 0; k <= top; k++) {
-        mass[k] = next[k];
+        mass[k] = next[k] * survive;
       }
     }
     return (win: win, ready: mass[0]);
@@ -297,6 +321,9 @@ class SichuanValue {
       List<Tile> rest, List<Meld> melds, int? voidSuit) {
     final counts = <TileType, int>{};
     for (final t in rest) {
+      // A Sichuan wall holds no honors; a hand posed with one (the builder)
+      // simply gets nothing from it.
+      if (!t.type.isSuit) continue;
       if (voidSuit != null && t.type.suit == voidSuit) continue;
       counts[t.type] = (counts[t.type] ?? 0) + 1;
     }

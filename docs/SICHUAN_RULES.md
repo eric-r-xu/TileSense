@@ -106,7 +106,18 @@ by the turn, the call windows and the clocks. A client from before Sichuan is
 asked to update rather than being dealt a table it cannot draw, and there is
 no guide or Auto-Play online, as in every ruleset.
 
-## Not yet
+## The guide
 
-The guide's expected-value columns: the guide ranks discards by shanten and
-acceptance, with the void suit counted as dead weight.
+The guide ranks discards, pungs and kongs by expected points (the full method is
+in [`EXPECTED_VALUE.md`](../flutter_client/EXPECTED_VALUE.md#under-sichuan-rules)):
+how likely the hand is to get home before the wall ends, what that Hu pays, what an
+unwon hand settles for at the wall, less what the discard risks against the
+seats that are ready. Your void suit counts as dead weight and goes first, and
+the suit prompt's star goes to the suit whose loss leaves the rest nearest to
+ready. It reads only what the table shows: a rival's void suit once it has made
+its first discard, and what each seat has thrown.
+
+It plays level with the bots, not better, and the win chance it quotes is only
+meant for a hand that is ready or one step from it; see
+[`BOT_STRATEGY.md`](../flutter_client/BOT_STRATEGY.md#sichuan--the-guide-ties-the-bots).
+It does not play online, as in every ruleset.

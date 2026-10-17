@@ -266,8 +266,11 @@ class SichuanGuide {
       if (s.shanten <= 0)
         'Ready on ${s.outs} live tiles — about '
             '${(s.win * 100).round()}% to win.'
+      else if (s.shanten == 1)
+        'One away on ${s.outs} live tiles — about '
+            '${(s.win * 100).round()}% to win.'
       else
-        '${s.shanten} away — about ${(s.win * 100).round()}% to get home.',
+        '${s.shanten} away on ${s.outs} live tiles.',
       if (danger >= 0.05)
         'Risks about ${danger.toStringAsFixed(2)} points of dealing in.',
     ];
@@ -362,7 +365,6 @@ class SichuanGuide {
       visibleCounts34: visibleCounts34,
       context: context,
     );
-    final rivals = _rivalsIn(context);
 
     // Each way of taking the tile, and what the hand is worth afterwards.
     double? ponEv;
@@ -434,8 +436,7 @@ class SichuanGuide {
       action: GuidedAction.pass,
       expectedValue: pass.ev,
       shantenAfter: pass.shanten,
-      reason: 'Pass — you stay ${_far(pass.shanten)}'
-          '${rivals > 0 ? ', about ${(pass.win * 100).round()}% to win' : ''}.',
+      reason: 'Pass — you stay ${_far(pass.shanten)}.',
     ));
 
     var best = GuidedAction.pass;
