@@ -9,6 +9,73 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+<<<<<<< Updated upstream
+=======
+## 2026-10-16 — Sichuan guide values
+
+- **The Sichuan guide now prices what it recommends.** Discards, pungs and kongs
+  are ranked by expected points: the chance the hand gets home before the wall
+  ends, what that Hu pays (a self-draw from every seat still in, a Hu off a
+  discard from the discarder), what an unwon hand settles for at the wall, and
+  what a discard risks against seats that are ready, read from the rival's
+  revealed void suit and what it has thrown. The value columns that read zero are
+  filled in. Method and measured constants: `flutter_client/EXPECTED_VALUE.md`,
+  "Under Sichuan rules".
+- **The void-suit prompt's star and Auto-Play pick the suit by how the rest of the
+  hand plays out**, not by which suit has fewest tiles. The bots keep the old rule.
+- **It plays level with the bots, not better.** On 3000 fresh-seed games the
+  guide is −0.16 ± 0.51 points a game against a SimpleBot (placement −0.003 ±
+  0.051). An earlier +1.18 on the seeds the dials were tuned on did not replicate.
+  The things that lost points are listed in `BOT_STRATEGY.md`; the panel does not
+  quote a win chance for a hand two or more steps from ready, where the model
+  understates it.
+- New tests: `sichuan_value_test.dart`, and two measurement tools,
+  `sichuan_calibration_test.dart` and `sichuan_tuning_sweep_test.dart`, that do
+  nothing unless their environment variables are set.
+
+## 2026-10-16 — Sichuan online
+
+### Added
+- **Sichuan can be played online.** The lobby offers it, the server runs the
+  table, and every seat names its void suit at the start (a new `void_suit`
+  action, timed like a discard, with the suit a bot would pick if time runs
+  out). Another seat's suit stays hidden until its first discard; a seat that
+  has gone out is skipped; each Hu is announced as it happens; and the score
+  screen shows the Hu, kong, unready-pays-ready and void-suit lines. A client
+  from before Sichuan is asked to update (`update_required`) instead of being
+  dealt a table it cannot draw.
+
+### Changed
+- The online lobby no longer falls back to riichi when Sichuan was the table
+  picked, and the server no longer refuses a Sichuan room.
+
+## 2026-10-16 — Sichuan mahjong
+
+### Added
+- **Sichuan (Bloody Rules) joins the rulesets**, single player only for now: 108
+  tiles in three suits, a void suit every seat names before the first draw,
+  no chow calls, and a bloody battle in which a seat that declares Hu goes out
+  while the others play on, until three have won or the wall runs out. Scoring
+  is the sheet's fan table (Root, All Pungs, Full Flush, Seven Pairs, Golden
+  Single Wait, kong and last-tile wins) turned into a hand value of 1, 2, 4 or
+  8, with kong payments, unready-pays-ready at the end, and the dealer rule
+  (the first winner deals next). Rules page: `docs/SICHUAN_RULES.md`.
+- **Sichuan has its own flag**, an image rather than an emoji (`Ruleset.flagAsset`,
+  drawn by `RulesetFlag`) on the welcome screen, the character screen and the
+  table's badge.
+- **The guide plays Sichuan on shanten and acceptance**, with your void suit
+  counted as dead weight and the void suit always first; its expected-value
+  columns are not there yet.
+- **Sichuan's one-page rules sheet is hosted** at
+  `https://app.ericrxu.com/static/Sichuan.pdf` (the Rules button and the README
+  link to it), beside the other rulesets' PDFs.
+
+### Changed
+- The online lobby opens on riichi if Sichuan was the table you had picked,
+  and the server refuses a Sichuan room outright instead of turning it into a
+  riichi one.
+
+>>>>>>> Stashed changes
 ## 2026-09-30 — Rejoin and smoother online play, bigger Back buttons, win pause
 
 ### Added
