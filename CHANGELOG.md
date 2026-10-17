@@ -9,6 +9,11 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> 9bdd0776b1dc7f8ae692a17012b0cbe9e6be980c
 ## 2026-10-16 — Sichuan guide values
 
 - **The Sichuan guide now prices what it recommends.** Discards, pungs and kongs
@@ -73,6 +78,10 @@ approximate wherever a batch of work spanned more than a day.
   and the server refuses a Sichuan room outright instead of turning it into a
   riichi one.
 
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> 9bdd0776b1dc7f8ae692a17012b0cbe9e6be980c
 ## 2026-09-30 — Rejoin and smoother online play, bigger Back buttons, win pause
 
 ### Added
