@@ -111,7 +111,13 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                         Text(r.headline ?? 'Waiting…',
                             style: const TextStyle(color: Colors.white70))
                       else if (_simple)
-                        SimpleGuideBody(report: r)
+                        SimpleGuideBody(
+                          report: r,
+                          shortfall: widget.game.humanMinimumShortfall,
+                          complete: switch (widget.game) {
+                            final TableGameHost g => g.humanCanTsumo,
+                            _ => false,
+                          })
                       else ...[
                         if (r.tenpai) _planReason(r.lines.first),
                         if (r.defending &&

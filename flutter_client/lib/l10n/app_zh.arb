@@ -682,8 +682,6 @@
   "guideViewToFullTip": "简单提示。点击查看完整表格（向听、期望值、安全度）。",
   "guideViewToSimpleTip": "完整提示。点击切换为简单视图。",
   "guideStatusComplete": "你的牌已经凑齐了！",
-  "guideStatusReady": "再打出一张牌，就能听牌了。",
-  "guideStatusSteps": "离听牌还差{n, plural, other{{n}步}}。",
   "guideBestDiscard": "最佳打牌",
   "guideOtherChoices": "其他选择",
   "guideOutlookWins": "凑齐你的手牌！",
@@ -695,5 +693,7 @@
   "handPromptWin": "你可以用{tile}胡牌！点击“{call}”。",
   "handPromptTsumo": "你的牌已凑齐！点击“{call}”。",
   "handPromptCall": "你可以{calls}{tile}，也可以放过。",
-  "handPromptDiscard": "轮到你了：点击一张牌打出。"
+  "handPromptDiscard": "轮到你了：点击一张牌打出。",
+  "guideAway": "离胡牌还差{n, plural, other{{n}张}}",
+  "guideWinningTiles": "能胡的牌 · 还剩{n}张"
 }

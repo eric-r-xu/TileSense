@@ -2267,19 +2267,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get guideStatusComplete => '手牌が完成しました！';
 
   @override
-  String get guideStatusReady => 'あと1回の打牌で、あがり牌待ちになれます。';
-
-  @override
-  String guideStatusSteps(int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: 'あと$n歩',
-    );
-    return 'あがり牌待ちまで$_temp0。';
-  }
-
-  @override
   String get guideBestDiscard => '最善の打牌';
 
   @override
@@ -2334,4 +2321,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get handPromptDiscard => 'あなたの番です。捨てる牌をタップしてください。';
+
+  @override
+  String guideAway(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n枚',
+    );
+    return 'あがりまであと$_temp0';
+  }
+
+  @override
+  String guideWinningTiles(int n) {
+    return 'あがり牌 · 残り$n枚';
+  }
 }

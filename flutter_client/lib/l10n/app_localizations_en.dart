@@ -2311,21 +2311,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideStatusComplete => 'Your hand is complete!';
 
   @override
-  String get guideStatusReady =>
-      'One discard away from waiting on a winning tile.';
-
-  @override
-  String guideStatusSteps(int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: '$n steps',
-      one: '1 step',
-    );
-    return '$_temp0 from waiting on a winning tile.';
-  }
-
-  @override
   String get guideBestDiscard => 'Best discard';
 
   @override
@@ -2382,4 +2367,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get handPromptDiscard => 'Your turn: tap a tile to discard it.';
+
+  @override
+  String guideAway(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n tiles',
+      one: '1 tile',
+    );
+    return '$_temp0 away from winning';
+  }
+
+  @override
+  String guideWinningTiles(int n) {
+    return 'Winning tiles · $n left';
+  }
 }

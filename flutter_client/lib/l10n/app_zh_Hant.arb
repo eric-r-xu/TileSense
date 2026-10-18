@@ -682,8 +682,6 @@
   "guideViewToFullTip": "簡單提示。點擊查看完整表格（向聽、期望值、安全度）。",
   "guideViewToSimpleTip": "完整提示。點擊切換為簡單檢視。",
   "guideStatusComplete": "你的牌已經湊齊了！",
-  "guideStatusReady": "再打出一張牌，就能叫糊了。",
-  "guideStatusSteps": "離叫糊還差{n, plural, other{{n}步}}。",
   "guideBestDiscard": "最佳打牌",
   "guideOtherChoices": "其他選擇",
   "guideOutlookWins": "湊齊你的手牌！",
@@ -695,5 +693,7 @@
   "handPromptWin": "你可以用{tile}食糊！點擊「{call}」。",
   "handPromptTsumo": "你的牌已湊齊！點擊「{call}」。",
   "handPromptCall": "你可以{calls}{tile}，也可以放過。",
-  "handPromptDiscard": "輪到你了：點擊一張牌打出。"
+  "handPromptDiscard": "輪到你了：點擊一張牌打出。",
+  "guideAway": "離食糊還差{n, plural, other{{n}張}}",
+  "guideWinningTiles": "能食糊的牌 · 還剩{n}張"
 }

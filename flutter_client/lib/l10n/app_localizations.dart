@@ -4193,18 +4193,6 @@ abstract class AppLocalizations {
   /// **'Your hand is complete!'**
   String get guideStatusComplete;
 
-  /// No description provided for @guideStatusReady.
-  ///
-  /// In en, this message translates to:
-  /// **'One discard away from waiting on a winning tile.'**
-  String get guideStatusReady;
-
-  /// No description provided for @guideStatusSteps.
-  ///
-  /// In en, this message translates to:
-  /// **'{n, plural, =1{1 step} other{{n} steps}} from waiting on a winning tile.'**
-  String guideStatusSteps(int n);
-
   /// No description provided for @guideBestDiscard.
   ///
   /// In en, this message translates to:
@@ -4276,6 +4264,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your turn: tap a tile to discard it.'**
   String get handPromptDiscard;
+
+  /// No description provided for @guideAway.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 tile} other{{n} tiles}} away from winning'**
+  String guideAway(int n);
+
+  /// No description provided for @guideWinningTiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Winning tiles · {n} left'**
+  String guideWinningTiles(int n);
 }
 
 class _AppLocalizationsDelegate

@@ -4,8 +4,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:mahjong_core/round.dart' show MinimumShortfall;
+import 'package:mahjong_core/tile.dart' show TileType;
 
 import '../l10n/l10n.dart';
+import '../l10n/mahjong_terms.dart';
 import '../logic/efficiency_engine.dart';
 import '../telemetry/src/platform_web.dart'
     if (dart.library.io) '../telemetry/src/platform_stub.dart' as platform;
@@ -34,6 +37,18 @@ abstract final class BeginnerGuide {
   }
 }
 
+/// How many more tiles the hand needs to win, from the guide's read of it on
+/// your turn: 0 when it is already complete, 1 when one discard leaves it
+/// waiting on a single winning draw, and so on.
+int tilesAway(EfficiencyReport report) => report.currentShanten + 1;
+
+/// The tiles that would complete the hand once it is [tilesAway] == 1, from
+/// the guide's pick; empty for a hand further out, or already complete.
+List<TileType> winningTiles(EfficiencyReport report) {
+  if (report.lines.isEmpty || tilesAway(report) != 1) return const [];
+  return simpleChoices(report, count: 1).first.accepts;
+}
+
 /// What a discard does for the hand, in the terms the simple view uses.
 enum DiscardOutlook { wins, waiting, onTrack, furtherAway }
 
@@ -59,15 +74,103 @@ List<DiscardLine> simpleChoices(EfficiencyReport report, {int count = 3}) {
 /// The simple view's body: where the hand stands, the best discard and why,
 /// and a couple of alternatives.
 class SimpleGuideBody extends StatelessWidget {
-  const SimpleGuideBody({super.key, required this.report});
+  const SimpleGuideBody(
+      {super.key,
+      required this.report,
+      this.shortfall = MinimumShortfall.none,
+      this.complete = false});
 
   final EfficiencyReport report;
 
+  /// True when the hand is already a winning one (you can declare the win).
+  /// The report only ranks discards, so it reads such a hand as one tile
+  /// away; the caller knows better.
+  final bool complete;
+
+  /// Set when the hand is ready but too cheap to win at this table.
+  final MinimumShortfall shortfall;
+
+  /// The most steps the meter draws; a hand further out shows it empty.
+  static const meterSteps = 6;
+
   String _status(AppLocalizations l10n) {
-    final s = report.currentShanten;
-    if (s < 0) return l10n.guideStatusComplete;
-    if (s == 0) return l10n.guideStatusReady;
-    return l10n.guideStatusSteps(s);
+    final away = _away;
+    return away <= 0 ? l10n.guideStatusComplete : l10n.guideAway(away);
+  }
+
+  int get _away => complete ? 0 : tilesAway(report);
+
+  /// A bar that fills as the hand nears a win, and the tiles that finish it.
+  Widget _meter(AppLocalizations l10n) {
+    final filled = meterSteps - _away.clamp(0, meterSteps);
+    final done = _away <= 0;
+    final waits = complete ? const <TileType>[] : winningTiles(report);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_status(l10n),
+            key: const Key('simpleGuideStatus'),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                height: 1.35)),
+        const SizedBox(height: 4),
+        Row(
+          key: const Key('simpleGuideMeter'),
+          children: [
+            for (var i = 0; i < meterSteps; i++)
+              Expanded(
+                child: Container(
+                  key: Key('meterStep_$i'),
+                  height: 6,
+                  margin: EdgeInsets.only(right: i == meterSteps - 1 ? 0 : 3),
+                  decoration: BoxDecoration(
+                    color: i < filled
+                        ? (done
+                            ? const Color(0xff43a047)
+                            : const Color(0xffcaa24e))
+                        : const Color(0x33ffffff),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (waits.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+              l10n.guideWinningTiles(
+                  simpleChoices(report, count: 1).first.ukeire),
+              key: const Key('simpleGuideWaitsLabel'),
+              style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          const SizedBox(height: 3),
+          Wrap(
+            key: const Key('simpleGuideWaits'),
+            spacing: 3,
+            runSpacing: 3,
+            children: [
+              for (final t in waits) TileFace(type: t, size: TileSize.small),
+            ],
+          ),
+        ],
+        if (shortfall != MinimumShortfall.none) ...[
+          const SizedBox(height: 6),
+          Container(
+            key: const Key('simpleGuideShortfall'),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0x33ffa000),
+              border: Border.all(color: const Color(0xffffa000)),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(l10n.minimumShortfallTooltip(shortfall),
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 10, height: 1.3)),
+          ),
+        ],
+      ],
+    );
   }
 
   String _outlook(AppLocalizations l10n, DiscardLine line) =>
@@ -87,10 +190,7 @@ class SimpleGuideBody extends StatelessWidget {
       key: const Key('simpleGuide'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_status(l10n),
-            key: const Key('simpleGuideStatus'),
-            style: const TextStyle(
-                color: Colors.white70, fontSize: 12, height: 1.35)),
+        _meter(l10n),
         const SizedBox(height: 8),
         Container(
           key: const Key('simpleGuideBest'),

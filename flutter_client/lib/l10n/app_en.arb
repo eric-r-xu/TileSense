@@ -1387,15 +1387,6 @@
   "guideViewToFullTip": "Simple guide. Tap for the full table (shanten, EV, safety).",
   "guideViewToSimpleTip": "Full guide. Tap for the simple view.",
   "guideStatusComplete": "Your hand is complete!",
-  "guideStatusReady": "One discard away from waiting on a winning tile.",
-  "guideStatusSteps": "{n, plural, =1{1 step} other{{n} steps}} from waiting on a winning tile.",
-  "@guideStatusSteps": {
-    "placeholders": {
-      "n": {
-        "type": "int"
-      }
-    }
-  },
   "guideBestDiscard": "Best discard",
   "guideOtherChoices": "OTHER CHOICES",
   "guideOutlookWins": "Completes your hand!",
@@ -1448,5 +1439,21 @@
       }
     }
   },
-  "handPromptDiscard": "Your turn: tap a tile to discard it."
+  "handPromptDiscard": "Your turn: tap a tile to discard it.",
+  "guideAway": "{n, plural, =1{1 tile} other{{n} tiles}} away from winning",
+  "@guideAway": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "guideWinningTiles": "Winning tiles · {n} left",
+  "@guideWinningTiles": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }

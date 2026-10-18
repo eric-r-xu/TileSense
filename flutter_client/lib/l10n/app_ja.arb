@@ -682,8 +682,6 @@
   "guideViewToFullTip": "かんたんガイド。タップで詳細表（シャンテン・期待値・安全度）を表示。",
   "guideViewToSimpleTip": "詳細ガイド。タップでかんたん表示に切り替え。",
   "guideStatusComplete": "手牌が完成しました！",
-  "guideStatusReady": "あと1回の打牌で、あがり牌待ちになれます。",
-  "guideStatusSteps": "あがり牌待ちまで{n, plural, other{あと{n}歩}}。",
   "guideBestDiscard": "最善の打牌",
   "guideOtherChoices": "他の選択肢",
   "guideOutlookWins": "手牌が完成します！",
@@ -695,5 +693,7 @@
   "handPromptWin": "{tile}であがれます！「{call}」を押してください。",
   "handPromptTsumo": "手牌が完成しました！「{call}」を押してください。",
   "handPromptCall": "{tile}を {calls} できます。パスもできます。",
-  "handPromptDiscard": "あなたの番です。捨てる牌をタップしてください。"
+  "handPromptDiscard": "あなたの番です。捨てる牌をタップしてください。",
+  "guideAway": "あがりまであと{n, plural, other{{n}枚}}",
+  "guideWinningTiles": "あがり牌 · 残り{n}枚"
 }

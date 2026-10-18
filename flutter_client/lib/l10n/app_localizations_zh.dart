@@ -2251,19 +2251,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get guideStatusComplete => '你的牌已经凑齐了！';
 
   @override
-  String get guideStatusReady => '再打出一张牌，就能听牌了。';
-
-  @override
-  String guideStatusSteps(int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: '$n步',
-    );
-    return '离听牌还差$_temp0。';
-  }
-
-  @override
   String get guideBestDiscard => '最佳打牌';
 
   @override
@@ -2318,6 +2305,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get handPromptDiscard => '轮到你了：点击一张牌打出。';
+
+  @override
+  String guideAway(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n张',
+    );
+    return '离胡牌还差$_temp0';
+  }
+
+  @override
+  String guideWinningTiles(int n) {
+    return '能胡的牌 · 还剩$n张';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4567,19 +4569,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get guideStatusComplete => '你的牌已經湊齊了！';
 
   @override
-  String get guideStatusReady => '再打出一張牌，就能叫糊了。';
-
-  @override
-  String guideStatusSteps(int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: '$n步',
-    );
-    return '離叫糊還差$_temp0。';
-  }
-
-  @override
   String get guideBestDiscard => '最佳打牌';
 
   @override
@@ -4634,4 +4623,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get handPromptDiscard => '輪到你了：點擊一張牌打出。';
+
+  @override
+  String guideAway(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n張',
+    );
+    return '離食糊還差$_temp0';
+  }
+
+  @override
+  String guideWinningTiles(int n) {
+    return '能食糊的牌 · 還剩$n張';
+  }
 }
