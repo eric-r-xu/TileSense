@@ -1470,6 +1470,7 @@
   "glossaryDefPair": "Two identical tiles. A winning hand is four sets and exactly one pair.",
   "glossaryDefChi": "Claim another player's discard to finish a run of three in one suit. Only from the player on your left; the set is then shown face up.",
   "glossaryDefPon": "Claim a discard that matches two tiles in your hand, from any player, to make three of a kind. The set is shown face up.",
+  "glossaryDefKan": "Four identical tiles. You then draw a replacement tile from the end of the wall.",
   "glossaryTermDiscard": "Discard",
   "glossaryDefDiscard": "The tile you throw away at the end of your turn, face up in front of you. Other players may be able to claim it.",
   "glossaryDefTsumo": "Winning on a tile you drew yourself.",
