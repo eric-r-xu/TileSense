@@ -86,3 +86,17 @@ root, with the runbook in
 - [`BOT_STRATEGY.md`](BOT_STRATEGY.md) — a plain-language comparison of the
   opponents' `SimpleBot` heuristic against that guide, and every measured
   result behind the defaults.
+
+## Browser tests (Playwright)
+
+`e2e/` holds Playwright smoke tests that run against the release web build.
+CanvasKit draws to a canvas, so tests enable Flutter's semantics tree and
+select widgets by `Semantics(identifier:)` (see `lib/ui/e2e_id.dart`).
+
+```sh
+cd e2e
+npm install
+npx playwright install chromium
+npm run build   # flutter build web, no service worker, offline MP endpoint
+npm test        # or: npm run test:ui
+```

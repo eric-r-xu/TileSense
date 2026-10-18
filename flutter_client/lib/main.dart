@@ -29,6 +29,7 @@ import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/bar_back_button.dart';
 import 'ui/beginner_guide.dart' show BeginnerGuide;
 import 'ui/character_select_page.dart';
+import 'ui/e2e_id.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/glossary.dart';
@@ -822,14 +823,17 @@ class _PracticeButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-        key: const Key('practiceLink'),
-        onPressed: onPressed,
-        icon: const Icon(Icons.fitness_center, size: 18),
-        label: Text(context.l10n.practiceLink),
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xff80cbc4),
-          textStyle: const TextStyle(fontSize: 14),
+  Widget build(BuildContext context) => e2eId(
+        'practiceLink',
+        TextButton.icon(
+          key: const Key('practiceLink'),
+          onPressed: onPressed,
+          icon: const Icon(Icons.fitness_center, size: 18),
+          label: Text(context.l10n.practiceLink),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xff80cbc4),
+            textStyle: const TextStyle(fontSize: 14),
+          ),
         ),
       );
 }
@@ -841,14 +845,17 @@ class _GlossaryButton extends StatelessWidget {
   final Ruleset ruleset;
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-        key: const Key('glossaryLink'),
-        onPressed: () => showGlossary(context, ruleset),
-        icon: const Icon(Icons.help_outline, size: 18),
-        label: Text(context.l10n.glossaryTitle),
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xff80cbc4),
-          textStyle: const TextStyle(fontSize: 14),
+  Widget build(BuildContext context) => e2eId(
+        'glossaryLink',
+        TextButton.icon(
+          key: const Key('glossaryLink'),
+          onPressed: () => showGlossary(context, ruleset),
+          icon: const Icon(Icons.help_outline, size: 18),
+          label: Text(context.l10n.glossaryTitle),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xff80cbc4),
+            textStyle: const TextStyle(fontSize: 14),
+          ),
         ),
       );
 }

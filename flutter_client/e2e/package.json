@@ -1,0 +1,15 @@
+{
+  "name": "tilesense-e2e",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && flutter build web --release --pwa-strategy=none --dart-define=MP_ENDPOINT=ws://127.0.0.1:9",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/node": "^22.10.0",
+    "serve": "14.2.4",
+    "typescript": "^5.7.0"
+  }
+}
