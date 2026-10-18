@@ -2181,6 +2181,145 @@ class AppLocalizationsZh extends AppLocalizations {
   String sichuanScoreTotal(int fan, int value) {
     return '$fan番 · 牌值$value分';
   }
+
+  @override
+  String get learnToPlay => '新手教学';
+
+  @override
+  String get learnNewLink => '第一次玩麻将？看看怎么玩';
+
+  @override
+  String learnStepOf(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get learnNext => '下一步';
+
+  @override
+  String get learnSkip => '跳过';
+
+  @override
+  String get learnDone => '开始游戏';
+
+  @override
+  String get learnGoalTitle => '目标';
+
+  @override
+  String get learnGoalBody =>
+      '凑成14张牌的手牌：四组牌加一对将。每回合摸一张牌、打出一张牌，一步步凑成这个牌型。最先凑成的人赢下这一局。';
+
+  @override
+  String get learnTilesTitle => '牌的种类';
+
+  @override
+  String get learnTilesBody =>
+      '有三种花色，数字1到9（万子、筒子、条子），另有四种风牌和三种箭牌。部分规则（例如香港麻将）还加入花牌：花牌带来奖励番数，并从牌墙补牌。';
+
+  @override
+  String get learnSetsTitle => '牌组与吃碰杠';
+
+  @override
+  String get learnSetsBody =>
+      '一组牌可以是同花色的三张顺子（上），三张相同的牌（碰），或四张相同的牌（杠）。你可以要别人打出的牌来完成一组，但“上”只能要上家（左手边）的牌。要来的牌组要亮在桌面上。';
+
+  @override
+  String get learnWinTitle => '胡牌';
+
+  @override
+  String get learnWinBodyHongKong =>
+      '凑齐四组牌和一对将，无论是自己摸到最后一张，还是要别人打出的牌，就胡牌了。默认最低0番，所以只要牌型完整，再简单的牌也能胡。牌桌上的提示会告诉你离胡牌还差几张。';
+
+  @override
+  String learnWinBodyOther(String rules) {
+    return '凑齐四组牌和一对将，并且满足$rules自己的要求，就能胡牌。牌桌上的提示会告诉你离胡牌还差几张。';
+  }
+
+  @override
+  String get guideViewSimple => '简单';
+
+  @override
+  String get guideViewFull => '完整';
+
+  @override
+  String get guideViewToFullTip => '简单提示。点击查看完整表格（向听、期望值、安全度）。';
+
+  @override
+  String get guideViewToSimpleTip => '完整提示。点击切换为简单视图。';
+
+  @override
+  String get guideStatusComplete => '你的牌已经凑齐了！';
+
+  @override
+  String get guideBestDiscard => '最佳打牌';
+
+  @override
+  String get guideOtherChoices => '其他选择';
+
+  @override
+  String get guideOutlookWins => '凑齐你的手牌！';
+
+  @override
+  String guideOutlookWaiting(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n张',
+    );
+    return '打出后听$_temp0牌就能胡。';
+  }
+
+  @override
+  String guideOutlookOnTrack(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n张',
+    );
+    return '保持进度，还有$_temp0有用的牌。';
+  }
+
+  @override
+  String get guideOutlookFurther => '会让你离胡牌更远。';
+
+  @override
+  String get guideCallTake => '提示会要这张牌。';
+
+  @override
+  String get guideCallPass => '提示会放过这张牌。';
+
+  @override
+  String handPromptWin(String tile, String call) {
+    return '你可以用$tile胡牌！点击“$call”。';
+  }
+
+  @override
+  String handPromptTsumo(String call) {
+    return '你的牌已凑齐！点击“$call”。';
+  }
+
+  @override
+  String handPromptCall(String tile, String calls) {
+    return '你可以$calls$tile，也可以放过。';
+  }
+
+  @override
+  String get handPromptDiscard => '轮到你了：点击一张牌打出。';
+
+  @override
+  String guideAway(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n张',
+    );
+    return '离胡牌还差$_temp0';
+  }
+
+  @override
+  String guideWinningTiles(int n) {
+    return '能胡的牌 · 还剩$n张';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4359,5 +4498,144 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String sichuanScoreTotal(int fan, int value) {
     return '$fan番 · 牌值$value分';
+  }
+
+  @override
+  String get learnToPlay => '新手教學';
+
+  @override
+  String get learnNewLink => '第一次玩麻將？看看怎麼玩';
+
+  @override
+  String learnStepOf(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get learnNext => '下一步';
+
+  @override
+  String get learnSkip => '跳過';
+
+  @override
+  String get learnDone => '開始遊戲';
+
+  @override
+  String get learnGoalTitle => '目標';
+
+  @override
+  String get learnGoalBody =>
+      '湊成14張牌的手牌：四組牌加一對將。每回合摸一張牌、打出一張牌，一步步湊成這個牌型。最先湊成的人贏下這一局。';
+
+  @override
+  String get learnTilesTitle => '牌的種類';
+
+  @override
+  String get learnTilesBody =>
+      '有三種花色，數字1到9（萬子、筒子、條子），另有四種風牌和三種箭牌。部分規則（例如香港麻雀）還加入花牌：花牌帶來獎勵番數，並從牌牆補牌。';
+
+  @override
+  String get learnSetsTitle => '牌組與吃碰槓';
+
+  @override
+  String get learnSetsBody =>
+      '一組牌可以是同花色的三張順子（上），三張相同的牌（碰），或四張相同的牌（槓）。你可以要別人打出的牌來完成一組，但「上」只能要上家（左手邊）的牌。要來的牌組要亮在桌面上。';
+
+  @override
+  String get learnWinTitle => '食糊';
+
+  @override
+  String get learnWinBodyHongKong =>
+      '湊齊四組牌和一對將，無論是自己摸到最後一張，還是要別人打出的牌，就食糊了。預設最低0番，所以只要牌型完整，再簡單的牌也能食糊。牌桌上的提示會告訴你離食糊還差幾張。';
+
+  @override
+  String learnWinBodyOther(String rules) {
+    return '湊齊四組牌和一對將，並且滿足$rules自己的要求，就能食糊。牌桌上的提示會告訴你離食糊還差幾張。';
+  }
+
+  @override
+  String get guideViewSimple => '簡單';
+
+  @override
+  String get guideViewFull => '完整';
+
+  @override
+  String get guideViewToFullTip => '簡單提示。點擊查看完整表格（向聽、期望值、安全度）。';
+
+  @override
+  String get guideViewToSimpleTip => '完整提示。點擊切換為簡單檢視。';
+
+  @override
+  String get guideStatusComplete => '你的牌已經湊齊了！';
+
+  @override
+  String get guideBestDiscard => '最佳打牌';
+
+  @override
+  String get guideOtherChoices => '其他選擇';
+
+  @override
+  String get guideOutlookWins => '湊齊你的手牌！';
+
+  @override
+  String guideOutlookWaiting(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n張',
+    );
+    return '打出後聽$_temp0牌就能食糊。';
+  }
+
+  @override
+  String guideOutlookOnTrack(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n張',
+    );
+    return '保持進度，還有$_temp0有用的牌。';
+  }
+
+  @override
+  String get guideOutlookFurther => '會讓你離食糊更遠。';
+
+  @override
+  String get guideCallTake => '提示會要這張牌。';
+
+  @override
+  String get guideCallPass => '提示會放過這張牌。';
+
+  @override
+  String handPromptWin(String tile, String call) {
+    return '你可以用$tile食糊！點擊「$call」。';
+  }
+
+  @override
+  String handPromptTsumo(String call) {
+    return '你的牌已湊齊！點擊「$call」。';
+  }
+
+  @override
+  String handPromptCall(String tile, String calls) {
+    return '你可以$calls$tile，也可以放過。';
+  }
+
+  @override
+  String get handPromptDiscard => '輪到你了：點擊一張牌打出。';
+
+  @override
+  String guideAway(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n張',
+    );
+    return '離食糊還差$_temp0';
+  }
+
+  @override
+  String guideWinningTiles(int n) {
+    return '能食糊的牌 · 還剩$n張';
   }
 }

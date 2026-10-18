@@ -511,6 +511,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(find.byKey(const Key('builderMenuRandom')));
       await tester.pump(const Duration(milliseconds: 500));
+      // The builder opens on the app's default, Hong Kong; these chips are
+      // Riichi's.
+      (tester.widget<TableView>(find.byType(TableView)).game
+              as ScenarioController)
+          .setRuleset(Ruleset.riichi);
+      await tester.pump(const Duration(milliseconds: 100));
 
       Size chip(Finder label) => tester.getSize(
           find.ancestor(of: label, matching: find.byType(InkWell)).first);

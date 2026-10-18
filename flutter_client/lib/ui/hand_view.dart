@@ -11,6 +11,7 @@ import '../main.dart' show isPhoneLayout;
 import 'package:mahjong_core/mjai.dart' show mjaiTile;
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
+import 'beginner_guide.dart';
 import 'meld_row.dart';
 import 'phone_menu.dart' show PhoneMenuButton;
 import 'table_view.dart' show CountdownBadge, kMinimumShortfallColor;
@@ -104,8 +105,35 @@ class _HandViewState extends State<HandView> {
 
   TableGameHost get game => widget.game;
 
+  @override
+  void initState() {
+    super.initState();
+    BeginnerGuide.on.addListener(_viewChanged);
+  }
+
+  @override
+  void dispose() {
+    BeginnerGuide.on.removeListener(_viewChanged);
+    super.dispose();
+  }
+
+  void _viewChanged() => setState(() {});
+
+  /// Whether the beginner help is on: the one-line prompt, and a glow on the
+  /// tiles a call would use. It comes with the simple guide, offline, and
+  /// goes when the guide is hidden, like the other hints.
+  bool get _beginnerHelp =>
+      widget.showGuide &&
+      widget.onToggleGuide != null &&
+      BeginnerGuide.on.value;
+
   static const _yellow = Color(0xffffd54f);
   static const _green = Color(0xff43a047);
+  static const _callGlow = Color(0xff26c6da);
+
+  /// The height reserved for the prompt line while beginner help is on, so
+  /// the tiles below never shift as the prompt comes and goes.
+  static const double _promptHeight = 22;
 
   /// Tint on the tiles of your void suit while they must go first.
   static const _voidRed = Color(0xffef9a9a);
@@ -243,6 +271,8 @@ class _HandViewState extends State<HandView> {
     // Sichuan: while any tile of the void suit is held, it is the only thing
     // that may be discarded, so everything else is dimmed and cannot be tapped.
     final voidFirst = round.ruleset.isSichuan && round.mustDiscardVoid(kHumanSeat);
+    final callTileIds = _beginnerHelp ? _callTileIds() : const <int>{};
+
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
       final isVoidTile = voidFirst && tile.type.suit == seat.voidSuit;
@@ -254,7 +284,11 @@ class _HandViewState extends State<HandView> {
       final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = isTop
           ? _green
-          : (isDrawn ? _yellow : (isVoidTile && canPlay ? _voidRed : null));
+          : (isDrawn
+              ? _yellow
+              : (isVoidTile && canPlay
+                  ? _voidRed
+                  : (callTileIds.contains(tile.id) ? _callGlow : null)));
       final Color? border = (isDrawn && isTop) ? _yellow : null;
       final raised = tappable && tile.id == _selectedTileId;
       final starred = tappable &&
@@ -403,6 +437,7 @@ class _HandViewState extends State<HandView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _actionBar(context),
+          if (_beginnerHelp) _prompt(context),
           const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -754,6 +789,76 @@ class _HandViewState extends State<HandView> {
     } else {
       game.humanDiscard(tile);
     }
+  }
+
+  /// The tiles in hand a pending call would use: the matching pair or triple
+  /// for a pon or kan, and the neighbours that make each run for a chi.
+  Set<int> _callTileIds() {
+    final pending = game.round.pendingDiscard;
+    final option = game.humanCallOption;
+    if (!game.awaitingHumanCall || pending == null || option == null) {
+      return const {};
+    }
+    final types = <TileType>{
+      if (option.types.contains(CallType.pon) ||
+          option.types.contains(CallType.kan))
+        pending.type,
+      if (option.types.contains(CallType.chi))
+        for (final low in game.humanChiRuns)
+          for (var i = 0; i < 3; i++)
+            if (TileType.values[low.index + i] != pending.type)
+              TileType.values[low.index + i],
+    };
+    return {
+      for (final t in game.round.seats[kHumanSeat].hand)
+        if (types.contains(t.type)) t.id,
+    };
+  }
+
+  /// What you can do right now, in one plain sentence; null when there is
+  /// nothing to say.
+  String? _promptText(AppLocalizations l10n) {
+    final ruleset = game.round.ruleset;
+    if (game.awaitingHumanCall) {
+      final option = game.humanCallOption;
+      final pending = game.round.pendingDiscard;
+      if (option == null || pending == null) return null;
+      final tile = l10n.tileDisplayName(pending.type);
+      if (option.types.contains(CallType.ron)) {
+        return l10n.handPromptWin(tile, l10n.callLabel(CallType.ron, ruleset));
+      }
+      final calls = [
+        for (final t in [CallType.kan, CallType.pon, CallType.chi])
+          if (option.types.contains(t)) l10n.callLabel(t, ruleset),
+      ];
+      if (calls.isEmpty) return null;
+      return l10n.handPromptCall(tile, calls.join(' / '));
+    }
+    if (!game.isHumanTurn) return null;
+    if (game.humanCanTsumo) {
+      return l10n.handPromptTsumo(l10n.tsumoLabel(ruleset));
+    }
+    return l10n.handPromptDiscard;
+  }
+
+  Widget _prompt(BuildContext context) {
+    final text = _promptText(context.l10n);
+    return SizedBox(
+      height: _promptHeight,
+      width: double.infinity,
+      child: text == null
+          ? null
+          : Center(
+              child: Text(
+                text,
+                key: const Key('handPrompt'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Color(0xffb2ebf2), fontSize: 14, height: 1.2),
+              ),
+            ),
+    );
   }
 
   Widget _actionBar(BuildContext context) {

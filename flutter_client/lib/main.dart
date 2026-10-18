@@ -30,6 +30,7 @@ import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/language_button.dart';
+import 'ui/learn_to_play_page.dart';
 import 'ui/online_page.dart' deferred as online;
 import 'ui/phone_menu.dart';
 import 'ui/ruleset_badge.dart';
@@ -682,6 +683,25 @@ class _FixedCanvasState extends State<_FixedCanvas> {
 /// the app is installed (there is no browser chrome left to hide). Where the
 /// browser has no fullscreen API (iPhone Safari) it explains how to install
 /// the app instead.
+/// The welcome screen's way back into the first-run lesson.
+class _LearnButton extends StatelessWidget {
+  const _LearnButton(this.onPressed);
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+        key: const Key('learnToPlay'),
+        onPressed: onPressed,
+        icon: const Icon(Icons.school_outlined, size: 18),
+        label: Text(context.l10n.learnNewLink),
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xff80cbc4),
+          textStyle: const TextStyle(fontSize: 14),
+        ),
+      );
+}
+
 class _FullscreenButton extends StatefulWidget {
   const _FullscreenButton();
 
@@ -945,13 +965,18 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   GameController? _controller;
   GameController get _game => _controller!;
-  Ruleset _selectedRuleset = Ruleset.riichi;
+  Ruleset _selectedRuleset = Ruleset.hongKong;
   final List<Character> _characters = List.of(kSeatCharacters);
   int _startingDealer = 0;
   bool _hanchan = true;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
   int _minimumPoints = TaiwaneseRules.defaultMinimumPoints;
   bool _startingGame = false;
+  // The first-run lesson is showing; [_learningThenStart] says whether
+  // finishing it carries on to character select (it came from Start) or
+  // back to the welcome screen (it came from the Learn to play link).
+  bool _learning = false;
+  bool _learningThenStart = false;
   bool _startFailed = false;
   int _startRequest = 0;
   // Off by default so a new player sees the plain table first; the TileSensor
@@ -1227,6 +1252,17 @@ class _GamePageState extends State<GamePage> {
       );
     }
     if (_showWelcome) {
+      if (_learning) {
+        return LearnToPlayPage(
+          ruleset: _selectedRuleset,
+          onBack: () => setState(() => _learning = false),
+          onFinish: () => setState(() {
+            LearnToPlay.markSeen();
+            _learning = false;
+            _choosingCharacters = _learningThenStart;
+          }),
+        );
+      }
       if (_choosingCharacters) {
         return CharacterSelectPage(
           seatCharacters: _characters,
@@ -1258,7 +1294,19 @@ class _GamePageState extends State<GamePage> {
       return _WelcomeScreen(
         ruleset: _selectedRuleset,
         onRuleset: (r) => setState(() => _selectedRuleset = r),
-        onStart: () => setState(() => _choosingCharacters = true),
+        onStart: () => setState(() {
+          // A first-time player gets the lesson before choosing characters.
+          if (LearnToPlay.shouldAutoShow) {
+            _learning = true;
+            _learningThenStart = true;
+          } else {
+            _choosingCharacters = true;
+          }
+        }),
+        onLearn: () => setState(() {
+          _learning = true;
+          _learningThenStart = false;
+        }),
         onBuild: () => setState(() {
           _builderWind = Wind.values[randomStartingDealer()];
           _showBuilder = true;
@@ -1651,6 +1699,7 @@ class _WelcomeScreen extends StatelessWidget {
     required this.ruleset,
     required this.onRuleset,
     required this.onStart,
+    required this.onLearn,
     required this.onBuild,
     required this.onPlayOnline,
     this.rejoinCode,
@@ -1662,6 +1711,9 @@ class _WelcomeScreen extends StatelessWidget {
   final ValueChanged<Ruleset> onRuleset;
 
   final VoidCallback onStart;
+
+  /// Opens the Learn to play lesson.
+  final VoidCallback onLearn;
 
   /// Opens the Custom Hand & Context Builder — a posed table, scored by the
   /// same guide, with no game running behind it.
@@ -1816,9 +1868,13 @@ class _WelcomeScreen extends StatelessWidget {
                     const SizedBox(height: 18),
                     _rulesetChoice(context),
                     const SizedBox(height: 10),
-                    const Row(
+                    Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [_FullscreenButton(), _UpdateButton()],
+                      children: [
+                        const _FullscreenButton(),
+                        const _UpdateButton(),
+                        _LearnButton(onLearn),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     // Scales down rather than overflowing if a wide default font

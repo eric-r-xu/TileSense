@@ -4072,6 +4072,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{fan} fan · hand value {value}'**
   String sichuanScoreTotal(int fan, int value);
+
+  /// No description provided for @learnToPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn to play'**
+  String get learnToPlay;
+
+  /// No description provided for @learnNewLink.
+  ///
+  /// In en, this message translates to:
+  /// **'New to mahjong? Learn to play'**
+  String get learnNewLink;
+
+  /// No description provided for @learnStepOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total}'**
+  String learnStepOf(int current, int total);
+
+  /// No description provided for @learnNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get learnNext;
+
+  /// No description provided for @learnSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get learnSkip;
+
+  /// No description provided for @learnDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s play'**
+  String get learnDone;
+
+  /// No description provided for @learnGoalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The goal'**
+  String get learnGoalTitle;
+
+  /// No description provided for @learnGoalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a hand of 14 tiles made of four sets plus one pair. Each turn you draw a tile and discard one, working toward that shape. The first player to complete it wins the hand.'**
+  String get learnGoalBody;
+
+  /// No description provided for @learnTilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The tiles'**
+  String get learnTilesTitle;
+
+  /// No description provided for @learnTilesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There are three suits numbered 1 to 9 (characters, dots and bamboo), plus four winds and three dragons. Some rulesets, Hong Kong among them, add flower tiles: they score a bonus and are replaced from the wall.'**
+  String get learnTilesBody;
+
+  /// No description provided for @learnSetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets and calls'**
+  String get learnSetsTitle;
+
+  /// No description provided for @learnSetsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A set is a run of three in one suit (a chow), three identical tiles (a pong), or four identical tiles (a kong). You can claim another player\'s discard to finish a set, and a chow only from the player on your left. A claimed set is shown face up.'**
+  String get learnSetsBody;
+
+  /// No description provided for @learnWinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Winning'**
+  String get learnWinTitle;
+
+  /// No description provided for @learnWinBodyHongKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete four sets and a pair, by drawing the last tile yourself or claiming a discard, and you win. With the default minimum of 0 faan, any complete hand wins, even the simplest. The guide at the table shows how far you are from a win.'**
+  String get learnWinBodyHongKong;
+
+  /// No description provided for @learnWinBodyOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete four sets and a pair to win, as long as the hand also meets {rules}\'s own requirements. The guide at the table shows how far you are from a win.'**
+  String learnWinBodyOther(String rules);
+
+  /// No description provided for @guideViewSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get guideViewSimple;
+
+  /// No description provided for @guideViewFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get guideViewFull;
+
+  /// No description provided for @guideViewToFullTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple guide. Tap for the full table (shanten, EV, safety).'**
+  String get guideViewToFullTip;
+
+  /// No description provided for @guideViewToSimpleTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Full guide. Tap for the simple view.'**
+  String get guideViewToSimpleTip;
+
+  /// No description provided for @guideStatusComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hand is complete!'**
+  String get guideStatusComplete;
+
+  /// No description provided for @guideBestDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Best discard'**
+  String get guideBestDiscard;
+
+  /// No description provided for @guideOtherChoices.
+  ///
+  /// In en, this message translates to:
+  /// **'OTHER CHOICES'**
+  String get guideOtherChoices;
+
+  /// No description provided for @guideOutlookWins.
+  ///
+  /// In en, this message translates to:
+  /// **'Completes your hand!'**
+  String get guideOutlookWins;
+
+  /// No description provided for @guideOutlookWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaves you waiting for {n, plural, =1{1 tile} other{{n} tiles}} to win.'**
+  String guideOutlookWaiting(int n);
+
+  /// No description provided for @guideOutlookOnTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Keeps you on track, with {n, plural, =1{1 helpful tile} other{{n} helpful tiles}} left.'**
+  String guideOutlookOnTrack(int n);
+
+  /// No description provided for @guideOutlookFurther.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves you further from winning.'**
+  String get guideOutlookFurther;
+
+  /// No description provided for @guideCallTake.
+  ///
+  /// In en, this message translates to:
+  /// **'The guide would claim this tile.'**
+  String get guideCallTake;
+
+  /// No description provided for @guideCallPass.
+  ///
+  /// In en, this message translates to:
+  /// **'The guide would pass on this tile.'**
+  String get guideCallPass;
+
+  /// No description provided for @handPromptWin.
+  ///
+  /// In en, this message translates to:
+  /// **'You can win with the {tile}! Tap {call}.'**
+  String handPromptWin(String tile, String call);
+
+  /// No description provided for @handPromptTsumo.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hand is complete! Tap {call}.'**
+  String handPromptTsumo(String call);
+
+  /// No description provided for @handPromptCall.
+  ///
+  /// In en, this message translates to:
+  /// **'You can {calls} the {tile}, or pass.'**
+  String handPromptCall(String tile, String calls);
+
+  /// No description provided for @handPromptDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn: tap a tile to discard it.'**
+  String get handPromptDiscard;
+
+  /// No description provided for @guideAway.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 tile} other{{n} tiles}} away from winning'**
+  String guideAway(int n);
+
+  /// No description provided for @guideWinningTiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Winning tiles · {n} left'**
+  String guideWinningTiles(int n);
 }
 
 class _AppLocalizationsDelegate

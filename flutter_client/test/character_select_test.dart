@@ -134,6 +134,10 @@ void main() {
       return b.style!.side!.resolve({})!.width == 2;
     }
 
+    expect(selected('minimumFaan_0'), isTrue,
+        reason: 'Hong Kong, with a 0 minimum, is the default');
+    await tester.tap(find.byKey(const Key('startRuleset_riichi')));
+    await tester.pump();
     expect(find.byKey(const Key('minimumFaan_0')), findsNothing,
         reason: 'riichi has no faan minimum to pick');
     await tester.tap(find.byKey(const Key('startRuleset_hongKong')));
