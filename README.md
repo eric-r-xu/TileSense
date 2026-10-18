@@ -333,9 +333,9 @@ helped improve TileSense.
   especially on mobile.
 - **Helen W**: for testing multiplayer from China and spotting slow home-screen
   loading, which prompted audio caching that cut startup time.
-- **Vilay K**: for suggesting a slower pace of play, which directly inspired the implementation of pauses between calls and an adjustable bot speed. Together with Robert K, they influenced me to include the `Learn to Play` module to help onboard new players and to default new players to the Hong Kong 0 point minimum.
+- **Vilay K**: for suggesting a slower pace of play, which directly inspired the pauses between calls and the adjustable bot speed. Vilay K's feedback, together with Robert K's, also shaped the `Learn to Play` module and the decision to start new players on the Hong Kong 0-point minimum.
 - **Mark G**: for recommending [Flutter](https://flutter.dev/), Google’s amazing open-source framework for building apps, enabling more consistent UI across devices and operating systems while at the same time reducing duplicate code and enhancing maintainability.
-- **Robert K**: as a newcomer to mahjong, their suggestion to include a `Learn to Play` section was appreciated to help onboarding new players.
+- **Robert K**: for sharing a newcomer's perspective on mahjong, which led to the `Learn to Play` module for onboarding new players.
 
 Thank you to everyone else who shared feedback. If I've missed you and you'd like
 to be credited, please get in touch.
