@@ -349,8 +349,9 @@ void main() {
     testWidgets('the bar names the rules in play at its top right',
         (tester) async {
       for (final (ruleset, label) in [
-        (null, '🇯🇵'),
-        ('hongKong', '🇭🇰'), // no minimum by default
+        ('riichi', '🇯🇵'),
+        (null, '🇭🇰'), // Hong Kong is the default, with no minimum
+        ('hongKong', '🇭🇰'),
         ('taiwanese', '🇹🇼 5 tai'),
       ]) {
         await startGame(tester, size: iPhone, ruleset: ruleset);

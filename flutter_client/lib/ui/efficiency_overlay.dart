@@ -17,6 +17,7 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import '../main.dart' show brainColor;
 import 'ev_explainer_dialog.dart';
+import 'beginner_guide.dart';
 import 'tile_face.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
@@ -52,6 +53,23 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   TileType? _yakuDiscard;
 
   @override
+  void initState() {
+    super.initState();
+    BeginnerGuide.on.addListener(_viewChanged);
+  }
+
+  @override
+  void dispose() {
+    BeginnerGuide.on.removeListener(_viewChanged);
+    super.dispose();
+  }
+
+  void _viewChanged() => setState(() {});
+
+  /// Whether the simple view is showing: no tables, odds or jargon.
+  bool get _simple => BeginnerGuide.on.value;
+
+  @override
   Widget build(BuildContext context) {
     final r = widget.report;
     // 380 was wide enough for the table before the Placement column; with it
@@ -77,7 +95,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             _header(r),
             if (!_minimized) ...[
               if (widget.game case final TableGameHost game
-                  when game.mortalAvailable)
+                  when game.mortalAvailable && !_simple)
                 _brainRow(game),
               const SizedBox(height: 8),
               if (widget.game.awaitingHumanCall) _callAdvice(),
@@ -86,11 +104,14 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _kanReason(),
-                      if (!widget.game.awaitingHumanCall) _mortalLine(),
+                      if (!_simple) _kanReason(),
+                      if (!widget.game.awaitingHumanCall && !_simple)
+                        _mortalLine(),
                       if (r.lines.isEmpty)
                         Text(r.headline ?? 'Waiting…',
                             style: const TextStyle(color: Colors.white70))
+                      else if (_simple)
+                        SimpleGuideBody(report: r)
                       else ...[
                         if (r.tenpai) _planReason(r.lines.first),
                         if (r.defending &&
@@ -266,6 +287,31 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     );
   }
 
+  /// Flips between the simple view and the full table.
+  Widget _viewChip() {
+    final l10n = context.l10n;
+    return Tooltip(
+      message: _simple ? l10n.guideViewToFullTip : l10n.guideViewToSimpleTip,
+      child: InkWell(
+        key: const Key('guideViewToggle'),
+        borderRadius: BorderRadius.circular(4),
+        onTap: () => BeginnerGuide.set(!_simple),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xff80cbc4)),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            _simple ? l10n.guideViewSimple : l10n.guideViewFull,
+            style: const TextStyle(color: Color(0xff80cbc4), fontSize: 10),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _header(EfficiencyReport r) {
     return InkWell(
       onTap: () => setState(() => _minimized = !_minimized),
@@ -292,7 +338,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               _guideTip(),
             ),
           ),
-          if (r.recommendRiichi && !_minimized)
+          if (r.recommendRiichi && !_minimized && !_simple)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
@@ -302,7 +348,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               child: const Text('RIICHI',
                   style: TextStyle(color: Colors.white, fontSize: 10)),
             ),
-          if (_topPlan(r) == 'DAMATEN' && !_minimized)
+          if (_topPlan(r) == 'DAMATEN' && !_minimized && !_simple)
             Container(
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -313,7 +359,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               child: const Text('DAMATEN',
                   style: TextStyle(color: Colors.white, fontSize: 10)),
             ),
-          if ((widget.game.kanAdvice?.advice.eligible ?? false) && !_minimized)
+          if ((widget.game.kanAdvice?.advice.eligible ?? false) &&
+              !_minimized &&
+              !_simple)
             Container(
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -324,6 +372,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               child: Text(widget.game.round.ruleset.kanLabel.toUpperCase(),
                   style: const TextStyle(color: Colors.white, fontSize: 10)),
             ),
+          if (!_minimized) _viewChip(),
           Icon(_minimized ? Icons.expand_more : Icons.expand_less,
               size: 16, color: Colors.white54),
         ],
@@ -389,11 +438,21 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             ],
           ),
           const SizedBox(height: 2),
-          Text('Options: $offered',
-              style: const TextStyle(color: Colors.white54, fontSize: 10)),
-          _mortalLine(),
+          if (_simple)
+            Text(
+                act
+                    ? context.l10n.guideCallTake
+                    : context.l10n.guideCallPass,
+                key: const Key('simpleGuideCall'),
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 11, height: 1.3))
+          else ...[
+            Text('Options: $offered',
+                style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            _mortalLine(),
+          ],
           if (widget.game.recommendedCallReason case final why?
-              when why.isNotEmpty) ...[
+              when why.isNotEmpty && !_simple) ...[
             const SizedBox(height: 3),
             Text(why,
                 style: const TextStyle(

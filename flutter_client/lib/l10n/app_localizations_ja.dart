@@ -2197,4 +2197,141 @@ class AppLocalizationsJa extends AppLocalizations {
   String sichuanScoreTotal(int fan, int value) {
     return '$fan翻 · $value点';
   }
+
+  @override
+  String get learnToPlay => '遊び方';
+
+  @override
+  String get learnNewLink => '麻雀は初めて？ 遊び方を見る';
+
+  @override
+  String learnStepOf(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get learnNext => '次へ';
+
+  @override
+  String get learnSkip => 'スキップ';
+
+  @override
+  String get learnDone => '始めよう';
+
+  @override
+  String get learnGoalTitle => '目標';
+
+  @override
+  String get learnGoalBody =>
+      '4つの面子と1つの雀頭、合わせて14枚の手牌を作ります。毎巡、牌を1枚引いて1枚捨て、その形に近づけていきます。最初に完成させた人がその局の勝者です。';
+
+  @override
+  String get learnTilesTitle => '牌の種類';
+
+  @override
+  String get learnTilesBody =>
+      '1から9までの数牌が3種類（萬子・筒子・索子）、それに風牌4種と三元牌3種があります。香港麻雀など一部のルールでは花牌が加わり、ボーナス点になり、山から補充されます。';
+
+  @override
+  String get learnSetsTitle => '面子と鳴き';
+
+  @override
+  String get learnSetsBody =>
+      '面子とは、同じ種類の数牌3枚の並び（チー）、同じ牌3枚（ポン）、同じ牌4枚（カン）のことです。他のプレイヤーの捨て牌をもらって面子を完成させられますが、チーできるのは左隣の人の牌だけです。もらった面子は表向きに置きます。';
+
+  @override
+  String get learnWinTitle => '和了（あがり）';
+
+  @override
+  String get learnWinBodyHongKong =>
+      '4つの面子と雀頭を完成させると、最後の牌を自分で引いても他家の捨て牌をもらってもあがりです。初期設定の最低0翻なら、どんなに簡単な手でも完成すればあがれます。卓のガイドが、あがりまであと何枚かを教えてくれます。';
+
+  @override
+  String learnWinBodyOther(String rules) {
+    return '4つの面子と雀頭を完成させ、さらに$rulesの条件を満たせばあがりです。卓のガイドが、あがりまであと何枚かを教えてくれます。';
+  }
+
+  @override
+  String get guideViewSimple => 'かんたん';
+
+  @override
+  String get guideViewFull => '詳細';
+
+  @override
+  String get guideViewToFullTip => 'かんたんガイド。タップで詳細表（シャンテン・期待値・安全度）を表示。';
+
+  @override
+  String get guideViewToSimpleTip => '詳細ガイド。タップでかんたん表示に切り替え。';
+
+  @override
+  String get guideStatusComplete => '手牌が完成しました！';
+
+  @override
+  String get guideStatusReady => 'あと1回の打牌で、あがり牌待ちになれます。';
+
+  @override
+  String guideStatusSteps(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'あと$n歩',
+    );
+    return 'あがり牌待ちまで$_temp0。';
+  }
+
+  @override
+  String get guideBestDiscard => '最善の打牌';
+
+  @override
+  String get guideOtherChoices => '他の選択肢';
+
+  @override
+  String get guideOutlookWins => '手牌が完成します！';
+
+  @override
+  String guideOutlookWaiting(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n枚',
+    );
+    return 'あがり牌$_temp0待ちになります。';
+  }
+
+  @override
+  String guideOutlookOnTrack(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n枚',
+    );
+    return '順調です。役立つ牌はあと$_temp0。';
+  }
+
+  @override
+  String get guideOutlookFurther => 'あがりから遠ざかります。';
+
+  @override
+  String get guideCallTake => 'ガイドはこの牌を鳴きます。';
+
+  @override
+  String get guideCallPass => 'ガイドはこの牌をパスします。';
+
+  @override
+  String handPromptWin(String tile, String call) {
+    return '$tileであがれます！「$call」を押してください。';
+  }
+
+  @override
+  String handPromptTsumo(String call) {
+    return '手牌が完成しました！「$call」を押してください。';
+  }
+
+  @override
+  String handPromptCall(String tile, String calls) {
+    return '$tileを $calls できます。パスもできます。';
+  }
+
+  @override
+  String get handPromptDiscard => 'あなたの番です。捨てる牌をタップしてください。';
 }

@@ -2240,4 +2240,146 @@ class AppLocalizationsEn extends AppLocalizations {
   String sichuanScoreTotal(int fan, int value) {
     return '$fan fan · hand value $value';
   }
+
+  @override
+  String get learnToPlay => 'Learn to play';
+
+  @override
+  String get learnNewLink => 'New to mahjong? Learn to play';
+
+  @override
+  String learnStepOf(int current, int total) {
+    return '$current of $total';
+  }
+
+  @override
+  String get learnNext => 'Next';
+
+  @override
+  String get learnSkip => 'Skip';
+
+  @override
+  String get learnDone => 'Let\'s play';
+
+  @override
+  String get learnGoalTitle => 'The goal';
+
+  @override
+  String get learnGoalBody =>
+      'Build a hand of 14 tiles made of four sets plus one pair. Each turn you draw a tile and discard one, working toward that shape. The first player to complete it wins the hand.';
+
+  @override
+  String get learnTilesTitle => 'The tiles';
+
+  @override
+  String get learnTilesBody =>
+      'There are three suits numbered 1 to 9 (characters, dots and bamboo), plus four winds and three dragons. Some rulesets, Hong Kong among them, add flower tiles: they score a bonus and are replaced from the wall.';
+
+  @override
+  String get learnSetsTitle => 'Sets and calls';
+
+  @override
+  String get learnSetsBody =>
+      'A set is a run of three in one suit (a chow), three identical tiles (a pong), or four identical tiles (a kong). You can claim another player\'s discard to finish a set, and a chow only from the player on your left. A claimed set is shown face up.';
+
+  @override
+  String get learnWinTitle => 'Winning';
+
+  @override
+  String get learnWinBodyHongKong =>
+      'Complete four sets and a pair, by drawing the last tile yourself or claiming a discard, and you win. With the default minimum of 0 faan, any complete hand wins, even the simplest. The guide at the table shows how far you are from a win.';
+
+  @override
+  String learnWinBodyOther(String rules) {
+    return 'Complete four sets and a pair to win, as long as the hand also meets $rules\'s own requirements. The guide at the table shows how far you are from a win.';
+  }
+
+  @override
+  String get guideViewSimple => 'Simple';
+
+  @override
+  String get guideViewFull => 'Full';
+
+  @override
+  String get guideViewToFullTip =>
+      'Simple guide. Tap for the full table (shanten, EV, safety).';
+
+  @override
+  String get guideViewToSimpleTip => 'Full guide. Tap for the simple view.';
+
+  @override
+  String get guideStatusComplete => 'Your hand is complete!';
+
+  @override
+  String get guideStatusReady =>
+      'One discard away from waiting on a winning tile.';
+
+  @override
+  String guideStatusSteps(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n steps',
+      one: '1 step',
+    );
+    return '$_temp0 from waiting on a winning tile.';
+  }
+
+  @override
+  String get guideBestDiscard => 'Best discard';
+
+  @override
+  String get guideOtherChoices => 'OTHER CHOICES';
+
+  @override
+  String get guideOutlookWins => 'Completes your hand!';
+
+  @override
+  String guideOutlookWaiting(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n tiles',
+      one: '1 tile',
+    );
+    return 'Leaves you waiting for $_temp0 to win.';
+  }
+
+  @override
+  String guideOutlookOnTrack(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n helpful tiles',
+      one: '1 helpful tile',
+    );
+    return 'Keeps you on track, with $_temp0 left.';
+  }
+
+  @override
+  String get guideOutlookFurther => 'Moves you further from winning.';
+
+  @override
+  String get guideCallTake => 'The guide would claim this tile.';
+
+  @override
+  String get guideCallPass => 'The guide would pass on this tile.';
+
+  @override
+  String handPromptWin(String tile, String call) {
+    return 'You can win with the $tile! Tap $call.';
+  }
+
+  @override
+  String handPromptTsumo(String call) {
+    return 'Your hand is complete! Tap $call.';
+  }
+
+  @override
+  String handPromptCall(String tile, String calls) {
+    return 'You can $calls the $tile, or pass.';
+  }
+
+  @override
+  String get handPromptDiscard => 'Your turn: tap a tile to discard it.';
 }

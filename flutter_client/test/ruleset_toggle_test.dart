@@ -58,9 +58,34 @@ void main() {
     }
   }
 
-  testWidgets('riichi stays the default from the welcome screen',
+  testWidgets('Hong Kong is the default from the welcome screen',
       (tester) async {
     await boot(tester);
+    expect(find.textContaining('Sharpen your Hong Kong Mahjong decisions'),
+        findsOneWidget);
+    await tester.tap(find.text('Single Player'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('charactersContinue')));
+    await tester.pump(const Duration(milliseconds: 100));
+    // The table is created after a loading frame.
+    await tester.pump();
+
+    expect(labelOf(tester, const Key('ruleset')), Ruleset.hongKong.flagLabel);
+    expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
+    expect(playingOf(tester), 'Speed');
+    expect(find.text('DORA'), findsNothing);
+    expect(find.textContaining('min'), findsNothing,
+        reason: 'the default minimum is 0 faan, so the bar names none');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('choosing Riichi before Start deals a Riichi table',
+      (tester) async {
+    await boot(tester);
+    await tester.tap(find.byKey(const Key('ruleset_riichi')));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Sharpen your Riichi Mahjong decisions'),
         findsOneWidget);
     await tester.tap(find.text('Single Player'));
@@ -156,6 +181,8 @@ void main() {
   testWidgets('the in-game style label cannot switch rules mid-game',
       (tester) async {
     await boot(tester);
+    await tester.tap(find.byKey(const Key('ruleset_riichi')));
+    await tester.pump();
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
