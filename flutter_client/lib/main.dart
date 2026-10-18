@@ -20,19 +20,23 @@ import 'l10n/l10n.dart';
 import 'l10n/mahjong_terms.dart';
 import 'l10n/guide_terms.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
+import 'logic/progress.dart';
 import 'net/guest_identity.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/bar_back_button.dart';
+import 'ui/beginner_guide.dart' show BeginnerGuide;
 import 'ui/character_select_page.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
+import 'ui/glossary.dart';
 import 'ui/language_button.dart';
 import 'ui/learn_to_play_page.dart';
 import 'ui/online_page.dart' deferred as online;
 import 'ui/phone_menu.dart';
+import 'ui/practice_page.dart';
 import 'ui/ruleset_badge.dart';
 import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
@@ -702,6 +706,153 @@ class _LearnButton extends StatelessWidget {
       );
 }
 
+/// One suggestion for making the game harder, offered once enough hands have
+/// been won (see `logic/progress.dart`). Asks first: nothing changes until its
+/// button is pressed, and "Stop suggesting" ends them all.
+class _NudgeCard extends StatelessWidget {
+  const _NudgeCard({
+    required this.ruleset,
+    required this.minimumFaan,
+    required this.onRuleset,
+    required this.onMinimumFaan,
+  });
+
+  final Ruleset ruleset;
+  final int minimumFaan;
+  final ValueChanged<Ruleset> onRuleset;
+  final ValueChanged<int> onMinimumFaan;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ProgressStore.nudgesEnabled) return const SizedBox.shrink();
+    final store = ProgressStore.instance;
+    return ListenableBuilder(
+      listenable: Listenable.merge([store, BeginnerGuide.on]),
+      builder: (context, _) {
+        final nudge = dueNudge(store.value,
+            simpleGuide: BeginnerGuide.on.value,
+            ruleset: ruleset,
+            minimumFaan: minimumFaan);
+        if (nudge == null) return const SizedBox.shrink();
+        final l10n = context.l10n;
+        final wins = store.value.wins;
+        final next = nextRuleset(ruleset);
+        final nextName = next == null ? '' : l10n.rulesetName(next);
+        final (text, action, accept) = switch (nudge) {
+          Nudge.fullGuide => (
+              l10n.nudgeFullGuide(wins),
+              l10n.nudgeFullGuideAction,
+              () => BeginnerGuide.set(false),
+            ),
+          Nudge.higherMinimum => (
+              l10n.nudgeMinimum(wins),
+              l10n.nudgeMinimumAction,
+              () => onMinimumFaan(1),
+            ),
+          Nudge.newRuleset => (
+              l10n.nudgeRuleset(wins, nextName),
+              l10n.nudgeRulesetAction(nextName),
+              () => onRuleset(next!),
+            ),
+        };
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 18),
+          child: Container(
+            key: const Key('nudgeCard'),
+            width: 640,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            decoration: BoxDecoration(
+              color: const Color(0x2280cbc4),
+              border: Border.all(color: const Color(0xff80cbc4)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Text(text,
+                    key: const Key('nudgeText'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 16, height: 1.4)),
+                const SizedBox(height: 10),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  children: [
+                    ElevatedButton(
+                      key: const Key('nudgeAction'),
+                      onPressed: () {
+                        accept();
+                        store.finish(nudge);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xffcaa24e),
+                        foregroundColor: Colors.black,
+                      ),
+                      child: Text(action,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    TextButton(
+                      key: const Key('nudgeNotNow'),
+                      onPressed: () => store.finish(nudge),
+                      child: Text(l10n.nudgeNotNow),
+                    ),
+                    TextButton(
+                      key: const Key('nudgeStop'),
+                      onPressed: store.mute,
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white54),
+                      child: Text(l10n.nudgeStop),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The welcome screen's link to the guided practice hands.
+class _PracticeButton extends StatelessWidget {
+  const _PracticeButton(this.onPressed);
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+        key: const Key('practiceLink'),
+        onPressed: onPressed,
+        icon: const Icon(Icons.fitness_center, size: 18),
+        label: Text(context.l10n.practiceLink),
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xff80cbc4),
+          textStyle: const TextStyle(fontSize: 14),
+        ),
+      );
+}
+
+/// The welcome screen's link to the glossary, in the selected rules.
+class _GlossaryButton extends StatelessWidget {
+  const _GlossaryButton(this.ruleset);
+
+  final Ruleset ruleset;
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+        key: const Key('glossaryLink'),
+        onPressed: () => showGlossary(context, ruleset),
+        icon: const Icon(Icons.help_outline, size: 18),
+        label: Text(context.l10n.glossaryTitle),
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xff80cbc4),
+          textStyle: const TextStyle(fontSize: 14),
+        ),
+      );
+}
+
 class _FullscreenButton extends StatefulWidget {
   const _FullscreenButton();
 
@@ -976,6 +1127,8 @@ class _GamePageState extends State<GamePage> {
   // finishing it carries on to character select (it came from Start) or
   // back to the welcome screen (it came from the Learn to play link).
   bool _learning = false;
+  // The practice hands are showing.
+  bool _practicing = false;
   bool _learningThenStart = false;
   bool _startFailed = false;
   int _startRequest = 0;
@@ -1252,6 +1405,12 @@ class _GamePageState extends State<GamePage> {
       );
     }
     if (_showWelcome) {
+      if (_practicing) {
+        return PracticePage(
+          ruleset: _selectedRuleset,
+          onExit: () => setState(() => _practicing = false),
+        );
+      }
       if (_learning) {
         return LearnToPlayPage(
           ruleset: _selectedRuleset,
@@ -1307,6 +1466,9 @@ class _GamePageState extends State<GamePage> {
           _learning = true;
           _learningThenStart = false;
         }),
+        onPractice: () => setState(() => _practicing = true),
+        minimumFaan: _minimumFaan,
+        onMinimumFaan: (n) => setState(() => _minimumFaan = n),
         onBuild: () => setState(() {
           _builderWind = Wind.values[randomStartingDealer()];
           _showBuilder = true;
@@ -1388,6 +1550,19 @@ class _GamePageState extends State<GamePage> {
                     color: Colors.white54,
                     icon: const Icon(Icons.menu_book),
                     onPressed: () => openRules(_game.ruleset),
+                  ),
+                ),
+                // The terms a new player meets, in this game's rules.
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) => IconButton(
+                    key: const Key('glossaryButton'),
+                    tooltip: context.l10n.glossaryTitle,
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    color: Colors.white54,
+                    icon: const Icon(Icons.help_outline),
+                    onPressed: () => showGlossary(context, _game.ruleset),
                   ),
                 ),
                 // East-only vs. full game length (the full game is the default).
@@ -1700,6 +1875,9 @@ class _WelcomeScreen extends StatelessWidget {
     required this.onRuleset,
     required this.onStart,
     required this.onLearn,
+    required this.onPractice,
+    required this.minimumFaan,
+    required this.onMinimumFaan,
     required this.onBuild,
     required this.onPlayOnline,
     this.rejoinCode,
@@ -1714,6 +1892,13 @@ class _WelcomeScreen extends StatelessWidget {
 
   /// Opens the Learn to play lesson.
   final VoidCallback onLearn;
+
+  /// Opens the guided practice hands.
+  final VoidCallback onPractice;
+
+  /// Hong Kong's minimum faan for the next game, and how to change it.
+  final int minimumFaan;
+  final ValueChanged<int> onMinimumFaan;
 
   /// Opens the Custom Hand & Context Builder — a posed table, scored by the
   /// same guide, with no game running behind it.
@@ -1866,6 +2051,12 @@ class _WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
+                    _NudgeCard(
+                      ruleset: ruleset,
+                      minimumFaan: minimumFaan,
+                      onRuleset: onRuleset,
+                      onMinimumFaan: onMinimumFaan,
+                    ),
                     _rulesetChoice(context),
                     const SizedBox(height: 10),
                     Row(
@@ -1874,6 +2065,8 @@ class _WelcomeScreen extends StatelessWidget {
                         const _FullscreenButton(),
                         const _UpdateButton(),
                         _LearnButton(onLearn),
+                        _PracticeButton(onPractice),
+                        _GlossaryButton(ruleset),
                       ],
                     ),
                     const SizedBox(height: 10),

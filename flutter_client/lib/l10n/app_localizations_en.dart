@@ -2383,4 +2383,281 @@ class AppLocalizationsEn extends AppLocalizations {
   String guideWinningTiles(int n) {
     return 'Winning tiles · $n left';
   }
+
+  @override
+  String get guideOutlookOnTrackFar => 'Keeps you on track.';
+
+  @override
+  String get glossaryTitle => 'Glossary';
+
+  @override
+  String get glossarySearchHint => 'Search terms';
+
+  @override
+  String get glossaryNoMatch => 'No terms match your search.';
+
+  @override
+  String get glossaryUnitHan => 'Han';
+
+  @override
+  String get glossaryUnitFaan => 'Faan';
+
+  @override
+  String get glossaryUnitTai => 'Tai';
+
+  @override
+  String get glossaryUnitFan => 'Fan';
+
+  @override
+  String get glossaryTermSet => 'Set';
+
+  @override
+  String get glossaryDefSet =>
+      'Three tiles that go together: a run of three in one suit, or three identical tiles. Four identical tiles also count, as a kong.';
+
+  @override
+  String get glossaryTermPair => 'Pair';
+
+  @override
+  String get glossaryDefPair =>
+      'Two identical tiles. A winning hand is four sets and exactly one pair.';
+
+  @override
+  String get glossaryDefChi =>
+      'Claim another player\'s discard to finish a run of three in one suit. Only from the player on your left; the set is then shown face up.';
+
+  @override
+  String get glossaryDefPon =>
+      'Claim a discard that matches two tiles in your hand, from any player, to make three of a kind. The set is shown face up.';
+
+  @override
+  String get glossaryDefKan =>
+      'Four identical tiles. You then draw a replacement tile from the end of the wall.';
+
+  @override
+  String get glossaryTermDiscard => 'Discard';
+
+  @override
+  String get glossaryDefDiscard =>
+      'The tile you throw away at the end of your turn, face up in front of you. Other players may be able to claim it.';
+
+  @override
+  String get glossaryDefTsumo => 'Winning on a tile you drew yourself.';
+
+  @override
+  String get glossaryDefRon => 'Winning on a tile another player discarded.';
+
+  @override
+  String get glossaryTermDealer => 'Dealer';
+
+  @override
+  String get glossaryDefDealer =>
+      'The player seated East, who plays first. Winning usually lets the dealer keep the seat for another hand.';
+
+  @override
+  String get glossaryTermWinds => 'Winds';
+
+  @override
+  String get glossaryDefWinds =>
+      'Four tiles: East, South, West and North. They also name the seats and the round, and a set of your own seat wind or the round wind can be worth extra.';
+
+  @override
+  String get glossaryTermDragons => 'Dragons';
+
+  @override
+  String get glossaryDefDragons =>
+      'Three tiles: White, Green and Red. A set of any dragon is worth extra.';
+
+  @override
+  String get glossaryTermFlowers => 'Flowers';
+
+  @override
+  String get glossaryDefFlowers =>
+      'Bonus tiles. When you draw one, you show it and take a replacement from the wall. Each one can add to a winning hand\'s score.';
+
+  @override
+  String get glossaryTermVoid => 'Void suit';
+
+  @override
+  String get glossaryDefVoid =>
+      'You give up one of the three suits at the start. While you hold any tile of it, you must discard those first.';
+
+  @override
+  String get glossaryDefScore =>
+      'What a winning hand earns. More means a more valuable hand. Some tables set a minimum a hand must reach before it can win.';
+
+  @override
+  String get glossaryTermRiichi => 'Riichi';
+
+  @override
+  String get glossaryDefRiichi =>
+      'Declare a closed hand one tile from winning by betting 1,000 points. Your hand is then locked: you can only discard each tile you draw. It earns extra score.';
+
+  @override
+  String get glossaryTermDora => 'Dora';
+
+  @override
+  String get glossaryDefDora =>
+      'Bonus tiles chosen by an indicator tile on the table. Each one in a winning hand adds a han.';
+
+  @override
+  String get glossaryTermFuriten => 'Furiten';
+
+  @override
+  String get glossaryDefFuriten =>
+      'You can\'t win off a discard if a tile that would complete your hand is among your own discards. A self-draw still wins.';
+
+  @override
+  String get glossaryTermReady => 'Ready hand';
+
+  @override
+  String get glossaryDefReady =>
+      'A hand one tile from winning. The guide shows which tiles would finish it.';
+
+  @override
+  String get glossaryTermAway => 'Tiles away';
+
+  @override
+  String get glossaryDefAway =>
+      'How many more tiles your hand needs before it can win. One tile away means ready. The guide\'s meter and its Away or Shanten column show it.';
+
+  @override
+  String get glossaryTermHelpful => 'Helpful tiles';
+
+  @override
+  String get glossaryDefHelpful =>
+      'Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.';
+
+  @override
+  String get practiceTitle => 'Practice';
+
+  @override
+  String get practiceLink => 'Practice hands';
+
+  @override
+  String practiceProgress(int current, int total) {
+    return '$current of $total';
+  }
+
+  @override
+  String get practiceAskWin =>
+      'This hand is one tile from winning. Which tile completes it?';
+
+  @override
+  String get practiceAskDiscard =>
+      'You\'ve drawn a tile. Which discard leaves you one tile from winning?';
+
+  @override
+  String get practiceAskClaim => 'What can you do with this discard?';
+
+  @override
+  String practiceDiscardedBy(String seat) {
+    return 'Discarded by: $seat';
+  }
+
+  @override
+  String get practiceYourHand => 'Your hand';
+
+  @override
+  String get practiceCorrect => 'Correct!';
+
+  @override
+  String get practiceWrong => 'Not quite.';
+
+  @override
+  String get practiceNext => 'Next';
+
+  @override
+  String get practiceSeeResults => 'See results';
+
+  @override
+  String practiceResult(int score, int total) {
+    return 'You got $score of $total right.';
+  }
+
+  @override
+  String get practiceAgain => 'Try again';
+
+  @override
+  String get practiceOptionPass => 'Pass';
+
+  @override
+  String get practiceWhyW1 =>
+      'Three sets and the pair 55s are done. The 1p and 3p need a 2p in the middle to make the run 1-2-3.';
+
+  @override
+  String get practiceWhyW2 =>
+      'The 1p and 2p can only become 1-2-3, so only a 3p wins. A wait on the edge like this has just one winning tile.';
+
+  @override
+  String get practiceWhyW3 =>
+      'Four sets are done. The single 5s needs a second 5s to make the pair, so only a 5s wins.';
+
+  @override
+  String get practiceWhyD1 =>
+      'Three sets, the pair 66p and 3p-4p all work together. The lone 9s joins nothing, so throw it: you\'re then one tile from winning, waiting for a 2p or a 5p.';
+
+  @override
+  String get practiceWhyD2 =>
+      'The East tile joins nothing. Throw it and the 1s-2s waits for a 3s to finish.';
+
+  @override
+  String get practiceWhyD3 =>
+      'The lone West joins nothing. Throw it and the 7s-8s waits for a 6s or a 9s.';
+
+  @override
+  String practiceWhyC1(String call) {
+    return 'You hold two 5p, and a third from any player makes three of a kind. That is a $call.';
+  }
+
+  @override
+  String practiceWhyC2(String call) {
+    return 'The player on your left discarded the 5p, and it fits between your 4p and 6p to make a run. That is a $call.';
+  }
+
+  @override
+  String get practiceWhyC3 =>
+      'A run can only be claimed from the player on your left. This 5p came from someone else, so you can\'t use it for a run. Pass.';
+
+  @override
+  String get practiceWhyC4 =>
+      'Nothing in your hand pairs with the East tile or forms a run with it, so there is nothing to claim. Pass.';
+
+  @override
+  String get practiceChoices => 'Choose a tile';
+
+  @override
+  String get practiceLegend => 'm = characters, p = dots, s = bamboo';
+
+  @override
+  String nudgeFullGuide(int n) {
+    return 'You\'ve won $n hands. Ready for more detail? The full guide shows the numbers behind each suggestion.';
+  }
+
+  @override
+  String get nudgeFullGuideAction => 'Show the full guide';
+
+  @override
+  String nudgeMinimum(int n) {
+    return 'You\'ve won $n hands. Try a 1 faan minimum: a hand now needs a little extra to win.';
+  }
+
+  @override
+  String get nudgeMinimumAction => 'Use a 1 faan minimum';
+
+  @override
+  String nudgeRuleset(int n, String rules) {
+    return 'You\'ve won $n hands. Ready for a new challenge? Try $rules.';
+  }
+
+  @override
+  String nudgeRulesetAction(String rules) {
+    return 'Switch to $rules';
+  }
+
+  @override
+  String get nudgeNotNow => 'Not now';
+
+  @override
+  String get nudgeStop => 'Stop suggesting';
 }

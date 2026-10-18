@@ -2336,4 +2336,268 @@ class AppLocalizationsJa extends AppLocalizations {
   String guideWinningTiles(int n) {
     return 'あがり牌 · 残り$n枚';
   }
+
+  @override
+  String get guideOutlookOnTrackFar => '順調です。';
+
+  @override
+  String get glossaryTitle => '用語集';
+
+  @override
+  String get glossarySearchHint => '用語を検索';
+
+  @override
+  String get glossaryNoMatch => '該当する用語がありません。';
+
+  @override
+  String get glossaryUnitHan => '翻';
+
+  @override
+  String get glossaryUnitFaan => 'ファーン（番）';
+
+  @override
+  String get glossaryUnitTai => '台';
+
+  @override
+  String get glossaryUnitFan => '番';
+
+  @override
+  String get glossaryTermSet => '面子';
+
+  @override
+  String get glossaryDefSet => '同じ種類の数牌3枚の並び、または同じ牌3枚のまとまりです。同じ牌4枚もカンとして数えます。';
+
+  @override
+  String get glossaryTermPair => '雀頭';
+
+  @override
+  String get glossaryDefPair => '同じ牌2枚です。あがり形は4つの面子と、ちょうど1つの雀頭です。';
+
+  @override
+  String get glossaryDefChi =>
+      '他のプレイヤーの捨て牌をもらって、同じ種類の数牌3枚の並びを作ります。もらえるのは左隣の人の牌だけで、完成した面子は表向きに置きます。';
+
+  @override
+  String get glossaryDefPon => '手牌の2枚と同じ牌を、誰からでももらって3枚そろえます。完成した面子は表向きに置きます。';
+
+  @override
+  String get glossaryDefKan => '同じ牌4枚のことです。作ったあとは、山の端から補充の牌を引きます。';
+
+  @override
+  String get glossaryTermDiscard => '捨て牌';
+
+  @override
+  String get glossaryDefDiscard =>
+      '手番の終わりに、自分の前に表向きに捨てる牌です。他のプレイヤーがもらえることがあります。';
+
+  @override
+  String get glossaryDefTsumo => '自分で引いた牌であがることです。';
+
+  @override
+  String get glossaryDefRon => '他のプレイヤーが捨てた牌であがることです。';
+
+  @override
+  String get glossaryTermDealer => '親';
+
+  @override
+  String get glossaryDefDealer => '東の席に座り、最初に打つプレイヤーです。あがると、親は続けて親を務めるのが一般的です。';
+
+  @override
+  String get glossaryTermWinds => '風牌';
+
+  @override
+  String get glossaryDefWinds =>
+      '東・南・西・北の4種類です。席や場の名前にもなり、自分の席の風や場の風の面子は加点されることがあります。';
+
+  @override
+  String get glossaryTermDragons => '三元牌';
+
+  @override
+  String get glossaryDefDragons => '白・發・中の3種類です。三元牌の面子は加点されます。';
+
+  @override
+  String get glossaryTermFlowers => '花牌';
+
+  @override
+  String get glossaryDefFlowers =>
+      'ボーナス牌です。引いたら見せて、山から補充の牌を引きます。あがり手の点数に加算されることがあります。';
+
+  @override
+  String get glossaryTermVoid => '欠け色（定缺）';
+
+  @override
+  String get glossaryDefVoid =>
+      '最初に3種類の数牌のうち1種類を捨てる色として決めます。その色の牌を持っている間は、先にそれらを捨てなければなりません。';
+
+  @override
+  String get glossaryDefScore =>
+      'あがり手の価値を表す単位です。大きいほど高い手になります。卓によっては、あがるために必要な最低ラインがあります。';
+
+  @override
+  String get glossaryTermRiichi => 'リーチ';
+
+  @override
+  String get glossaryDefRiichi =>
+      '門前で、あと1枚であがれる手のとき、1,000点を賭けて宣言します。以後は手牌が固定され、引いた牌をそのまま捨てるだけになります。その分、得点が加わります。';
+
+  @override
+  String get glossaryTermDora => 'ドラ';
+
+  @override
+  String get glossaryDefDora => '場に出たドラ表示牌から決まるボーナス牌です。あがり手に1枚あるごとに1翻加わります。';
+
+  @override
+  String get glossaryTermFuriten => 'フリテン';
+
+  @override
+  String get glossaryDefFuriten =>
+      'あがり牌が自分の捨て牌にあるときは、他家の捨て牌ではあがれません。ツモあがりはできます。';
+
+  @override
+  String get glossaryTermReady => 'テンパイ';
+
+  @override
+  String get glossaryDefReady => 'あと1枚であがれる手です。ガイドが、あがれる牌を教えてくれます。';
+
+  @override
+  String get glossaryTermAway => 'あがりまでの枚数';
+
+  @override
+  String get glossaryDefAway =>
+      '手牌があがるまでに、あと何枚必要かです。あと1枚ならテンパイです。ガイドのメーターや「Away」「Shanten」の列に表示されます。';
+
+  @override
+  String get glossaryTermHelpful => '有効牌';
+
+  @override
+  String get glossaryDefHelpful => '引くとあがりに近づく牌です。ガイドは、まだ見えていない残り枚数を数えます。';
+
+  @override
+  String get practiceTitle => '練習問題';
+
+  @override
+  String get practiceLink => '練習問題';
+
+  @override
+  String practiceProgress(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get practiceAskWin => 'この手はあと1枚であがれます。完成させる牌はどれですか？';
+
+  @override
+  String get practiceAskDiscard => '牌を1枚引きました。どの牌を捨てると、あと1枚であがれる形になりますか？';
+
+  @override
+  String get practiceAskClaim => 'この捨て牌で何ができますか？';
+
+  @override
+  String practiceDiscardedBy(String seat) {
+    return '捨てた人：$seat';
+  }
+
+  @override
+  String get practiceYourHand => 'あなたの手牌';
+
+  @override
+  String get practiceCorrect => '正解です！';
+
+  @override
+  String get practiceWrong => 'おしい！';
+
+  @override
+  String get practiceNext => '次へ';
+
+  @override
+  String get practiceSeeResults => '結果を見る';
+
+  @override
+  String practiceResult(int score, int total) {
+    return '$total問中$score問正解です。';
+  }
+
+  @override
+  String get practiceAgain => 'もう一度';
+
+  @override
+  String get practiceOptionPass => 'パス';
+
+  @override
+  String get practiceWhyW1 =>
+      '面子が3つと雀頭の55sはそろっています。1pと3pは、間に2pが入ると1-2-3の並びになります。';
+
+  @override
+  String get practiceWhyW2 =>
+      '1pと2pは1-2-3にしかなれないので、あがれるのは3pだけです。端の待ちは、あがり牌が1種類だけです。';
+
+  @override
+  String get practiceWhyW3 =>
+      '面子は4つそろっています。1枚だけの5sは、もう1枚5sがくると雀頭になるので、5sだけであがれます。';
+
+  @override
+  String get practiceWhyD1 =>
+      '面子3つ、雀頭の66p、そして3p-4pがそろっています。1枚だけの9sはどこにもつながらないので捨てましょう。あと1枚で、2pか5pを待つ形になります。';
+
+  @override
+  String get practiceWhyD2 => '東はどこにもつながりません。これを捨てると、1s-2sが3sを待つ形になります。';
+
+  @override
+  String get practiceWhyD3 =>
+      '1枚だけの西はどこにもつながりません。これを捨てると、7s-8sが6sか9sを待つ形になります。';
+
+  @override
+  String practiceWhyC1(String call) {
+    return '5pを2枚持っているので、誰からでももう1枚もらうと同じ牌3枚になります。これが$callです。';
+  }
+
+  @override
+  String practiceWhyC2(String call) {
+    return '左隣の人が5pを捨てました。あなたの4pと6pの間に入って並びになります。これが$callです。';
+  }
+
+  @override
+  String get practiceWhyC3 =>
+      '並びをもらえるのは左隣の人の牌だけです。この5pは別の人の牌なので、並びには使えません。パスします。';
+
+  @override
+  String get practiceWhyC4 => '東とそろう牌も、並びになる牌も手牌にないので、もらえるものはありません。パスします。';
+
+  @override
+  String get practiceChoices => '牌を選んでください';
+
+  @override
+  String get practiceLegend => 'm＝萬子、p＝筒子、s＝索子';
+
+  @override
+  String nudgeFullGuide(int n) {
+    return '$n回あがりました。もっと詳しく見てみませんか？ 詳細ガイドでは、各提案の根拠になる数値が見られます。';
+  }
+
+  @override
+  String get nudgeFullGuideAction => '詳細ガイドを表示';
+
+  @override
+  String nudgeMinimum(int n) {
+    return '$n回あがりました。最低1翻に挑戦してみませんか？ あがるには、少しだけ手の価値が必要になります。';
+  }
+
+  @override
+  String get nudgeMinimumAction => '最低1翻にする';
+
+  @override
+  String nudgeRuleset(int n, String rules) {
+    return '$n回あがりました。新しい挑戦はいかがですか？ $rulesを試してみましょう。';
+  }
+
+  @override
+  String nudgeRulesetAction(String rules) {
+    return '$rulesに切り替える';
+  }
+
+  @override
+  String get nudgeNotNow => '今はしない';
+
+  @override
+  String get nudgeStop => '提案をやめる';
 }

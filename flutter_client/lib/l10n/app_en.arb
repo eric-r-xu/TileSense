@@ -1455,5 +1455,154 @@
         "type": "int"
       }
     }
-  }
+  },
+  "guideOutlookOnTrackFar": "Keeps you on track.",
+  "glossaryTitle": "Glossary",
+  "glossarySearchHint": "Search terms",
+  "glossaryNoMatch": "No terms match your search.",
+  "glossaryUnitHan": "Han",
+  "glossaryUnitFaan": "Faan",
+  "glossaryUnitTai": "Tai",
+  "glossaryUnitFan": "Fan",
+  "glossaryTermSet": "Set",
+  "glossaryDefSet": "Three tiles that go together: a run of three in one suit, or three identical tiles. Four identical tiles also count, as a kong.",
+  "glossaryTermPair": "Pair",
+  "glossaryDefPair": "Two identical tiles. A winning hand is four sets and exactly one pair.",
+  "glossaryDefChi": "Claim another player's discard to finish a run of three in one suit. Only from the player on your left; the set is then shown face up.",
+  "glossaryDefPon": "Claim a discard that matches two tiles in your hand, from any player, to make three of a kind. The set is shown face up.",
+  "glossaryDefKan": "Four identical tiles. You then draw a replacement tile from the end of the wall.",
+  "glossaryTermDiscard": "Discard",
+  "glossaryDefDiscard": "The tile you throw away at the end of your turn, face up in front of you. Other players may be able to claim it.",
+  "glossaryDefTsumo": "Winning on a tile you drew yourself.",
+  "glossaryDefRon": "Winning on a tile another player discarded.",
+  "glossaryTermDealer": "Dealer",
+  "glossaryDefDealer": "The player seated East, who plays first. Winning usually lets the dealer keep the seat for another hand.",
+  "glossaryTermWinds": "Winds",
+  "glossaryDefWinds": "Four tiles: East, South, West and North. They also name the seats and the round, and a set of your own seat wind or the round wind can be worth extra.",
+  "glossaryTermDragons": "Dragons",
+  "glossaryDefDragons": "Three tiles: White, Green and Red. A set of any dragon is worth extra.",
+  "glossaryTermFlowers": "Flowers",
+  "glossaryDefFlowers": "Bonus tiles. When you draw one, you show it and take a replacement from the wall. Each one can add to a winning hand's score.",
+  "glossaryTermVoid": "Void suit",
+  "glossaryDefVoid": "You give up one of the three suits at the start. While you hold any tile of it, you must discard those first.",
+  "glossaryDefScore": "What a winning hand earns. More means a more valuable hand. Some tables set a minimum a hand must reach before it can win.",
+  "glossaryTermRiichi": "Riichi",
+  "glossaryDefRiichi": "Declare a closed hand one tile from winning by betting 1,000 points. Your hand is then locked: you can only discard each tile you draw. It earns extra score.",
+  "glossaryTermDora": "Dora",
+  "glossaryDefDora": "Bonus tiles chosen by an indicator tile on the table. Each one in a winning hand adds a han.",
+  "glossaryTermFuriten": "Furiten",
+  "glossaryDefFuriten": "You can't win off a discard if a tile that would complete your hand is among your own discards. A self-draw still wins.",
+  "glossaryTermReady": "Ready hand",
+  "glossaryDefReady": "A hand one tile from winning. The guide shows which tiles would finish it.",
+  "glossaryTermAway": "Tiles away",
+  "glossaryDefAway": "How many more tiles your hand needs before it can win. One tile away means ready. The guide's meter and its Away or Shanten column show it.",
+  "glossaryTermHelpful": "Helpful tiles",
+  "glossaryDefHelpful": "Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.",
+  "practiceTitle": "Practice",
+  "practiceLink": "Practice hands",
+  "practiceProgress": "{current} of {total}",
+  "@practiceProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceAskWin": "This hand is one tile from winning. Which tile completes it?",
+  "practiceAskDiscard": "You've drawn a tile. Which discard leaves you one tile from winning?",
+  "practiceAskClaim": "What can you do with this discard?",
+  "practiceDiscardedBy": "Discarded by: {seat}",
+  "@practiceDiscardedBy": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      }
+    }
+  },
+  "practiceYourHand": "Your hand",
+  "practiceCorrect": "Correct!",
+  "practiceWrong": "Not quite.",
+  "practiceNext": "Next",
+  "practiceSeeResults": "See results",
+  "practiceResult": "You got {score} of {total} right.",
+  "@practiceResult": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "practiceAgain": "Try again",
+  "practiceOptionPass": "Pass",
+  "practiceWhyW1": "Three sets and the pair 55s are done. The 1p and 3p need a 2p in the middle to make the run 1-2-3.",
+  "practiceWhyW2": "The 1p and 2p can only become 1-2-3, so only a 3p wins. A wait on the edge like this has just one winning tile.",
+  "practiceWhyW3": "Four sets are done. The single 5s needs a second 5s to make the pair, so only a 5s wins.",
+  "practiceWhyD1": "Three sets, the pair 66p and 3p-4p all work together. The lone 9s joins nothing, so throw it: you're then one tile from winning, waiting for a 2p or a 5p.",
+  "practiceWhyD2": "The East tile joins nothing. Throw it and the 1s-2s waits for a 3s to finish.",
+  "practiceWhyD3": "The lone West joins nothing. Throw it and the 7s-8s waits for a 6s or a 9s.",
+  "practiceWhyC1": "You hold two 5p, and a third from any player makes three of a kind. That is a {call}.",
+  "@practiceWhyC1": {
+    "placeholders": {
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "practiceWhyC2": "The player on your left discarded the 5p, and it fits between your 4p and 6p to make a run. That is a {call}.",
+  "@practiceWhyC2": {
+    "placeholders": {
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "practiceWhyC3": "A run can only be claimed from the player on your left. This 5p came from someone else, so you can't use it for a run. Pass.",
+  "practiceWhyC4": "Nothing in your hand pairs with the East tile or forms a run with it, so there is nothing to claim. Pass.",
+  "practiceChoices": "Choose a tile",
+  "practiceLegend": "m = characters, p = dots, s = bamboo",
+  "nudgeFullGuide": "You've won {n} hands. Ready for more detail? The full guide shows the numbers behind each suggestion.",
+  "@nudgeFullGuide": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "nudgeFullGuideAction": "Show the full guide",
+  "nudgeMinimum": "You've won {n} hands. Try a 1 faan minimum: a hand now needs a little extra to win.",
+  "@nudgeMinimum": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "nudgeMinimumAction": "Use a 1 faan minimum",
+  "nudgeRuleset": "You've won {n} hands. Ready for a new challenge? Try {rules}.",
+  "@nudgeRuleset": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "nudgeRulesetAction": "Switch to {rules}",
+  "@nudgeRulesetAction": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "nudgeNotNow": "Not now",
+  "nudgeStop": "Stop suggesting"
 }
