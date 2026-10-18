@@ -12,6 +12,7 @@ import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import '../logic/practice_drills.dart';
 import 'bar_back_button.dart';
+import 'e2e_id.dart';
 import 'language_button.dart';
 import 'tile_face.dart';
 
@@ -109,15 +110,18 @@ class _PracticePageState extends State<PracticePage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 1.5),
               child: tappable
-                  ? InkWell(
-                      key: Key('practiceTile_$i'),
-                      borderRadius: BorderRadius.circular(6),
-                      onTap: _answered ? null : () => _answerWith(t),
-                      child: TileFace(
-                        type: t,
-                        size: TileSize.large,
-                        highlightColor: _mark(t,
-                            isRight: _drill.discardLeavesReady(t)),
+                  ? e2eId(
+                      'practiceTile_$i',
+                      InkWell(
+                        key: Key('practiceTile_$i'),
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: _answered ? null : () => _answerWith(t),
+                        child: TileFace(
+                          type: t,
+                          size: TileSize.large,
+                          highlightColor:
+                              _mark(t, isRight: _drill.discardLeavesReady(t)),
+                        ),
                       ),
                     )
                   : TileFace(type: t, size: TileSize.large),
@@ -132,14 +136,17 @@ class _PracticePageState extends State<PracticePage> {
         spacing: 12,
         children: [
           for (final t in _drill.optionTiles)
-            InkWell(
-              key: Key('practiceOption_${t.code}'),
-              borderRadius: BorderRadius.circular(6),
-              onTap: _answered ? null : () => _answerWith(t),
-              child: TileFace(
-                type: t,
-                size: TileSize.large,
-                highlightColor: _mark(t, isRight: _drill.isWinningTile(t)),
+            e2eId(
+              'practiceOption_${t.code}',
+              InkWell(
+                key: Key('practiceOption_${t.code}'),
+                borderRadius: BorderRadius.circular(6),
+                onTap: _answered ? null : () => _answerWith(t),
+                child: TileFace(
+                  type: t,
+                  size: TileSize.large,
+                  highlightColor: _mark(t, isRight: _drill.isWinningTile(t)),
+                ),
               ),
             ),
         ],
@@ -163,25 +170,29 @@ class _PracticePageState extends State<PracticePage> {
       spacing: 12,
       children: [
         for (final MapEntry(key: choice, value: label) in labels.entries)
-          OutlinedButton(
-            key: Key('practiceClaim_${choice.name}'),
-            onPressed: _answered ? null : () => _answerWith(choice),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: switch (_mark(choice,
-                  isRight: choice == _drill.correctClaim)) {
-                final c? => c.withValues(alpha: 0.35),
-                null => null,
-              },
-              side: BorderSide(
-                  color: _mark(choice, isRight: choice == _drill.correctClaim) ??
-                      Colors.white38),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+          e2eId(
+            'practiceClaim_${choice.name}',
+            OutlinedButton(
+              key: Key('practiceClaim_${choice.name}'),
+              onPressed: _answered ? null : () => _answerWith(choice),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: switch (
+                    _mark(choice, isRight: choice == _drill.correctClaim)) {
+                  final c? => c.withValues(alpha: 0.35),
+                  null => null,
+                },
+                side: BorderSide(
+                    color:
+                        _mark(choice, isRight: choice == _drill.correctClaim) ??
+                            Colors.white38),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              ),
+              child: Text(label,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
             ),
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
           ),
       ],
     );
@@ -202,12 +213,16 @@ class _PracticePageState extends State<PracticePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(ok ? l10n.practiceCorrect : l10n.practiceWrong,
-              key: const Key('practiceVerdict'),
-              style: TextStyle(
-                  color: ok ? const Color(0xff9ccc65) : const Color(0xffffca28),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+          e2eId(
+            'practiceVerdict',
+            Text(ok ? l10n.practiceCorrect : l10n.practiceWrong,
+                key: const Key('practiceVerdict'),
+                style: TextStyle(
+                    color:
+                        ok ? const Color(0xff9ccc65) : const Color(0xffffca28),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+          ),
           const SizedBox(height: 4),
           Text(_why(l10n),
               key: const Key('practiceWhy'),
@@ -263,7 +278,8 @@ class _PracticePageState extends State<PracticePage> {
               children: [
                 Text(l10n.practiceDiscardedBy(_seatName(l10n)),
                     key: const Key('practiceDiscardedBy'),
-                    style: const TextStyle(color: Colors.white70, fontSize: 15)),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 15)),
                 const SizedBox(height: 8),
                 TileFace(type: d.claimedTile, size: TileSize.large),
                 const SizedBox(height: 18),
@@ -275,21 +291,24 @@ class _PracticePageState extends State<PracticePage> {
           const SizedBox(height: 22),
           _feedback(l10n),
           const SizedBox(height: 14),
-          ElevatedButton(
-            key: const Key('practiceNext'),
-            onPressed: _next,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _gold,
-              foregroundColor: Colors.black,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+          e2eId(
+            'practiceNext',
+            ElevatedButton(
+              key: const Key('practiceNext'),
+              onPressed: _next,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.black,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+              ),
+              child: Text(
+                  _index == _drills.length - 1
+                      ? l10n.practiceSeeResults
+                      : l10n.practiceNext,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold)),
             ),
-            child: Text(
-                _index == _drills.length - 1
-                    ? l10n.practiceSeeResults
-                    : l10n.practiceNext,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ),
         ],
       ],
@@ -369,8 +388,7 @@ class _PracticePageState extends State<PracticePage> {
                         if (!_finished) ...[
                           const SizedBox(height: 4),
                           Text(
-                              l10n.practiceProgress(
-                                  _index + 1, _drills.length),
+                              l10n.practiceProgress(_index + 1, _drills.length),
                               key: const Key('practiceProgress'),
                               style: const TextStyle(
                                   color: Colors.white38, fontSize: 14)),

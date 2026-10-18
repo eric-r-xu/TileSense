@@ -9,6 +9,7 @@ import 'package:mahjong_core/ruleset.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
+import 'e2e_id.dart';
 
 class GlossaryEntry {
   const GlossaryEntry(this.id, this.term, this.definition);
@@ -144,20 +145,24 @@ class _GlossaryViewState extends State<GlossaryView> {
               ],
             ),
             const SizedBox(height: 8),
-            TextField(
-              key: const Key('glossarySearch'),
-              controller: _controller,
-              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                isDense: true,
-                prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                hintText: l10n.glossarySearchHint,
-                hintStyle: const TextStyle(color: Colors.white38),
-                enabledBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24)),
-                focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xffcaa24e))),
+            e2eId(
+              'glossarySearch',
+              TextField(
+                key: const Key('glossarySearch'),
+                controller: _controller,
+                onChanged: (v) =>
+                    setState(() => _query = v.trim().toLowerCase()),
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                  hintText: l10n.glossarySearchHint,
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white24)),
+                  focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xffcaa24e))),
+                ),
               ),
             ),
             const SizedBox(height: 8),

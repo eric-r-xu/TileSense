@@ -59,6 +59,43 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+  # Real-browser smoke tests against the release web build (flutter_client/e2e).
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: flutter_client/e2e/package-lock.json
+      - run: flutter pub get
+      - run: flutter build web --release --pwa-strategy=none --dart-define=MP_ENDPOINT=ws://127.0.0.1:9
+      - run: npm ci
+        working-directory: flutter_client/e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: flutter_client/e2e
+      - run: npx playwright test
+        working-directory: flutter_client/e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: flutter_client/e2e/playwright-report/
+          retention-days: 7
+      - if: failure()
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   deploy-py:
     runs-on: ubuntu-latest
     steps:

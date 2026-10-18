@@ -13,3 +13,6 @@ mortal_sidecar/*.onnx
 mortal_sidecar/*.pth
 mortal_sidecar/step0_positions.npz
 HANDOFF.md
+flutter_client/e2e/node_modules/
+flutter_client/e2e/test-results/
+flutter_client/e2e/playwright-report/
