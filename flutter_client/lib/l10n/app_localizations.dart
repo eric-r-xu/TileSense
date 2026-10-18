@@ -4276,6 +4276,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Winning tiles · {n} left'**
   String guideWinningTiles(int n);
+
+  /// No description provided for @guideOutlookOnTrackFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Keeps you on track.'**
+  String get guideOutlookOnTrackFar;
+
+  /// No description provided for @glossaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get glossaryTitle;
+
+  /// No description provided for @glossarySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search terms'**
+  String get glossarySearchHint;
+
+  /// No description provided for @glossaryNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No terms match your search.'**
+  String get glossaryNoMatch;
+
+  /// No description provided for @glossaryUnitHan.
+  ///
+  /// In en, this message translates to:
+  /// **'Han'**
+  String get glossaryUnitHan;
+
+  /// No description provided for @glossaryUnitFaan.
+  ///
+  /// In en, this message translates to:
+  /// **'Faan'**
+  String get glossaryUnitFaan;
+
+  /// No description provided for @glossaryUnitTai.
+  ///
+  /// In en, this message translates to:
+  /// **'Tai'**
+  String get glossaryUnitTai;
+
+  /// No description provided for @glossaryUnitFan.
+  ///
+  /// In en, this message translates to:
+  /// **'Fan'**
+  String get glossaryUnitFan;
+
+  /// No description provided for @glossaryTermSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get glossaryTermSet;
+
+  /// No description provided for @glossaryDefSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Three tiles that go together: a run of three in one suit, or three identical tiles. Four identical tiles also count, as a kong.'**
+  String get glossaryDefSet;
+
+  /// No description provided for @glossaryTermPair.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair'**
+  String get glossaryTermPair;
+
+  /// No description provided for @glossaryDefPair.
+  ///
+  /// In en, this message translates to:
+  /// **'Two identical tiles. A winning hand is four sets and exactly one pair.'**
+  String get glossaryDefPair;
+
+  /// No description provided for @glossaryDefChi.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim another player\'s discard to finish a run of three in one suit. Only from the player on your left; the set is then shown face up.'**
+  String get glossaryDefChi;
+
+  /// No description provided for @glossaryDefPon.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim a discard that matches two tiles in your hand, from any player, to make three of a kind. The set is shown face up.'**
+  String get glossaryDefPon;
+
+  /// No description provided for @glossaryDefKan.
+  ///
+  /// In en, this message translates to:
+  /// **'Four identical tiles. You then draw a replacement tile from the end of the wall.'**
+  String get glossaryDefKan;
+
+  /// No description provided for @glossaryTermDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get glossaryTermDiscard;
+
+  /// No description provided for @glossaryDefDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'The tile you throw away at the end of your turn, face up in front of you. Other players may be able to claim it.'**
+  String get glossaryDefDiscard;
+
+  /// No description provided for @glossaryDefTsumo.
+  ///
+  /// In en, this message translates to:
+  /// **'Winning on a tile you drew yourself.'**
+  String get glossaryDefTsumo;
+
+  /// No description provided for @glossaryDefRon.
+  ///
+  /// In en, this message translates to:
+  /// **'Winning on a tile another player discarded.'**
+  String get glossaryDefRon;
+
+  /// No description provided for @glossaryTermDealer.
+  ///
+  /// In en, this message translates to:
+  /// **'Dealer'**
+  String get glossaryTermDealer;
+
+  /// No description provided for @glossaryDefDealer.
+  ///
+  /// In en, this message translates to:
+  /// **'The player seated East, who plays first. Winning usually lets the dealer keep the seat for another hand.'**
+  String get glossaryDefDealer;
+
+  /// No description provided for @glossaryTermWinds.
+  ///
+  /// In en, this message translates to:
+  /// **'Winds'**
+  String get glossaryTermWinds;
+
+  /// No description provided for @glossaryDefWinds.
+  ///
+  /// In en, this message translates to:
+  /// **'Four tiles: East, South, West and North. They also name the seats and the round, and a set of your own seat wind or the round wind can be worth extra.'**
+  String get glossaryDefWinds;
+
+  /// No description provided for @glossaryTermDragons.
+  ///
+  /// In en, this message translates to:
+  /// **'Dragons'**
+  String get glossaryTermDragons;
+
+  /// No description provided for @glossaryDefDragons.
+  ///
+  /// In en, this message translates to:
+  /// **'Three tiles: White, Green and Red. A set of any dragon is worth extra.'**
+  String get glossaryDefDragons;
+
+  /// No description provided for @glossaryTermFlowers.
+  ///
+  /// In en, this message translates to:
+  /// **'Flowers'**
+  String get glossaryTermFlowers;
+
+  /// No description provided for @glossaryDefFlowers.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus tiles. When you draw one, you show it and take a replacement from the wall. Each one can add to a winning hand\'s score.'**
+  String get glossaryDefFlowers;
+
+  /// No description provided for @glossaryTermVoid.
+  ///
+  /// In en, this message translates to:
+  /// **'Void suit'**
+  String get glossaryTermVoid;
+
+  /// No description provided for @glossaryDefVoid.
+  ///
+  /// In en, this message translates to:
+  /// **'You give up one of the three suits at the start. While you hold any tile of it, you must discard those first.'**
+  String get glossaryDefVoid;
+
+  /// No description provided for @glossaryDefScore.
+  ///
+  /// In en, this message translates to:
+  /// **'What a winning hand earns. More means a more valuable hand. Some tables set a minimum a hand must reach before it can win.'**
+  String get glossaryDefScore;
+
+  /// No description provided for @glossaryTermRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi'**
+  String get glossaryTermRiichi;
+
+  /// No description provided for @glossaryDefRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Declare a closed hand one tile from winning by betting 1,000 points. Your hand is then locked: you can only discard each tile you draw. It earns extra score.'**
+  String get glossaryDefRiichi;
+
+  /// No description provided for @glossaryTermDora.
+  ///
+  /// In en, this message translates to:
+  /// **'Dora'**
+  String get glossaryTermDora;
+
+  /// No description provided for @glossaryDefDora.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus tiles chosen by an indicator tile on the table. Each one in a winning hand adds a han.'**
+  String get glossaryDefDora;
+
+  /// No description provided for @glossaryTermFuriten.
+  ///
+  /// In en, this message translates to:
+  /// **'Furiten'**
+  String get glossaryTermFuriten;
+
+  /// No description provided for @glossaryDefFuriten.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t win off a discard if a tile that would complete your hand is among your own discards. A self-draw still wins.'**
+  String get glossaryDefFuriten;
+
+  /// No description provided for @glossaryTermReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready hand'**
+  String get glossaryTermReady;
+
+  /// No description provided for @glossaryDefReady.
+  ///
+  /// In en, this message translates to:
+  /// **'A hand one tile from winning. The guide shows which tiles would finish it.'**
+  String get glossaryDefReady;
+
+  /// No description provided for @glossaryTermAway.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiles away'**
+  String get glossaryTermAway;
+
+  /// No description provided for @glossaryDefAway.
+  ///
+  /// In en, this message translates to:
+  /// **'How many more tiles your hand needs before it can win. One tile away means ready. The guide\'s meter and its Away or Shanten column show it.'**
+  String get glossaryDefAway;
+
+  /// No description provided for @glossaryTermHelpful.
+  ///
+  /// In en, this message translates to:
+  /// **'Helpful tiles'**
+  String get glossaryTermHelpful;
+
+  /// No description provided for @glossaryDefHelpful.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.'**
+  String get glossaryDefHelpful;
+
+  /// No description provided for @practiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get practiceTitle;
+
+  /// No description provided for @practiceLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice hands'**
+  String get practiceLink;
+
+  /// No description provided for @practiceProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total}'**
+  String practiceProgress(int current, int total);
+
+  /// No description provided for @practiceAskWin.
+  ///
+  /// In en, this message translates to:
+  /// **'This hand is one tile from winning. Which tile completes it?'**
+  String get practiceAskWin;
+
+  /// No description provided for @practiceAskDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve drawn a tile. Which discard leaves you one tile from winning?'**
+  String get practiceAskDiscard;
+
+  /// No description provided for @practiceAskClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'What can you do with this discard?'**
+  String get practiceAskClaim;
+
+  /// No description provided for @practiceDiscardedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Discarded by: {seat}'**
+  String practiceDiscardedBy(String seat);
+
+  /// No description provided for @practiceYourHand.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hand'**
+  String get practiceYourHand;
+
+  /// No description provided for @practiceCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct!'**
+  String get practiceCorrect;
+
+  /// No description provided for @practiceWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Not quite.'**
+  String get practiceWrong;
+
+  /// No description provided for @practiceNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get practiceNext;
+
+  /// No description provided for @practiceSeeResults.
+  ///
+  /// In en, this message translates to:
+  /// **'See results'**
+  String get practiceSeeResults;
+
+  /// No description provided for @practiceResult.
+  ///
+  /// In en, this message translates to:
+  /// **'You got {score} of {total} right.'**
+  String practiceResult(int score, int total);
+
+  /// No description provided for @practiceAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get practiceAgain;
+
+  /// No description provided for @practiceOptionPass.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass'**
+  String get practiceOptionPass;
+
+  /// No description provided for @practiceWhyW1.
+  ///
+  /// In en, this message translates to:
+  /// **'Three sets and the pair 55s are done. The 1p and 3p need a 2p in the middle to make the run 1-2-3.'**
+  String get practiceWhyW1;
+
+  /// No description provided for @practiceWhyW2.
+  ///
+  /// In en, this message translates to:
+  /// **'The 1p and 2p can only become 1-2-3, so only a 3p wins. A wait on the edge like this has just one winning tile.'**
+  String get practiceWhyW2;
+
+  /// No description provided for @practiceWhyW3.
+  ///
+  /// In en, this message translates to:
+  /// **'Four sets are done. The single 5s needs a second 5s to make the pair, so only a 5s wins.'**
+  String get practiceWhyW3;
+
+  /// No description provided for @practiceWhyD1.
+  ///
+  /// In en, this message translates to:
+  /// **'Three sets, the pair 66p and 3p-4p all work together. The lone 9s joins nothing, so throw it: you\'re then one tile from winning, waiting for a 2p or a 5p.'**
+  String get practiceWhyD1;
+
+  /// No description provided for @practiceWhyD2.
+  ///
+  /// In en, this message translates to:
+  /// **'The East tile joins nothing. Throw it and the 1s-2s waits for a 3s to finish.'**
+  String get practiceWhyD2;
+
+  /// No description provided for @practiceWhyD3.
+  ///
+  /// In en, this message translates to:
+  /// **'The lone West joins nothing. Throw it and the 7s-8s waits for a 6s or a 9s.'**
+  String get practiceWhyD3;
+
+  /// No description provided for @practiceWhyC1.
+  ///
+  /// In en, this message translates to:
+  /// **'You hold two 5p, and a third from any player makes three of a kind. That is a {call}.'**
+  String practiceWhyC1(String call);
+
+  /// No description provided for @practiceWhyC2.
+  ///
+  /// In en, this message translates to:
+  /// **'The player on your left discarded the 5p, and it fits between your 4p and 6p to make a run. That is a {call}.'**
+  String practiceWhyC2(String call);
+
+  /// No description provided for @practiceWhyC3.
+  ///
+  /// In en, this message translates to:
+  /// **'A run can only be claimed from the player on your left. This 5p came from someone else, so you can\'t use it for a run. Pass.'**
+  String get practiceWhyC3;
+
+  /// No description provided for @practiceWhyC4.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in your hand pairs with the East tile or forms a run with it, so there is nothing to claim. Pass.'**
+  String get practiceWhyC4;
+
+  /// No description provided for @practiceChoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a tile'**
+  String get practiceChoices;
+
+  /// No description provided for @practiceLegend.
+  ///
+  /// In en, this message translates to:
+  /// **'m = characters, p = dots, s = bamboo'**
+  String get practiceLegend;
+
+  /// No description provided for @nudgeFullGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve won {n} hands. Ready for more detail? The full guide shows the numbers behind each suggestion.'**
+  String nudgeFullGuide(int n);
+
+  /// No description provided for @nudgeFullGuideAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the full guide'**
+  String get nudgeFullGuideAction;
+
+  /// No description provided for @nudgeMinimum.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve won {n} hands. Try a 1 faan minimum: a hand now needs a little extra to win.'**
+  String nudgeMinimum(int n);
+
+  /// No description provided for @nudgeMinimumAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a 1 faan minimum'**
+  String get nudgeMinimumAction;
+
+  /// No description provided for @nudgeRuleset.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve won {n} hands. Ready for a new challenge? Try {rules}.'**
+  String nudgeRuleset(int n, String rules);
+
+  /// No description provided for @nudgeRulesetAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {rules}'**
+  String nudgeRulesetAction(String rules);
+
+  /// No description provided for @nudgeNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get nudgeNotNow;
+
+  /// No description provided for @nudgeStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop suggesting'**
+  String get nudgeStop;
 }
 
 class _AppLocalizationsDelegate

@@ -14,6 +14,7 @@ import '../game/game_controller.dart';
 import '../game/guide_host.dart' show AutoplayBrain;
 import '../l10n/l10n.dart';
 import '../main.dart' show brainColor, openRules;
+import 'glossary.dart';
 import 'language_button.dart';
 
 const Color _gold = Color(0xffe9d58f);
@@ -95,6 +96,14 @@ Future<void> showPhoneMenu(
                               icon: Icons.menu_book,
                               label: context.l10n.rules,
                               onTap: () => openRules(game.ruleset),
+                            ),
+                          ],
+                          [
+                            phoneMenuAction(
+                              key: const Key('phoneMenuGlossary'),
+                              icon: Icons.help_outline,
+                              label: context.l10n.glossaryTitle,
+                              onTap: () => showGlossary(context, game.ruleset),
                             ),
                           ],
                           [

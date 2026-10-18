@@ -177,7 +177,11 @@ class SimpleGuideBody extends StatelessWidget {
       switch (outlookOf(line, report)) {
         DiscardOutlook.wins => l10n.guideOutlookWins,
         DiscardOutlook.waiting => l10n.guideOutlookWaiting(line.ukeire),
-        DiscardOutlook.onTrack => l10n.guideOutlookOnTrack(line.ukeire),
+        // A tile count only means something near the end: from further out
+        // it is most of the wall.
+        DiscardOutlook.onTrack => line.shanten <= 1
+            ? l10n.guideOutlookOnTrack(line.ukeire)
+            : l10n.guideOutlookOnTrackFar,
         DiscardOutlook.furtherAway => l10n.guideOutlookFurther,
       };
 

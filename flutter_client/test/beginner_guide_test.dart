@@ -202,4 +202,19 @@ void main() {
       expect(find.byKey(const Key('simpleGuideShortfall')), findsNothing);
     });
   });
+
+  testWidgets('a far-off hand gets no tile count, a near one does',
+      (tester) async {
+    final far = report('1m 234m 567m 99s 78p 3p W 5s');
+    expect(tilesAway(far), greaterThan(2));
+    await pumpPanel(tester, far);
+    expect(text(tester, 'simpleGuideBestWhy'), 'Keeps you on track.');
+    expect(find.textContaining('helpful tile'), findsNothing);
+
+    // Two tiles away: a count is worth giving.
+    final near = report('123m 456m 78p 99p 3s 5s 7s E R');
+    expect(tilesAway(near), lessThanOrEqualTo(2));
+    await pumpPanel(tester, near);
+    expect(find.textContaining('helpful tile'), findsWidgets);
+  });
 }

@@ -14,6 +14,7 @@ import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/progress.dart';
 import '../logic/sichuan_guide.dart';
 import '../logic/sichuan_value.dart';
 import 'package:mahjong_core/round.dart';
@@ -303,6 +304,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
   @override
   GamePhase phase = GamePhase.playing;
   bool autoplay = false;
+
+  /// Auto-Play was on at some point in this hand, so it was not wholly yours.
+  bool _autoplayThisHand = false;
 
   /// On by default. Browsers routinely re-suspend playback (backgrounding,
   /// screen lock, iPad multitasking) in ways that can leave bot/Auto-Play sfx
@@ -691,6 +695,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   }
 
   void _startGame() {
+    _autoplayThisHand = false;
     _points = List.filled(4, ruleset.startingPoints);
     _dealSerial = 0;
     _dealer = startingDealer;
@@ -843,6 +848,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   void continueFromRoundEnd() {
     if (phase != GamePhase.roundEnd) return;
     final r = round.result!;
+
+    // Count the hand toward the player's progress: a win only if it is theirs
+    // alone, with no Auto-Play in it.
+    ProgressStore.instance.recordHand(
+        won: r.winners.contains(kHumanSeat) &&
+            !autoplay &&
+            !_autoplayThisHand);
+    _autoplayThisHand = false;
 
     // Apply honba / dealer rotation. The dealer keeps their seat (renchan) on a
     // win of their own or, at an exhaustive draw, on being tenpai.
@@ -1538,6 +1551,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
   }
 
   void setAutoplay(bool value) {
+    if (value) _autoplayThisHand = true;
     autoplay = value;
     _tel?.settingChange(matchId: _matchId, setting: 'autoplay', value: value);
     notifyListeners();

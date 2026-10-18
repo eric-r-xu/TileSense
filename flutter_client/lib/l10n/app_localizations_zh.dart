@@ -2320,6 +2320,258 @@ class AppLocalizationsZh extends AppLocalizations {
   String guideWinningTiles(int n) {
     return '能胡的牌 · 还剩$n张';
   }
+
+  @override
+  String get guideOutlookOnTrackFar => '保持进度。';
+
+  @override
+  String get glossaryTitle => '术语表';
+
+  @override
+  String get glossarySearchHint => '搜索术语';
+
+  @override
+  String get glossaryNoMatch => '没有匹配的术语。';
+
+  @override
+  String get glossaryUnitHan => '翻';
+
+  @override
+  String get glossaryUnitFaan => '番';
+
+  @override
+  String get glossaryUnitTai => '台';
+
+  @override
+  String get glossaryUnitFan => '番';
+
+  @override
+  String get glossaryTermSet => '牌组';
+
+  @override
+  String get glossaryDefSet => '凑在一起的三张牌：同花色的三张顺子，或三张相同的牌。四张相同的牌也算，叫做杠。';
+
+  @override
+  String get glossaryTermPair => '将（对子）';
+
+  @override
+  String get glossaryDefPair => '两张相同的牌。胡牌的牌型是四组牌加一对将。';
+
+  @override
+  String get glossaryDefChi => '要别人打出的牌，凑成同花色的三张顺子。只能要上家（左手边）的牌，凑好的牌组要亮在桌面上。';
+
+  @override
+  String get glossaryDefPon => '要一张与你手中两张相同的牌，可以要任何人打出的，凑成三张相同的牌。凑好的牌组要亮在桌面上。';
+
+  @override
+  String get glossaryDefKan => '四张相同的牌。杠完之后，要从牌墙末端补一张牌。';
+
+  @override
+  String get glossaryTermDiscard => '打牌';
+
+  @override
+  String get glossaryDefDiscard => '每回合结束时打出的那张牌，亮在你面前。其他玩家有时可以要这张牌。';
+
+  @override
+  String get glossaryDefTsumo => '胡的是自己摸到的牌。';
+
+  @override
+  String get glossaryDefRon => '胡的是别人打出的牌。';
+
+  @override
+  String get glossaryTermDealer => '庄家';
+
+  @override
+  String get glossaryDefDealer => '坐在东位、最先出牌的玩家。胡牌通常能让庄家继续坐庄。';
+
+  @override
+  String get glossaryTermWinds => '风牌';
+
+  @override
+  String get glossaryDefWinds => '东、南、西、北四种牌，也用来称呼座位和圈风。自己座位的风或圈风的牌组可能有加分。';
+
+  @override
+  String get glossaryTermDragons => '箭牌';
+
+  @override
+  String get glossaryDefDragons => '白板、发财、红中三种牌。任何箭牌的牌组都有加分。';
+
+  @override
+  String get glossaryTermFlowers => '花牌';
+
+  @override
+  String get glossaryDefFlowers => '奖励牌。摸到后亮出来，再从牌墙补一张牌。每张花牌都可能为胡牌加分。';
+
+  @override
+  String get glossaryTermVoid => '缺门';
+
+  @override
+  String get glossaryDefVoid => '开局时放弃三种花色中的一种。只要你手里还有这门的牌，就必须先打出它们。';
+
+  @override
+  String get glossaryDefScore => '胡牌所得的价值。越多，牌越值钱。有些牌桌规定了胡牌所需的最低值。';
+
+  @override
+  String get glossaryTermRiichi => '立直';
+
+  @override
+  String get glossaryDefRiichi =>
+      '牌是门清、再差一张就胡时，押上1,000点宣告。之后手牌锁定，只能打出摸到的牌。立直会带来额外得分。';
+
+  @override
+  String get glossaryTermDora => '宝牌';
+
+  @override
+  String get glossaryDefDora => '由桌上的宝牌指示牌决定的奖励牌。胡牌时手里每有一张，加一番（翻）。';
+
+  @override
+  String get glossaryTermFuriten => '振听';
+
+  @override
+  String get glossaryDefFuriten => '如果能胡的牌在自己的打牌里，就不能胡别人打出的牌。自摸仍然可以胡。';
+
+  @override
+  String get glossaryTermReady => '听牌';
+
+  @override
+  String get glossaryDefReady => '再差一张就能胡的牌。提示会告诉你哪些牌能胡。';
+
+  @override
+  String get glossaryTermAway => '还差几张';
+
+  @override
+  String get glossaryDefAway =>
+      '手牌还需要几张才能胡牌。还差一张就是听牌。提示的进度条和“Away”或“Shanten”一列会显示。';
+
+  @override
+  String get glossaryTermHelpful => '有用的牌';
+
+  @override
+  String get glossaryDefHelpful => '摸到后能让手牌更接近胡牌的牌。提示会统计还有多少张没出现。';
+
+  @override
+  String get practiceTitle => '练习题';
+
+  @override
+  String get practiceLink => '练习题';
+
+  @override
+  String practiceProgress(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get practiceAskWin => '这手牌再差一张就能胡。哪张牌能凑齐？';
+
+  @override
+  String get practiceAskDiscard => '你摸了一张牌。打出哪张，能让手牌再差一张就胡？';
+
+  @override
+  String get practiceAskClaim => '对这张打出的牌，你能做什么？';
+
+  @override
+  String practiceDiscardedBy(String seat) {
+    return '打牌的人：$seat';
+  }
+
+  @override
+  String get practiceYourHand => '你的手牌';
+
+  @override
+  String get practiceCorrect => '答对了！';
+
+  @override
+  String get practiceWrong => '不太对。';
+
+  @override
+  String get practiceNext => '下一题';
+
+  @override
+  String get practiceSeeResults => '查看结果';
+
+  @override
+  String practiceResult(int score, int total) {
+    return '共$total题，你答对了$score题。';
+  }
+
+  @override
+  String get practiceAgain => '再来一次';
+
+  @override
+  String get practiceOptionPass => '放过';
+
+  @override
+  String get practiceWhyW1 => '三组牌和将牌55s已经凑好。1p和3p中间需要一张2p，才能凑成1-2-3顺子。';
+
+  @override
+  String get practiceWhyW2 => '1p和2p只能凑成1-2-3，所以只有3p能胡。这样的边张听牌，只有一种牌能胡。';
+
+  @override
+  String get practiceWhyW3 => '四组牌已经凑好。单独的5s还要再来一张5s凑成将，所以只有5s能胡。';
+
+  @override
+  String get practiceWhyD1 =>
+      '三组牌、将牌66p和3p-4p都能配合。单独的9s和别的牌没有联系，打出它，你就再差一张就胡，听2p或5p。';
+
+  @override
+  String get practiceWhyD2 => '东和别的牌没有联系。打出它，1s-2s就听3s。';
+
+  @override
+  String get practiceWhyD3 => '单独的西和别的牌没有联系。打出它，7s-8s就听6s或9s。';
+
+  @override
+  String practiceWhyC1(String call) {
+    return '你有两张5p，从任何人那里再要一张，就凑成三张相同的牌。这叫$call。';
+  }
+
+  @override
+  String practiceWhyC2(String call) {
+    return '你左手边的玩家打出了5p，正好补在你的4p和6p中间凑成顺子。这叫$call。';
+  }
+
+  @override
+  String get practiceWhyC3 => '顺子只能要左手边玩家的牌。这张5p是别人打的，不能用来凑顺子，所以放过。';
+
+  @override
+  String get practiceWhyC4 => '你手里没有能和东配对的牌，也凑不成顺子，所以没什么可要的。放过。';
+
+  @override
+  String get practiceChoices => '选择一张牌';
+
+  @override
+  String get practiceLegend => 'm＝万子，p＝筒子，s＝条子';
+
+  @override
+  String nudgeFullGuide(int n) {
+    return '你已经胡了$n手牌。想看更多细节吗？完整提示会显示每条建议背后的数字。';
+  }
+
+  @override
+  String get nudgeFullGuideAction => '显示完整提示';
+
+  @override
+  String nudgeMinimum(int n) {
+    return '你已经胡了$n手牌。试试最低1番吧：现在手牌需要多一点价值才能胡。';
+  }
+
+  @override
+  String get nudgeMinimumAction => '改用最低1番';
+
+  @override
+  String nudgeRuleset(int n, String rules) {
+    return '你已经胡了$n手牌。想来点新挑战吗？试试$rules。';
+  }
+
+  @override
+  String nudgeRulesetAction(String rules) {
+    return '切换到$rules';
+  }
+
+  @override
+  String get nudgeNotNow => '暂时不要';
+
+  @override
+  String get nudgeStop => '不再提示';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4638,4 +4890,256 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String guideWinningTiles(int n) {
     return '能食糊的牌 · 還剩$n張';
   }
+
+  @override
+  String get guideOutlookOnTrackFar => '保持進度。';
+
+  @override
+  String get glossaryTitle => '術語表';
+
+  @override
+  String get glossarySearchHint => '搜尋術語';
+
+  @override
+  String get glossaryNoMatch => '沒有符合的術語。';
+
+  @override
+  String get glossaryUnitHan => '翻';
+
+  @override
+  String get glossaryUnitFaan => '番';
+
+  @override
+  String get glossaryUnitTai => '台';
+
+  @override
+  String get glossaryUnitFan => '番';
+
+  @override
+  String get glossaryTermSet => '牌組';
+
+  @override
+  String get glossaryDefSet => '湊在一起的三張牌：同花色的三張順子，或三張相同的牌。四張相同的牌也算，叫做槓。';
+
+  @override
+  String get glossaryTermPair => '將（對子）';
+
+  @override
+  String get glossaryDefPair => '兩張相同的牌。食糊的牌型是四組牌加一對將。';
+
+  @override
+  String get glossaryDefChi => '要別人打出的牌，湊成同花色的三張順子。只能要上家（左手邊）的牌，湊好的牌組要亮在桌面上。';
+
+  @override
+  String get glossaryDefPon => '要一張與你手中兩張相同的牌，可以要任何人打出的，湊成三張相同的牌。湊好的牌組要亮在桌面上。';
+
+  @override
+  String get glossaryDefKan => '四張相同的牌。槓完之後，要從牌牆末端補一張牌。';
+
+  @override
+  String get glossaryTermDiscard => '打牌';
+
+  @override
+  String get glossaryDefDiscard => '每回合結束時打出的那張牌，亮在你面前。其他玩家有時可以要這張牌。';
+
+  @override
+  String get glossaryDefTsumo => '糊的是自己摸到的牌。';
+
+  @override
+  String get glossaryDefRon => '糊的是別人打出的牌。';
+
+  @override
+  String get glossaryTermDealer => '莊家';
+
+  @override
+  String get glossaryDefDealer => '坐在東位、最先出牌的玩家。食糊通常能讓莊家繼續坐莊。';
+
+  @override
+  String get glossaryTermWinds => '風牌';
+
+  @override
+  String get glossaryDefWinds => '東、南、西、北四種牌，也用來稱呼座位和圈風。自己座位的風或圈風的牌組可能有加分。';
+
+  @override
+  String get glossaryTermDragons => '箭牌';
+
+  @override
+  String get glossaryDefDragons => '白板、發財、紅中三種牌。任何箭牌的牌組都有加分。';
+
+  @override
+  String get glossaryTermFlowers => '花牌';
+
+  @override
+  String get glossaryDefFlowers => '獎勵牌。摸到後亮出來，再從牌牆補一張牌。每張花牌都可能為糊牌加分。';
+
+  @override
+  String get glossaryTermVoid => '缺門';
+
+  @override
+  String get glossaryDefVoid => '開局時放棄三種花色中的一種。只要你手裡還有這門的牌，就必須先打出它們。';
+
+  @override
+  String get glossaryDefScore => '糊牌所得的價值。越多，牌越值錢。有些牌桌規定了食糊所需的最低值。';
+
+  @override
+  String get glossaryTermRiichi => '立直';
+
+  @override
+  String get glossaryDefRiichi =>
+      '牌是門清、再差一張就糊時，押上1,000點宣告。之後手牌鎖定，只能打出摸到的牌。立直會帶來額外得分。';
+
+  @override
+  String get glossaryTermDora => '寶牌';
+
+  @override
+  String get glossaryDefDora => '由桌上的寶牌指示牌決定的獎勵牌。糊牌時手裡每有一張，加一翻。';
+
+  @override
+  String get glossaryTermFuriten => '振聽';
+
+  @override
+  String get glossaryDefFuriten => '如果能糊的牌在自己的打牌裡，就不能糊別人打出的牌。自摸仍然可以食糊。';
+
+  @override
+  String get glossaryTermReady => '聽牌';
+
+  @override
+  String get glossaryDefReady => '再差一張就能糊的牌。提示會告訴你哪些牌能糊。';
+
+  @override
+  String get glossaryTermAway => '還差幾張';
+
+  @override
+  String get glossaryDefAway =>
+      '手牌還需要幾張才能食糊。還差一張就是聽牌。提示的進度條和「Away」或「Shanten」一列會顯示。';
+
+  @override
+  String get glossaryTermHelpful => '有用的牌';
+
+  @override
+  String get glossaryDefHelpful => '摸到後能讓手牌更接近食糊的牌。提示會統計還有多少張沒出現。';
+
+  @override
+  String get practiceTitle => '練習題';
+
+  @override
+  String get practiceLink => '練習題';
+
+  @override
+  String practiceProgress(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get practiceAskWin => '這手牌再差一張就能食糊。哪張牌能湊齊？';
+
+  @override
+  String get practiceAskDiscard => '你摸了一張牌。打出哪張，能讓手牌再差一張就食糊？';
+
+  @override
+  String get practiceAskClaim => '對這張打出的牌，你能做什麼？';
+
+  @override
+  String practiceDiscardedBy(String seat) {
+    return '打牌的人：$seat';
+  }
+
+  @override
+  String get practiceYourHand => '你的手牌';
+
+  @override
+  String get practiceCorrect => '答對了！';
+
+  @override
+  String get practiceWrong => '不太對。';
+
+  @override
+  String get practiceNext => '下一題';
+
+  @override
+  String get practiceSeeResults => '查看結果';
+
+  @override
+  String practiceResult(int score, int total) {
+    return '共$total題，你答對了$score題。';
+  }
+
+  @override
+  String get practiceAgain => '再來一次';
+
+  @override
+  String get practiceOptionPass => '放過';
+
+  @override
+  String get practiceWhyW1 => '三組牌和將牌55s已經湊好。1p和3p中間需要一張2p，才能湊成1-2-3順子。';
+
+  @override
+  String get practiceWhyW2 => '1p和2p只能湊成1-2-3，所以只有3p能糊。這樣的邊張聽牌，只有一種牌能糊。';
+
+  @override
+  String get practiceWhyW3 => '四組牌已經湊好。單獨的5s還要再來一張5s湊成將，所以只有5s能糊。';
+
+  @override
+  String get practiceWhyD1 =>
+      '三組牌、將牌66p和3p-4p都能配合。單獨的9s和別的牌沒有聯繫，打出它，你就再差一張就糊，聽2p或5p。';
+
+  @override
+  String get practiceWhyD2 => '東和別的牌沒有聯繫。打出它，1s-2s就聽3s。';
+
+  @override
+  String get practiceWhyD3 => '單獨的西和別的牌沒有聯繫。打出它，7s-8s就聽6s或9s。';
+
+  @override
+  String practiceWhyC1(String call) {
+    return '你有兩張5p，從任何人那裡再要一張，就湊成三張相同的牌。這叫$call。';
+  }
+
+  @override
+  String practiceWhyC2(String call) {
+    return '你左手邊的玩家打出了5p，正好補在你的4p和6p中間湊成順子。這叫$call。';
+  }
+
+  @override
+  String get practiceWhyC3 => '順子只能要左手邊玩家的牌。這張5p是別人打的，不能用來湊順子，所以放過。';
+
+  @override
+  String get practiceWhyC4 => '你手裡沒有能和東配對的牌，也湊不成順子，所以沒什麼可要的。放過。';
+
+  @override
+  String get practiceChoices => '選擇一張牌';
+
+  @override
+  String get practiceLegend => 'm＝萬子，p＝筒子，s＝條子';
+
+  @override
+  String nudgeFullGuide(int n) {
+    return '你已經食糊了$n手牌。想看更多細節嗎？完整提示會顯示每條建議背後的數字。';
+  }
+
+  @override
+  String get nudgeFullGuideAction => '顯示完整提示';
+
+  @override
+  String nudgeMinimum(int n) {
+    return '你已經食糊了$n手牌。試試最低1番吧：現在手牌需要多一點價值才能食糊。';
+  }
+
+  @override
+  String get nudgeMinimumAction => '改用最低1番';
+
+  @override
+  String nudgeRuleset(int n, String rules) {
+    return '你已經食糊了$n手牌。想來點新挑戰嗎？試試$rules。';
+  }
+
+  @override
+  String nudgeRulesetAction(String rules) {
+    return '切換到$rules';
+  }
+
+  @override
+  String get nudgeNotNow => '暫時不要';
+
+  @override
+  String get nudgeStop => '不再提示';
 }
