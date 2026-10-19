@@ -1,0 +1,21 @@
+select
+    round_id,
+    match_id,
+    round_index,
+    round_wind,
+    hand_number,
+    dealer_seat,
+    honba,
+    riichi_sticks,
+    started_at,
+    ended_at,
+    end_kind,
+    winners,
+    loser_seat,
+    han,
+    fu,
+    points,
+    yaku,
+    point_deltas,
+    dealer_kept
+from {{ source('telemetry', 'rounds') }}

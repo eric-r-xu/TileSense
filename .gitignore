@@ -16,3 +16,7 @@ HANDOFF.md
 flutter_client/e2e/node_modules/
 flutter_client/e2e/test-results/
 flutter_client/e2e/playwright-report/
+
+analytics/dbt/target/
+analytics/dbt/dbt_packages/
+analytics/dbt/logs/

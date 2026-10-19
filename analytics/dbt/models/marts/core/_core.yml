@@ -1,0 +1,77 @@
+version: 2
+
+models:
+  - name: dim_client
+    description: One row per client plus an unknown member. Current-state traits; history lives in snap_client_traits.
+    config: {contract: {enforced: false}, access: public}
+    columns:
+      - name: client_key
+        data_tests: [unique, not_null]
+
+  - name: fct_rounds
+    description: "Grain: one row per round (hand)."
+    config: {access: public}
+    columns:
+      - name: round_id
+        data_tests: [unique, not_null]
+      - name: client_key
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_client'), field: client_key}}
+
+  - name: fct_round_seat_results
+    description: "Grain: one row per round x seat (0-3)."
+    config: {access: public}
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [round_id, seat]}
+    columns:
+      - name: round_id
+        data_tests:
+          - relationships: {arguments: {to: ref('fct_rounds'), field: round_id}}
+      - name: seat
+        data_tests:
+          - dbt_utils.accepted_range: {arguments: {min_value: 0, max_value: 3}}
+
+  - name: dim_match_settings
+    description: Junk dimension of per-match option flags, one row per observed combination plus an unknown member.
+    config: {access: public}
+    columns:
+      - name: match_settings_key
+        data_tests: [unique, not_null]
+
+  - name: fct_matches
+    description: "Grain: one row per match (accumulating; open and abandoned matches are kept and flagged)."
+    config: {access: public}
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "ended_at is null or ended_reason is not null"}
+          config: {severity: warn}
+    columns:
+      - name: match_id
+        data_tests: [unique, not_null]
+      - name: client_key
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_client'), field: client_key}}
+      - name: match_settings_key
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_match_settings'), field: match_settings_key}}
+
+  - name: fct_events
+    description: "Grain: one row per player action."
+    config: {access: public}
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: client_key
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_client'), field: client_key}}
+      - name: match_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('fct_matches'), field: match_id}
+              config: {where: "match_id is not null", severity: warn}
+      - name: round_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('fct_rounds'), field: round_id}
+              config: {where: "round_id is not null", severity: warn}
