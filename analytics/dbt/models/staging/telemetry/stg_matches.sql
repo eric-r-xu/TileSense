@@ -1,0 +1,22 @@
+select
+    match_id,
+    session_id,
+    mode,
+    room_code,
+    timer_seconds,
+    seed,
+    hanchan,
+    fast_mode,
+    autoplay_at_start,
+    guide_shown_at_start,
+    started_at,
+    ended_at,
+    ended_reason,
+    human_seat,
+    human_place,
+    final_points,
+    seat_characters,
+    seat_is_bot,
+    seat_guest_ids,
+    seat_places
+from {{ source('telemetry', 'matches') }}

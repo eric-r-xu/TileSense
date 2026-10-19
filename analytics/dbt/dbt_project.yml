@@ -1,0 +1,27 @@
+name: tilesense_analytics
+version: "0.1.0"
+config-version: 2
+require-dbt-version: [">=1.9.0", "<2.0.0"]
+profile: tilesense
+
+model-paths: ["models"]
+snapshot-paths: ["snapshots"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+models:
+  tilesense_analytics:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      core:
+        +materialized: table
+        +schema: core
+
+snapshots:
+  tilesense_analytics:
+    +schema: snapshots

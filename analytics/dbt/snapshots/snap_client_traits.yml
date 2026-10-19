@@ -1,0 +1,10 @@
+snapshots:
+  - name: snap_client_traits
+    relation: ref('int_client_traits')
+    config:
+      unique_key: client_id
+      strategy: check
+      # matches_played is excluded on purpose: it changes every game and would
+      # create a version per match. Only meaningful trait flips make a new row.
+      check_cols: [has_used_guide, has_played_multiplayer, has_played_hanchan]
+      hard_deletes: ignore

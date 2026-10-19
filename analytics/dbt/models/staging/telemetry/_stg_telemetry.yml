@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_matches
+    columns:
+      - name: mode
+        data_tests: [{accepted_values: {arguments: {values: [single, multiplayer]}}}]
+      - name: human_place
+        data_tests:
+          - dbt_utils.accepted_range: {arguments: {min_value: 1, max_value: 4}}
+  - name: stg_rounds
+    columns:
+      - name: end_kind
+        data_tests:
+          - accepted_values:
+              arguments: {values: [tsumo, ron, exhaustiveDraw, abortiveDraw]}
+              config: {where: "end_kind is not null"}

@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: telemetry
+    description: Ingest tables from server/migrations (public schema). Owned by the server; dbt only reads.
+    schema: public
+    tables:
+      - name: clients
+        columns: [{name: client_id, data_tests: [unique, not_null]}]
+      - name: sessions
+        loaded_at_field: started_at
+        config:
+          freshness:
+            warn_after: {count: 2, period: day}
+        columns: [{name: session_id, data_tests: [unique, not_null]}]
+      - name: matches
+        columns: [{name: match_id, data_tests: [unique, not_null]}]
+      - name: rounds
+        columns: [{name: round_id, data_tests: [unique, not_null]}]
+      - name: events
+        loaded_at_field: occurred_at
+        config:
+          freshness:
+            warn_after: {count: 2, period: day}
