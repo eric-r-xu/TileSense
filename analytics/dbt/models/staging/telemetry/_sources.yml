@@ -15,6 +15,7 @@ sources:
         columns: [{name: session_id, data_tests: [unique, not_null]}]
       - name: matches
         columns: [{name: match_id, data_tests: [unique, not_null]}]
+      - name: match_participants
       - name: rounds
         columns: [{name: round_id, data_tests: [unique, not_null]}]
       - name: events
