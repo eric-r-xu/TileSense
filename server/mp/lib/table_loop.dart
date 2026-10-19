@@ -457,6 +457,8 @@ class TableLoop {
     if (_ended) return;
     if (decision.tsumo) {
       round.declareTsumo(seat);
+    } else if (decision.kyuushu) {
+      round.declareKyuushu(seat); // Mortal aborts the hand rather than discard
     } else if (decision.closedKan != null) {
       round.closedKan(seat, decision.closedKan!);
       _justCalled = seat; // its KAN bubble, before the replacement's discard
