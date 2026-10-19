@@ -9,6 +9,11 @@ snapshot-paths: ["snapshots"]
 target-path: target
 clean-targets: [target, dbt_packages]
 
+vars:
+  # occurred_at is client-supplied, so offline clients can deliver old events
+  # late. fct_events re-reads this many days behind its high-water mark.
+  events_lookback_days: 7
+
 models:
   tilesense_analytics:
     staging:
