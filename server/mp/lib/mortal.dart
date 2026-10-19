@@ -36,8 +36,12 @@ class MortalClient {
     Future<Map<String, Object?>> post() async {
       final req = await _http.postUrl(_url);
       req.headers.contentType = ContentType.json;
-      req.write(jsonEncode(
-          {'player_id': seat, 'events': mjaiView(events, seat)}));
+      // The sidecar reads Content-Length and answers 413 without it; left to
+      // itself Dart sends a body like this chunked, with no length.
+      final bytes = utf8.encode(
+          jsonEncode({'player_id': seat, 'events': mjaiView(events, seat)}));
+      req.contentLength = bytes.length;
+      req.add(bytes);
       final res = await req.close();
       final body = jsonDecode(await res.transform(utf8.decoder).join())
           as Map<String, Object?>;
