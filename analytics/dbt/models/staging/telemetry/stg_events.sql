@@ -4,6 +4,7 @@ select
     match_id,
     round_id,
     occurred_at,
+    ingested_at,
     kind,
     actor_seat,
     tile,
