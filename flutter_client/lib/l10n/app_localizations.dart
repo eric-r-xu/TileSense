@@ -710,13 +710,13 @@ abstract class AppLocalizations {
   /// No description provided for @playOnlineSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'With friends — bots fill empty seats, no guide'**
+  /// **'Bots fill empty seats, no guide'**
   String get playOnlineSubtitle;
 
   /// No description provided for @builder.
   ///
   /// In en, this message translates to:
-  /// **'Custom Hand & Context Builder'**
+  /// **'Hand Builder'**
   String get builder;
 
   /// No description provided for @builderSubtitle.
@@ -4528,6 +4528,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.'**
   String get glossaryDefHelpful;
+
+  /// No description provided for @learnTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get learnTile;
+
+  /// No description provided for @moreTile.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get moreTile;
 
   /// No description provided for @practiceTitle.
   ///

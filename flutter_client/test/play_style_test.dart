@@ -253,7 +253,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('ruleset_riichi')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_riichi')));
     await tester.pump();
     await tester.tap(find.text('Single Player'));
     await tester.pump();

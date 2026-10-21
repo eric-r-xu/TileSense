@@ -349,11 +349,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playOnline => 'Play Online';
 
   @override
-  String get playOnlineSubtitle =>
-      'With friends — bots fill empty seats, no guide';
+  String get playOnlineSubtitle => 'Bots fill empty seats, no guide';
 
   @override
-  String get builder => 'Custom Hand & Context Builder';
+  String get builder => 'Hand Builder';
 
   @override
   String get builderSubtitle => 'Pose any table and have TileSense score it';
@@ -2527,6 +2526,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get glossaryDefHelpful =>
       'Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.';
+
+  @override
+  String get learnTile => 'Learn';
+
+  @override
+  String get moreTile => 'More';
 
   @override
   String get practiceTitle => 'Practice';

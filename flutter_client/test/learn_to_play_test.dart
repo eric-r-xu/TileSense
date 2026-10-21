@@ -4,6 +4,7 @@ import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/l10n/app_language.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/learn_to_play_page.dart';
+import 'helpers.dart';
 
 void main() {
   Future<void> boot(WidgetTester tester) async {
@@ -87,7 +88,7 @@ void main() {
       (tester) async {
     LearnToPlay.markSeen();
     await boot(tester);
-    await tester.tap(find.byKey(const Key('learnToPlay')));
+    await tapInPopup(tester, 'learnTile', find.byKey(const Key('learnToPlay')));
     await tester.pump();
     expect(find.byKey(const Key('learnTitle')), findsOneWidget);
 
@@ -103,9 +104,9 @@ void main() {
 
   testWidgets('the last card speaks of the chosen ruleset', (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('learnToPlay')));
+    await tapInPopup(tester, 'learnTile', find.byKey(const Key('learnToPlay')));
     await tester.pump();
     for (var i = 0; i < 3; i++) {
       await tester.tap(find.byKey(const Key('learnNext')));
@@ -126,7 +127,7 @@ void main() {
         await tester.binding.setSurfaceSize(size);
         await tester.pumpWidget(const TileSenseApp());
         await tester.pump(const Duration(milliseconds: 100));
-        await tester.tap(find.byKey(const Key('learnToPlay')));
+        await tapInPopup(tester, 'learnTile', find.byKey(const Key('learnToPlay')));
         await tester.pump();
         for (var i = 0; i < 4; i++) {
           expect(tester.takeException(), isNull,

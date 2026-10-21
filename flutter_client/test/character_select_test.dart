@@ -58,14 +58,19 @@ void main() {
         lessThanOrEqualTo(tester.getRect(find.text('Single Player')).left));
   });
 
-  testWidgets('the GitHub and Flutter links sit in the title screen corner',
+  testWidgets('the GitHub and Flutter links sit in the More popup',
       (tester) async {
     await _boot(tester);
+    expect(find.byKey(const Key('githubLink')), findsNothing);
+    await tester.tap(find.byKey(const Key('moreTile')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     for (final key in ['githubLink', 'flutterLink']) {
-      final r = tester.getRect(find.byKey(Key(key)));
-      expect(r.right, greaterThan(kDesignSize.width - 120), reason: key);
-      expect(r.bottom, greaterThan(kDesignSize.height - 60), reason: key);
+      expect(find.byKey(Key(key)), findsOneWidget, reason: key);
     }
+    await tester.tap(find.byKey(const Key('titlePopupClose')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     // And no longer at the table.
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -197,7 +202,7 @@ void main() {
     expect(find.textContaining('1 tai min'), findsOneWidget);
   });
 
-  testWidgets('offline goes through character select, with the old defaults',
+  testWidgets('offline goes through character select, with a random distinct line-up',
       (tester) async {
     await _boot(tester);
     expect(find.text('CHOOSE YOUR CHARACTERS'), findsNothing,
@@ -210,7 +215,6 @@ void main() {
     // Each seat is labelled with its starting wind and where it sits.
     const winds = ['East', 'South', 'West', 'North'];
     const positions = ['YOU', 'Right', 'Across', 'Left'];
-    const defaults = ['Orderic', 'Grant', 'Hubert', 'Astaroth'];
     const kanji = ['東', '南', '西', '北'];
     for (var seat = 0; seat < 4; seat++) {
       expect(tester.widget<Text>(find.byKey(Key('seatWind_$seat'))).data,
@@ -219,14 +223,14 @@ void main() {
           kanji[seat]);
       expect(tester.widget<Text>(find.byKey(Key('seatPosition_$seat'))).data,
           positions[seat]);
-      expect(_name(tester, seat), defaults[seat]);
     }
+    // Each Single Player entry deals four different characters.
+    expect({for (var seat = 0; seat < 4; seat++) _name(tester, seat)}.length, 4);
 
     // Picking changes that seat only.
     await tester.tap(find.byKey(const Key('seatCharacterPick_1_erika')));
     await tester.pump();
     expect(_name(tester, 1), 'Erika');
-    expect(_name(tester, 0), 'Orderic');
 
     await tester.tap(find.byKey(const Key('seatCharacterPick_0_melissa')));
     await tester.pump();

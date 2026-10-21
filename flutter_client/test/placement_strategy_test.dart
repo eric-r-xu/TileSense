@@ -259,8 +259,7 @@ void main() {
   Future<void> switchViaMenu(WidgetTester tester, String rulesetKey) async {
     await tester.tap(find.byKey(const Key('backToMenu')));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(Key(rulesetKey)));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tapInPopup(tester, 'rulesTile', find.byKey(Key(rulesetKey)));
     await tester.tap(find.text('Single Player'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('charactersContinue')));
@@ -276,7 +275,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('ruleset_riichi')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_riichi')));
     await tester.pump();
     await tester.tap(find.text('Single Player'));
     await tester.pump();

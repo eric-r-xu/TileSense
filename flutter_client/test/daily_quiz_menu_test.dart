@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/progress.dart';
 import 'package:tilesense/main.dart';
+import 'helpers.dart';
 
 /// The daily quiz's way in from the welcome screen, and its streak.
 void main() {
@@ -82,13 +83,13 @@ void main() {
   }
 
   testWidgets(
-      'the card and the utility link both open the quiz and Back '
+      'the card opens the quiz and Back '
       'returns', (tester) async {
     await pumpMenu(tester);
     expect(find.byKey(const Key('dailyQuizMascot')), findsOneWidget);
     expect(find.byKey(const Key('dailyQuizStreak')), findsNothing);
 
-    for (final entry in ['dailyQuizCard', 'quizLink']) {
+    for (final entry in ['dailyQuizCard']) {
       await tester.tap(find.byKey(Key(entry)));
       await settle(tester);
       expect(find.byKey(const Key('quizQuestion')), findsOneWidget,
@@ -103,10 +104,8 @@ void main() {
       'the card and the quiz say it is riichi only, whatever rules are chosen',
       (tester) async {
     await pumpMenu(tester);
-    final choice = find.byKey(const Key('ruleset_hongKong'));
-    await tester.ensureVisible(choice);
-    await tester.tap(choice);
-    await tester.pump();
+    await tapInPopup(
+        tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
     expect(
         find.descendant(
             of: find.byKey(const Key('dailyQuizCard')),
@@ -127,7 +126,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('quizLink')));
+    await tester.tap(find.byKey(const Key('dailyQuizCard')));
     await settle(tester);
 
     // Both are drawn at the canvas's ~0.48 scale, so 44pt is about 92 canvas

@@ -24,7 +24,7 @@ extension MahjongTerms on AppLocalizations {
   /// [rulesetName] with the ruleset's flag in front, for toggles and badges.
   /// Plain text: a ruleset with a flag image (see [Ruleset.flagAsset]) shows
   /// its text stand-in here; widgets that can draw the image use `RulesetFlag`.
-  String rulesetFlagLabel(Ruleset r) => '${r.flag} ${rulesetName(r)}';
+  String rulesetFlagLabel(Ruleset r) => '${r.flag} ${rulesetName(r)}'.trim();
 
   /// Sichuan's suit names (0 man, 1 pin, 2 sou) — the void suit's.
   String suitName(int suit) => switch (suit) {

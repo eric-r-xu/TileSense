@@ -21,6 +21,7 @@ import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'client_id_text.dart';
 import 'language_button.dart';
+import 'ruleset_flag.dart';
 import 'theme.dart';
 
 class OnlineLobbyPage extends StatefulWidget {
@@ -493,6 +494,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     required T value,
     required List<(T, Key, String)> items,
     required ValueChanged<T> onChanged,
+    Widget Function(T)? itemBuilder,
   }) {
     return InputDecorator(
       decoration: InputDecoration(
@@ -531,7 +533,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               DropdownMenuItem<T>(
                 key: itemKey,
                 value: v,
-                child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: itemBuilder?.call(v) ??
+                    Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
           ],
         ),
@@ -554,6 +557,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             (r, Key('onlineRuleset_${r.name}'), context.l10n.rulesetFlagLabel(r)),
         ],
         onChanged: (r) => setState(() => _ruleset = r),
+        itemBuilder: (r) => RulesetFlagLabel(r),
       );
 
   /// Full game or the short one, named as the offline setup screen names
@@ -621,8 +625,13 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         ),
         const SizedBox(height: 16),
         _card(
+          emoji: game.ruleset.flagAsset == null
+              ? null
+              : RulesetFlag(game.ruleset, size: 16),
           title: [
-            context.l10n.rulesetFlagLabel(game.ruleset),
+            game.ruleset.flagAsset == null
+                ? context.l10n.rulesetFlagLabel(game.ruleset)
+                : context.l10n.rulesetName(game.ruleset),
             if (game.ruleset.isHongKong)
               context.l10n.roomFaanMin(game.minimumFaan),
             if (game.ruleset.isTaiwanese)

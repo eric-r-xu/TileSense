@@ -11,6 +11,7 @@ const ANSWER = [
 
 test('practice hands: pick an answer, see a verdict, move on', async ({ page }) => {
   await openApp(page);
+  await byId(page, 'learnTile').click();
   await byId(page, 'practiceLink').click();
 
   const answers = page.locator(ANSWER);

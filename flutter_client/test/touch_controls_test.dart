@@ -26,10 +26,7 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
     if (ruleset != null) {
-      final choice = find.byKey(Key('ruleset_$ruleset'));
-      await tester.ensureVisible(choice);
-      await tester.tap(choice);
-      await tester.pump();
+      await tapInPopup(tester, 'rulesTile', find.byKey(Key('ruleset_$ruleset')));
     }
     await tester.ensureVisible(find.text('Single Player'));
     await tester.tap(find.text('Single Player'));

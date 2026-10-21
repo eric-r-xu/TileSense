@@ -10,6 +10,7 @@ import 'package:tilesense/ui/practice_page.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
 import 'l10n_helpers.dart';
+import 'helpers.dart';
 
 /// The practice hands as a player meets them: answer, see why, move on.
 void main() {
@@ -171,7 +172,7 @@ void main() {
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.byKey(const Key('practiceLink')));
+    await tapInPopup(tester, 'learnTile', find.byKey(const Key('practiceLink')));
     await tester.pump();
     expect(find.byKey(const Key('practiceQuestion')), findsOneWidget);
 
@@ -187,8 +188,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('practiceLink')));
-    await tester.pump();
+    await tapInPopup(
+        tester, 'learnTile', find.byKey(const Key('practiceLink')));
 
     expect(find.byKey(const Key('practiceBackBottom')), findsOneWidget);
     await tester.tap(find.byKey(const Key('practiceBackBottom')));

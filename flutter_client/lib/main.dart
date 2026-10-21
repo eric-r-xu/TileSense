@@ -79,7 +79,6 @@ Color playStyleColor(PlayStyle style) => switch (style) {
       PlayStyle.aggressive => const Color(0xffff8a65),
     };
 
-
 /// The caption every top-bar tile carries above its value.
 const TextStyle _barCaptionStyle = TextStyle(
     color: Colors.white54,
@@ -104,32 +103,32 @@ Widget _barTile({
   double width = 84,
 }) {
   final tile = Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          key: tapKey,
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          // 44px tall: clears the 50px toolbar with the group's border.
-          child: SizedBox(
-            width: width,
-            height: 44,
-            // Scales down rather than overflowing once text is boosted on a
-            // phone (see _FixedCanvas).
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(caption,
-                      maxLines: 1, softWrap: false, style: _barCaptionStyle),
-                  const SizedBox(height: 3),
-                  value,
-                ],
-              ),
-            ),
+    type: MaterialType.transparency,
+    child: InkWell(
+      key: tapKey,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      // 44px tall: clears the 50px toolbar with the group's border.
+      child: SizedBox(
+        width: width,
+        height: 44,
+        // Scales down rather than overflowing once text is boosted on a
+        // phone (see _FixedCanvas).
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(caption,
+                  maxLines: 1, softWrap: false, style: _barCaptionStyle),
+              const SizedBox(height: 3),
+              value,
+            ],
           ),
         ),
-      );
+      ),
+    ),
+  );
   return tooltip == null ? tile : Tooltip(message: tooltip, child: tile);
 }
 
@@ -326,37 +325,37 @@ class TileSenseApp extends StatelessWidget {
         child: ValueListenableBuilder<AppLanguage>(
           valueListenable: AppLanguageController.instance,
           builder: (context, language, _) => MaterialApp(
-          onGenerateTitle: (context) => context.l10n.appTitle,
-          locale: language.locale,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: AppColors.gold,
-              brightness: Brightness.dark,
+            onGenerateTitle: (context) => context.l10n.appTitle,
+            locale: language.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: AppColors.gold,
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
             ),
-            useMaterial3: true,
-          ),
-          // Every size in this app is authored in kDesignSize's fixed logical
-          // pixels and scaled as one unit by _FixedCanvas — but browsers each
-          // set their own default system/accessibility text-scale factor
-          // independently of that (e.g. Chrome for Android can differ from
-          // Safari/Firefox on the very same device), which scales Text
-          // separately from everything else and was exactly why things like
-          // the centre status block or the rotate-landscape prompt rendered
-          // taller / more loosely spaced on some browsers than others. Pin it
-          // to 1.0 everywhere — including _LandscapeGate, which sits outside
-          // _FixedCanvas's own MediaQuery override — so text renders at the
-          // size it was authored at. The one exception is _FixedCanvas's
-          // own phone boost, which depends only on how far the canvas is
-          // shrunk, never on the browser.
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.noScaling),
-            child: child!,
-          ),
-          home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
+            // Every size in this app is authored in kDesignSize's fixed logical
+            // pixels and scaled as one unit by _FixedCanvas — but browsers each
+            // set their own default system/accessibility text-scale factor
+            // independently of that (e.g. Chrome for Android can differ from
+            // Safari/Firefox on the very same device), which scales Text
+            // separately from everything else and was exactly why things like
+            // the centre status block or the rotate-landscape prompt rendered
+            // taller / more loosely spaced on some browsers than others. Pin it
+            // to 1.0 everywhere — including _LandscapeGate, which sits outside
+            // _FixedCanvas's own MediaQuery override — so text renders at the
+            // size it was authored at. The one exception is _FixedCanvas's
+            // own phone boost, which depends only on how far the canvas is
+            // shrunk, never on the browser.
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.noScaling),
+              child: child!,
+            ),
+            home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
           ),
         ),
       );
@@ -637,8 +636,7 @@ class _FixedCanvasState extends State<_FixedCanvas> {
                   padding: EdgeInsets.zero,
                   viewInsets: EdgeInsets.zero,
                   viewPadding: EdgeInsets.zero,
-                  textScaler:
-                      TextScaler.linear((0.65 / fit).clamp(1.0, 1.35)),
+                  textScaler: TextScaler.linear((0.65 / fit).clamp(1.0, 1.35)),
                 ),
                 child: widget.child,
               ),
@@ -681,26 +679,6 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       ),
     );
   }
-}
-
-/// Fullscreen toggle, shown on the welcome screen. Web only, and hidden once
-/// the app is installed (there is no browser chrome left to hide). Where the
-/// browser has no fullscreen API (iPhone Safari) it explains how to install
-/// the app instead.
-/// The welcome screen's way back into the first-run lesson.
-class _LearnButton extends StatelessWidget {
-  const _LearnButton(this.onPressed);
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => TextButton.icon(
-        key: const Key('learnToPlay'),
-        onPressed: onPressed,
-        icon: const Icon(Icons.school_outlined, size: 18),
-        label: Text(context.l10n.learnNewLink),
-        style: AppButtons.link(),
-      );
 }
 
 /// One suggestion for making the game harder, offered once enough hands have
@@ -794,8 +772,8 @@ class _NudgeCard extends StatelessWidget {
                     TextButton(
                       key: const Key('nudgeStop'),
                       onPressed: store.mute,
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.white54),
+                      style:
+                          TextButton.styleFrom(foregroundColor: Colors.white54),
                       child: Text(l10n.nudgeStop),
                     ),
                   ],
@@ -807,44 +785,6 @@ class _NudgeCard extends StatelessWidget {
       },
     );
   }
-}
-
-/// The welcome screen's link to the guided practice hands.
-class _PracticeButton extends StatelessWidget {
-  const _PracticeButton(this.onPressed);
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => e2eId(
-        'practiceLink',
-        TextButton.icon(
-          key: const Key('practiceLink'),
-          onPressed: onPressed,
-          icon: const Icon(Icons.fitness_center, size: 18),
-          label: Text(context.l10n.practiceLink),
-          style: AppButtons.link(),
-        ),
-      );
-}
-
-/// The utility-row link to the daily quiz.
-class _QuizButton extends StatelessWidget {
-  const _QuizButton(this.onPressed);
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => e2eId(
-        'quizLink',
-        TextButton.icon(
-          key: const Key('quizLink'),
-          onPressed: onPressed,
-          icon: const Icon(Icons.quiz_outlined, size: 18),
-          label: Text(context.l10n.quizLink),
-          style: AppButtons.link(),
-        ),
-      );
 }
 
 /// The welcome screen's daily-quiz card: the TileSensor mascot, whether
@@ -946,25 +886,6 @@ class _DailyQuizCard extends StatelessWidget {
   }
 }
 
-/// The welcome screen's link to the glossary, in the selected rules.
-class _GlossaryButton extends StatelessWidget {
-  const _GlossaryButton(this.ruleset);
-
-  final Ruleset ruleset;
-
-  @override
-  Widget build(BuildContext context) => e2eId(
-        'glossaryLink',
-        TextButton.icon(
-          key: const Key('glossaryLink'),
-          onPressed: () => showGlossary(context, ruleset),
-          icon: const Icon(Icons.help_outline, size: 18),
-          label: Text(context.l10n.glossaryTitle),
-          style: AppButtons.link(),
-        ),
-      );
-}
-
 class _FullscreenButton extends StatefulWidget {
   const _FullscreenButton();
 
@@ -1010,16 +931,15 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
     if (!fs.fullscreenButtonVisible) return const SizedBox.shrink();
     final full = fs.isFullscreen;
     return Tooltip(
-      message: full
-          ? context.l10n.fullscreenExit
-          : context.l10n.fullscreenTooltip,
+      message:
+          full ? context.l10n.fullscreenExit : context.l10n.fullscreenTooltip,
       child: TextButton.icon(
         key: const Key('fullscreen'),
         icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen, size: 22),
-        label: Text(
-            full ? context.l10n.fullscreenExit : context.l10n.fullscreen),
+        label:
+            Text(full ? context.l10n.fullscreenExit : context.l10n.fullscreen),
         onPressed: fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp,
-        style: AppButtons.link(fontSize: 15),
+        style: AppButtons.link(fontSize: 16),
       ),
     );
   }
@@ -1103,7 +1023,7 @@ class _UpdateButtonState extends State<_UpdateButton> {
             : const Icon(Icons.refresh, size: 22),
         label: Text(_busy ? context.l10n.working : context.l10n.update),
         onPressed: _busy ? null : _onPressed,
-        style: AppButtons.link(fontSize: 15),
+        style: AppButtons.link(fontSize: 16),
       ),
     );
   }
@@ -1222,8 +1142,12 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   GameController? _controller;
   GameController get _game => _controller!;
+
+  /// A fresh random seating for the next single-player game; the
+  /// character-select page still lets the player change any of it.
+  void _rerollCharacters() => _characters.setAll(0, randomSeatCharacters());
   Ruleset _selectedRuleset = Ruleset.hongKong;
-  final List<Character> _characters = List.of(kSeatCharacters);
+  final List<Character> _characters = randomSeatCharacters();
   int _startingDealer = 0;
   bool _hanchan = true;
   int _minimumFaan = HongKongRules.defaultMinimumFaan;
@@ -1573,6 +1497,7 @@ class _GamePageState extends State<GamePage> {
         ruleset: _selectedRuleset,
         onRuleset: (r) => setState(() => _selectedRuleset = r),
         onStart: () => setState(() {
+          _rerollCharacters();
           // A first-time player gets the lesson before choosing characters.
           if (LearnToPlay.shouldAutoShow) {
             _learning = true;
@@ -1611,12 +1536,14 @@ class _GamePageState extends State<GamePage> {
         toolbarHeight: 50,
         titleSpacing: 12,
         leadingWidth: BarBackButton.leadingWidth,
-        leading: phone ? null : BarBackButton(
-          buttonKey: const Key('backToMenu'),
-          label: context.l10n.menu,
-          tooltip: context.l10n.menuTooltip,
-          onPressed: _backToMenu,
-        ),
+        leading: phone
+            ? null
+            : BarBackButton(
+                buttonKey: const Key('backToMenu'),
+                label: context.l10n.menu,
+                tooltip: context.l10n.menuTooltip,
+                onPressed: _backToMenu,
+              ),
         // The bar's own controls on the left, then the across seat — up here
         // rather than on the felt, so the ponds get that row's height.
         title: AnimatedBuilder(
@@ -1625,280 +1552,290 @@ class _GamePageState extends State<GamePage> {
             game: _game,
             // The leading width plus the titleSpacing above.
             titleStart: phone ? 12 : BarBackButton.leadingWidth + 12,
-            leading: phone ? const Text('TileSense') : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // No TileSensor up here: the guide toggle is the big one beside
-                // your hand, and the TileSensor in this bar is Auto-Play's — one
-                // mascot button per bar, so neither reads as the other.
-                const Text('TileSense'),
-                const SizedBox(width: 16),
-                // Which rules the table plays — a label, not a switch: the style
-                // is fixed for the game once it is under way. It is chosen on the
-                // welcome and character screens, reached with the back arrow.
-                AnimatedBuilder(
-                  animation: _game,
-                  builder: (context, _) => Tooltip(
-                    message: context.l10n.playingRulesTooltip(
-                        context.l10n.rulesetName(_game.ruleset),
-                        _minimumSentence()),
-                    child: Padding(
-                      key: const Key('ruleset'),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
-                      child: RulesetFlagLabel(
-                        _game.ruleset,
-                        suffix: _minimumTag(),
-                        style: const TextStyle(
-                          color: AppColors.goldBright,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
+            leading: phone
+                ? const Text('TileSense')
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // No TileSensor up here: the guide toggle is the big one beside
+                      // your hand, and the TileSensor in this bar is Auto-Play's — one
+                      // mascot button per bar, so neither reads as the other.
+                      const Text('TileSense'),
+                      const SizedBox(width: 16),
+                      // Which rules the table plays — a label, not a switch: the style
+                      // is fixed for the game once it is under way. It is chosen on the
+                      // welcome and character screens, reached with the back arrow.
+                      AnimatedBuilder(
+                        animation: _game,
+                        builder: (context, _) => Tooltip(
+                          message: context.l10n.playingRulesTooltip(
+                              context.l10n.rulesetName(_game.ruleset),
+                              _minimumSentence()),
+                          child: Padding(
+                            key: const Key('ruleset'),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 6),
+                            child: RulesetFlagLabel(
+                              _game.ruleset,
+                              suffix: _minimumTag(),
+                              style: const TextStyle(
+                                color: AppColors.goldBright,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                // The current ruleset's one-page rules reference.
-                AnimatedBuilder(
-                  animation: _game,
-                  builder: (context, _) => IconButton(
-                    key: const Key('rulesPdf'),
-                    tooltip: context.l10n
-                        .rulesPdf(context.l10n.rulesetName(_game.ruleset)),
-                    iconSize: 18,
-                    visualDensity: VisualDensity.compact,
-                    color: Colors.white54,
-                    icon: const Icon(Icons.menu_book),
-                    onPressed: () => openRules(_game.ruleset),
-                  ),
-                ),
-                // The terms a new player meets, in this game's rules.
-                AnimatedBuilder(
-                  animation: _game,
-                  builder: (context, _) => IconButton(
-                    key: const Key('glossaryButton'),
-                    tooltip: context.l10n.glossaryTitle,
-                    iconSize: 18,
-                    visualDensity: VisualDensity.compact,
-                    color: Colors.white54,
-                    icon: const Icon(Icons.help_outline),
-                    onPressed: () => showGlossary(context, _game.ruleset),
-                  ),
-                ),
-                // East-only vs. full game length (the full game is the default).
-                AnimatedBuilder(
-                  animation: _game,
-                  builder: (context, _) {
-                    // The hand counts each length advertises are a floor, not
-                    // a promise: the hand is replayed whenever the dealership
-                    // holds (under Hong Kong and Taiwanese rules, on any draw).
-                    final l10n = context.l10n;
-                    final caveat = _game.ruleset.isChineseStyle
-                        ? l10n.hanchanCaveatChinese
-                        : l10n.hanchanCaveatRiichi;
-                    return Tooltip(
-                      message: _game.hanchan
-                          ? l10n.hanchanOnTooltip(caveat)
-                          : (_game.ruleset.isChineseStyle
-                              ? l10n.eastOnlyTooltipChinese(caveat)
-                              : l10n.eastOnlyTooltipRiichi(caveat)),
-                      child: TextButton(
-                        key: const Key('hanchan'),
-                        onPressed: _confirmToggleLength,
-                        style: TextButton.styleFrom(
+                      // The current ruleset's one-page rules reference.
+                      AnimatedBuilder(
+                        animation: _game,
+                        builder: (context, _) => IconButton(
+                          key: const Key('rulesPdf'),
+                          tooltip: context.l10n.rulesPdf(
+                              context.l10n.rulesetName(_game.ruleset)),
+                          iconSize: 18,
                           visualDensity: VisualDensity.compact,
-                          foregroundColor: AppColors.goldText,
-                        ),
-                        child: Text(
-                          _game.hanchan
-                              ? (_game.ruleset.isSichuan
-                                  ? context.l10n.sichuanFullGame
-                                  : _game.ruleset.isMcr
-                                      ? context.l10n.mcrFullGame
-                                      : context.l10n.hanchan)
-                              : (_game.ruleset.isSichuan
-                                  ? context.l10n.sichuanPractice
-                                  : context.l10n.eastOnly),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600),
+                          color: Colors.white54,
+                          icon: const Icon(Icons.menu_book),
+                          onPressed: () => openRules(_game.ruleset),
                         ),
                       ),
-                    );
-                  },
-                ),
-                // Bot speed: normal (1x) or fast (2x), in the same
-                // caption-over-value tile as the guide dials.
-                AnimatedBuilder(
-                  animation: _game,
-                  builder: (context, _) => _barDial(
-                    caption: context.l10n.botSpeedCaption,
-                    buttonKey: const Key('fastMode'),
-                    label: _game.fastMode ? '2x' : '1x',
-                    colour: _game.fastMode
-                        ? AppColors.goldBright
-                        : Colors.white60,
-                    tooltip: _game.fastMode
-                        ? context.l10n.botSpeedFastTooltip
-                        : context.l10n.botSpeedNormalTooltip,
-                    onTap: () => _game.setFastMode(!_game.fastMode),
+                      // The terms a new player meets, in this game's rules.
+                      AnimatedBuilder(
+                        animation: _game,
+                        builder: (context, _) => IconButton(
+                          key: const Key('glossaryButton'),
+                          tooltip: context.l10n.glossaryTitle,
+                          iconSize: 18,
+                          visualDensity: VisualDensity.compact,
+                          color: Colors.white54,
+                          icon: const Icon(Icons.help_outline),
+                          onPressed: () => showGlossary(context, _game.ruleset),
+                        ),
+                      ),
+                      // East-only vs. full game length (the full game is the default).
+                      AnimatedBuilder(
+                        animation: _game,
+                        builder: (context, _) {
+                          // The hand counts each length advertises are a floor, not
+                          // a promise: the hand is replayed whenever the dealership
+                          // holds (under Hong Kong and Taiwanese rules, on any draw).
+                          final l10n = context.l10n;
+                          final caveat = _game.ruleset.isChineseStyle
+                              ? l10n.hanchanCaveatChinese
+                              : l10n.hanchanCaveatRiichi;
+                          return Tooltip(
+                            message: _game.hanchan
+                                ? l10n.hanchanOnTooltip(caveat)
+                                : (_game.ruleset.isChineseStyle
+                                    ? l10n.eastOnlyTooltipChinese(caveat)
+                                    : l10n.eastOnlyTooltipRiichi(caveat)),
+                            child: TextButton(
+                              key: const Key('hanchan'),
+                              onPressed: _confirmToggleLength,
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                foregroundColor: AppColors.goldText,
+                              ),
+                              child: Text(
+                                _game.hanchan
+                                    ? (_game.ruleset.isSichuan
+                                        ? context.l10n.sichuanFullGame
+                                        : _game.ruleset.isMcr
+                                            ? context.l10n.mcrFullGame
+                                            : context.l10n.hanchan)
+                                    : (_game.ruleset.isSichuan
+                                        ? context.l10n.sichuanPractice
+                                        : context.l10n.eastOnly),
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Bot speed: normal (1x) or fast (2x), in the same
+                      // caption-over-value tile as the guide dials.
+                      AnimatedBuilder(
+                        animation: _game,
+                        builder: (context, _) => _barDial(
+                          caption: context.l10n.botSpeedCaption,
+                          buttonKey: const Key('fastMode'),
+                          label: _game.fastMode ? '2x' : '1x',
+                          colour: _game.fastMode
+                              ? AppColors.goldBright
+                              : Colors.white60,
+                          tooltip: _game.fastMode
+                              ? context.l10n.botSpeedFastTooltip
+                              : context.l10n.botSpeedNormalTooltip,
+                          onTap: () => _game.setFastMode(!_game.fastMode),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
         // A phone's bar has room for no controls, but it still names the
         // rules in play (and the table's minimum), top right.
-        actions: phone ? [
-          AnimatedBuilder(
-            animation: _game,
-            builder: (context, _) => RulesetBadge(
-              ruleset: _game.ruleset,
-              minimumFaan: _game.minimumFaan,
-              minimumPoints: _game.minimumPoints,
-            ),
-          ),
-          const SizedBox(width: 16),
-        ] : [
-          // Auto-Play and the dials it plays in one panel: Auto-Play plays
-          // from the guide's own scores, weighed on the dials the game sets
-          // as it goes (points early, placement in the final hands; see
-          // autoDials). The panel's border lights up gold while it is on,
-          // the cue that the guide is now playing your seat, not just
-          // advising. The dials themselves are not shown here.
-          AnimatedBuilder(
-            animation: _game,
-            builder: (context, _) {
-              final on = _game.autoplay;
-              final dials = <Widget>[
-                // Who Auto-Play follows, where the Goal used to be. Riichi
-                // with Mortal only; tapping flips between the two. Under
-                // TileSense its tooltip names the dials the guide is playing.
-                if (_game.mortalAvailable)
-                  _barDial(
-                    caption: context.l10n.algorithmCaption,
-                    buttonKey: const Key('autoplayBrain'),
-                    label: _game.autoplayBrain == AutoplayBrain.mortal
-                        ? context.l10n.mortalBot
-                        : 'TileSense',
-                    colour: brainColor(_game.autoplayBrain),
-                    tooltip: _game.autoplayBrain == AutoplayBrain.mortal
-                        ? null
-                        : context.l10n.algorithmTooltip(
-                            context.l10n.playStyleName(_game.playStyle),
-                            context.l10n.handFocusName(_game.handFocus),
-                            context.l10n.strategyName(_game.strategy)),
-                    onTap: () => _game.setAutoplayBrain(
-                        _game.autoplayBrain == AutoplayBrain.mortal
-                            ? AutoplayBrain.tilesense
-                            : AutoplayBrain.mortal),
+        actions: phone
+            ? [
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) => RulesetBadge(
+                    ruleset: _game.ruleset,
+                    minimumFaan: _game.minimumFaan,
+                    minimumPoints: _game.minimumPoints,
                   ),
-              ];
-              return AnimatedContainer(
-                key: const Key('autoplayGroup'),
-                duration: const Duration(milliseconds: 200),
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0x14ffffff),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: on ? AppColors.gold : const Color(0x33ffffff),
-                    width: on ? 1.5 : 1,
-                  ),
-                  boxShadow: on
-                      ? const [
-                          BoxShadow(color: Color(0x44caa24e), blurRadius: 8)
-                        ]
-                      : null,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _barTile(
-                      caption: context.l10n.autoPlayCaption,
-                      tapKey: const Key('autoplay'),
-                      width: 92,
-                      tooltip: on
-                          ? context.l10n.autoPlayOnTooltip
-                          : context.l10n.autoPlayOffTooltip,
-                      onTap: () => _game.setAutoplay(!on),
-                      value: Row(
+                const SizedBox(width: 16),
+              ]
+            : [
+                // Auto-Play and the dials it plays in one panel: Auto-Play plays
+                // from the guide's own scores, weighed on the dials the game sets
+                // as it goes (points early, placement in the final hands; see
+                // autoDials). The panel's border lights up gold while it is on,
+                // the cue that the guide is now playing your seat, not just
+                // advising. The dials themselves are not shown here.
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) {
+                    final on = _game.autoplay;
+                    final dials = <Widget>[
+                      // Who Auto-Play follows, where the Goal used to be. Riichi
+                      // with Mortal only; tapping flips between the two. Under
+                      // TileSense its tooltip names the dials the guide is playing.
+                      if (_game.mortalAvailable)
+                        _barDial(
+                          caption: context.l10n.algorithmCaption,
+                          buttonKey: const Key('autoplayBrain'),
+                          label: _game.autoplayBrain == AutoplayBrain.mortal
+                              ? context.l10n.mortalBot
+                              : 'TileSense',
+                          colour: brainColor(_game.autoplayBrain),
+                          tooltip: _game.autoplayBrain == AutoplayBrain.mortal
+                              ? null
+                              : context.l10n.algorithmTooltip(
+                                  context.l10n.playStyleName(_game.playStyle),
+                                  context.l10n.handFocusName(_game.handFocus),
+                                  context.l10n.strategyName(_game.strategy)),
+                          onTap: () => _game.setAutoplayBrain(
+                              _game.autoplayBrain == AutoplayBrain.mortal
+                                  ? AutoplayBrain.tilesense
+                                  : AutoplayBrain.mortal),
+                        ),
+                    ];
+                    return AnimatedContainer(
+                      key: const Key('autoplayGroup'),
+                      duration: const Duration(milliseconds: 200),
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0x14ffffff),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: on ? AppColors.gold : const Color(0x33ffffff),
+                          width: on ? 1.5 : 1,
+                        ),
+                        boxShadow: on
+                            ? const [
+                                BoxShadow(
+                                    color: Color(0x44caa24e), blurRadius: 8)
+                              ]
+                            : null,
+                      ),
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _AutoPlayBadge(on: on, size: 22),
-                          const SizedBox(width: 5),
-                          Text(on ? context.l10n.on : context.l10n.off,
-                              style: TextStyle(
-                                  color: on ? AppColors.gold : Colors.white54,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700)),
+                          _barTile(
+                            caption: context.l10n.autoPlayCaption,
+                            tapKey: const Key('autoplay'),
+                            width: 92,
+                            tooltip: on
+                                ? context.l10n.autoPlayOnTooltip
+                                : context.l10n.autoPlayOffTooltip,
+                            onTap: () => _game.setAutoplay(!on),
+                            value: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _AutoPlayBadge(on: on, size: 22),
+                                const SizedBox(width: 5),
+                                Text(on ? context.l10n.on : context.l10n.off,
+                                    style: TextStyle(
+                                        color:
+                                            on ? AppColors.gold : Colors.white54,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                          ),
+                          for (final dial in dials) ...[_barDivider(), dial],
                         ],
                       ),
-                    ),
-                    for (final dial in dials) ...[_barDivider(), dial],
-                  ],
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-          const SizedBox(width: 20),
-          // The game's own controls, together at the edge: sound, pause and
-          // a new game. Plus-in-a-circle for the new game rather than a
-          // circular arrow, which reads as "go back" — and would be mistaken
-          // for the take-back button over your hand.
-          AnimatedBuilder(
-            animation: _game,
-            builder: (context, _) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The language picker on this screen (on a phone it is in
-                // the Menu sheet instead).
-                const LanguageButton(compact: true),
-                const SizedBox(width: 4),
-                _barTile(
-                  caption: context.l10n.soundCaption,
-                  tapKey: const Key('soundToggle'),
-                  width: 56,
-                  tooltip: _game.soundOn
-                      ? context.l10n.soundOnTooltip
-                      : context.l10n.soundOffTooltip,
-                  onTap: () => _game.setSoundOn(!_game.soundOn),
-                  value: Icon(
-                    _game.soundOn ? Icons.volume_up : Icons.volume_off,
-                    size: 22,
-                    color: _game.soundOn
-                        ? AppColors.goldText
-                        : Colors.white38,
+                const SizedBox(width: 20),
+                // The game's own controls, together at the edge: sound, pause and
+                // a new game. Plus-in-a-circle for the new game rather than a
+                // circular arrow, which reads as "go back" — and would be mistaken
+                // for the take-back button over your hand.
+                AnimatedBuilder(
+                  animation: _game,
+                  builder: (context, _) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // The language picker on this screen (on a phone it is in
+                      // the Menu sheet instead).
+                      const LanguageButton(compact: true),
+                      const SizedBox(width: 4),
+                      _barTile(
+                        caption: context.l10n.soundCaption,
+                        tapKey: const Key('soundToggle'),
+                        width: 56,
+                        tooltip: _game.soundOn
+                            ? context.l10n.soundOnTooltip
+                            : context.l10n.soundOffTooltip,
+                        onTap: () => _game.setSoundOn(!_game.soundOn),
+                        value: Icon(
+                          _game.soundOn ? Icons.volume_up : Icons.volume_off,
+                          size: 22,
+                          color: _game.soundOn
+                              ? AppColors.goldText
+                              : Colors.white38,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _barTile(
+                        caption: _game.paused
+                            ? context.l10n.resumeCaption
+                            : context.l10n.pauseCaption,
+                        width: 56,
+                        tooltip: _game.paused
+                            ? context.l10n.resume
+                            : context.l10n.pause,
+                        onTap: _game.togglePause,
+                        value: Icon(
+                            _game.paused ? Icons.play_arrow : Icons.pause,
+                            size: 22,
+                            color: AppColors.goldText),
+                      ),
+                      const SizedBox(width: 8),
+                      _barTile(
+                        caption: context.l10n.newCaption,
+                        tapKey: const Key('newGame'),
+                        width: 56,
+                        tooltip: context.l10n.newGame,
+                        onTap: _confirmNewGame,
+                        value: const Icon(Icons.add_circle_outline,
+                            size: 22, color: AppColors.goldText),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                _barTile(
-                  caption: _game.paused
-                      ? context.l10n.resumeCaption
-                      : context.l10n.pauseCaption,
-                  width: 56,
-                  tooltip: _game.paused ? context.l10n.resume : context.l10n.pause,
-                  onTap: _game.togglePause,
-                  value: Icon(_game.paused ? Icons.play_arrow : Icons.pause,
-                      size: 22, color: AppColors.goldText),
-                ),
-                const SizedBox(width: 8),
-                _barTile(
-                  caption: context.l10n.newCaption,
-                  tapKey: const Key('newGame'),
-                  width: 56,
-                  tooltip: context.l10n.newGame,
-                  onTap: _confirmNewGame,
-                  value: const Icon(Icons.add_circle_outline,
-                      size: 22, color: AppColors.goldText),
-                ),
+                // Keep the actions off the very edge.
+                const SizedBox(width: 10),
               ],
-            ),
-          ),
-          // Keep the actions off the very edge.
-          const SizedBox(width: 10),
-        ],
       ),
       body: SafeArea(
         child: AnimatedBuilder(
@@ -2036,26 +1973,31 @@ class _WelcomeScreen extends StatelessWidget {
   final String? rejoinCode;
   final ValueChanged<String> onRejoin;
 
-  /// Japanese Riichi, Hong Kong, or Taiwanese, chosen before Start, each
-  /// with a link to its rules PDF beneath it.
-  Widget _rulesetChoice(BuildContext context) {
-    Widget option(Ruleset value, String subtitle) {
-      final selected = ruleset == value;
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OutlinedButton(
+  /// One ruleset in the Rules popup: pick it (which closes the popup), or open
+  /// its rules PDF beneath.
+  Widget _rulesetOption(BuildContext context, Ruleset value, String subtitle) {
+    final selected = ruleset == value;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
               key: Key('ruleset_${value.name}'),
-              onPressed: () => onRuleset(value),
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                onRuleset(value);
+              },
               style: OutlinedButton.styleFrom(
                 backgroundColor: selected ? const Color(0x33caa24e) : null,
                 foregroundColor:
-                    selected ? AppColors.goldBright : Colors.white54,
+                    selected ? AppColors.goldBright : Colors.white70,
                 side: BorderSide(
                     color: selected ? AppColors.gold : Colors.white24,
                     width: selected ? 2 : 1),
+                minimumSize: const Size(0, 64),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
@@ -2065,44 +2007,84 @@ class _WelcomeScreen extends StatelessWidget {
                   RulesetFlagLabel(value,
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: const TextStyle(fontSize: 11)),
+                  Text(subtitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13)),
                 ],
               ),
             ),
-            TextButton.icon(
-              key: Key('rulesPdf_${value.name}'),
-              onPressed: () => openRules(value),
-              icon: const Icon(Icons.open_in_new, size: 13),
-              label: Text(context.l10n.rulesPdf(context.l10n.rulesetName(value))),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.link,
-                visualDensity: VisualDensity.compact,
-                textStyle: const TextStyle(
-                    fontSize: 12, decoration: TextDecoration.underline),
-              ),
+          ),
+          TextButton.icon(
+            key: Key('rulesPdf_${value.name}'),
+            onPressed: () => openRules(value),
+            icon: const Icon(Icons.open_in_new, size: 14),
+            label: Text(context.l10n.rulesPdf(context.l10n.rulesetName(value))),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.link,
+              visualDensity: VisualDensity.compact,
+              textStyle: const TextStyle(
+                  fontSize: 14, decoration: TextDecoration.underline),
             ),
-          ],
-        ),
-      );
-    }
-
-    // Scales down rather than overflowing on narrow screens, now that there
-    // are four options.
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          option(Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
-          option(Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
-          option(Ruleset.taiwanese, context.l10n.rulesetSubtitleTaiwanese),
-          option(Ruleset.mcr, context.l10n.rulesetSubtitleMcr),
-          option(Ruleset.sichuan, context.l10n.rulesetSubtitleSichuan),
+          ),
         ],
       ),
     );
   }
+
+  void _showLearn(BuildContext context) => _showTitlePopup(
+        context,
+        key: const Key('learnPopup'),
+        title: context.l10n.learnTile,
+        children: [
+          _PopupAction(
+            id: 'learnToPlay',
+            icon: Icons.school_outlined,
+            label: context.l10n.learnNewLink,
+            onPressed: onLearn,
+          ),
+          _PopupAction(
+            id: 'practiceLink',
+            icon: Icons.fitness_center,
+            label: context.l10n.practiceLink,
+            onPressed: onPractice,
+          ),
+          _PopupAction(
+            id: 'glossaryLink',
+            icon: Icons.help_outline,
+            label: context.l10n.glossaryTitle,
+            onPressed: () => showGlossary(context, ruleset),
+          ),
+        ],
+      );
+
+  void _showRules(BuildContext context) => _showTitlePopup(
+        context,
+        key: const Key('rulesPopup'),
+        title: context.l10n.rules,
+        children: [
+          _rulesetOption(
+              context, Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
+          _rulesetOption(
+              context, Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
+          _rulesetOption(context, Ruleset.taiwanese,
+              context.l10n.rulesetSubtitleTaiwanese),
+          _rulesetOption(context, Ruleset.mcr, context.l10n.rulesetSubtitleMcr),
+          _rulesetOption(
+              context, Ruleset.sichuan, context.l10n.rulesetSubtitleSichuan),
+        ],
+      );
+
+  void _showMore(BuildContext context) => _showTitlePopup(
+        context,
+        key: const Key('morePopup'),
+        title: context.l10n.moreTile,
+        children: const [
+          _FullscreenButton(),
+          _UpdateButton(),
+          SizedBox(height: 8),
+          _Credits(),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -2181,136 +2163,86 @@ class _WelcomeScreen extends StatelessWidget {
                       onRuleset: onRuleset,
                       onMinimumFaan: onMinimumFaan,
                     ),
-                    _rulesetChoice(context),
                     const SizedBox(height: 10),
                     _DailyQuizCard(onDailyQuiz),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    const SizedBox(height: 18),
+                    // Play: three equal buttons, one tap from a game.
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
-                        const _FullscreenButton(),
-                        const _UpdateButton(),
-                        _LearnButton(onLearn),
-                        _PracticeButton(onPractice),
-                        _QuizButton(onDailyQuiz),
-                        _GlossaryButton(ruleset),
+                        _TitleButton(
+                          key: const Key('singlePlayer'),
+                          primary: true,
+                          onPressed: onStart,
+                          // The mascot that toggles the guide at the table,
+                          // as the button's icon: the guide comes with
+                          // offline play.
+                          icon: Image.asset(
+                            kTileSensorAsset,
+                            key: const Key('startGuideMascot'),
+                            height: 36,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (_, __, ___) =>
+                                const SizedBox.shrink(),
+                          ),
+                          title: context.l10n.singlePlayer,
+                          subtitle: context.l10n.singlePlayerSubtitle,
+                        ),
+                        _TitleButton(
+                          key: const Key('playOnline'),
+                          onPressed: onPlayOnline,
+                          // A globe: play with anyone, anywhere.
+                          icon: const Text('🌐',
+                              key: Key('playOnlineEmoji'),
+                              style: TextStyle(fontSize: 28)),
+                          title: context.l10n.playOnline,
+                          subtitle: context.l10n.playOnlineSubtitle,
+                        ),
+                        _TitleButton(
+                          key: const Key('openBuilder'),
+                          onPressed: onBuild,
+                          // Tools: you build the table yourself. An icon,
+                          // not the 🛠️ emoji: its U+FE0F has no Noto font,
+                          // so Flutter web logs a missing-font warning.
+                          icon: const Icon(Icons.handyman,
+                              key: Key('openBuilderEmoji'), size: 28),
+                          title: context.l10n.builder,
+                          subtitle: context.l10n.builderSubtitle,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    // Scales down rather than overflowing if a wide default font
-                    // pushes the three buttons past the canvas width.
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton(
-                            onPressed: onStart,
-                            style: AppButtons.primary(padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // The mascot that toggles the guide at the table,
-                                // as the button's icon: the guide comes with
-                                // offline play.
-                                Image.asset(
-                                  kTileSensorAsset,
-                                  key: const Key('startGuideMascot'),
-                                  height: 36,
-                                  filterQuality: FilterQuality.high,
-                                  errorBuilder: (_, __, ___) =>
-                                      const SizedBox.shrink(),
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(context.l10n.singlePlayer,
-                                        style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      context.l10n.singlePlayerSubtitle,
-                                      style: const TextStyle(
-                                          fontSize: 12, color: Colors.black54),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton(
-                            key: const Key('playOnline'),
-                            onPressed: onPlayOnline,
-                            style: AppButtons.secondary(padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // A globe: play with anyone, anywhere.
-                                const Text('🌐',
-                                    key: Key('playOnlineEmoji'),
-                                    style: TextStyle(fontSize: 28)),
-                                const SizedBox(width: 8),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(context.l10n.playOnline,
-                                        style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      context.l10n.playOnlineSubtitle,
-                                      style: const TextStyle(
-                                          fontSize: 12, color: Colors.white60),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton(
-                            key: const Key('openBuilder'),
-                            onPressed: onBuild,
-                            style: AppButtons.secondary(padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Tools: you build the table yourself. An icon,
-                                // not the 🛠️ emoji: its U+FE0F has no Noto font,
-                                // so Flutter web logs a missing-font warning.
-                                const Icon(Icons.handyman,
-                                    key: Key('openBuilderEmoji'), size: 28),
-                                const SizedBox(width: 8),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(context.l10n.builder,
-                                        style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      context.l10n.builderSubtitle,
-                                      style: const TextStyle(
-                                          fontSize: 12, color: Colors.white60),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 12),
+                    // Everything else, grouped: each opens a popup.
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _TitleButton(
+                          key: const Key('learnTile'),
+                          id: 'learnTile',
+                          onPressed: () => _showLearn(context),
+                          icon: const Icon(Icons.school_outlined, size: 28),
+                          title: context.l10n.learnTile,
+                        ),
+                        _TitleButton(
+                          key: const Key('rulesTile'),
+                          id: 'rulesTile',
+                          onPressed: () => _showRules(context),
+                          icon: RulesetFlag(ruleset, size: 26),
+                          title: context.l10n.rules,
+                          subtitle: context.l10n.rulesetName(ruleset),
+                        ),
+                        _TitleButton(
+                          key: const Key('moreTile'),
+                          id: 'moreTile',
+                          onPressed: () => _showMore(context),
+                          icon: const Icon(Icons.more_horiz, size: 28),
+                          title: context.l10n.moreTile,
+                        ),
+                      ],
                     ),
                     if (rejoinCode case final code?) ...[
                       const SizedBox(height: 14),
@@ -2352,7 +2284,6 @@ class _WelcomeScreen extends StatelessWidget {
             child: LanguageButton(),
           ),
         ),
-        const Positioned(right: 16, bottom: 12, child: _Credits()),
       ],
     );
   }
@@ -2398,6 +2329,185 @@ class _Credits extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      );
+}
+
+/// A title-screen button: every one is the same size, whether it starts a game
+/// or opens a popup. [primary] fills it in gold.
+class _TitleButton extends StatelessWidget {
+  const _TitleButton({
+    super.key,
+    required this.onPressed,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.primary = false,
+    this.id,
+  });
+
+  static const double width = 330;
+  static const double height = 108;
+
+  final VoidCallback onPressed;
+  final Widget icon;
+  final String title;
+  final String? subtitle;
+  final bool primary;
+
+  /// The Playwright handle, when the e2e suite drives this button.
+  final String? id;
+
+  @override
+  Widget build(BuildContext context) {
+    final sub = primary ? Colors.black54 : Colors.white60;
+    final label = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        icon,
+        const SizedBox(width: 12),
+        Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold)),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(subtitle!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: sub)),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+    const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+    final button = SizedBox(
+      width: width,
+      height: height,
+      child: primary
+          ? ElevatedButton(
+              onPressed: onPressed,
+              style: AppButtons.primary(padding: padding),
+              child: label,
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: AppButtons.secondary(padding: padding),
+              child: label,
+            ),
+    );
+    return id == null ? button : e2eId(id!, button);
+  }
+}
+
+/// A title-screen popup in the glossary's frame: [title] and a close button
+/// over a scrolling list of [children].
+Future<void> _showTitlePopup(
+  BuildContext context, {
+  required Key key,
+  required String title,
+  required List<Widget> children,
+}) =>
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        key: key,
+        backgroundColor: const Color(0xff0c3030),
+        insetPadding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(title,
+                            style: const TextStyle(
+                                color: AppColors.goldText,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                      IconButton(
+                        key: const Key('titlePopupClose'),
+                        tooltip: dialogContext.l10n.done,
+                        icon: const Icon(Icons.close),
+                        color: Colors.white70,
+                        onPressed: () =>
+                            Navigator.of(dialogContext, rootNavigator: true)
+                                .pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: children,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// One row in a title-screen popup. Closes the popup first, then runs
+/// [onPressed].
+class _PopupAction extends StatelessWidget {
+  const _PopupAction({
+    required this.id,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String id;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: e2eId(
+          id,
+          OutlinedButton.icon(
+            key: Key(id),
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              onPressed();
+            },
+            icon: Icon(icon, size: 24),
+            label: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(label, style: const TextStyle(fontSize: 17)),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.link,
+              side: const BorderSide(color: Colors.white24),
+              minimumSize: const Size(0, 56),
+              alignment: Alignment.centerLeft,
+            ),
+          ),
         ),
       );
 }
