@@ -115,6 +115,46 @@ All of it is off unless the app is built with `--dart-define=MORTAL_URL=<address
 runs on ONNX Runtime in a small sidecar (`mortal_sidecar/server.py`, setup steps in
 its header).
 
+### Daily quiz: "What would TileSensor do?"
+
+A new puzzle each day, from the start page (the card under the rules choice, or
+**Daily quiz** beside Practice). It poses a riichi table and asks what you would
+do, in multiple choice:
+
+- **A cut**, or what to do with an opponent's discard (chi, pon, kan or pass).
+- **When the cut leaves you ready, a second question**: riichi, or stay quiet
+  (dama)? Both parts must be right.
+- Every puzzle is one **TileSense and Mortal agree on**, with a clear lead over
+  the next-best move.
+- **Why**, once you answer: the situation (how late in the hand and the game, your
+  placement, the dealer, any riichi against you), TileSense's shanten, ukeire, EV
+  and risk for the best move and for yours, and where Mortal ranks your pick.
+  Mortal does not explain itself, so its part is a ranking, not reasoning. The
+  guide's own sentence is shown in English only.
+- Some tables have uneven scores. In the last two hands the guide then plays for
+  placement, as in a game; the Custom Hand & Context Builder still has no scores.
+- A day streak, kept on the device. Only a day's first answer counts.
+
+Everything but the puzzles themselves is live: the app works TileSense's answer out
+again from the table and fails a test if it ever stops matching the stored one, so
+retuning the guide shows up as a stale puzzle rather than a wrong answer. Mortal's
+side is stored with each puzzle, so the quiz needs no sidecar to play. The pool is
+`flutter_client/assets/quiz/daily.json`; one puzzle a day, the same for everyone on
+the same date, round the pool.
+
+To grow it, start the Mortal sidecar and run, from `flutter_client/`:
+
+```sh
+QUIZ_MORTAL_URL=http://127.0.0.1:8790 QUIZ_COUNT=100 QUIZ_SEED=3 \
+    flutter test tools/build_quiz.dart
+```
+
+New puzzles are appended after the existing ones, so a day's puzzle never changes
+underneath it; use a seed not used before. The tables are random: a finished hand
+with a few tiles swapped, ponds, a dora, sometimes a riichi against you and
+sometimes uneven scores. Only the tables both engines answer the same way are kept.
+Answers are sent as a `quiz_answered` telemetry event.
+
 ### Custom Hand & Context Builder
 
 From the start page, pose any table by hand and the same guide scores it:
@@ -207,12 +247,14 @@ packages/mahjong_core/lib/   pure-Dart core shared by the app and the multiplaye
 
 flutter_client/lib/
   logic/      efficiency_engine.dart (the guide's discard EV),
+              daily_quiz.dart (the daily quiz's model),
               placement_utility.dart (Strategy: Placement),
               auto_dials.dart (the dials for each point in the game)
   game/       game_controller.dart (single player), online_game_controller.dart,
               mortal_advisor.dart
   net/        multiplayer client (WebSocket)
   scenario/   the Custom Hand & Context Builder's state
+  tools/      build_quiz.dart (the daily quiz's puzzle generator)
   telemetry/  gameplay telemetry client
   ui/         table, hand, guide panel, scoring screen, tile widget
 

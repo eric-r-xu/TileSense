@@ -29,6 +29,7 @@ import 'package:mahjong_core/tile.dart' show Wind;
 import 'ui/bar_back_button.dart';
 import 'ui/beginner_guide.dart' show BeginnerGuide;
 import 'ui/character_select_page.dart';
+import 'ui/daily_quiz_page.dart' deferred as quiz;
 import 'ui/e2e_id.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
@@ -838,6 +839,118 @@ class _PracticeButton extends StatelessWidget {
       );
 }
 
+/// The utility-row link to the daily quiz.
+class _QuizButton extends StatelessWidget {
+  const _QuizButton(this.onPressed);
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => e2eId(
+        'quizLink',
+        TextButton.icon(
+          key: const Key('quizLink'),
+          onPressed: onPressed,
+          icon: const Icon(Icons.quiz_outlined, size: 18),
+          label: Text(context.l10n.quizLink),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xff80cbc4),
+            textStyle: const TextStyle(fontSize: 14),
+          ),
+        ),
+      );
+}
+
+/// The welcome screen's daily-quiz card: the TileSensor mascot, whether
+/// today's puzzle is waiting or done, and the streak.
+class _DailyQuizCard extends StatelessWidget {
+  const _DailyQuizCard(this.onPressed);
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = ProgressStore.instance;
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final l10n = context.l10n;
+        final today = DateTime.now();
+        final done = store.value.quizAnsweredOn(today);
+        final streak = store.value.quizStreakOn(today);
+        return e2eId(
+          'dailyQuizCard',
+          Material(
+            color: const Color(0xff0c3a3a),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                  color: done ? Colors.white24 : const Color(0xffcaa24e),
+                  width: done ? 1 : 2),
+            ),
+            child: InkWell(
+              key: const Key('dailyQuizCard'),
+              borderRadius: BorderRadius.circular(14),
+              onTap: onPressed,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      kTileSensorAsset,
+                      key: const Key('dailyQuizMascot'),
+                      height: 44,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(l10n.quizTitle,
+                            style: const TextStyle(
+                                color: Color(0xffe9d58f),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                        Text(
+                          done ? l10n.quizCardDone : l10n.quizCardToday,
+                          key: const Key('dailyQuizStatus'),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    if (streak > 0) ...[
+                      const SizedBox(width: 18),
+                      Container(
+                        key: const Key('dailyQuizStreak'),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffcaa24e),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(l10n.quizStreak(streak),
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// The welcome screen's link to the glossary, in the selected rules.
 class _GlossaryButton extends StatelessWidget {
   const _GlossaryButton(this.ruleset);
@@ -1136,6 +1249,8 @@ class _GamePageState extends State<GamePage> {
   bool _learning = false;
   // The practice hands are showing.
   bool _practicing = false;
+  // The daily quiz is showing.
+  bool _dailyQuiz = false;
   bool _learningThenStart = false;
   bool _startFailed = false;
   int _startRequest = 0;
@@ -1418,6 +1533,17 @@ class _GamePageState extends State<GamePage> {
           onExit: () => setState(() => _practicing = false),
         );
       }
+      if (_dailyQuiz) {
+        return FeatureLoader(
+          key: const Key('quizLoader'),
+          load: quiz.loadLibrary,
+          label: context.l10n.loadingQuiz,
+          onBack: () => setState(() => _dailyQuiz = false),
+          builder: (_) => quiz.DailyQuizScreen(
+            onExit: () => setState(() => _dailyQuiz = false),
+          ),
+        );
+      }
       if (_learning) {
         return LearnToPlayPage(
           ruleset: _selectedRuleset,
@@ -1474,6 +1600,7 @@ class _GamePageState extends State<GamePage> {
           _learningThenStart = false;
         }),
         onPractice: () => setState(() => _practicing = true),
+        onDailyQuiz: () => setState(() => _dailyQuiz = true),
         minimumFaan: _minimumFaan,
         onMinimumFaan: (n) => setState(() => _minimumFaan = n),
         onBuild: () => setState(() {
@@ -1883,6 +2010,7 @@ class _WelcomeScreen extends StatelessWidget {
     required this.onStart,
     required this.onLearn,
     required this.onPractice,
+    required this.onDailyQuiz,
     required this.minimumFaan,
     required this.onMinimumFaan,
     required this.onBuild,
@@ -1902,6 +2030,9 @@ class _WelcomeScreen extends StatelessWidget {
 
   /// Opens the guided practice hands.
   final VoidCallback onPractice;
+
+  /// Opens today's daily quiz puzzle.
+  final VoidCallback onDailyQuiz;
 
   /// Hong Kong's minimum faan for the next game, and how to change it.
   final int minimumFaan;
@@ -2011,12 +2142,12 @@ class _WelcomeScreen extends StatelessWidget {
                     TileSensorTooltip(
                       child: Image.asset(
                         kTileSensorAsset,
-                        height: 140,
+                        height: 96,
                         filterQuality: FilterQuality.high,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
                     Text(
                       context.l10n.welcomeTo,
                       textAlign: TextAlign.center,
@@ -2057,7 +2188,7 @@ class _WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 10),
                     _NudgeCard(
                       ruleset: ruleset,
                       minimumFaan: minimumFaan,
@@ -2066,6 +2197,8 @@ class _WelcomeScreen extends StatelessWidget {
                     ),
                     _rulesetChoice(context),
                     const SizedBox(height: 10),
+                    _DailyQuizCard(onDailyQuiz),
+                    const SizedBox(height: 6),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -2073,6 +2206,7 @@ class _WelcomeScreen extends StatelessWidget {
                         const _UpdateButton(),
                         _LearnButton(onLearn),
                         _PracticeButton(onPractice),
+                        _QuizButton(onDailyQuiz),
                         _GlossaryButton(ruleset),
                       ],
                     ),

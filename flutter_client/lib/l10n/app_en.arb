@@ -1604,5 +1604,137 @@
     }
   },
   "nudgeNotNow": "Not now",
-  "nudgeStop": "Stop suggesting"
+  "nudgeStop": "Stop suggesting",
+  "quizTitle": "What would TileSensor do?",
+  "quizAskDiscard": "It's your turn and you've drawn. What do you do?",
+  "quizAskCall": "{seat} just discarded. What do you do?",
+  "@quizAskCall": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      }
+    }
+  },
+  "quizDiscard": "Discard",
+  "quizRiichi": "Riichi",
+  "quizYourHand": "Your hand",
+  "quizChoose": "Choose one",
+  "quizYouPicked": "You picked",
+  "quizBestMove": "Best move",
+  "quizAgree": "TileSense and Mortal agree",
+  "quizTileSenseSays": "Why TileSense likes it",
+  "quizMortalSays": "What Mortal says",
+  "quizShanten": "Shanten",
+  "quizUkeire": "Ukeire",
+  "quizEv": "EV",
+  "quizRisk": "Risk",
+  "quizMortalRank": "Mortal ranks your pick {rank} of {total}.",
+  "@quizMortalRank": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "quizMortalPicked": "Mortal picked this too.",
+  "quizMortalRankFirst": "Mortal's top pick.",
+  "quizMortalNote": "Mortal does not explain its choices; this is its ranking.",
+  "quizSeat": "Seat",
+  "quizDora": "Dora indicator",
+  "quizDone": "Come back tomorrow for a new puzzle.",
+  "quizLoadFailed": "Today's puzzle could not be loaded.",
+  "quizLink": "Daily quiz",
+  "quizCardToday": "Today's puzzle is ready",
+  "quizCardDone": "Done for today. Back tomorrow!",
+  "quizStreak": "{days}-day streak",
+  "@quizStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "loadingQuiz": "Loading the daily quiz…",
+  "quizDama": "Dama",
+  "quizAskRiichi": "That cut leaves you ready. Riichi, or stay quiet (dama)?",
+  "quizMortalRiichi": "Mortal declares riichi here.",
+  "quizMortalDama": "Mortal stays quiet (dama) here.",
+  "quizSituation": "The situation",
+  "quizRoundLine": "{wind} {hand}: {left, plural, =1{the last hand} other{{left} hands left}}.",
+  "@quizRoundLine": {
+    "placeholders": {
+      "wind": {
+        "type": "String"
+      },
+      "hand": {
+        "type": "int"
+      },
+      "left": {
+        "type": "int"
+      }
+    }
+  },
+  "quizStageEarly": "Early in the hand",
+  "quizStageMiddle": "Midway through the hand",
+  "quizStageLate": "Late in the hand",
+  "quizTimingLine": "{stage}: {wall} tiles left in the wall.",
+  "@quizTimingLine": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      },
+      "wall": {
+        "type": "int"
+      }
+    }
+  },
+  "quizDealerYes": "You are the dealer: a win pays half again as much and the deal stays with you.",
+  "quizDealerNo": "You are not the dealer.",
+  "quizPlaceEven": "Scores are level at {points}, so placement is not in play.",
+  "@quizPlaceEven": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "quizPlaceLead": "Placement: {rank} of 4, {lead} points ahead of the next seat.",
+  "@quizPlaceLead": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "lead": {
+        "type": "String"
+      }
+    }
+  },
+  "quizPlaceBehind": "Placement: {rank} of 4, {gap} points behind 1st.",
+  "@quizPlaceBehind": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "gap": {
+        "type": "String"
+      }
+    }
+  },
+  "quizThreat": "{seat} is in riichi, declared {turns, plural, =1{this turn} other{{turns} turns ago}}.",
+  "@quizThreat": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      },
+      "turns": {
+        "type": "int"
+      }
+    }
+  },
+  "quizNoThreat": "Nobody else is in riichi.",
+  "quizFocusPlacement": "Final hands: TileSense weighs how each option moves your finishing place, not just your points.",
+  "quizFocusPoints": "Plenty of hands left: TileSense plays for points."
 }

@@ -124,7 +124,7 @@ List<MjaiEvent>? scenarioMjaiEvents(Scenario sc) {
       'honba': sc.honba,
       'kyotaku': sc.riichiSticks,
       'oya': sc.dealer,
-      'scores': const [25000, 25000, 25000, 25000],
+      'scores': sc.points,
       'tehais': [
         for (var i = 0; i < 4; i++)
           i == kHumanSeat ? start : List.filled(13, hidden),

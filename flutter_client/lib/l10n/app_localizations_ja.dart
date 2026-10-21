@@ -2600,4 +2600,173 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get nudgeStop => '提案をやめる';
+
+  @override
+  String get quizTitle => 'TileSensorならどうする？';
+
+  @override
+  String get quizAskDiscard => 'あなたの番で、牌をツモりました。どうしますか？';
+
+  @override
+  String quizAskCall(String seat) {
+    return '$seatが打牌しました。どうしますか？';
+  }
+
+  @override
+  String get quizDiscard => '打牌';
+
+  @override
+  String get quizRiichi => 'リーチ';
+
+  @override
+  String get quizYourHand => 'あなたの手牌';
+
+  @override
+  String get quizChoose => 'ひとつ選んでください';
+
+  @override
+  String get quizYouPicked => 'あなたの選択';
+
+  @override
+  String get quizBestMove => '最善手';
+
+  @override
+  String get quizAgree => 'TileSenseとMortalが一致';
+
+  @override
+  String get quizTileSenseSays => 'TileSenseが推す理由';
+
+  @override
+  String get quizMortalSays => 'Mortalの評価';
+
+  @override
+  String get quizShanten => '向聴数';
+
+  @override
+  String get quizUkeire => '受け入れ';
+
+  @override
+  String get quizEv => '期待値';
+
+  @override
+  String get quizRisk => '危険度';
+
+  @override
+  String quizMortalRank(int rank, int total) {
+    return 'Mortalはあなたの選択を$total手中$rank位と評価しました。';
+  }
+
+  @override
+  String get quizMortalPicked => 'Mortalも同じ手を選びました。';
+
+  @override
+  String get quizMortalRankFirst => 'Mortalの第一候補です。';
+
+  @override
+  String get quizMortalNote => 'Mortalは理由を説明しません。これは順位付けです。';
+
+  @override
+  String get quizSeat => '席';
+
+  @override
+  String get quizDora => 'ドラ表示牌';
+
+  @override
+  String get quizDone => '明日また新しい問題に挑戦してください。';
+
+  @override
+  String get quizLoadFailed => '今日の問題を読み込めませんでした。';
+
+  @override
+  String get quizLink => 'デイリークイズ';
+
+  @override
+  String get quizCardToday => '今日の問題が届いています';
+
+  @override
+  String get quizCardDone => '今日の分は完了です。また明日！';
+
+  @override
+  String quizStreak(int days) {
+    return '$days日連続';
+  }
+
+  @override
+  String get loadingQuiz => 'デイリークイズを読み込み中…';
+
+  @override
+  String get quizDama => 'ダマ';
+
+  @override
+  String get quizAskRiichi => 'この打牌でテンパイです。リーチしますか、ダマで行きますか？';
+
+  @override
+  String get quizMortalRiichi => 'Mortalはここでリーチをかけます。';
+
+  @override
+  String get quizMortalDama => 'Mortalはここではダマで行きます。';
+
+  @override
+  String get quizSituation => '場況';
+
+  @override
+  String quizRoundLine(String wind, int hand, int left) {
+    String _temp0 = intl.Intl.pluralLogic(
+      left,
+      locale: localeName,
+      other: '残り$left局',
+      one: 'オーラス',
+    );
+    return '$wind$hand局：$_temp0。';
+  }
+
+  @override
+  String get quizStageEarly => '序盤';
+
+  @override
+  String get quizStageMiddle => '中盤';
+
+  @override
+  String get quizStageLate => '終盤';
+
+  @override
+  String quizTimingLine(String stage, int wall) {
+    return '$stage：山に残り$wall枚。';
+  }
+
+  @override
+  String get quizDealerYes => 'あなたは親です。和了の点が1.5倍になり、連荘もできます。';
+
+  @override
+  String get quizDealerNo => 'あなたは子です。';
+
+  @override
+  String quizPlaceEven(String points) {
+    return '全員$points点で並んでいるため、順位は関係しません。';
+  }
+
+  @override
+  String quizPlaceLead(int rank, String lead) {
+    return '順位：4人中$rank位、下の席に$lead点差をつけています。';
+  }
+
+  @override
+  String quizPlaceBehind(int rank, String gap) {
+    return '順位：4人中$rank位、トップと$gap点差です。';
+  }
+
+  @override
+  String quizThreat(String seat, int turns) {
+    return '$seatがリーチ中です（$turns巡前に宣言）。';
+  }
+
+  @override
+  String get quizNoThreat => '他にリーチをかけている人はいません。';
+
+  @override
+  String get quizFocusPlacement =>
+      '終盤の局：TileSenseは点数だけでなく、各選択が最終順位にどう響くかを考えます。';
+
+  @override
+  String get quizFocusPoints => 'まだ局数が多いため、TileSenseは点数を重視します。';
 }

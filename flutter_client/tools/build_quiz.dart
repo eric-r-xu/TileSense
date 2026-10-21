@@ -1,0 +1,67 @@
+/// Builds `assets/quiz/daily.json`, the puzzles behind the daily quiz.
+///
+/// Needs a running Mortal sidecar (`mortal_sidecar/server.py`). Run from
+/// flutter_client/ as a test, which gives it the Flutter libraries the guide
+/// is built on:
+///
+///     QUIZ_MORTAL_URL=http://127.0.0.1:8790 QUIZ_COUNT=60 QUIZ_SEED=1 \
+///         flutter test tools/build_quiz.dart
+///
+/// QUIZ_COUNT is how many puzzles to add (default 60) and QUIZ_SEED picks the
+/// random tables (default 1). Puzzles already in the file are kept, and the new
+/// ones follow them, so a day's puzzle never changes under a player: grow the
+/// pool with a new seed rather than rerunning an old one. QUIZ_OUT moves the
+/// file; QUIZ_MARGIN sets the least lead over the next line (default 0.10).
+library;
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tilesense/game/mortal_advisor.dart';
+import 'package:tilesense/logic/daily_quiz.dart';
+
+import 'quiz_generator.dart';
+
+void main() {
+  test('build the daily quiz', () async {
+    final env = Platform.environment;
+    final url = env['QUIZ_MORTAL_URL'];
+    if (url == null || url.isEmpty) {
+      fail('Set QUIZ_MORTAL_URL to the Mortal sidecar, e.g. '
+          'http://127.0.0.1:8790');
+    }
+    final count = int.parse(env['QUIZ_COUNT'] ?? '60');
+    final out = File(env['QUIZ_OUT'] ?? 'assets/quiz/daily.json');
+
+    final existing = out.existsSync()
+        ? [
+            for (final p in (jsonDecode(out.readAsStringSync())
+                as Map<String, Object?>)['puzzles']! as List)
+              QuizPuzzle.fromJson(p as Map<String, Object?>),
+          ]
+        : <QuizPuzzle>[];
+
+    final advisor = MortalAdvisor(url);
+    final generator = QuizGenerator(
+      seed: int.parse(env['QUIZ_SEED'] ?? '1'),
+      minMargin: double.parse(env['QUIZ_MARGIN'] ?? '0.10'),
+      mortal: askSidecar(advisor.advise),
+    );
+    final made = await generator.generate(count,
+        firstNumber: existing.length + 1, maxTries: count * 400);
+
+    // ignore: avoid_print
+    print(
+        'kept ${made.length} of ${generator.tally.values.fold(0, (a, b) => a + b)} tables: '
+        '${generator.tally}');
+    out.parent.createSync(recursive: true);
+    out.writeAsStringSync(const JsonEncoder.withIndent(' ').convert({
+      'version': 1,
+      'puzzles': [
+        for (final p in [...existing, ...made]) p.toJson()
+      ],
+    }));
+    expect(made, isNotEmpty);
+  }, timeout: Timeout.none);
+}

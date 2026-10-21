@@ -2660,4 +2660,184 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nudgeStop => 'Stop suggesting';
+
+  @override
+  String get quizTitle => 'What would TileSensor do?';
+
+  @override
+  String get quizAskDiscard =>
+      'It\'s your turn and you\'ve drawn. What do you do?';
+
+  @override
+  String quizAskCall(String seat) {
+    return '$seat just discarded. What do you do?';
+  }
+
+  @override
+  String get quizDiscard => 'Discard';
+
+  @override
+  String get quizRiichi => 'Riichi';
+
+  @override
+  String get quizYourHand => 'Your hand';
+
+  @override
+  String get quizChoose => 'Choose one';
+
+  @override
+  String get quizYouPicked => 'You picked';
+
+  @override
+  String get quizBestMove => 'Best move';
+
+  @override
+  String get quizAgree => 'TileSense and Mortal agree';
+
+  @override
+  String get quizTileSenseSays => 'Why TileSense likes it';
+
+  @override
+  String get quizMortalSays => 'What Mortal says';
+
+  @override
+  String get quizShanten => 'Shanten';
+
+  @override
+  String get quizUkeire => 'Ukeire';
+
+  @override
+  String get quizEv => 'EV';
+
+  @override
+  String get quizRisk => 'Risk';
+
+  @override
+  String quizMortalRank(int rank, int total) {
+    return 'Mortal ranks your pick $rank of $total.';
+  }
+
+  @override
+  String get quizMortalPicked => 'Mortal picked this too.';
+
+  @override
+  String get quizMortalRankFirst => 'Mortal\'s top pick.';
+
+  @override
+  String get quizMortalNote =>
+      'Mortal does not explain its choices; this is its ranking.';
+
+  @override
+  String get quizSeat => 'Seat';
+
+  @override
+  String get quizDora => 'Dora indicator';
+
+  @override
+  String get quizDone => 'Come back tomorrow for a new puzzle.';
+
+  @override
+  String get quizLoadFailed => 'Today\'s puzzle could not be loaded.';
+
+  @override
+  String get quizLink => 'Daily quiz';
+
+  @override
+  String get quizCardToday => 'Today\'s puzzle is ready';
+
+  @override
+  String get quizCardDone => 'Done for today. Back tomorrow!';
+
+  @override
+  String quizStreak(int days) {
+    return '$days-day streak';
+  }
+
+  @override
+  String get loadingQuiz => 'Loading the daily quiz…';
+
+  @override
+  String get quizDama => 'Dama';
+
+  @override
+  String get quizAskRiichi =>
+      'That cut leaves you ready. Riichi, or stay quiet (dama)?';
+
+  @override
+  String get quizMortalRiichi => 'Mortal declares riichi here.';
+
+  @override
+  String get quizMortalDama => 'Mortal stays quiet (dama) here.';
+
+  @override
+  String get quizSituation => 'The situation';
+
+  @override
+  String quizRoundLine(String wind, int hand, int left) {
+    String _temp0 = intl.Intl.pluralLogic(
+      left,
+      locale: localeName,
+      other: '$left hands left',
+      one: 'the last hand',
+    );
+    return '$wind $hand: $_temp0.';
+  }
+
+  @override
+  String get quizStageEarly => 'Early in the hand';
+
+  @override
+  String get quizStageMiddle => 'Midway through the hand';
+
+  @override
+  String get quizStageLate => 'Late in the hand';
+
+  @override
+  String quizTimingLine(String stage, int wall) {
+    return '$stage: $wall tiles left in the wall.';
+  }
+
+  @override
+  String get quizDealerYes =>
+      'You are the dealer: a win pays half again as much and the deal stays with you.';
+
+  @override
+  String get quizDealerNo => 'You are not the dealer.';
+
+  @override
+  String quizPlaceEven(String points) {
+    return 'Scores are level at $points, so placement is not in play.';
+  }
+
+  @override
+  String quizPlaceLead(int rank, String lead) {
+    return 'Placement: $rank of 4, $lead points ahead of the next seat.';
+  }
+
+  @override
+  String quizPlaceBehind(int rank, String gap) {
+    return 'Placement: $rank of 4, $gap points behind 1st.';
+  }
+
+  @override
+  String quizThreat(String seat, int turns) {
+    String _temp0 = intl.Intl.pluralLogic(
+      turns,
+      locale: localeName,
+      other: '$turns turns ago',
+      one: 'this turn',
+    );
+    return '$seat is in riichi, declared $_temp0.';
+  }
+
+  @override
+  String get quizNoThreat => 'Nobody else is in riichi.';
+
+  @override
+  String get quizFocusPlacement =>
+      'Final hands: TileSense weighs how each option moves your finishing place, not just your points.';
+
+  @override
+  String get quizFocusPoints =>
+      'Plenty of hands left: TileSense plays for points.';
 }

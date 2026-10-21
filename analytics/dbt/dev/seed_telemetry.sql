@@ -23,3 +23,10 @@ insert into events (session_id, match_id, round_id, occurred_at, kind, actor_sea
   ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000d1', now(), 'pass',    0, null, true,  false, null, null),
   ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000d3', now(), 'discard', 1, '5z', null,  false, null, null),
   ('00000000-0000-0000-0000-0000000000ff', null, null, now(), 'setting_change', null, null, false, null, null, null);
+
+-- Two daily-quiz answers from one client: a first answer, then a replay.
+insert into events (session_id, occurred_at, kind, payload) values
+  ('00000000-0000-0000-0000-0000000000b1', now(), 'quiz_answered',
+   '{"puzzle_id":"q0001","puzzle_kind":"discard","choice":"discard 5p","answer":"riichi 5p","correct":false,"riichi_option":true,"day":"2026-10-20","streak":1,"first_today":true}'),
+  ('00000000-0000-0000-0000-0000000000b1', now(), 'quiz_answered',
+   '{"puzzle_id":"q0001","puzzle_kind":"discard","choice":"riichi 5p","answer":"riichi 5p","correct":true,"riichi_option":true,"day":"2026-10-20","streak":1,"first_today":false}');

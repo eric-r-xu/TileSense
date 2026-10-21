@@ -82,6 +82,12 @@ class Telemetry {
     return Telemetry._(_kEndpoint);
   }
 
+  static Telemetry? _shared;
+
+  /// One instance for features that report on their own, outside a game (the
+  /// daily quiz): `null` exactly when [maybe] is.
+  static Telemetry? shared() => _shared ??= maybe();
+
   final String _endpoint;
   final String _sessionId = newUuid();
   final List<Map<String, Object?>> _buf = <Map<String, Object?>>[];
@@ -239,6 +245,40 @@ class Telemetry {
         'setting': setting,
         'value': value,
       });
+
+  /// What `quiz_answered` carries, kept in one place so the app and its test
+  /// agree on it. [choice] and [answer] are the moves as text (`riichi 5p`,
+  /// `pass`); [day] is the player's local calendar day, `2026-10-20`.
+  /// [firstToday] is false for a replay, which the streak ignores.
+  static Map<String, Object?> quizAnsweredPayload({
+    required String puzzleId,
+    required String puzzleKind,
+    required String choice,
+    required String answer,
+    required bool correct,
+    required bool riichiOption,
+    required String day,
+    required int streak,
+    required bool firstToday,
+  }) =>
+      {
+        'puzzle_id': puzzleId,
+        'puzzle_kind': puzzleKind,
+        'choice': choice,
+        'answer': answer,
+        'correct': correct,
+        'riichi_option': riichiOption,
+        'day': day,
+        'streak': streak,
+        'first_today': firstToday,
+      };
+
+  /// A daily-quiz answer ([quizAnsweredPayload]). Sent at once rather than
+  /// waiting for the batch: a player often closes the page right after.
+  void quizAnswered(Map<String, Object?> payload) {
+    _add('quiz_answered', payload);
+    _send(beacon: false);
+  }
 
   /// Best-effort synchronous flush for page-hide / dispose.
   void flushBeacon() => _send(beacon: true);
