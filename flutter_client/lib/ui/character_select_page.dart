@@ -14,10 +14,9 @@ import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import '../game/sfx.dart'
     show Character, kCharacterName, kCharacterPortrait, kSelectableCharacters;
-import 'bar_back_button.dart';
 import 'character_picker.dart';
-import 'language_button.dart';
 import 'ruleset_flag.dart';
+import 'screen_scaffold.dart';
 import 'theme.dart';
 
 /// The wind [seat] starts on when [startingDealer] deals first (and so is
@@ -42,8 +41,7 @@ List<Character> randomSeatCharacters([Random? random]) {
 }
 
 /// A random seat to deal first — i.e. a random wind for the human to start on.
-int randomStartingDealer([Random? random]) =>
-    (random ?? Random()).nextInt(4);
+int randomStartingDealer([Random? random]) => (random ?? Random()).nextInt(4);
 
 /// One big card per seat — wind, position, portrait, name and the picker — a
 /// chooser for the wind you start on, a Randomize button, and an advance
@@ -247,8 +245,8 @@ class CharacterSelectPage extends StatelessWidget {
 
   /// "Style: 🇯🇵 Riichi · 🇭🇰 Hong Kong · 🇹🇼 Taiwanese", starting on whatever
   /// the welcome screen had selected.
-  Widget _rulesetChoice(BuildContext context, Ruleset current,
-      ValueChanged<Ruleset> onChange) {
+  Widget _rulesetChoice(
+      BuildContext context, Ruleset current, ValueChanged<Ruleset> onChange) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -403,179 +401,138 @@ class CharacterSelectPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Material ancestor: without one, Text on web can render with a stray
-    // underline decoration.
-    return Material(
-      color: AppColors.background,
-      child: Stack(
+    return ScreenScaffold(
+      backKey: const Key('charactersBack'),
+      onBack: onBack,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // At least as tall as the screen, so on a taller canvas the page
-          // sits in the middle rather than at the top.
-          LayoutBuilder(
-            builder: (context, c) => SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: c.maxHeight),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.l10n.chooseCharacters,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
+          Text(
+            context.l10n.chooseCharacters,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            startingDealer == 0
+                ? context.l10n.dealerNoteYou
+                : context.l10n.dealerNoteOther(
+                    seatPositionName(context.l10n, startingDealer)
+                        .toLowerCase()),
+            key: const Key('dealerNote'),
+            style: const TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          // The minimum shares the wind row: the style row below
+          // has no width to spare.
+          // Scaled down rather than overflowing once text is
+          // boosted on a phone.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _windChoice(context),
+                if (_minimumPicker(context) case final picker?) ...[
+                  const SizedBox(width: 28),
+                  picker,
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Style shares the length row: the screen is already
+          // tight against the design canvas's height.
+          if ((ruleset, onRuleset) case (final r?, final set?))
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _rulesetChoice(context, r, set),
+                  const SizedBox(width: 28),
+                  _lengthChoice(context),
+                ],
+              ),
+            )
+          else
+            _lengthChoice(context),
+          const SizedBox(height: 14),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              for (var seat = 0; seat < seatCharacters.length; seat++)
+                _seatCard(context, seat),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                key: const Key('randomizeCharacters'),
+                onPressed: onRandomize,
+                icon: const Icon(Icons.shuffle, size: 18),
+                label: Text(context.l10n.randomizeCharacters),
+                style: AppButtons.secondary(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+              const SizedBox(width: 24),
+              InkWell(
+                key: const Key('soundCheckbox'),
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => onSoundOn(!soundOn),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: soundOn,
+                        onChanged: (v) => onSoundOn(v ?? !soundOn),
+                        activeColor: AppColors.gold,
+                        checkColor: Colors.black,
+                        side: const BorderSide(color: Colors.white54),
+                      ),
+                      Text(
+                        context.l10n.sound,
+                        style: TextStyle(
+                          color: soundOn ? Colors.white : Colors.white54,
+                          fontSize: 16,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          startingDealer == 0
-                              ? context.l10n.dealerNoteYou
-                              : context.l10n.dealerNoteOther(
-                                  seatPositionName(context.l10n, startingDealer)
-                                      .toLowerCase()),
-                          key: const Key('dealerNote'),
-                          style: const TextStyle(
-                              color: Colors.white54, fontSize: 14),
-                        ),
-                        const SizedBox(height: 12),
-                        // The minimum shares the wind row: the style row below
-                        // has no width to spare.
-                        // Scaled down rather than overflowing once text is
-                        // boosted on a phone.
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _windChoice(context),
-                              if (_minimumPicker(context) case final picker?) ...[
-                                const SizedBox(width: 28),
-                                picker,
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Style shares the length row: the screen is already
-                        // tight against the design canvas's height.
-                        if ((ruleset, onRuleset) case (final r?, final set?))
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _rulesetChoice(context, r, set),
-                                const SizedBox(width: 28),
-                                _lengthChoice(context),
-                              ],
-                            ),
-                          )
-                        else
-                          _lengthChoice(context),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 16,
-                          runSpacing: 16,
-                          children: [
-                            for (var seat = 0;
-                                seat < seatCharacters.length;
-                                seat++)
-                              _seatCard(context, seat),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            OutlinedButton.icon(
-                              key: const Key('randomizeCharacters'),
-                              onPressed: onRandomize,
-                              icon: const Icon(Icons.shuffle, size: 18),
-                              label: Text(context.l10n.randomizeCharacters),
-                              style: AppButtons.secondary(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 12),
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                            InkWell(
-                              key: const Key('soundCheckbox'),
-                              borderRadius: BorderRadius.circular(6),
-                              onTap: () => onSoundOn(!soundOn),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Checkbox(
-                                      value: soundOn,
-                                      onChanged: (v) =>
-                                          onSoundOn(v ?? !soundOn),
-                                      activeColor: AppColors.gold,
-                                      checkColor: Colors.black,
-                                      side: const BorderSide(
-                                          color: Colors.white54),
-                                    ),
-                                    Text(
-                                      context.l10n.sound,
-                                      style: TextStyle(
-                                        color: soundOn
-                                            ? Colors.white
-                                            : Colors.white54,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // Start shares this row rather than taking its
-                            // own: on a phone there is no height left for one.
-                            const SizedBox(width: 24),
-                            ElevatedButton(
-                              key: const Key('charactersContinue'),
-                              onPressed: onAdvance,
-                              style: AppButtons.primary(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 40, vertical: 14),
-                              ),
-                              child: Text(
-                                advanceLabel,
-                                style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
+              // Start shares this row rather than taking its
+              // own: on a phone there is no height left for one.
+              const SizedBox(width: 24),
+              ElevatedButton(
+                key: const Key('charactersContinue'),
+                onPressed: onAdvance,
+                style: AppButtons.primary(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                ),
+                child: Text(
+                  advanceLabel,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-          // Overlaid at the top-left rather than given its own row: the screen
-          // is tight against the design canvas's height.
-          Positioned(
-            left: 4,
-            top: 8,
-            child: BarBackButton(
-              buttonKey: const Key('charactersBack'),
-              label: context.l10n.back,
-              tooltip: context.l10n.backToMainMenu,
-              onPressed: onBack,
-              foregroundColor: AppColors.link,
-            ),
-          ),
-          // This screen's language picker, opposite Back.
-          const Positioned(right: 8, top: 8, child: LanguageButton()),
         ],
       ),
     );
