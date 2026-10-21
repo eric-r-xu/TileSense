@@ -4738,6 +4738,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop suggesting'**
   String get nudgeStop;
+
+  /// No description provided for @quizTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What would TileSensor do?'**
+  String get quizTitle;
+
+  /// No description provided for @quizAskDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s your turn and you\'ve drawn. What do you do?'**
+  String get quizAskDiscard;
+
+  /// No description provided for @quizAskCall.
+  ///
+  /// In en, this message translates to:
+  /// **'{seat} just discarded. What do you do?'**
+  String quizAskCall(String seat);
+
+  /// No description provided for @quizDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get quizDiscard;
+
+  /// No description provided for @quizRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi'**
+  String get quizRiichi;
+
+  /// No description provided for @quizYourHand.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hand'**
+  String get quizYourHand;
+
+  /// No description provided for @quizChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one'**
+  String get quizChoose;
+
+  /// No description provided for @quizYouPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'You picked'**
+  String get quizYouPicked;
+
+  /// No description provided for @quizBestMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Best move'**
+  String get quizBestMove;
+
+  /// No description provided for @quizAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'TileSense and Mortal agree'**
+  String get quizAgree;
+
+  /// No description provided for @quizTileSenseSays.
+  ///
+  /// In en, this message translates to:
+  /// **'Why TileSense likes it'**
+  String get quizTileSenseSays;
+
+  /// No description provided for @quizMortalSays.
+  ///
+  /// In en, this message translates to:
+  /// **'What Mortal says'**
+  String get quizMortalSays;
+
+  /// No description provided for @quizShanten.
+  ///
+  /// In en, this message translates to:
+  /// **'Shanten'**
+  String get quizShanten;
+
+  /// No description provided for @quizUkeire.
+  ///
+  /// In en, this message translates to:
+  /// **'Ukeire'**
+  String get quizUkeire;
+
+  /// No description provided for @quizEv.
+  ///
+  /// In en, this message translates to:
+  /// **'EV'**
+  String get quizEv;
+
+  /// No description provided for @quizRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Risk'**
+  String get quizRisk;
+
+  /// No description provided for @quizMortalRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal ranks your pick {rank} of {total}.'**
+  String quizMortalRank(int rank, int total);
+
+  /// No description provided for @quizMortalPicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal picked this too.'**
+  String get quizMortalPicked;
+
+  /// No description provided for @quizMortalRankFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal\'s top pick.'**
+  String get quizMortalRankFirst;
+
+  /// No description provided for @quizMortalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal does not explain its choices; this is its ranking.'**
+  String get quizMortalNote;
+
+  /// No description provided for @quizSeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Seat'**
+  String get quizSeat;
+
+  /// No description provided for @quizDora.
+  ///
+  /// In en, this message translates to:
+  /// **'Dora indicator'**
+  String get quizDora;
+
+  /// No description provided for @quizDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for a new puzzle.'**
+  String get quizDone;
+
+  /// No description provided for @quizLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s puzzle could not be loaded.'**
+  String get quizLoadFailed;
+
+  /// No description provided for @quizLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily quiz'**
+  String get quizLink;
+
+  /// No description provided for @quizCardToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s puzzle is ready'**
+  String get quizCardToday;
+
+  /// No description provided for @quizCardDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done for today. Back tomorrow!'**
+  String get quizCardDone;
+
+  /// No description provided for @quizStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}-day streak'**
+  String quizStreak(int days);
+
+  /// No description provided for @loadingQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the daily quiz…'**
+  String get loadingQuiz;
+
+  /// No description provided for @quizDama.
+  ///
+  /// In en, this message translates to:
+  /// **'Dama'**
+  String get quizDama;
+
+  /// No description provided for @quizAskRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'That cut leaves you ready. Riichi, or stay quiet (dama)?'**
+  String get quizAskRiichi;
+
+  /// No description provided for @quizMortalRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal declares riichi here.'**
+  String get quizMortalRiichi;
+
+  /// No description provided for @quizMortalDama.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal stays quiet (dama) here.'**
+  String get quizMortalDama;
+
+  /// No description provided for @quizSituation.
+  ///
+  /// In en, this message translates to:
+  /// **'The situation'**
+  String get quizSituation;
+
+  /// No description provided for @quizRoundLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{wind} {hand}: {left, plural, =1{the last hand} other{{left} hands left}}.'**
+  String quizRoundLine(String wind, int hand, int left);
+
+  /// No description provided for @quizStageEarly.
+  ///
+  /// In en, this message translates to:
+  /// **'Early in the hand'**
+  String get quizStageEarly;
+
+  /// No description provided for @quizStageMiddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Midway through the hand'**
+  String get quizStageMiddle;
+
+  /// No description provided for @quizStageLate.
+  ///
+  /// In en, this message translates to:
+  /// **'Late in the hand'**
+  String get quizStageLate;
+
+  /// No description provided for @quizTimingLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{stage}: {wall} tiles left in the wall.'**
+  String quizTimingLine(String stage, int wall);
+
+  /// No description provided for @quizDealerYes.
+  ///
+  /// In en, this message translates to:
+  /// **'You are the dealer: a win pays half again as much and the deal stays with you.'**
+  String get quizDealerYes;
+
+  /// No description provided for @quizDealerNo.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not the dealer.'**
+  String get quizDealerNo;
+
+  /// No description provided for @quizPlaceEven.
+  ///
+  /// In en, this message translates to:
+  /// **'Scores are level at {points}, so placement is not in play.'**
+  String quizPlaceEven(String points);
+
+  /// No description provided for @quizPlaceLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Placement: {rank} of 4, {lead} points ahead of the next seat.'**
+  String quizPlaceLead(int rank, String lead);
+
+  /// No description provided for @quizPlaceBehind.
+  ///
+  /// In en, this message translates to:
+  /// **'Placement: {rank} of 4, {gap} points behind 1st.'**
+  String quizPlaceBehind(int rank, String gap);
+
+  /// No description provided for @quizThreat.
+  ///
+  /// In en, this message translates to:
+  /// **'{seat} is in riichi, declared {turns, plural, =1{this turn} other{{turns} turns ago}}.'**
+  String quizThreat(String seat, int turns);
+
+  /// No description provided for @quizNoThreat.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody else is in riichi.'**
+  String get quizNoThreat;
+
+  /// No description provided for @quizFocusPlacement.
+  ///
+  /// In en, this message translates to:
+  /// **'Final hands: TileSense weighs how each option moves your finishing place, not just your points.'**
+  String get quizFocusPlacement;
+
+  /// No description provided for @quizFocusPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Plenty of hands left: TileSense plays for points.'**
+  String get quizFocusPoints;
 }
 
 class _AppLocalizationsDelegate

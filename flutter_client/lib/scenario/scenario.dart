@@ -70,6 +70,27 @@ class Scenario {
   int wallRemaining = 70;
   Wind roundWind = Wind.east;
 
+  /// Every seat's score. The builder has no inputs for these and leaves them
+  /// even; the daily quiz sets them, which is what lets the guide weigh
+  /// placement in the last hands.
+  List<int> points = List.filled(4, 25000);
+
+  /// Whether any seat is ahead of another. An even table gives placement
+  /// nothing to weigh, so the guide keeps playing for points on one.
+  bool get hasScores => points.toSet().length > 1;
+
+  /// Hands left in the game, counting this one, read off the round wind and
+  /// [dealer] as a hanchan in which you dealt first (East 1): the dealer seat
+  /// stands for the hand number. Past South 4 it is overtime, one at a time.
+  int get handsLeft => handsLeftIn(roundWind, dealer);
+
+  /// [handsLeft] for a round wind and dealer seat.
+  static int handsLeftIn(Wind roundWind, int dealer) => switch (roundWind) {
+        Wind.east => 8 - dealer,
+        Wind.south => 4 - dealer,
+        _ => 1,
+      };
+
   /// Which seat holds the dealership. Rather than set this directly, set
   /// [seatWind] — where the button sits is what fixes everyone's wind, and
   /// being East is what makes you the dealer.
@@ -260,6 +281,7 @@ class Scenario {
     wallRemaining = ruleset.isChineseStyle ? 84 : 70;
     honba = 0;
     riichiSticks = 0;
+    points = List.filled(4, 25000);
     // Round wind and seat wind are settings, not table state —
     // clearing the tiles leaves them where you put them.
   }

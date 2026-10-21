@@ -1,0 +1,273 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/tile.dart';
+import 'package:tilesense/logic/efficiency_engine.dart' show Strategy;
+import 'package:tilesense/game/mortal_advisor.dart';
+import 'package:tilesense/logic/daily_quiz.dart';
+import 'package:tilesense/scenario/scenario.dart';
+
+import '../tools/quiz_generator.dart';
+
+/// A Mortal that says what TileSense says, or [lie] if given.
+MortalAsk stand({QuizChoice Function(QuizChoice)? lie}) =>
+    (table, {required call}) async {
+      final c = QuizTable.fromScenario(table).pose();
+      final theirs = lie?.call(tileSenseChoice(c)!) ?? tileSenseChoice(c)!;
+      c.dispose();
+      final reaction = switch (theirs.move) {
+        QuizMove.discard || QuizMove.riichi => {
+            'type': theirs.move == QuizMove.riichi ? 'reach' : 'dahai',
+            'pai': _mjai(theirs.tile!),
+          },
+        QuizMove.pon => {'type': 'pon'},
+        QuizMove.kan => {'type': 'daiminkan'},
+        QuizMove.chi => {
+            'type': 'chi',
+            'pai': _mjai(TileType.values[theirs.tile!.index + 1]),
+            'consumed': [
+              _mjai(theirs.tile!),
+              _mjai(TileType.values[theirs.tile!.index + 2]),
+            ],
+          },
+        QuizMove.pass => {'type': 'none'},
+      };
+      return MortalAdvice.fromReply({
+        'reaction': reaction,
+        'riichi_discard': theirs.move == QuizMove.riichi
+            ? {'type': 'dahai', 'pai': _mjai(theirs.tile!)}
+            : null,
+      }, call: call);
+    };
+
+String _mjai(TileType t) => switch (t) {
+      TileType.haku => 'P',
+      TileType.hatsu => 'F',
+      TileType.chun => 'C',
+      _ => t.code,
+    };
+
+void main() {
+  test('a table survives JSON and posing', () async {
+    final puzzles = await QuizGenerator(seed: 7, mortal: stand())
+        .generate(4, maxTries: 400);
+    expect(puzzles, isNotEmpty);
+    for (final p in puzzles) {
+      final again = QuizPuzzle.fromJson(
+          jsonDecode(jsonEncode(p.toJson())) as Map<String, Object?>);
+      expect(jsonEncode(again.toJson()), jsonEncode(p.toJson()));
+      final sc = Scenario();
+      p.table.applyTo(sc);
+      expect(sc.problems(), isEmpty, reason: p.id);
+    }
+  });
+
+  test('every puzzle has one right answer among its choices, found live',
+      () async {
+    final puzzles = await QuizGenerator(seed: 11, mortal: stand())
+        .generate(12, maxTries: 1500);
+    expect(puzzles.length, greaterThanOrEqualTo(6));
+    for (final p in puzzles) {
+      expect(p.choices.length, inInclusiveRange(3, 4), reason: p.id);
+      expect(p.choices.toSet().length, p.choices.length, reason: p.id);
+      final cut = p.riichiOption
+          ? QuizChoice(QuizMove.discard, p.answer.tile)
+          : p.answer;
+      expect(p.choices.where((c) => c == cut), hasLength(1), reason: p.id);
+      final c = p.pose();
+      expect(tileSenseChoice(c), p.answer, reason: p.id);
+      c.dispose();
+    }
+  });
+
+  test('at most half the call puzzles are passes', () async {
+    final puzzles = await QuizGenerator(seed: 5, mortal: stand())
+        .generate(40, maxTries: 3000);
+    final calls = puzzles.where((p) => p.kind == QuizKind.call).toList();
+    final passes = calls.where((p) => p.answer.move == QuizMove.pass);
+    expect(calls.length, greaterThanOrEqualTo(4));
+    expect(passes.length * 2, lessThanOrEqualTo(calls.length));
+  });
+
+  test('a ready hand is a cut, then riichi or dama', () async {
+    final puzzles = await QuizGenerator(seed: 21, mortal: stand())
+        .generate(30, maxTries: 3000);
+    final asking = puzzles.where((p) => p.riichiOption).toList();
+    expect(asking, isNotEmpty);
+    for (final p in asking) {
+      final a = p.answer;
+      expect(a.move, anyOf(QuizMove.riichi, QuizMove.discard));
+      // Part one offers cuts only, each tile once; riichi comes after.
+      expect(p.choices.every((c) => c.move == QuizMove.discard), isTrue,
+          reason: p.id);
+      expect(p.choices.map((c) => c.tile).toSet(), hasLength(p.choices.length),
+          reason: p.id);
+      expect(p.choices, contains(QuizChoice(QuizMove.discard, a.tile)),
+          reason: p.id);
+      // The right cut leaves the hand ready, which is what makes riichi
+      // possible.
+      final c = p.pose();
+      expect(quizFacts(c, a)!.shanten, 0, reason: p.id);
+      c.dispose();
+    }
+    for (final p in puzzles.where((p) => !p.riichiOption)) {
+      expect(p.choices.where((c) => c.move == QuizMove.riichi), isEmpty,
+          reason: p.id);
+    }
+  });
+
+  group('scores', () {
+    QuizTable table(
+        {required Wind wind, required int dealer, List<int>? points}) {
+      final base = QuizTable.fromJson({
+        'roundWind': wind.name,
+        'dealer': dealer,
+        'dora': ['1m'],
+        'wall': 40,
+        'hand': [
+          '1m',
+          '2m',
+          '3m',
+          '4p',
+          '5p',
+          '6p',
+          '7s',
+          '8s',
+          '9s',
+          'E',
+          'E',
+          'B',
+          'B',
+          '5m'
+        ],
+        'ponds': [<String>[], <String>[], <String>[], <String>[]],
+        if (points != null) 'points': points,
+      });
+      return base;
+    }
+
+    test('are kept through JSON, and omitted when level', () {
+      final uneven = table(
+          wind: Wind.south, dealer: 2, points: [18000, 32000, 25000, 25000]);
+      expect(QuizTable.fromJson(uneven.toJson()).points,
+          [18000, 32000, 25000, 25000]);
+      expect(table(wind: Wind.east, dealer: 0).toJson().containsKey('points'),
+          isFalse);
+    });
+
+    test('put the guide on placement in the last two hands, and only then', () {
+      final scores = [18000, 32000, 25000, 25000];
+      final last = table(wind: Wind.south, dealer: 2, points: scores).pose();
+      expect(last.strategy, Strategy.placement);
+      final early = table(wind: Wind.east, dealer: 0, points: scores).pose();
+      expect(early.strategy, Strategy.points);
+      // Level scores leave placement nothing to weigh, as in the builder.
+      final level = table(wind: Wind.south, dealer: 2).pose();
+      expect(level.strategy, Strategy.points);
+      for (final c in [last, early, level]) {
+        c.dispose();
+      }
+    });
+
+    test('are read as a situation: place, gaps, timing, threat', () {
+      final t = QuizTable.fromJson({
+        'roundWind': 'south',
+        'dealer': 3,
+        'dora': ['1m'],
+        'wall': 20,
+        'hand': ['1m'],
+        'ponds': [
+          <String>[],
+          <String>['1p', '2p', '3p'],
+          <String>[],
+          <String>[]
+        ],
+        'riichiAt': [-1, 1, -1, -1],
+        'points': [22000, 30000, 25000, 23000],
+      });
+      final s = quizSituation(t);
+      expect(s.rank, 4);
+      expect(s.behindFirst, 8000);
+      expect(s.handsLeft, 1);
+      expect(s.placementFocus, isTrue);
+      expect(s.stage, QuizStage.late);
+      expect(s.riichiSeat, 1);
+      expect(s.riichiTurnsAgo, 2);
+      expect(s.isDealer, isFalse);
+      final lead = quizSituation(QuizTable.fromJson({
+        ...t.toJson(),
+        'points': [30000, 22000, 25000, 23000],
+      }));
+      expect(lead.rank, 1);
+      expect(lead.aheadOfNext, 5000);
+      expect(lead.behindFirst, 0);
+    });
+  });
+
+  test('a Mortal that disagrees makes no puzzles', () async {
+    final liar = stand(
+        lie: (a) => a.move == QuizMove.pass
+            ? const QuizChoice(QuizMove.pon)
+            : QuizChoice(QuizMove.discard,
+                a.tile == TileType.ton ? TileType.nan : TileType.ton));
+    final generator = QuizGenerator(seed: 3, mortal: liar);
+    expect(await generator.generate(5, maxTries: 300), isEmpty);
+    expect(generator.tally[Reject.disagree], greaterThan(0));
+  });
+
+  test('every shipped puzzle still has TileSense\'s answer as its answer', () {
+    final file = File('assets/quiz/daily.json');
+    final puzzles = [
+      for (final p in (jsonDecode(file.readAsStringSync())
+          as Map<String, Object?>)['puzzles']! as List)
+        QuizPuzzle.fromJson(p as Map<String, Object?>),
+    ];
+    expect(puzzles, isNotEmpty);
+    expect(puzzles.map((p) => p.id).toSet(), hasLength(puzzles.length));
+    for (final p in puzzles) {
+      final c = p.pose();
+      expect(tileSenseChoice(c), p.answer, reason: p.id);
+      final cut = p.riichiOption
+          ? QuizChoice(QuizMove.discard, p.answer.tile)
+          : p.answer;
+      expect(p.choices.where((x) => x == cut), hasLength(1), reason: p.id);
+      c.dispose();
+    }
+  });
+
+  test('the daily puzzle follows the calendar date, round the pool', () {
+    expect(dailyIndex(DateTime(2026, 10, 20, 0, 5), 60),
+        dailyIndex(DateTime(2026, 10, 20, 23, 55), 60));
+    expect(dailyIndex(DateTime(2026, 10, 21), 60),
+        (dailyIndex(DateTime(2026, 10, 20), 60) + 1) % 60);
+    expect(dailyIndex(DateTime(2026, 1, 1), 1), 0);
+  });
+
+  test('Mortal replies read as choices', () {
+    QuizChoice? read(Map<String, Object?> reply,
+            {required bool call, required QuizKind kind}) =>
+        mortalChoice(MortalAdvice.fromReply(reply, call: call), kind: kind);
+    expect(
+        read({
+          'reaction': {'type': 'dahai', 'pai': 'P'}
+        }, call: false, kind: QuizKind.discard),
+        const QuizChoice(QuizMove.discard, TileType.haku));
+    expect(
+        read({
+          'reaction': {
+            'type': 'chi',
+            'pai': '4m',
+            'consumed': ['3m', '5m']
+          }
+        }, call: true, kind: QuizKind.call),
+        const QuizChoice(QuizMove.chi, TileType.man3));
+    expect(
+        read({
+          'reaction': {'type': 'hora'}
+        }, call: false, kind: QuizKind.discard),
+        isNull);
+    expect(read({'reaction': null}, call: true, kind: QuizKind.call),
+        const QuizChoice(QuizMove.pass));
+  });
+}

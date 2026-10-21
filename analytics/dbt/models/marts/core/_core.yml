@@ -75,3 +75,18 @@ models:
           - relationships:
               arguments: {to: ref('fct_rounds'), field: round_id}
               config: {where: "round_id is not null", severity: warn}
+
+  - name: fct_quiz_answers
+    description: "Grain: one row per daily-quiz answer, replays included (is_first_today marks the one the streak counted)."
+    config: {access: public}
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: client_key
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_client'), field: client_key}}
+      - name: puzzle_id
+        data_tests: [not_null]
+      - name: puzzle_kind
+        data_tests:
+          - accepted_values: {arguments: {values: [discard, call]}}

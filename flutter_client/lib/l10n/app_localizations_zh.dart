@@ -2572,6 +2572,174 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get nudgeStop => '不再提示';
+
+  @override
+  String get quizTitle => 'TileSensor会怎么打？';
+
+  @override
+  String get quizAskDiscard => '轮到你了，你刚摸了一张牌。你怎么做？';
+
+  @override
+  String quizAskCall(String seat) {
+    return '$seat刚打出一张牌。你怎么做？';
+  }
+
+  @override
+  String get quizDiscard => '打牌';
+
+  @override
+  String get quizRiichi => '立直';
+
+  @override
+  String get quizYourHand => '你的手牌';
+
+  @override
+  String get quizChoose => '请选择一项';
+
+  @override
+  String get quizYouPicked => '你的选择';
+
+  @override
+  String get quizBestMove => '最佳选择';
+
+  @override
+  String get quizAgree => 'TileSense与Mortal一致';
+
+  @override
+  String get quizTileSenseSays => 'TileSense为何推荐';
+
+  @override
+  String get quizMortalSays => 'Mortal的评价';
+
+  @override
+  String get quizShanten => '向听数';
+
+  @override
+  String get quizUkeire => '进张';
+
+  @override
+  String get quizEv => '期望值';
+
+  @override
+  String get quizRisk => '风险';
+
+  @override
+  String quizMortalRank(int rank, int total) {
+    return 'Mortal把你的选择排在$total个选项中的第$rank位。';
+  }
+
+  @override
+  String get quizMortalPicked => 'Mortal也选了这一手。';
+
+  @override
+  String get quizMortalRankFirst => '这是Mortal的首选。';
+
+  @override
+  String get quizMortalNote => 'Mortal不会解释原因，这是它的排名。';
+
+  @override
+  String get quizSeat => '座位';
+
+  @override
+  String get quizDora => '宝牌指示牌';
+
+  @override
+  String get quizDone => '明天再来挑战新题目。';
+
+  @override
+  String get quizLoadFailed => '无法载入今天的题目。';
+
+  @override
+  String get quizLink => '每日一题';
+
+  @override
+  String get quizCardToday => '今天的题目已准备好';
+
+  @override
+  String get quizCardDone => '今天已完成，明天再来！';
+
+  @override
+  String quizStreak(int days) {
+    return '连续$days天';
+  }
+
+  @override
+  String get loadingQuiz => '正在载入每日一题…';
+
+  @override
+  String get quizDama => '默听';
+
+  @override
+  String get quizAskRiichi => '这样打牌就听牌了。你要立直，还是默听？';
+
+  @override
+  String get quizMortalRiichi => 'Mortal在这里会立直。';
+
+  @override
+  String get quizMortalDama => 'Mortal在这里会默听。';
+
+  @override
+  String get quizSituation => '局面';
+
+  @override
+  String quizRoundLine(String wind, int hand, int left) {
+    String _temp0 = intl.Intl.pluralLogic(
+      left,
+      locale: localeName,
+      other: '还剩$left局',
+      one: '最后一局',
+    );
+    return '$wind$hand局：$_temp0。';
+  }
+
+  @override
+  String get quizStageEarly => '本局前期';
+
+  @override
+  String get quizStageMiddle => '本局中期';
+
+  @override
+  String get quizStageLate => '本局后期';
+
+  @override
+  String quizTimingLine(String stage, int wall) {
+    return '$stage：牌山还剩$wall张。';
+  }
+
+  @override
+  String get quizDealerYes => '你是庄家：和牌点数是闲家的1.5倍，并且可以连庄。';
+
+  @override
+  String get quizDealerNo => '你不是庄家。';
+
+  @override
+  String quizPlaceEven(String points) {
+    return '四家都是$points点，名次不受影响。';
+  }
+
+  @override
+  String quizPlaceLead(int rank, String lead) {
+    return '名次：四家中第$rank，领先下一家$lead点。';
+  }
+
+  @override
+  String quizPlaceBehind(int rank, String gap) {
+    return '名次：四家中第$rank，落后第一名$gap点。';
+  }
+
+  @override
+  String quizThreat(String seat, int turns) {
+    return '$seat正在立直（$turns巡前宣告）。';
+  }
+
+  @override
+  String get quizNoThreat => '其他人都没有立直。';
+
+  @override
+  String get quizFocusPlacement => '最后几局：TileSense会考虑每个选择对最终名次的影响，而不只看点数。';
+
+  @override
+  String get quizFocusPoints => '还有很多局：TileSense以点数为重。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5142,4 +5310,172 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get nudgeStop => '不再提示';
+
+  @override
+  String get quizTitle => 'TileSensor會怎麼打？';
+
+  @override
+  String get quizAskDiscard => '輪到你了，你剛摸了一張牌。你怎麼做？';
+
+  @override
+  String quizAskCall(String seat) {
+    return '$seat剛打出一張牌。你怎麼做？';
+  }
+
+  @override
+  String get quizDiscard => '打牌';
+
+  @override
+  String get quizRiichi => '立直';
+
+  @override
+  String get quizYourHand => '你的手牌';
+
+  @override
+  String get quizChoose => '请選擇一項';
+
+  @override
+  String get quizYouPicked => '你的選擇';
+
+  @override
+  String get quizBestMove => '最佳選擇';
+
+  @override
+  String get quizAgree => 'TileSense與Mortal一致';
+
+  @override
+  String get quizTileSenseSays => 'TileSense為何推薦';
+
+  @override
+  String get quizMortalSays => 'Mortal的評價';
+
+  @override
+  String get quizShanten => '向聽數';
+
+  @override
+  String get quizUkeire => '進張';
+
+  @override
+  String get quizEv => '期望值';
+
+  @override
+  String get quizRisk => '風險';
+
+  @override
+  String quizMortalRank(int rank, int total) {
+    return 'Mortal把你的選擇排在$total個選項中的第$rank位。';
+  }
+
+  @override
+  String get quizMortalPicked => 'Mortal也選了這一手。';
+
+  @override
+  String get quizMortalRankFirst => '這是Mortal的首選。';
+
+  @override
+  String get quizMortalNote => 'Mortal不會解釋原因，這是它的排名。';
+
+  @override
+  String get quizSeat => '座位';
+
+  @override
+  String get quizDora => '寶牌指示牌';
+
+  @override
+  String get quizDone => '明天再來挑戰新題目。';
+
+  @override
+  String get quizLoadFailed => '無法載入今天的題目。';
+
+  @override
+  String get quizLink => '每日一題';
+
+  @override
+  String get quizCardToday => '今天的題目已準備好';
+
+  @override
+  String get quizCardDone => '今天已完成，明天再來！';
+
+  @override
+  String quizStreak(int days) {
+    return '連續$days天';
+  }
+
+  @override
+  String get loadingQuiz => '正在載入每日一題…';
+
+  @override
+  String get quizDama => '默聽';
+
+  @override
+  String get quizAskRiichi => '這樣打牌就聽牌了。你要立直，還是默聽？';
+
+  @override
+  String get quizMortalRiichi => 'Mortal在這裡會立直。';
+
+  @override
+  String get quizMortalDama => 'Mortal在這裡會默聽。';
+
+  @override
+  String get quizSituation => '局面';
+
+  @override
+  String quizRoundLine(String wind, int hand, int left) {
+    String _temp0 = intl.Intl.pluralLogic(
+      left,
+      locale: localeName,
+      other: '還剩$left局',
+      one: '最後一局',
+    );
+    return '$wind$hand局：$_temp0。';
+  }
+
+  @override
+  String get quizStageEarly => '本局前期';
+
+  @override
+  String get quizStageMiddle => '本局中期';
+
+  @override
+  String get quizStageLate => '本局後期';
+
+  @override
+  String quizTimingLine(String stage, int wall) {
+    return '$stage：牌山還剩$wall張。';
+  }
+
+  @override
+  String get quizDealerYes => '你是莊家：和牌點數是閒家的1.5倍，並且可以連莊。';
+
+  @override
+  String get quizDealerNo => '你不是莊家。';
+
+  @override
+  String quizPlaceEven(String points) {
+    return '四家都是$points點，名次不受影響。';
+  }
+
+  @override
+  String quizPlaceLead(int rank, String lead) {
+    return '名次：四家中第$rank，領先下一家$lead點。';
+  }
+
+  @override
+  String quizPlaceBehind(int rank, String gap) {
+    return '名次：四家中第$rank，落後第一名$gap點。';
+  }
+
+  @override
+  String quizThreat(String seat, int turns) {
+    return '$seat正在立直（$turns巡前宣告）。';
+  }
+
+  @override
+  String get quizNoThreat => '其他人都沒有立直。';
+
+  @override
+  String get quizFocusPlacement => '最後幾局：TileSense會考慮每個選擇對最終名次的影響，而不只看點數。';
+
+  @override
+  String get quizFocusPoints => '還有很多局：TileSense以點數為重。';
 }

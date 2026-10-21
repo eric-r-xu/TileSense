@@ -41,6 +41,7 @@ flutter:
     - assets/flags/
     - assets/TileClink.wav
     - assets/tiles/
+    - assets/quiz/
     - assets/sfx/
     - assets/orderic/
     - assets/grant/

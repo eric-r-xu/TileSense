@@ -17,5 +17,6 @@ apply `server/migrations/000*.sql`, load `dev/seed_telemetry.sql`, and set
 
 Layers: staging (1:1, views) -> intermediate -> marts/core (dims + facts).
 Snapshots: snap_client_traits (SCD2 on trait flips).
+fct_quiz_answers reads the daily quiz's `quiz_answered` events (generic `events` rows, details in `payload`).
 Not included yet: fct_events, fct_matches, dim_session, dim_date, sim_* models.
 `ip_prefix`/`ip_hmac` are intentionally never selected past the source.

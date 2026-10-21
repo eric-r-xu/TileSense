@@ -9,6 +9,38 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-20 — Daily quiz
+
+- **A daily quiz, "What would TileSensor do?"**, from the start page: a card under
+  the rules choice with the TileSensor mascot and your streak, and a **Daily quiz**
+  link beside Practice. One puzzle a day, the same for everyone on the same date.
+  It poses a riichi table and asks for a cut, or what to do with an opponent's
+  discard. When the cut leaves you ready it asks a second question, riichi or
+  dama, and both parts must be right.
+- **Each puzzle is one TileSense and Mortal agree on**, with a clear lead over the
+  next-best move. The answer explains itself: the situation (how late it is, your
+  placement, dealer, any riichi), TileSense's shanten, ukeire, EV and risk for the
+  best move and yours, and Mortal's rank for your pick. The pool is 360 puzzles in
+  `flutter_client/assets/quiz/daily.json`, built by `flutter_client/tools/build_quiz.dart`
+  against a Mortal sidecar; new puzzles are appended so a day's puzzle does not
+  change. TileSense's side is worked out live, and a test fails if it stops
+  matching the stored answer.
+- **Posed tables can have scores.** With uneven scores the guide plays the last
+  two hands for placement, as in a game, and Mortal sees the scores too. The
+  Custom Hand & Context Builder is unchanged: it has no score inputs, so it
+  still plays for points.
+- **A day streak**, kept on the device; only a day's first answer counts.
+- **Telemetry**: a `quiz_answered` event (puzzle, choice, whether it was right,
+  the streak) stored as a generic `events` row, and a `fct_quiz_answers` dbt model.
+  The dbt model has not been run against a database yet.
+- **The welcome screen's header mascot is smaller** (140 to 96 px, with two gaps
+  tightened) to make room for the quiz card without pushing the bottom buttons off
+  small screens.
+- New in `ScenarioController`: `askMortal: false` and `seatCharacters` options.
+  New in `TableView`: `ownPortrait`.
+- New tests: `daily_quiz_test.dart`, `daily_quiz_page_test.dart`,
+  `daily_quiz_menu_test.dart`, and additions to `telemetry_test.dart`.
+
 <<<<<<< HEAD
 =======
 <<<<<<< Updated upstream

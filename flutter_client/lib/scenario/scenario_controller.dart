@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 import '../game/game_controller.dart';
 import '../game/guide_host.dart';
 import '../game/mortal_advisor.dart';
-import '../game/sfx.dart' show Character;
+import '../game/sfx.dart' show Character, kCharacterName;
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
@@ -24,15 +24,27 @@ import 'scenario.dart';
 import 'scenario_mjai.dart';
 
 class ScenarioController extends ChangeNotifier implements GuideHost {
-  /// [seatWind] is the wind you start on (East when null).
-  ScenarioController({Wind? seatWind, @visibleForTesting MortalAdvisor? mortal})
-      : _mortal =
-            mortal ?? (kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl)) {
+  /// [seatWind] is the wind you start on (East when null). [askMortal] false
+  /// never calls the sidecar, for callers that have no use for its answer.
+  ///
+  /// [seatCharacters] gives each seat a persona, portrait and name on the
+  /// table; without it the seats go by where they sit.
+  ScenarioController(
+      {Wind? seatWind,
+      bool askMortal = true,
+      List<Character>? seatCharacters,
+      @visibleForTesting MortalAdvisor? mortal})
+      : _seatCharacters = seatCharacters,
+        _mortal = !askMortal
+            ? null
+            : mortal ??
+                (kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl)) {
     if (seatWind != null) scenario.seatWind = seatWind;
     rebuild();
   }
 
   final MortalAdvisor? _mortal;
+  final List<Character>? _seatCharacters;
 
   // Bumped by every edit, so a reply to a table since changed is dropped.
   int _mortalAsk = 0;
@@ -56,11 +68,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   /// overtime, one hand at a time.
   AutoDials get _autoDials => autoDials(ruleset,
       minimumPoints: scenario.minimumPoints,
-      handsLeft: switch (scenario.roundWind) {
-        Wind.east => 8 - scenario.dealer,
-        Wind.south => 4 - scenario.dealer,
-        _ => 1,
-      });
+      handsLeft: scenario.handsLeft);
 
   // The builder has no dials of its own — it plays what the guide would.
   @override
@@ -75,10 +83,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   @override
   void setHandFocus(HandFocus value) {}
 
-  // Always Points: the builder has no score inputs for the other three
-  // seats, so Placement would have nothing to weigh here.
+  // Points unless the table has scores to weigh: the builder has no score
+  // inputs, so there Placement would have nothing to work on; the daily quiz
+  // poses scores and plays the last hands for placement, as a game does.
   @override
-  Strategy get strategy => Strategy.points;
+  Strategy get strategy =>
+      scenario.hasScores ? _autoDials.strategy : Strategy.points;
 
   @override
   void setStrategy(Strategy value) {}
@@ -117,9 +127,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   // go by where they sit. [GuideHost] still asks for a character, which
   // nothing here shows.
   @override
-  Character characterForSeat(int seat) => kSeatCharacters[seat];
+  Character characterForSeat(int seat) =>
+      (_seatCharacters ?? kSeatCharacters)[seat];
   @override
-  String seatLabel(int seat) => kScenarioSeatNames[seat];
+  String seatLabel(int seat) => _seatCharacters == null || seat == kHumanSeat
+      ? kScenarioSeatNames[seat]
+      : kCharacterName[_seatCharacters[seat]]!;
 
   @override
   bool get humanFuriten =>
@@ -133,6 +146,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   @override
   CallOption? humanCallOption;
   CallAdvice? _callAdvice;
+
+  /// The guide's verdict on the offered tile, when there is one to answer.
+  CallAdvice? get callAdvice => _callAdvice;
 
   @override
   MortalAdvice? mortalAdvice;
@@ -248,6 +264,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       style: playStyle,
       focus: handFocus,
       strategy: strategy,
+      tablePoints: scenario.points,
+      mySeat: kHumanSeat,
+      handsRemaining: scenario.handsLeft,
       ruleset: ruleset,
       flowers: human.flowers.map((t) => t.type).toList(),
       minimumFaan: scenario.minimumFaan,
@@ -398,7 +417,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
               remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
               dora: scenario.dora,
             ),
-      startingPoints: List.filled(4, ruleset.startingPoints),
+      startingPoints: scenario.hasScores
+          ? List.of(scenario.points)
+          : List.filled(4, ruleset.startingPoints),
       ruleset: ruleset,
       minimumFaan: scenario.minimumFaan,
       minimumPoints: scenario.minimumPoints,

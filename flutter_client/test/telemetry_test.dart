@@ -18,4 +18,29 @@ void main() {
     );
     expect(newUuid(), isNot(id));
   });
+
+  test('a quiz answer reports its puzzle, choice, day and streak', () {
+    final p = Telemetry.quizAnsweredPayload(
+      puzzleId: 'q0007',
+      puzzleKind: 'discard',
+      choice: 'discard 5p',
+      answer: 'riichi 5p',
+      correct: false,
+      riichiOption: true,
+      day: '2026-10-20',
+      streak: 3,
+      firstToday: true,
+    );
+    expect(p, {
+      'puzzle_id': 'q0007',
+      'puzzle_kind': 'discard',
+      'choice': 'discard 5p',
+      'answer': 'riichi 5p',
+      'correct': false,
+      'riichi_option': true,
+      'day': '2026-10-20',
+      'streak': 3,
+      'first_today': true,
+    });
+  });
 }

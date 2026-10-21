@@ -38,6 +38,7 @@ const _allowedTypes = {
   'match_end',
   'setting_change',
   'seat_event',
+  'quiz_answered',
 };
 final _uuidRe = RegExp(r'^[0-9a-fA-F-]{36}$');
 
@@ -349,6 +350,36 @@ Future<void> _applyEvent(
           'm': e['match_id'],
           'at': at,
           'p': jsonEncode({'setting': e['setting'], 'value': e['value']}),
+        },
+      );
+    case 'quiz_answered':
+      // A daily-quiz answer, kept as a generic event like `setting_change`:
+      // no match or round, the details in `payload`. Only the known keys are
+      // stored, each cut down to its expected type.
+      String? text(Object? v, int max) {
+        if (v is! String) return null;
+        return v.length > max ? v.substring(0, max) : v;
+      }
+
+      await s.execute(
+        Sql.named('''
+          insert into events (session_id, occurred_at, kind, payload)
+          values (@s, @at, 'quiz_answered', @p)
+        '''),
+        parameters: {
+          's': sessionId,
+          'at': at,
+          'p': jsonEncode({
+            'puzzle_id': text(e['puzzle_id'], 32),
+            'puzzle_kind': text(e['puzzle_kind'], 16),
+            'choice': text(e['choice'], 32),
+            'answer': text(e['answer'], 32),
+            'correct': e['correct'] == true,
+            'riichi_option': e['riichi_option'] == true,
+            'day': text(e['day'], 10),
+            'streak': (e['streak'] as num?)?.toInt() ?? 0,
+            'first_today': e['first_today'] == true,
+          }),
         },
       );
     case 'seat_event':

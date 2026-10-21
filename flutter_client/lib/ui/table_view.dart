@@ -64,6 +64,7 @@ class TableView extends StatelessWidget {
     this.autoplaying = false,
     this.showRulesetInStatus = false,
     this.acrossInBar = false,
+    this.ownPortrait = true,
   });
   final GuideHost game;
 
@@ -151,6 +152,10 @@ class TableView extends StatelessWidget {
   /// ([TableBarTitle]) rather than along the top of the felt, which gives
   /// the ponds that row's height. Only their open melds stay on the felt.
   final bool acrossInBar;
+
+  /// False leaves your own portrait off, so your placard stands alone; the
+  /// daily quiz has no persona for you.
+  final bool ownPortrait;
 
   // normal tile (32w / 44h) · scale + EdgeInsets.all(0.5) on both sides.
   static double _pondTileW(double scale) => 32 * scale + 1;
@@ -265,8 +270,10 @@ class TableView extends StatelessWidget {
       key: const Key('ownSeat'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        _portrait(kHumanSeat, size: _barPortraitSize),
-        const SizedBox(width: 8),
+        if (ownPortrait) ...[
+          _portrait(kHumanSeat, size: _barPortraitSize),
+          const SizedBox(width: 8),
+        ],
         _placard(round, kHumanSeat),
         if (round.ruleset.isChineseStyle) ...[
           const SizedBox(width: 8),
@@ -1531,9 +1538,13 @@ class TableBarTitle extends StatelessWidget {
     required this.leading,
     this.height = 50,
     this.edits,
+    this.ownPortrait = true,
   });
   final GuideHost game;
   final double titleStart;
+
+  /// See [TableView.ownPortrait]; only read by the table the bar speaks for.
+  final bool ownPortrait;
   final Widget leading;
 
   /// The builder's [TableEdits], so the across seat's flower tray up here
@@ -1547,7 +1558,11 @@ class TableBarTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final round = game.round;
-    final table = TableView(game: game, edits: edits, acrossInBar: true);
+    final table = TableView(
+        game: game,
+        edits: edits,
+        acrossInBar: true,
+        ownPortrait: ownPortrait);
     const seat = 2;
     return SizedBox(
       height: height,
