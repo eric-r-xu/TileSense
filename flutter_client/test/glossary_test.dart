@@ -8,6 +8,7 @@ import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/glossary.dart';
 
 import 'l10n_helpers.dart';
+import 'helpers.dart';
 
 /// The glossary: terms worded for the rules in play, searchable, and reachable
 /// from the welcome screen and from a game.
@@ -124,19 +125,20 @@ void main() {
     testWidgets('from the welcome screen, in the rules selected there',
         (tester) async {
       await boot(tester);
-      await tester.tap(find.byKey(const Key('glossaryLink')));
+      await tapInPopup(tester, 'learnTile', find.byKey(const Key('glossaryLink')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('glossary_flowers')), findsOneWidget,
           reason: 'Hong Kong is the default');
       expect(find.byKey(const Key('glossary_furiten')), findsNothing);
 
       await tester.tap(find.byKey(const Key('glossaryClose')));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
       expect(find.byKey(const Key('glossarySearch')), findsNothing);
 
-      await tester.tap(find.byKey(const Key('ruleset_riichi')));
+      await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_riichi')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('glossaryLink')));
+      await tapInPopup(tester, 'learnTile', find.byKey(const Key('glossaryLink')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('glossary_furiten')), findsOneWidget);
       expect(find.byKey(const Key('glossary_flowers')), findsNothing);
@@ -171,7 +173,7 @@ void main() {
           await tester.binding.setSurfaceSize(size);
           await tester.pumpWidget(const TileSenseApp());
           await tester.pump(const Duration(milliseconds: 100));
-          await tester.tap(find.byKey(const Key('glossaryLink')));
+          await tapInPopup(tester, 'learnTile', find.byKey(const Key('glossaryLink')));
           await tester.pump(const Duration(milliseconds: 300));
           expect(find.byKey(const Key('glossary_set')), findsOneWidget,
               reason: '${language.name} $size');

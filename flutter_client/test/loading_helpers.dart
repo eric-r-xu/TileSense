@@ -90,6 +90,11 @@ Future<void> tapBuilderMenu(WidgetTester tester, String key) async {
   await tester.tap(find.byKey(Key(key)));
   await tester.pump(const Duration(milliseconds: 100));
   final done = find.byKey(const Key('builderMenuDone'));
-  if (done.evaluate().isNotEmpty) await tester.tap(done);
+  // Back, Random and Clear close the sheet themselves; tapping Done while it
+  // slides away would land on whatever is behind it.
+  const closesItself = {'builderMenuBack', 'builderMenuRandom', 'builderMenuClear'};
+  if (!closesItself.contains(key) && done.evaluate().isNotEmpty) {
+    await tester.tap(done);
+  }
   await tester.pump(const Duration(milliseconds: 500));
 }

@@ -3,6 +3,7 @@ import { byId, openApp } from '../helpers';
 
 test('glossary opens and accepts a search', async ({ page }) => {
   await openApp(page);
+  await byId(page, 'learnTile').click();
   await byId(page, 'glossaryLink').click();
   await expect(byId(page, 'glossarySearch')).toBeAttached();
   await byId(page, 'glossarySearch').click();

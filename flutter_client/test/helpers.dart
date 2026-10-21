@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/tile.dart';
 
@@ -75,4 +76,28 @@ Future<void> pumpUntil(
     await tester.pump(step);
   }
   fail('timed out after ${step * tries} waiting for the game to catch up');
+}
+
+/// Opens the title-screen popup behind [tile] ('learnTile', 'rulesTile' or
+/// 'moreTile'), taps [target] in it, and lets the popup finish closing.
+Future<void> tapInPopup(WidgetTester tester, String tile, Finder target) async {
+  await openPopup(tester, tile);
+  await tester.tap(target);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
+/// Opens the title-screen popup behind [tile] and leaves it open.
+Future<void> openPopup(WidgetTester tester, String tile) async {
+  await tester.ensureVisible(find.byKey(Key(tile)));
+  await tester.tap(find.byKey(Key(tile)));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
+/// Closes the title-screen popup that [openPopup] opened.
+Future<void> closePopup(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('titlePopupClose')));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
 }

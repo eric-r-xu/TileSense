@@ -287,9 +287,12 @@ void main() {
     testWidgets('choosing Sichuan on the welcome screen deals a Sichuan table '
         'and asks for the void suit', (tester) async {
       await boot(tester);
+      await openPopup(tester, 'rulesTile');
       expect(find.byKey(const Key('ruleset_sichuan')), findsOneWidget);
       expect(find.byKey(const Key('rulesetFlag_sichuan')), findsWidgets);
       await tester.tap(find.byKey(const Key('ruleset_sichuan')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Single Player'));
       await tester.pump();

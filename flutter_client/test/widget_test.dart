@@ -170,7 +170,7 @@ void main() {
 
     for (final (emojiKey, title) in [
       ('playOnlineEmoji', 'Play Online'),
-      ('openBuilderEmoji', 'Custom Hand & Context Builder'),
+      ('openBuilderEmoji', 'Hand Builder'),
     ]) {
       final emoji = tester.getRect(find.byKey(Key(emojiKey)));
       final label = tester.getRect(find.text(title));

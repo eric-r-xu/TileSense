@@ -41,7 +41,9 @@ enum Ruleset {
   ),
   sichuan(
     label: 'Sichuan',
-    flag: '🐼',
+    // No emoji: Sichuan is a province, drawn from [flagAsset]. Left empty so
+    // plain-text labels read just "Sichuan".
+    flag: '',
     flagAsset: 'assets/flags/sichuan.png',
     unit: 'points',
     rulesUrl: 'https://app.ericrxu.com/static/Sichuan.pdf',
@@ -67,7 +69,7 @@ enum Ruleset {
   final String? flagAsset;
 
   /// [label] with its [flag] in front, for toggles.
-  String get flagLabel => '$flag $label';
+  String get flagLabel => '$flag $label'.trim();
 
   /// A one-page rules reference (PDF).
   final String rulesUrl;

@@ -3,9 +3,9 @@ import { byId, openApp } from '../helpers';
 
 test('switching language relabels the welcome screen', async ({ page }) => {
   await openApp(page);
-  const before = await byId(page, 'glossaryLink').innerText();
+  const before = await byId(page, 'learnTile').innerText();
   await byId(page, 'languageButton').click();
   // Menu items are CheckedPopupMenuItems; pick the first non-checked one.
   await page.getByRole('menuitemcheckbox', { checked: false }).first().click();
-  await expect(byId(page, 'glossaryLink')).not.toHaveText(before);
+  await expect(byId(page, 'learnTile')).not.toHaveText(before);
 });

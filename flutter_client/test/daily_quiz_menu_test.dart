@@ -82,13 +82,13 @@ void main() {
   }
 
   testWidgets(
-      'the card and the utility link both open the quiz and Back '
+      'the card opens the quiz and Back '
       'returns', (tester) async {
     await pumpMenu(tester);
     expect(find.byKey(const Key('dailyQuizMascot')), findsOneWidget);
     expect(find.byKey(const Key('dailyQuizStreak')), findsNothing);
 
-    for (final entry in ['dailyQuizCard', 'quizLink']) {
+    for (final entry in ['dailyQuizCard']) {
       await tester.tap(find.byKey(Key(entry)));
       await settle(tester);
       expect(find.byKey(const Key('quizQuestion')), findsOneWidget,

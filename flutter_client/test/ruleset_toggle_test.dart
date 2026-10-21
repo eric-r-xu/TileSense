@@ -8,6 +8,7 @@ import 'package:tilesense/ui/table_view.dart';
 
 import 'loading_helpers.dart';
 import 'lobby_helpers.dart';
+import 'helpers.dart';
 
 /// The Riichi / Hong Kong / Taiwanese choice: it is made on the welcome screen,
 /// carried into the character and online-lobby screens (still changeable
@@ -84,7 +85,7 @@ void main() {
   testWidgets('choosing Riichi before Start deals a Riichi table',
       (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_riichi')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_riichi')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Sharpen your Riichi Mahjong decisions'),
         findsOneWidget);
@@ -109,14 +110,16 @@ void main() {
   testWidgets('choosing Hong Kong before Start deals a Hong Kong table',
       (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_hongKong')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Sharpen your Hong Kong Mahjong decisions'),
         findsOneWidget);
+    await openPopup(tester, 'rulesTile');
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
     expect(find.text('🇭🇰 Hong Kong'), findsOneWidget);
     expect(find.byKey(const Key('rulesPdf_riichi')), findsOneWidget);
     expect(find.byKey(const Key('rulesPdf_hongKong')), findsOneWidget);
+    await closePopup(tester);
 
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -168,7 +171,7 @@ void main() {
   Future<void> switchViaMenu(WidgetTester tester, Ruleset ruleset) async {
     await tester.tap(find.byKey(const Key('backToMenu')));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(Key('ruleset_${ruleset.name}')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(Key('ruleset_${ruleset.name}')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -181,7 +184,7 @@ void main() {
   testWidgets('the in-game style label cannot switch rules mid-game',
       (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_riichi')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_riichi')));
     await tester.pump();
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -250,7 +253,7 @@ void main() {
       'the character screen starts on the home screen\'s style and can '
       'still change it', (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_hongKong')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -286,7 +289,7 @@ void main() {
   testWidgets('the online lobby starts on the home screen\'s style',
       (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('playOnline')));
     await pumpLoadedPage(tester);
@@ -305,7 +308,7 @@ void main() {
   testWidgets('the builder opens in the chosen rules and can switch',
       (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_hongKong')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byKey(const Key('openBuilder')));
     await pumpUntilFound(tester, find.text('Your flowers (0)'));
@@ -329,14 +332,16 @@ void main() {
   testWidgets('choosing Taiwanese before Start deals a Taiwanese table',
       (tester) async {
     await boot(tester);
-    await tester.tap(find.byKey(const Key('ruleset_taiwanese')));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Sharpen your Taiwanese Mahjong decisions'),
         findsOneWidget);
+    await openPopup(tester, 'rulesTile');
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
     expect(find.text('🇭🇰 Hong Kong'), findsOneWidget);
     expect(find.text('🇹🇼 Taiwanese'), findsOneWidget);
     expect(find.byKey(const Key('rulesPdf_taiwanese')), findsOneWidget);
+    await closePopup(tester);
 
     await tester.tap(find.text('Single Player'));
     await tester.pump();

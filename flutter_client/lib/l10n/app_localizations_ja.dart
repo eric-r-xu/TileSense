@@ -345,10 +345,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playOnline => 'オンライン対戦';
 
   @override
-  String get playOnlineSubtitle => '友達と — 空席はボットが埋めます、ガイドなし';
+  String get playOnlineSubtitle => '空席はボットが埋めます、ガイドなし';
 
   @override
-  String get builder => 'カスタム手牌＆状況ビルダー';
+  String get builder => '手牌ビルダー';
 
   @override
   String get builderSubtitle => '好きな卓を作って TileSense に評価させる';
@@ -2471,6 +2471,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get glossaryDefHelpful => '引くとあがりに近づく牌です。ガイドは、まだ見えていない残り枚数を数えます。';
+
+  @override
+  String get learnTile => '学ぶ';
+
+  @override
+  String get moreTile => 'その他';
 
   @override
   String get practiceTitle => '練習問題';

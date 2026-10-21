@@ -341,10 +341,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playOnline => '联机对战';
 
   @override
-  String get playOnlineSubtitle => '和朋友一起——空位由电脑补上，无指南';
+  String get playOnlineSubtitle => '空位由电脑补上，无指南';
 
   @override
-  String get builder => '自定义手牌与情境构建器';
+  String get builder => '手牌构建器';
 
   @override
   String get builderSubtitle => '摆出任意牌局，让 TileSense 评分';
@@ -2450,6 +2450,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glossaryDefHelpful => '摸到后能让手牌更接近胡牌的牌。提示会统计还有多少张没出现。';
 
   @override
+  String get learnTile => '学习';
+
+  @override
+  String get moreTile => '更多';
+
+  @override
   String get practiceTitle => '练习题';
 
   @override
@@ -3082,10 +3088,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playOnline => '連線對戰';
 
   @override
-  String get playOnlineSubtitle => '和朋友一起——空位由電腦補上，無指南';
+  String get playOnlineSubtitle => '空位由電腦補上，無指南';
 
   @override
-  String get builder => '自訂手牌與情境建構器';
+  String get builder => '手牌建構器';
 
   @override
   String get builderSubtitle => '擺出任意牌局，讓 TileSense 評分';
@@ -5189,6 +5195,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get glossaryDefHelpful => '摸到後能讓手牌更接近食糊的牌。提示會統計還有多少張沒出現。';
+
+  @override
+  String get learnTile => '學習';
+
+  @override
+  String get moreTile => '更多';
 
   @override
   String get practiceTitle => '練習題';
