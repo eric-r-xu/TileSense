@@ -13,6 +13,7 @@ import '../logic/efficiency_engine.dart';
 import '../telemetry/src/platform_web.dart'
     if (dart.library.io) '../telemetry/src/platform_stub.dart' as platform;
 import 'tile_face.dart';
+import 'theme.dart';
 
 /// Whether the guide shows its simple view. New players start on it; the
 /// panel's view chip switches, and the choice is remembered on this device.
@@ -127,9 +128,7 @@ class SimpleGuideBody extends StatelessWidget {
                   margin: EdgeInsets.only(right: i == meterSteps - 1 ? 0 : 3),
                   decoration: BoxDecoration(
                     color: i < filled
-                        ? (done
-                            ? const Color(0xff43a047)
-                            : const Color(0xffcaa24e))
+                        ? (done ? AppColors.right : AppColors.gold)
                         : const Color(0x33ffffff),
                     borderRadius: BorderRadius.circular(3),
                   ),
@@ -201,7 +200,7 @@ class SimpleGuideBody extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: const Color(0x3343a047),
-            border: Border.all(color: const Color(0xff43a047)),
+            border: Border.all(color: AppColors.right),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(

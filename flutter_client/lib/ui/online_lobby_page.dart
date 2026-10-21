@@ -21,6 +21,7 @@ import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'client_id_text.dart';
 import 'language_button.dart';
+import 'theme.dart';
 
 class OnlineLobbyPage extends StatefulWidget {
   const OnlineLobbyPage({
@@ -275,9 +276,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                           child: ElevatedButton(
                             key: const Key('createRoom'),
                             onPressed: _create,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xffcaa24e),
-                              foregroundColor: Colors.black,
+                            style: AppButtons.primary(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             child: Text(context.l10n.createRoomButton),
@@ -381,10 +380,9 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             onPressed: () => setState(() => _pace = pace),
             style: OutlinedButton.styleFrom(
               backgroundColor: selected ? const Color(0x33caa24e) : null,
-              foregroundColor:
-                  selected ? const Color(0xffffdf76) : Colors.white54,
+              foregroundColor: selected ? AppColors.goldBright : Colors.white54,
               side: BorderSide(
-                color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                color: selected ? AppColors.gold : Colors.white24,
                 width: selected ? 2 : 1,
               ),
               minimumSize: Size.zero,
@@ -447,10 +445,9 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             onPressed: () => onChange(n),
             style: OutlinedButton.styleFrom(
               backgroundColor: selected ? const Color(0x33caa24e) : null,
-              foregroundColor:
-                  selected ? const Color(0xffffdf76) : Colors.white54,
+              foregroundColor: selected ? AppColors.goldBright : Colors.white54,
               side: BorderSide(
-                color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                color: selected ? AppColors.gold : Colors.white24,
                 width: selected ? 2 : 1,
               ),
               minimumSize: Size.zero,
@@ -489,7 +486,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       );
 
   /// The frame both create-room dropdowns sit in: outlined like the name
-  /// field above them, with the card's gold for the label and focus.
+  /// field above them, with the card's AppColors.gold for the label and focus.
   Widget _dropdownField<T>({
     required Key key,
     required String label,
@@ -497,11 +494,10 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
     required List<(T, Key, String)> items,
     required ValueChanged<T> onChanged,
   }) {
-    const gold = Color(0xffcaa24e);
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xffe9d58f)),
+        labelStyle: const TextStyle(color: AppColors.goldText),
         isDense: true,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -511,7 +507,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: gold, width: 2),
+          borderSide: const BorderSide(color: AppColors.gold, width: 2),
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -524,7 +520,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           // No grey fill left behind on the field just picked from; the
           // pair should look alike whichever was used last.
           focusColor: Colors.transparent,
-          iconEnabledColor: gold,
+          iconEnabledColor: AppColors.gold,
           borderRadius: BorderRadius.circular(8),
           style: const TextStyle(color: Colors.white, fontSize: 14),
           onChanged: (v) {
@@ -603,7 +599,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               Text(
                 game.roomCode,
                 style: const TextStyle(
-                  color: Color(0xffffdf76),
+                  color: AppColors.goldBright,
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 6,
@@ -649,9 +645,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             child: ElevatedButton(
               key: const Key('startGame'),
               onPressed: game.startGame,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xffcaa24e),
-                foregroundColor: Colors.black,
+              style: AppButtons.primary(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(context.l10n.startGameBots),
@@ -723,7 +717,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         height: 22,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xffcaa24e), width: 1),
+          border: Border.all(color: AppColors.gold, width: 1),
         ),
         clipBehavior: Clip.antiAlias,
         child: Image.asset(
@@ -747,7 +741,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
       decoration: BoxDecoration(
         color: const Color(0xff1e6b5c),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xffcaa24e)),
+        border: Border.all(color: AppColors.gold),
       ),
       child: Row(
         children: [
@@ -776,7 +770,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
               key: const Key('rejoinGame'),
               onPressed: () => game.rejoinRoom(code),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xffcaa24e),
+                backgroundColor: AppColors.gold,
                 foregroundColor: Colors.black,
                 minimumSize: const Size(120, 48),
               ),
@@ -816,7 +810,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                 Flexible(
                   child: Text(title,
                       style: const TextStyle(
-                          color: Color(0xffe9d58f),
+                          color: AppColors.goldText,
                           fontWeight: FontWeight.bold)),
                 ),
               ],

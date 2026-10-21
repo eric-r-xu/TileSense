@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/sfx.dart' show Character, kCharacterName, kCharacterPortrait;
+import 'theme.dart';
 
 /// Every character in [options], in a grid with [columns] choices per row.
 class CharacterRow extends StatelessWidget {
@@ -106,7 +107,7 @@ class CharacterOption extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: const Color(0xff0c4747),
                   border: Border.all(
-                    color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                    color: selected ? AppColors.gold : Colors.white24,
                     width: selected ? 3 : 1,
                   ),
                 ),
@@ -128,7 +129,7 @@ class CharacterOption extends StatelessWidget {
                   softWrap: false,
                   style: TextStyle(
                     color:
-                        selected ? const Color(0xffffdf76) : Colors.white70,
+                        selected ? AppColors.goldBright : Colors.white70,
                     fontWeight:
                         selected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 10.56,

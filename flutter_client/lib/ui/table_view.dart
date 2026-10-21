@@ -14,6 +14,7 @@ import 'package:mahjong_core/ruleset.dart' show Ruleset;
 import 'meld_row.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
+import 'theme.dart';
 
 /// The under-minimum marker's amber, shared by the placard badge and the hand
 /// bar's chip so it never reads as FURITEN's red.
@@ -394,7 +395,10 @@ class TableView extends StatelessWidget {
   /// there's always something on the table to select into flower-editing
   /// mode.
   Widget _seatFlowers(Round round, int seat) {
-    if (!round.ruleset.isChineseStyle) return const SizedBox.shrink();
+    // Sichuan is Chinese-style but has no flowers to show or edit.
+    if (!round.ruleset.isChineseStyle || round.ruleset.isSichuan) {
+      return const SizedBox.shrink();
+    }
     final flowers = round.seats[seat].flowers;
     if (edits == null && flowers.isEmpty) return const SizedBox.shrink();
     final tray = flowers.isEmpty
@@ -591,7 +595,7 @@ class TableView extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(
             color: e.isSelected(area, seat)
-                ? const Color(0xffe9d58f)
+                ? AppColors.goldText
                 : const Color(0x22ffffff),
             width: e.isSelected(area, seat) ? 2 : 1,
           ),
@@ -898,7 +902,7 @@ class TableView extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xff0c4747),
-        border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+        border: Border.all(color: AppColors.gold, width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: Image.asset(
@@ -933,7 +937,7 @@ class TableView extends StatelessWidget {
     final placard = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: active ? const Color(0xffcaa24e) : const Color(0xff0c4747),
+        color: active ? AppColors.gold : const Color(0xff0c4747),
         borderRadius: BorderRadius.circular(7),
       ),
       child: Text(
@@ -1011,7 +1015,7 @@ class TableView extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xff0c4747),
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+            border: Border.all(color: AppColors.gold, width: 1.5),
           ),
           child: Image.asset(
             kTileSensorAsset,
@@ -1019,7 +1023,7 @@ class TableView extends StatelessWidget {
             height: 18,
             filterQuality: FilterQuality.high,
             errorBuilder: (_, __, ___) => const Icon(Icons.play_arrow,
-                size: 18, color: Color(0xffcaa24e)),
+                size: 18, color: AppColors.gold),
           ),
         ),
       ));
@@ -1477,7 +1481,7 @@ class TableStatusLine extends StatelessWidget {
   /// already show it.
   final bool showRuleset;
 
-  static const _colour = Color(0xffe9d58f);
+  static const _colour = AppColors.goldText;
 
   @override
   Widget build(BuildContext context) {

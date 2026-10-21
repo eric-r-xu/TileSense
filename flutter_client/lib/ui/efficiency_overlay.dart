@@ -19,6 +19,7 @@ import '../main.dart' show brainColor;
 import 'ev_explainer_dialog.dart';
 import 'beginner_guide.dart';
 import 'tile_face.dart';
+import 'theme.dart';
 
 /// The translucent top-left training panel: an "expected value / efficiency"
 /// table — with two extra safety columns folded in while an opponent is in
@@ -237,8 +238,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: act ? const Color(0x3343a047) : const Color(0x22ffffff),
-        border: Border.all(
-            color: act ? const Color(0xff43a047) : const Color(0x44ffffff)),
+        border:
+            Border.all(color: act ? AppColors.right : const Color(0x44ffffff)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -306,12 +307,12 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xff80cbc4)),
+            border: Border.all(color: AppColors.link),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
             _simple ? l10n.guideViewSimple : l10n.guideViewFull,
-            style: const TextStyle(color: Color(0xff80cbc4), fontSize: 10),
+            style: const TextStyle(color: AppColors.link, fontSize: 10),
           ),
         ),
       ),
@@ -336,7 +337,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                     ? 'GUIDE — Tap to expand'
                     : 'GUIDE — Tap to minimize',
                 style: const TextStyle(
-                  color: Color(0xffe9d58f),
+                  color: AppColors.goldText,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
@@ -413,8 +414,8 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       decoration: BoxDecoration(
         color: act ? const Color(0x3343a047) : const Color(0x22ffffff),
-        border: Border.all(
-            color: act ? const Color(0xff43a047) : const Color(0x44ffffff)),
+        border:
+            Border.all(color: act ? AppColors.right : const Color(0x44ffffff)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -473,7 +474,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
   /// 9px panel body — the panel is a dense table you scan, the tooltip is
   /// something you stop and read.
   static const _tipTitle = TextStyle(
-      color: Color(0xffe9d58f),
+      color: AppColors.goldText,
       fontSize: 13,
       height: 1.6,
       fontWeight: FontWeight.w800,
@@ -1043,9 +1044,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
           TextSpan(
             text: 'HMR (Hitori Mahjong Renshuuki)',
             style: const TextStyle(
-              color: Color(0xff80cbc4),
+              color: AppColors.link,
               decoration: TextDecoration.underline,
-              decorationColor: Color(0xff80cbc4),
+              decorationColor: AppColors.link,
             ),
             recognizer: _hmrLink,
             mouseCursor: SystemMouseCursors.click,
@@ -1222,7 +1223,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   // A row picked for the yaku section, when it isn't
                   // already marked as the guide's or Mortal's pick.
                   border: line.discard == yakuPick && !line.recommended
-                      ? Border.all(color: const Color(0xff80cbc4), width: 2)
+                      ? Border.all(color: AppColors.link, width: 2)
                       : null,
                 ),
             children: [
@@ -1238,7 +1239,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               if (mortal != null) _mortalCell(mortal, line.discard),
               _cell(line.shanten == -1 ? 'win' : line.shanten.toString()),
               _cell(line.ukeire.toString(),
-                  bold: line.bestUkeire, color: const Color(0xffffdf76)),
+                  bold: line.bestUkeire, color: AppColors.goldBright),
               // Standalone comparison column — see [DiscardLine.expectedValueHmr].
               // Never bold: it doesn't drive the recommendation, so it never
               // needs to draw the eye the way TileSense EV's winner does.
@@ -1260,7 +1261,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   line.expectedValue.round().toString(),
                   bold: line.bestExpectedValue &&
                       widget.game.strategy != Strategy.placement,
-                  color: const Color(0xff80cbc4),
+                  color: AppColors.link,
                 ),
                 line: line,
               ),
@@ -1287,7 +1288,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                   color: switch (line.safety?.rating) {
                     null => Colors.white38,
                     >= 15 => const Color(0xff81c784),
-                    >= 8 => const Color(0xffe9d58f),
+                    >= 8 => AppColors.goldText,
                     _ => const Color(0xffff8a80),
                   },
                 ),
@@ -1405,9 +1406,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                         value: y.chance,
                         minHeight: 6,
                         backgroundColor: const Color(0x22ffffff),
-                        color: y.yakuman > 0
-                            ? const Color(0xffcaa24e)
-                            : const Color(0xff80cbc4),
+                        color: y.yakuman > 0 ? AppColors.gold : AppColors.link,
                       ),
                     ),
                   ),
@@ -1651,7 +1650,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                         higher ? Icons.arrow_upward : Icons.arrow_downward,
                         key: ValueKey('rankArrow-$l'),
                         size: 10,
-                        color: const Color(0xffffdf76),
+                        color: AppColors.goldBright,
                       ),
                     ],
                   ),

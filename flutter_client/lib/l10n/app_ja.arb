@@ -774,6 +774,7 @@
   "nudgeNotNow": "今はしない",
   "nudgeStop": "提案をやめる",
   "quizTitle": "TileSensorならどうする？",
+  "quizRiichiOnly": "リーチ麻雀（日本式）のルール専用",
   "quizAskDiscard": "あなたの番で、牌をツモりました。どうしますか？",
   "quizAskCall": "{seat}が打牌しました。どうしますか？",
   "quizDiscard": "打牌",

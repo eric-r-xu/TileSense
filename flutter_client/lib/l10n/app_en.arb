@@ -1606,6 +1606,7 @@
   "nudgeNotNow": "Not now",
   "nudgeStop": "Stop suggesting",
   "quizTitle": "What would TileSensor do?",
+  "quizRiichiOnly": "Riichi (Japanese) mahjong rules only",
   "quizAskDiscard": "It's your turn and you've drawn. What do you do?",
   "quizAskCall": "{seat} just discarded. What do you do?",
   "@quizAskCall": {

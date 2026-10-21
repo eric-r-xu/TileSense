@@ -162,7 +162,9 @@ From the start page, pose any table by hand and the same guide scores it:
 - your tiles
 - every seat's discards and calls
 - the dora indicators, and who is in riichi (riichi only)
-- the wall count, and your seat wind (East deals).
+- the wall count, and your seat wind (East deals)
+- for Sichuan, each seat's void suit and which opponents have already gone out
+  (it has no dora, flowers, riichi or chi).
 
 It plays the dials a game's guide would at that point, reading the hand off the
 round and seat wind as a hanchan in which you dealt first; with no scores to

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../logic/efficiency_engine.dart';
 import '../l10n/l10n.dart';
 import 'tile_face.dart';
+import 'theme.dart';
 
 /// Opens the "how is this number made" page for one discard's EV (HMR) cell:
 /// the chance of finishing turn by turn, what the win pays, and how the plain
@@ -61,9 +62,8 @@ List<EvStep> evWaterfall(DiscardLine line) {
 }
 
 const _panel = Color(0xff031213);
-const _teal = Color(0xff80cbc4);
+const _teal = AppColors.link;
 const _grey = Color(0xff9fb0b8);
-const _gold = Color(0xffffdf76);
 const _green = Color(0xff81c784);
 const _red = Color(0xffff8a80);
 
@@ -202,7 +202,9 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
                       '  =  ${_pts(line.expectedValueHmr)} ${widget.unit}'
                   : 'No winning hand to score on this cut yet.',
               style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w700, color: _gold),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.goldBright),
             ),
           ],
         ),
@@ -254,7 +256,7 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
         const SizedBox(height: 12),
         _legend([
           ('finished by this turn', _teal, false),
-          if (reached != null) ('reached tenpai', _gold, true),
+          if (reached != null) ('reached tenpai', AppColors.goldBright, true),
         ]),
         _SeriesChart(
           key: const Key('ev-win-chart'),
@@ -327,7 +329,7 @@ class _EvExplainerDialogState extends State<EvExplainerDialog> {
       'turn ${_pct(t.hit)} · finished by now ${_pct(t.cumulative)}'
       '${t.reachedTenpai == null ? '' : ' · tenpai by now ${_pct(t.reachedTenpai!)}'}',
       key: const Key('ev-readout'),
-      style: const TextStyle(color: _gold, fontSize: 11.5),
+      style: const TextStyle(color: AppColors.goldBright, fontSize: 11.5),
     );
   }
 
@@ -589,7 +591,7 @@ class _ChartPainter extends CustomPainter {
       final second = secondary;
       if (second != null && second.length == n) {
         final dash = Paint()
-          ..color = _gold
+          ..color = AppColors.goldBright
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
         for (var i = 1; i < n; i++) {
@@ -599,7 +601,7 @@ class _ChartPainter extends CustomPainter {
       }
       if (selected != null && selected! < n) {
         canvas.drawCircle(Offset(x(selected!), y(values[selected!])), 4,
-            Paint()..color = _gold);
+            Paint()..color = AppColors.goldBright);
       }
     }
 

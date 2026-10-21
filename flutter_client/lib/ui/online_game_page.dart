@@ -24,6 +24,7 @@ import 'scoring_view.dart';
 import 'small_window_hint.dart';
 import 'table_view.dart';
 import 'tilesensor.dart';
+import 'theme.dart';
 
 class OnlineGamePage extends StatefulWidget {
   const OnlineGamePage({
@@ -87,7 +88,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xff0c3030),
+      backgroundColor: AppColors.sheet,
       builder: (sheet) {
         // Closes the sheet first, so whatever the action opens isn't under it.
         VoidCallback closeThen(VoidCallback action) => () {
@@ -106,7 +107,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                     children: [
                       Text(context.l10n.menu,
                           style: const TextStyle(
-                              color: Color(0xffe9d58f),
+                              color: AppColors.goldText,
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
                       const Spacer(),
@@ -284,7 +285,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                           : context.l10n.roomEastOnly),
                   key: const Key('gameLengthLabel'),
                   style: TextStyle(
-                    color: const Color(0xffffdf76).withValues(alpha: 0.75),
+                    color: AppColors.goldBright.withValues(alpha: 0.75),
                     fontSize: phone ? 14 : 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -314,8 +315,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                       : context.l10n.soundOffTooltip,
                   iconSize: 24,
                   icon: Icon(game.soundOn ? Icons.volume_up : Icons.volume_off),
-                  color:
-                      game.soundOn ? const Color(0xffe9d58f) : Colors.white38,
+                  color: game.soundOn ? AppColors.goldText : Colors.white38,
                   onPressed: () => game.setSoundOn(!game.soundOn),
                 ),
                 const SizedBox(width: 10),

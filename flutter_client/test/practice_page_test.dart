@@ -25,19 +25,28 @@ void main() {
   String text(WidgetTester tester, String key) =>
       tester.widget<Text>(find.byKey(Key(key))).data!;
 
+  /// Taps [target], scrolled into view first: on a short window the Back
+  /// footer leaves the question less room, and it scrolls.
+  Future<void> tapVisible(WidgetTester tester, Finder target) async {
+    await tester.ensureVisible(target);
+    await tester.tap(target);
+  }
+
   /// A wrong answer for [d], where there is one to give.
   Future<void> answerWrong(WidgetTester tester, PracticeDrill d) async {
     switch (d.kind) {
       case DrillKind.winningTile:
         final wrong = d.optionTiles.firstWhere((t) => !d.isWinningTile(t));
-        await tester.tap(find.byKey(Key('practiceOption_${wrong.code}')));
+        await tapVisible(
+            tester, find.byKey(Key('practiceOption_${wrong.code}')));
       case DrillKind.discard:
         final i = d.hand.indexWhere((t) => !d.discardLeavesReady(t));
-        await tester.tap(find.byKey(Key('practiceTile_$i')));
+        await tapVisible(tester, find.byKey(Key('practiceTile_$i')));
       case DrillKind.claim:
         final wrong =
             ClaimChoice.values.firstWhere((c) => c != d.correctClaim);
-        await tester.tap(find.byKey(Key('practiceClaim_${wrong.name}')));
+        await tapVisible(
+            tester, find.byKey(Key('practiceClaim_${wrong.name}')));
     }
     await tester.pump();
   }
@@ -167,6 +176,22 @@ void main() {
     expect(find.byKey(const Key('practiceQuestion')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('practiceBack')));
+    await tester.pump();
+    expect(find.byKey(const Key('practiceQuestion')), findsNothing);
+    expect(find.text('Single Player'), findsOneWidget);
+  });
+
+  testWidgets('Back is also at the bottom mid-drill, and gives way to the '
+      "results screen's own", (tester) async {
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('practiceLink')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('practiceBackBottom')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('practiceBackBottom')));
     await tester.pump();
     expect(find.byKey(const Key('practiceQuestion')), findsNothing);
     expect(find.text('Single Player'), findsOneWidget);

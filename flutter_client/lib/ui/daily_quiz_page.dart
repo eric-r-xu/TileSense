@@ -23,13 +23,11 @@ import 'bar_back_button.dart';
 import 'character_select_page.dart' show randomSeatCharacters;
 import 'e2e_id.dart';
 import 'language_button.dart';
+import 'ruleset_badge.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart' show kTileSensorAsset;
-
-const _gold = Color(0xffcaa24e);
-const _right = Color(0xff43a047);
-const _wrong = Color(0xffe53935);
+import 'theme.dart';
 
 /// Reads the shipped puzzles.
 Future<List<QuizPuzzle>> loadQuizPuzzles([AssetBundle? bundle]) async {
@@ -106,7 +104,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             );
           }
           return Material(
-            color: const Color(0xff042020),
+            color: AppColors.background,
             child: Stack(
               children: [
                 Center(
@@ -124,7 +122,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                     label: context.l10n.back,
                     tooltip: context.l10n.backToMainMenu,
                     onPressed: widget.onExit,
-                    foregroundColor: const Color(0xff80cbc4),
+                    foregroundColor: AppColors.link,
                   ),
                 ),
               ],
@@ -209,11 +207,11 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
   Color? _mark(QuizChoice choice) {
     if (!_answered) return null;
     if (_puzzle.riichiOption) {
-      if (choice.tile == _puzzle.answer.tile) return _right;
-      return choice.tile == _picked!.tile ? _wrong : null;
+      if (choice.tile == _puzzle.answer.tile) return AppColors.right;
+      return choice.tile == _picked!.tile ? AppColors.wrong : null;
     }
-    if (choice == _puzzle.answer) return _right;
-    return choice == _picked ? _wrong : null;
+    if (choice == _puzzle.answer) return AppColors.right;
+    return choice == _picked ? AppColors.wrong : null;
   }
 
   /// The colour riichi or dama takes once answered: green on the right call
@@ -222,9 +220,9 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
     if (!_answered) return null;
     final move = riichi ? QuizMove.riichi : QuizMove.discard;
     if (_picked!.tile == _puzzle.answer.tile && move == _puzzle.answer.move) {
-      return _right;
+      return AppColors.right;
     }
-    return move == _picked!.move ? _wrong : null;
+    return move == _picked!.move ? AppColors.wrong : null;
   }
 
   String _seatName(AppLocalizations l10n) =>
@@ -259,7 +257,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
 
   Widget _choiceButton(AppLocalizations l10n, int i, QuizChoice choice) {
     final selected = _cut != null && _cut!.tile == choice.tile;
-    final mark = _mark(choice) ?? (selected ? _gold : null);
+    final mark = _mark(choice) ?? (selected ? AppColors.gold : null);
     final faces = _faces(choice);
     final id = 'quizChoice_$i';
     return e2eId(
@@ -367,8 +365,9 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
           head(l10n.quizEv),
           head(l10n.quizRisk),
         ]),
-        _factsRow(l10n.quizBestMove, best, color: _right),
-        if (showMine) _factsRow(l10n.quizYouPicked, mine, color: _wrong),
+        _factsRow(l10n.quizBestMove, best, color: AppColors.right),
+        if (showMine)
+          _factsRow(l10n.quizYouPicked, mine, color: AppColors.wrong),
       ],
     );
   }
@@ -452,7 +451,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
   Widget _reveal(AppLocalizations l10n) {
     final picked = _picked!;
     final ok = picked == _puzzle.answer;
-    final color = ok ? _right : const Color(0xffffa000);
+    final color = ok ? AppColors.right : const Color(0xffffa000);
     final best = quizFacts(_c, _puzzle.answer);
     final mine = ok ? best : quizFacts(_c, picked);
     final reason = best?.reason ?? '';
@@ -461,7 +460,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
           padding: const EdgeInsets.only(top: 12, bottom: 4),
           child: Text(s,
               style: const TextStyle(
-                  color: Color(0xffe9d58f),
+                  color: AppColors.goldText,
                   fontSize: 14,
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.bold)),
@@ -491,7 +490,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
           Row(
             key: const Key('quizAgree'),
             children: [
-              const Icon(Icons.check_circle, color: _right, size: 20),
+              const Icon(Icons.check_circle, color: AppColors.right, size: 20),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(l10n.quizAgree,
@@ -579,11 +578,13 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
     final ask = _puzzle.kind == QuizKind.call
         ? l10n.quizAskCall(_seatName(l10n))
         : l10n.quizAskDiscard;
-    return SingleChildScrollView(
+    final questions = SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const RiichiOnlyBadge(),
+          const SizedBox(height: 10),
           Text(ask,
               key: const Key('quizQuestion'),
               style: const TextStyle(
@@ -613,15 +614,28 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
         ],
       ),
     );
+    // The way out stays under the thumb however far the reveal scrolls.
+    return Column(
+      children: [
+        Expanded(child: questions),
+        BackFooter(
+          buttonKey: const Key('quizBackBottom'),
+          label: l10n.backToMenu,
+          tooltip: l10n.backToMainMenu,
+          onPressed: widget.onExit,
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final barHeight = BarBackButton.toolbarHeight(context);
     return Scaffold(
-      backgroundColor: const Color(0xff042020),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        toolbarHeight: 50,
+        toolbarHeight: barHeight,
         titleSpacing: 8,
         leadingWidth: BarBackButton.leadingWidth,
         leading: BarBackButton(
@@ -640,6 +654,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
                 size: Size(mq.size.width - _panelWidth, mq.size.height)),
             child: TableBarTitle(
               game: _c,
+              height: barHeight,
               ownPortrait: false,
               titleStart: BarBackButton.leadingWidth + 8,
               leading: Row(
@@ -657,7 +672,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: _gold,
+                            color: AppColors.gold,
                             fontSize: 16,
                             fontWeight: FontWeight.bold)),
                   ),

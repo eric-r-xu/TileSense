@@ -13,12 +13,9 @@ import '../l10n/mahjong_terms.dart';
 import '../logic/practice_drills.dart';
 import 'bar_back_button.dart';
 import 'e2e_id.dart';
-import 'language_button.dart';
+import 'screen_scaffold.dart';
 import 'tile_face.dart';
-
-const _gold = Color(0xffcaa24e);
-const _right = Color(0xff43a047);
-const _wrong = Color(0xffe53935);
+import 'theme.dart';
 
 class PracticePage extends StatefulWidget {
   const PracticePage({super.key, required this.ruleset, required this.onExit});
@@ -96,8 +93,8 @@ class _PracticePageState extends State<PracticePage> {
   /// answer, red when it was the wrong one picked.
   Color? _mark(Object tileOrChoice, {required bool isRight}) {
     if (!_answered) return null;
-    if (isRight) return _right;
-    return _answer == tileOrChoice ? _wrong : null;
+    if (isRight) return AppColors.right;
+    return _answer == tileOrChoice ? AppColors.wrong : null;
   }
 
   Widget _handRow(List<TileType> hand, {bool tappable = false}) {
@@ -200,7 +197,7 @@ class _PracticePageState extends State<PracticePage> {
 
   Widget _feedback(AppLocalizations l10n) {
     final ok = _isCorrect(_answer!);
-    final color = ok ? _right : const Color(0xffffa000);
+    final color = ok ? AppColors.right : const Color(0xffffa000);
     return Container(
       key: const Key('practiceFeedback'),
       width: 640,
@@ -296,9 +293,7 @@ class _PracticePageState extends State<PracticePage> {
             ElevatedButton(
               key: const Key('practiceNext'),
               onPressed: _next,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _gold,
-                foregroundColor: Colors.black,
+              style: AppButtons.primary(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
               ),
@@ -322,7 +317,7 @@ class _PracticePageState extends State<PracticePage> {
               key: const Key('practiceResult'),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  color: Color(0xffe9d58f),
+                  color: AppColors.goldText,
                   fontSize: 34,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 26),
@@ -332,9 +327,7 @@ class _PracticePageState extends State<PracticePage> {
               OutlinedButton(
                 key: const Key('practiceAgain'),
                 onPressed: _again,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xffe9d58f),
-                  side: const BorderSide(color: _gold),
+                style: AppButtons.secondary(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 ),
@@ -345,9 +338,7 @@ class _PracticePageState extends State<PracticePage> {
               ElevatedButton(
                 key: const Key('practiceDone'),
                 onPressed: widget.onExit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _gold,
-                  foregroundColor: Colors.black,
+                style: AppButtons.primary(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
                 ),
@@ -363,57 +354,33 @@ class _PracticePageState extends State<PracticePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    // Material ancestor: without one, Text on web can render with a stray
-    // underline decoration.
-    return Material(
-      color: const Color(0xff042020),
-      child: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, c) => SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: c.maxHeight),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(l10n.practiceTitle,
-                            style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 18,
-                                letterSpacing: 1.2)),
-                        if (!_finished) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                              l10n.practiceProgress(_index + 1, _drills.length),
-                              key: const Key('practiceProgress'),
-                              style: const TextStyle(
-                                  color: Colors.white38, fontSize: 14)),
-                        ],
-                        const SizedBox(height: 22),
-                        _finished ? _results(l10n) : _question(l10n),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 4,
-            top: 8,
-            child: BarBackButton(
-              buttonKey: const Key('practiceBack'),
-              label: l10n.back,
+    return ScreenScaffold(
+      backKey: const Key('practiceBack'),
+      onBack: widget.onExit,
+      // The results screen has its own Back; mid-drill the way out is also
+      // here, under the thumb rather than in the far corner.
+      footer: _finished
+          ? null
+          : BackFooter(
+              buttonKey: const Key('practiceBackBottom'),
+              label: l10n.backToMenu,
               tooltip: l10n.backToMainMenu,
               onPressed: widget.onExit,
-              foregroundColor: const Color(0xff80cbc4),
             ),
-          ),
-          const Positioned(right: 8, top: 8, child: LanguageButton()),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(l10n.practiceTitle,
+              style: const TextStyle(
+                  color: Colors.white54, fontSize: 18, letterSpacing: 1.2)),
+          if (!_finished) ...[
+            const SizedBox(height: 4),
+            Text(l10n.practiceProgress(_index + 1, _drills.length),
+                key: const Key('practiceProgress'),
+                style: const TextStyle(color: Colors.white38, fontSize: 14)),
+          ],
+          const SizedBox(height: 22),
+          _finished ? _results(l10n) : _question(l10n),
         ],
       ),
     );

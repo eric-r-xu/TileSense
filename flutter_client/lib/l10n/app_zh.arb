@@ -774,6 +774,7 @@
   "nudgeNotNow": "暂时不要",
   "nudgeStop": "不再提示",
   "quizTitle": "TileSensor会怎么打？",
+  "quizRiichiOnly": "仅限日本立直麻将规则",
   "quizAskDiscard": "轮到你了，你刚摸了一张牌。你怎么做？",
   "quizAskCall": "{seat}刚打出一张牌。你怎么做？",
   "quizDiscard": "打牌",

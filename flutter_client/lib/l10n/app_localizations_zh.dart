@@ -2577,6 +2577,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quizTitle => 'TileSensor会怎么打？';
 
   @override
+  String get quizRiichiOnly => '仅限日本立直麻将规则';
+
+  @override
   String get quizAskDiscard => '轮到你了，你刚摸了一张牌。你怎么做？';
 
   @override
@@ -5313,6 +5316,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get quizTitle => 'TileSensor會怎麼打？';
+
+  @override
+  String get quizRiichiOnly => '僅限日本立直麻將規則';
 
   @override
   String get quizAskDiscard => '輪到你了，你剛摸了一張牌。你怎麼做？';

@@ -13,6 +13,7 @@ import 'package:mahjong_core/scoring.dart';
 import 'package:mahjong_core/sichuan/sichuan_ledger.dart';
 import 'package:mahjong_core/tile.dart';
 import 'tile_face.dart';
+import 'theme.dart';
 
 /// The between-round result panel: outcome, winning hand(s) + yaku + han/fu, and
 /// the point transfers. On a multiple ron the winners' hands are paged through
@@ -51,10 +52,9 @@ class _ScoringViewState extends State<ScoringView> {
 
   /// Matches the "recommended" green used elsewhere (the guide's top-discard
   /// highlight, the efficiency dial) so a winning tile reads the same way.
-  static const Color _winGreen = Color(0xff43a047);
+  static const Color _winGreen = AppColors.right;
 
   /// The panel's border gold, shared by its two buttons.
-  static const Color _gold = Color(0xffcaa24e);
 
   /// Continue and Pause match, and each clears a phone thumb.
   static const Size _buttonSize = Size(120, 44);
@@ -211,7 +211,7 @@ class _ScoringViewState extends State<ScoringView> {
                     decoration: BoxDecoration(
                       color: const Color(0xff0b2f2f),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xffcaa24e)),
+                      border: Border.all(color: AppColors.gold),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -221,7 +221,7 @@ class _ScoringViewState extends State<ScoringView> {
                               ? '$title  (${page + 1} / ${winners.length})'
                               : title,
                           style: const TextStyle(
-                              color: Color(0xffffdf76),
+                              color: AppColors.goldBright,
                               fontSize: 26,
                               fontWeight: FontWeight.bold),
                         ),
@@ -245,9 +245,7 @@ class _ScoringViewState extends State<ScoringView> {
                           children: [
                             ElevatedButton(
                               key: const Key('scoreContinue'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _gold,
-                                foregroundColor: Colors.black,
+                              style: AppButtons.primary(
                                 minimumSize: _buttonSize,
                               ),
                               onPressed: locked
@@ -270,8 +268,8 @@ class _ScoringViewState extends State<ScoringView> {
                               OutlinedButton(
                                 key: const Key('scorePause'),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: _gold,
-                                  side: const BorderSide(color: _gold),
+                                  foregroundColor: AppColors.gold,
+                                  side: const BorderSide(color: AppColors.gold),
                                   minimumSize: _buttonSize,
                                 ),
                                 onPressed: _toggleAuto,
@@ -338,7 +336,7 @@ class _ScoringViewState extends State<ScoringView> {
                   ? Icons.visibility_off_outlined
                   : Icons.visibility_outlined,
               size: 18,
-              color: const Color(0xffcaa24e),
+              color: AppColors.gold,
             ),
           ),
         ),
@@ -451,7 +449,7 @@ class _ScoringViewState extends State<ScoringView> {
                   score.mcrFlowerPoints ?? 0, score.points)
               : _totalLine(context.l10n, score, taiwanese: taiwanese, hk: hk),
           style: const TextStyle(
-              color: Color(0xffffdf76), fontWeight: FontWeight.bold),
+              color: AppColors.goldBright, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -668,7 +666,7 @@ class _ScoringViewState extends State<ScoringView> {
             children: [
               Text('#${i + 1}',
                   style: style.copyWith(
-                      color: i == 0 ? const Color(0xffffdf76) : null,
+                      color: i == 0 ? AppColors.goldBright : null,
                       fontWeight: FontWeight.bold)),
               const SizedBox(width: 6),
               _standingsAvatar(game.characterForSeat(seats[i]), first: i == 0),
@@ -691,7 +689,7 @@ class _ScoringViewState extends State<ScoringView> {
         shape: BoxShape.circle,
         color: const Color(0xff0c4747),
         border: Border.all(
-            color: first ? const Color(0xffffdf76) : _gold.withValues(alpha: 0.6),
+            color: first ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.6),
             width: first ? 1.5 : 1),
       ),
       clipBehavior: Clip.antiAlias,

@@ -12,9 +12,9 @@ import '../l10n/mahjong_terms.dart';
 import '../main.dart' show openRules;
 import '../telemetry/src/platform_web.dart'
     if (dart.library.io) '../telemetry/src/platform_stub.dart' as platform;
-import 'bar_back_button.dart';
-import 'language_button.dart';
+import 'screen_scaffold.dart';
 import 'tile_face.dart';
+import 'theme.dart';
 
 /// Whether the lesson has been seen on this device.
 abstract final class LearnToPlay {
@@ -42,8 +42,6 @@ abstract final class LearnToPlay {
   static void reset() => _seenThisSession = false;
 }
 
-const _gold = Color(0xffcaa24e);
-
 /// The lesson's four cards, one at a time. [onFinish] runs on the last card's
 /// button and on Skip; [onBack] on Back from the first card.
 class LearnToPlayPage extends StatefulWidget {
@@ -67,11 +65,20 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
   int _step = 0;
 
   static const _winningHand = [
-    TileType.man1, TileType.man2, TileType.man3,
-    TileType.pin4, TileType.pin5, TileType.pin6,
-    TileType.sou7, TileType.sou8, TileType.sou9,
-    TileType.ton, TileType.ton, TileType.ton,
-    TileType.haku, TileType.haku,
+    TileType.man1,
+    TileType.man2,
+    TileType.man3,
+    TileType.pin4,
+    TileType.pin5,
+    TileType.pin6,
+    TileType.sou7,
+    TileType.sou8,
+    TileType.sou9,
+    TileType.ton,
+    TileType.ton,
+    TileType.ton,
+    TileType.haku,
+    TileType.haku,
   ];
 
   /// Groups of tiles to draw for card [step]; the gaps between groups show
@@ -158,133 +165,98 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
     final l10n = context.l10n;
     final (title, body) = _text(l10n);
     final last = _step == _steps - 1;
-    // Material ancestor: without one, Text on web can render with a stray
-    // underline decoration.
-    return Material(
-      color: const Color(0xff042020),
-      child: Stack(
+    return ScreenScaffold(
+      backKey: const Key('learnBack'),
+      onBack: _back,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          LayoutBuilder(
-            builder: (context, c) => SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: c.maxHeight),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          l10n.learnToPlay,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 18,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.learnStepOf(_step + 1, _steps),
-                          key: const Key('learnStep'),
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 14),
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          title,
-                          key: const Key('learnTitle'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xffe9d58f),
-                            fontSize: 38,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 22),
-                        _tileRow(),
-                        const SizedBox(height: 26),
-                        SizedBox(
-                          width: 760,
-                          child: Text(
-                            body,
-                            key: const Key('learnBody'),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              height: 1.45,
-                            ),
-                          ),
-                        ),
-                        if (last)
-                          TextButton.icon(
-                            key: const Key('learnRulesPdf'),
-                            onPressed: () => openRules(widget.ruleset),
-                            icon: const Icon(Icons.open_in_new, size: 14),
-                            label: Text(
-                                l10n.rulesPdf(l10n.rulesetName(widget.ruleset))),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xff80cbc4),
-                              textStyle: const TextStyle(
-                                  fontSize: 14,
-                                  decoration: TextDecoration.underline),
-                            ),
-                          ),
-                        const SizedBox(height: 26),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!last) ...[
-                              TextButton(
-                                key: const Key('learnSkip'),
-                                onPressed: widget.onFinish,
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white60,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 14),
-                                ),
-                                child: Text(l10n.learnSkip,
-                                    style: const TextStyle(fontSize: 16)),
-                              ),
-                              const SizedBox(width: 16),
-                            ],
-                            ElevatedButton(
-                              key: Key(last ? 'learnDone' : 'learnNext'),
-                              onPressed: _next,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _gold,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 40, vertical: 14),
-                              ),
-                              child: Text(
-                                last ? l10n.learnDone : l10n.learnNext,
-                                style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+          Text(
+            l10n.learnToPlay,
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 18,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.learnStepOf(_step + 1, _steps),
+            key: const Key('learnStep'),
+            style: const TextStyle(color: Colors.white38, fontSize: 14),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            key: const Key('learnTitle'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.goldText,
+              fontSize: 38,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 22),
+          _tileRow(),
+          const SizedBox(height: 26),
+          SizedBox(
+            width: 760,
+            child: Text(
+              body,
+              key: const Key('learnBody'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                height: 1.45,
               ),
             ),
           ),
-          Positioned(
-            left: 4,
-            top: 8,
-            child: BarBackButton(
-              buttonKey: const Key('learnBack'),
-              label: l10n.back,
-              tooltip: l10n.backToMainMenu,
-              onPressed: _back,
-              foregroundColor: const Color(0xff80cbc4),
+          if (last)
+            TextButton.icon(
+              key: const Key('learnRulesPdf'),
+              onPressed: () => openRules(widget.ruleset),
+              icon: const Icon(Icons.open_in_new, size: 14),
+              label: Text(l10n.rulesPdf(l10n.rulesetName(widget.ruleset))),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.link,
+                textStyle: const TextStyle(
+                    fontSize: 14, decoration: TextDecoration.underline),
+              ),
             ),
+          const SizedBox(height: 26),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!last) ...[
+                TextButton(
+                  key: const Key('learnSkip'),
+                  onPressed: widget.onFinish,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white60,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: Text(l10n.learnSkip,
+                      style: const TextStyle(fontSize: 16)),
+                ),
+                const SizedBox(width: 16),
+              ],
+              ElevatedButton(
+                key: Key(last ? 'learnDone' : 'learnNext'),
+                onPressed: _next,
+                style: AppButtons.primary(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                ),
+                child: Text(
+                  last ? l10n.learnDone : l10n.learnNext,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-          const Positioned(right: 8, top: 8, child: LanguageButton()),
         ],
       ),
     );

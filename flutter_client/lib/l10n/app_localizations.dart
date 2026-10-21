@@ -4745,6 +4745,12 @@ abstract class AppLocalizations {
   /// **'What would TileSensor do?'**
   String get quizTitle;
 
+  /// No description provided for @quizRiichiOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi (Japanese) mahjong rules only'**
+  String get quizRiichiOnly;
+
   /// No description provided for @quizAskDiscard.
   ///
   /// In en, this message translates to:

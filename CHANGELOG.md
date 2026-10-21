@@ -9,6 +9,20 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-21 — Builder Sichuan, quiz labelling and Back
+
+- **Sichuan in the Custom Hand & Context Builder.** Pick it in the Menu's Rules
+  dial. The palette is the 108 suit tiles, each seat has a **void** chip to name
+  the suit it gave up, opponents can be marked **out** (already won), and the
+  guide scores the table with the Sichuan engine. No dora, flowers, riichi or
+  chi, and no round wind.
+- **The daily quiz says it is riichi only**, on the start-page card and on the
+  quiz screen, whichever rules are selected.
+- **Back is easier to hit on a phone.** The quiz's top bar was 50 tall, which
+  squeezed its Back well under a thumb's 44pt; it now uses the same phone-height
+  bar as the builder. The quiz and Practice also repeat Back as a full-width
+  button at the bottom of the panel, where the thumb rests.
+
 ## 2026-10-20 — Daily quiz
 
 - **A daily quiz, "What would TileSensor do?"**, from the start page: a card under
