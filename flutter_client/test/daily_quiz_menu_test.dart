@@ -127,7 +127,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('quizLink')));
+    await tester.tap(find.byKey(const Key('dailyQuizCard')));
     await settle(tester);
 
     // Both are drawn at the canvas's ~0.48 scale, so 44pt is about 92 canvas
