@@ -448,6 +448,10 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     }
     r.pendingDiscard = scenario.offered;
     r.pendingDiscardSeat = scenario.offeredFrom;
+    // The offered tile is the cut itself, so it lands last in that pond;
+    // otherwise the table pulses whatever tile the seat cut before it.
+    final offered = scenario.offered;
+    if (offered != null) r.seats[scenario.offeredFrom].pond.add(offered);
     return r;
   }
 
