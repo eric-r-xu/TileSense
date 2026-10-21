@@ -188,8 +188,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('practiceLink')));
-    await tester.pump();
+    await tapInPopup(
+        tester, 'learnTile', find.byKey(const Key('practiceLink')));
 
     expect(find.byKey(const Key('practiceBackBottom')), findsOneWidget);
     await tester.tap(find.byKey(const Key('practiceBackBottom')));

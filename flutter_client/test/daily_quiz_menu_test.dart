@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/progress.dart';
 import 'package:tilesense/main.dart';
+import 'helpers.dart';
 
 /// The daily quiz's way in from the welcome screen, and its streak.
 void main() {
@@ -103,10 +104,8 @@ void main() {
       'the card and the quiz say it is riichi only, whatever rules are chosen',
       (tester) async {
     await pumpMenu(tester);
-    final choice = find.byKey(const Key('ruleset_hongKong'));
-    await tester.ensureVisible(choice);
-    await tester.tap(choice);
-    await tester.pump();
+    await tapInPopup(
+        tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
     expect(
         find.descendant(
             of: find.byKey(const Key('dailyQuizCard')),
