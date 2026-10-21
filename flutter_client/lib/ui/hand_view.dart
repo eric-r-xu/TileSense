@@ -17,6 +17,7 @@ import 'phone_menu.dart' show PhoneMenuButton;
 import 'table_view.dart' show CountdownBadge, kMinimumShortfallColor;
 import 'tile_face.dart';
 import 'tilesensor.dart';
+import 'theme.dart';
 
 /// How the concealed hand is ordered — the three settings of the Sort chip.
 enum HandSort {
@@ -128,7 +129,7 @@ class _HandViewState extends State<HandView> {
       BeginnerGuide.on.value;
 
   static const _yellow = Color(0xffffd54f);
-  static const _green = Color(0xff43a047);
+  static const _green = AppColors.right;
   static const _callGlow = Color(0xff26c6da);
 
   /// The height reserved for the prompt line while beginner help is on, so
@@ -541,7 +542,7 @@ class _HandViewState extends State<HandView> {
         key: const Key('bottomGuideToggle'),
         onPressed: widget.onToggleGuide,
         style: TextButton.styleFrom(
-          foregroundColor: const Color(0xffe9d58f),
+          foregroundColor: AppColors.goldText,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -924,7 +925,7 @@ class _HandViewState extends State<HandView> {
         child: Text(context.l10n.voidSuitTitle,
             key: const Key('voidSuitTitle'),
             style: const TextStyle(
-                color: Color(0xffe9d58f),
+                color: AppColors.goldText,
                 fontSize: 15,
                 fontWeight: FontWeight.w700)),
       ));
@@ -944,7 +945,7 @@ class _HandViewState extends State<HandView> {
       buttons.add(Text(context.l10n.voidSuitWaiting,
           key: const Key('voidSuitWaiting'),
           style: const TextStyle(
-              color: Color(0xffe9d58f),
+              color: AppColors.goldText,
               fontSize: 14,
               fontStyle: FontStyle.italic)));
     } else if (game.awaitingHumanCall) {
@@ -1049,7 +1050,7 @@ class _HandViewState extends State<HandView> {
                   color: Colors.white)),
           backgroundColor:
               recommended ? const Color(0xff2e7d32) : const Color(0xff37474f),
-          side: const BorderSide(color: Color(0xffcaa24e)),
+          side: const BorderSide(color: AppColors.gold),
           visualDensity: VisualDensity.compact,
         ));
       }
@@ -1127,9 +1128,7 @@ class _HandViewState extends State<HandView> {
             setState(() => _selectedTileId = null);
             game.undo();
           },
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xffe9d58f),
-            side: const BorderSide(color: Color(0xffcaa24e)),
+          style: AppButtons.secondary(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             minimumSize: const Size(120, 44),
           ),

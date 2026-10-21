@@ -16,8 +16,7 @@ import '../l10n/l10n.dart';
 import '../main.dart' show brainColor, openRules;
 import 'glossary.dart';
 import 'language_button.dart';
-
-const Color _gold = Color(0xffe9d58f);
+import 'theme.dart';
 
 Future<void> showPhoneMenu(
   BuildContext context,
@@ -29,7 +28,7 @@ Future<void> showPhoneMenu(
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xff0c3030),
+      backgroundColor: AppColors.sheet,
       builder: (sheet) {
         // Closes the sheet first, so whatever the action opens isn't under it.
         VoidCallback closeThen(VoidCallback action) => () {
@@ -48,7 +47,7 @@ Future<void> showPhoneMenu(
                     children: [
                       Text(context.l10n.menu,
                           style: const TextStyle(
-                              color: _gold,
+                              color: AppColors.goldText,
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
                       const Spacer(),
@@ -208,18 +207,18 @@ class PhoneMenuButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0x14ffffff),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xffcaa24e), width: 1.5),
+              border: Border.all(color: AppColors.gold, width: 1.5),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.menu, size: 40, color: _gold),
+                const Icon(Icons.menu, size: 40, color: AppColors.goldText),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
                       paused ? context.l10n.pausedCaps : context.l10n.menuCaps,
                       style: const TextStyle(
-                          color: _gold,
+                          color: AppColors.goldText,
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.8)),
@@ -267,9 +266,9 @@ Widget phoneMenuAction({
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 15)),
         style: OutlinedButton.styleFrom(
-          foregroundColor: on ? _gold : Colors.white,
+          foregroundColor: on ? AppColors.goldText : Colors.white,
           backgroundColor: on ? const Color(0x33caa24e) : null,
-          side: BorderSide(color: on ? _gold : Colors.white30),
+          side: BorderSide(color: on ? AppColors.goldText : Colors.white30),
           padding: const EdgeInsets.symmetric(horizontal: 10),
         ),
       ),

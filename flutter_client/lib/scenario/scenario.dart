@@ -32,6 +32,14 @@ class ScenarioSeat {
 
   bool riichi = false;
 
+  /// Sichuan: the suit (0 man, 1 pin, 2 sou) this seat gave up, or null when
+  /// it has not named one. An opponent's is only known once it has discarded
+  /// that suit, so null is how the builder says "not shown yet".
+  int? voidSuit;
+
+  /// Sichuan: this seat has declared Hu and no longer plays.
+  bool out = false;
+
   /// Index into [pond] of the sideways declaration tile. -1 while not in
   /// riichi. Declaring with an empty pond is not possible, so a riichi seat
   /// always has at least one discard.
@@ -43,6 +51,8 @@ class ScenarioSeat {
     flowers.clear();
     riichi = false;
     riichiPondIndex = -1;
+    out = false;
+    // The void suit is a setting like the winds: clearing the tiles keeps it.
   }
 }
 
@@ -242,7 +252,14 @@ class Scenario {
       }
     }
 
-    if (ruleset.isChineseStyle) {
+    if (ruleset.isSichuan) {
+      if (hand.any((t) => !t.type.isSuit)) {
+        out.add('Sichuan has no honors or flowers.');
+      }
+      if (seats[0].voidSuit == null) {
+        out.add('Pick the suit you give up (Void suit).');
+      }
+    } else if (ruleset.isChineseStyle) {
       for (final type in TileType.values.where((t) => t.isBonus)) {
         if (used(type) > 1) out.add('Only one ${type.displayName} exists.');
       }
@@ -260,8 +277,14 @@ class Scenario {
 
   bool get isValid => problems().isEmpty;
 
-  /// The most tiles a live wall can hold once the hands are dealt.
-  int get maxWall => ruleset.isChineseStyle ? 144 : 122;
+  /// The most tiles a live wall can hold once the hands are dealt: Sichuan's
+  /// 108 tiles less the four 13-tile hands, Hong Kong's 144 and riichi's 136
+  /// less the dead wall.
+  int get maxWall => ruleset.isSichuan
+      ? 56
+      : ruleset.isChineseStyle
+          ? 144
+          : 122;
 
   /// True when the hand is full (a drawn tile in hand: 14, or 17 for
   /// Taiwanese) and the guide
@@ -278,7 +301,11 @@ class Scenario {
     dora.clear();
     if (ruleset.isRiichi) dora.add(TileType.man1);
     offered = null;
-    wallRemaining = ruleset.isChineseStyle ? 84 : 70;
+    wallRemaining = ruleset.isSichuan
+        ? 40
+        : ruleset.isChineseStyle
+            ? 84
+            : 70;
     honba = 0;
     riichiSticks = 0;
     points = List.filled(4, 25000);

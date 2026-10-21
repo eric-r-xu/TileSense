@@ -14,6 +14,8 @@ import '../game/mortal_advisor.dart';
 import '../game/sfx.dart' show Character, kCharacterName;
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/sichuan_value.dart' show SichuanRival;
+import 'package:mahjong_core/sichuan/sichuan_wall.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/round.dart';
@@ -271,6 +273,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       flowers: human.flowers.map((t) => t.type).toList(),
       minimumFaan: scenario.minimumFaan,
       minimumPoints: scenario.minimumPoints,
+      voidSuit: human.voidSuit,
+      sichuanRivals:
+          ruleset.isSichuan ? SichuanRival.of(round, kHumanSeat) : const [],
     );
 
     if (scenario.isDiscardRead) {
@@ -410,13 +415,16 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       roundWind: scenario.roundWind,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
-      wall: ruleset.isChineseStyle
-          ? HongKongWall.posed(
+      wall: ruleset.isSichuan
+          ? SichuanWall.posed(
               remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
-          : Wall.posed(
-              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
-              dora: scenario.dora,
-            ),
+          : ruleset.isChineseStyle
+              ? HongKongWall.posed(
+                  remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
+              : Wall.posed(
+                  remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
+                  dora: scenario.dora,
+                ),
       startingPoints: scenario.hasScores
           ? List.of(scenario.points)
           : List.filled(4, ruleset.startingPoints),
@@ -433,6 +441,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       dst.flowers = List.of(src.flowers);
       dst.riichi = src.riichi;
       dst.riichiPondIndex = src.riichiPondIndex;
+      // A seat's void suit shows on the table once it is named; the guide
+      // reads an opponent's only because the builder says it has been shown.
+      dst.voidSuit = src.voidSuit;
+      dst.voidRevealed = src.voidSuit != null;
+      dst.out = src.out;
+      dst.huOrder = src.out ? i + 1 : 0;
       dst.passedDiscardsAfterRiichi.addAll(scenario.passedAfterRiichi(i));
     }
     r.seats[kHumanSeat].hand = List.of(scenario.hand);

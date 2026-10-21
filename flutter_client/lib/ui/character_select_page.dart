@@ -18,6 +18,7 @@ import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'language_button.dart';
 import 'ruleset_flag.dart';
+import 'theme.dart';
 
 /// The wind [seat] starts on when [startingDealer] deals first (and so is
 /// East); the other seats follow counter-clockwise, as in `Round`.
@@ -114,8 +115,6 @@ class CharacterSelectPage extends StatelessWidget {
   final VoidCallback onBack;
   final String advanceLabel;
 
-  static const _gold = Color(0xffcaa24e);
-
   Widget _seatCard(BuildContext context, int seat) {
     final character = seatCharacters[seat];
     final wind = seatStartingWind(seat, startingDealer);
@@ -141,7 +140,7 @@ class CharacterSelectPage extends StatelessWidget {
                 wind.kanji,
                 key: Key('seatWindKanji_$seat'),
                 style: const TextStyle(
-                  color: Color(0xffffdf76),
+                  color: AppColors.goldBright,
                   fontSize: 34,
                   fontWeight: FontWeight.w700,
                 ),
@@ -151,7 +150,7 @@ class CharacterSelectPage extends StatelessWidget {
                 context.l10n.windName(wind),
                 key: Key('seatWind_$seat'),
                 style: const TextStyle(
-                  color: Color(0xffe9d58f),
+                  color: AppColors.goldText,
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                 ),
@@ -176,7 +175,8 @@ class CharacterSelectPage extends StatelessWidget {
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Color(0xff0c4747),
-              border: Border.fromBorderSide(BorderSide(color: _gold, width: 2)),
+              border: Border.fromBorderSide(
+                  BorderSide(color: AppColors.gold, width: 2)),
             ),
             clipBehavior: Clip.antiAlias,
             child: Image.asset(
@@ -229,9 +229,9 @@ class CharacterSelectPage extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 backgroundColor: w == mine ? const Color(0x33caa24e) : null,
                 foregroundColor:
-                    w == mine ? const Color(0xffffdf76) : Colors.white54,
+                    w == mine ? AppColors.goldBright : Colors.white54,
                 side: BorderSide(
-                    color: w == mine ? _gold : Colors.white24,
+                    color: w == mine ? AppColors.gold : Colors.white24,
                     width: w == mine ? 2 : 1),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -264,9 +264,9 @@ class CharacterSelectPage extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 backgroundColor: r == current ? const Color(0x33caa24e) : null,
                 foregroundColor:
-                    r == current ? const Color(0xffffdf76) : Colors.white54,
+                    r == current ? AppColors.goldBright : Colors.white54,
                 side: BorderSide(
-                    color: r == current ? _gold : Colors.white24,
+                    color: r == current ? AppColors.gold : Colors.white24,
                     width: r == current ? 2 : 1),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -291,9 +291,9 @@ class CharacterSelectPage extends StatelessWidget {
           onPressed: () => onHanchan(value),
           style: OutlinedButton.styleFrom(
             backgroundColor: on ? const Color(0x33caa24e) : null,
-            foregroundColor: on ? const Color(0xffffdf76) : Colors.white54,
+            foregroundColor: on ? AppColors.goldBright : Colors.white54,
             side: BorderSide(
-                color: on ? _gold : Colors.white24, width: on ? 2 : 1),
+                color: on ? AppColors.gold : Colors.white24, width: on ? 2 : 1),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           ),
           child: Text(label,
@@ -359,9 +359,9 @@ class CharacterSelectPage extends StatelessWidget {
                 minimumSize: const Size(44, 36),
                 backgroundColor: n == current ? const Color(0x33caa24e) : null,
                 foregroundColor:
-                    n == current ? const Color(0xffffdf76) : Colors.white54,
+                    n == current ? AppColors.goldBright : Colors.white54,
                 side: BorderSide(
-                    color: n == current ? _gold : Colors.white24,
+                    color: n == current ? AppColors.gold : Colors.white24,
                     width: n == current ? 2 : 1),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -406,7 +406,7 @@ class CharacterSelectPage extends StatelessWidget {
     // Material ancestor: without one, Text on web can render with a stray
     // underline decoration.
     return Material(
-      color: const Color(0xff042020),
+      color: AppColors.background,
       child: Stack(
         children: [
           // At least as tall as the screen, so on a taller canvas the page
@@ -498,9 +498,7 @@ class CharacterSelectPage extends StatelessWidget {
                               onPressed: onRandomize,
                               icon: const Icon(Icons.shuffle, size: 18),
                               label: Text(context.l10n.randomizeCharacters),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xffe9d58f),
-                                side: const BorderSide(color: _gold),
+                              style: AppButtons.secondary(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 12),
                               ),
@@ -520,7 +518,7 @@ class CharacterSelectPage extends StatelessWidget {
                                       value: soundOn,
                                       onChanged: (v) =>
                                           onSoundOn(v ?? !soundOn),
-                                      activeColor: _gold,
+                                      activeColor: AppColors.gold,
                                       checkColor: Colors.black,
                                       side: const BorderSide(
                                           color: Colors.white54),
@@ -544,9 +542,7 @@ class CharacterSelectPage extends StatelessWidget {
                             ElevatedButton(
                               key: const Key('charactersContinue'),
                               onPressed: onAdvance,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _gold,
-                                foregroundColor: Colors.black,
+                              style: AppButtons.primary(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 40, vertical: 14),
                               ),
@@ -575,7 +571,7 @@ class CharacterSelectPage extends StatelessWidget {
               label: context.l10n.back,
               tooltip: context.l10n.backToMainMenu,
               onPressed: onBack,
-              foregroundColor: const Color(0xff80cbc4),
+              foregroundColor: AppColors.link,
             ),
           ),
           // This screen's language picker, opposite Back.

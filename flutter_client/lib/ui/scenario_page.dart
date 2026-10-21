@@ -24,14 +24,17 @@ import 'efficiency_overlay.dart';
 import 'language_button.dart';
 import '../l10n/l10n.dart';
 import 'phone_menu.dart';
+import 'ruleset_flag.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
+import 'theme.dart';
 
 /// The slot the tile palette is currently filling. [dora] is the dora
 /// indicators in riichi and the selected seat's flowers in Hong Kong — the
-/// same corner of the table.
-enum _Slot { hand, pond, melds, dora, offer }
+/// same corner of the table. [voidSuit] is Sichuan's give-up suit for the
+/// selected seat.
+enum _Slot { hand, pond, melds, dora, offer, voidSuit }
 
 /// What a palette tap builds when the melds slot is selected.
 enum _MeldKind { chi, pon, openKan, closedKan }
@@ -108,6 +111,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
   // Named for Hong Kong, the first Chinese-style ruleset this app had, but
   // true for Taiwanese too — see [Ruleset.isChineseStyle].
   bool get _hk => s.ruleset.isChineseStyle;
+  bool get _sichuan => s.ruleset.isSichuan;
+
+  /// Hong Kong, Taiwanese and MCR show each seat's flowers where riichi shows
+  /// the dora; Sichuan has neither.
+  bool get _flowers => _hk && !_sichuan;
 
   void _edit(void Function(Scenario s) change) =>
       setState(() => _c.edit(change));
@@ -118,6 +126,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// that would put a fifth copy of a tile on the table.
   void _place(TileType type) {
     if (s.remainingCopies(type) <= 0) return;
+    if (_slot == _Slot.voidSuit) return;
     if (type.isBonus) {
       _edit((sc) => sc.seats[_slotSeat].flowers.add(sc.mint(type)));
       return;
@@ -136,6 +145,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
           sc.offered = sc.mint(type, aka: aka);
         case _Slot.melds:
           _addMeld(sc, type);
+        case _Slot.voidSuit:
+          break;
       }
     });
   }
@@ -147,7 +158,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
     final seat = sc.seats[_slotSeat];
     switch (_meldKind) {
       case _MeldKind.chi:
-        if (low.isHonor || low.number > 7) return;
+        if (_sichuan || low.isHonor || low.number > 7) return;
         final types = [
           low,
           TileType.values[low.index + 1],
@@ -188,7 +199,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
     _edit((sc) {
       sc.clear();
       final bag = <TileType>[
-        for (var i = 0; i < 34; i++)
+        for (var i = 0; i < (sc.ruleset.isSichuan ? 27 : 34); i++)
           for (var c = 0; c < 4; c++) typeFrom34(i),
       ]..shuffle();
       TileType take() => bag.removeLast();
@@ -217,7 +228,23 @@ class _ScenarioPageState extends State<ScenarioPage> {
         sc.hand.add(sc.mint(take()));
       }
       sc.hand.sort((a, b) => a.type.index.compareTo(b.type.index));
-      sc.wallRemaining = 30 + (bag.length % 40);
+      if (sc.ruleset.isSichuan) {
+        // Each seat gives up the suit it holds fewest of: your hand for you,
+        // the pond for an opponent, whose void suit it shows.
+        int fewest(Iterable<Tile> tiles) {
+          final n = List<int>.filled(3, 0);
+          for (final t in tiles) {
+            n[t.type.suit]++;
+          }
+          return n.indexOf(n.reduce((a, b) => a < b ? a : b));
+        }
+
+        sc.seats[0].voidSuit = fewest(sc.hand);
+        for (var seat = 1; seat < 4; seat++) {
+          sc.seats[seat].voidSuit = fewest(sc.seats[seat].pond);
+        }
+      }
+      sc.wallRemaining = (30 + (bag.length % 40)).clamp(0, sc.maxWall);
     });
   }
 
@@ -318,7 +345,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   PreferredSizeWidget _appBar() {
     // Taller on a phone, so Back clears a thumb's 44pt (see BarBackButton).
-    final barHeight = _phone ? BarBackButton.phoneTarget + 8 : 50.0;
+    final barHeight = BarBackButton.toolbarHeight(context);
     return AppBar(
       toolbarHeight: barHeight,
       titleSpacing: 8,
@@ -365,9 +392,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
         const SizedBox(width: 4),
         Tooltip(
           message: context.l10n.rulesetName(s.ruleset),
-          child: Text(s.ruleset.flag,
-              key: const Key('builderRulesFlag'),
-              style: const TextStyle(fontSize: 22)),
+          child: RulesetFlag(s.ruleset,
+              key: const Key('builderRulesFlag'), size: 22),
         ),
         const SizedBox(width: 12),
       ],
@@ -379,6 +405,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
         _slot = _Slot.hand;
         _slotSeat = kHumanSeat;
         _aka = false;
+        if (r.isSichuan && _meldKind == _MeldKind.chi) {
+          _meldKind = _MeldKind.pon;
+        }
         _c.setRuleset(r);
       });
 
@@ -388,12 +417,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// [showPhoneMenu], whose parts this sheet is built from. Round and seat
   /// wind show all four winds at once rather than cycling on tap.
   void _showBuilderMenu() {
-    const gold = Color(0xffe9d58f);
     const winds = [Wind.east, Wind.south, Wind.west, Wind.north];
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xff0c3030),
+      backgroundColor: AppColors.sheet,
       builder: (sheet) {
         // Closes the sheet first, so the table it changed is in view.
         VoidCallback closeThen(VoidCallback action) => () {
@@ -412,7 +440,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                     children: [
                       const Text('Menu',
                           style: TextStyle(
-                              color: gold,
+                              color: AppColors.goldText,
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
                       const Spacer(),
@@ -491,6 +519,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 Ruleset.hongKong,
                                 Ruleset.taiwanese,
                                 Ruleset.mcr,
+                                Ruleset.sichuan,
                                 Ruleset.riichi
                               ],
                               current: s.ruleset,
@@ -498,7 +527,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               // tooltip names the rules.
                               label: (r) => r.flag,
                               tooltip: (r) => context.l10n.rulesetName(r),
-                              colour: (_) => gold,
+                              colour: (_) => AppColors.goldText,
                               onPick: _setRuleset,
                             ),
                           ],
@@ -511,7 +540,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 values: HongKongRules.minimumFaanChoices,
                                 current: s.minimumFaan,
                                 label: (n) => '$n',
-                                colour: (_) => gold,
+                                colour: (_) => AppColors.goldText,
                                 onPick: (n) =>
                                     _edit((x) => x.minimumFaan = n),
                               ),
@@ -524,22 +553,24 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 values: TaiwaneseRules.minimumPointsChoices,
                                 current: s.minimumPoints,
                                 label: (n) => '$n',
-                                colour: (_) => gold,
+                                colour: (_) => AppColors.goldText,
                                 onPick: (n) =>
                                     _edit((x) => x.minimumPoints = n),
                               ),
                             ],
-                          [
-                            phoneMenuDial<Wind>(
-                              caption: 'Round',
-                              keyPrefix: 'builderMenuRoundWind',
-                              values: winds,
-                              current: s.roundWind,
-                              label: (w) => '${w.kanji} ${w.initial}',
-                              colour: (_) => gold,
-                              onPick: (w) => _edit((x) => x.roundWind = w),
-                            ),
-                          ],
+                          // Sichuan numbers its hands; it has no round wind.
+                          if (!_sichuan)
+                            [
+                              phoneMenuDial<Wind>(
+                                caption: 'Round',
+                                keyPrefix: 'builderMenuRoundWind',
+                                values: winds,
+                                current: s.roundWind,
+                                label: (w) => '${w.kanji} ${w.initial}',
+                                colour: (_) => AppColors.goldText,
+                                onPick: (w) => _edit((x) => x.roundWind = w),
+                              ),
+                            ],
                           [
                             // East deals, so its star marks the dealer seat.
                             phoneMenuDial<Wind>(
@@ -550,7 +581,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               label: (w) => w == Wind.east
                                   ? '${w.kanji} ${w.initial} ★'
                                   : '${w.kanji} ${w.initial}',
-                              colour: (_) => gold,
+                              colour: (_) => AppColors.goldText,
                               onPick: (w) => _edit((x) => x.seatWind = w),
                             ),
                           ],
@@ -685,8 +716,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   : const Color(0xff294342),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                  color:
-                      selected ? const Color(0xffe9d58f) : Colors.transparent),
+                  color: selected ? AppColors.goldText : Colors.transparent),
             ),
             child: Text(label,
                 style: TextStyle(
@@ -713,13 +743,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   })),
           chip('On offer${s.offered == null ? "" : " ${s.offered!.type.code}"}',
               _slot == _Slot.offer, () => setState(() => _slot = _Slot.offer)),
-          chip(
-              _hk
-                  ? '${_slotSeat == kHumanSeat ? 'Your' : _windOf(_slotSeat)} '
-                      'flowers (${s.seats[_slotSeat].flowers.length})'
-                  : 'Dora (${s.dora.length})',
-              _slot == _Slot.dora,
-              () => setState(() => _slot = _Slot.dora)),
+          if (!_sichuan)
+            chip(
+                _hk
+                    ? '${_slotSeat == kHumanSeat ? 'Your' : _windOf(_slotSeat)} '
+                        'flowers (${s.seats[_slotSeat].flowers.length})'
+                    : 'Dora (${s.dora.length})',
+                _slot == _Slot.dora,
+                () => setState(() => _slot = _Slot.dora)),
           const VerticalDivider(width: 14, color: Colors.white24),
           for (var seat = 0; seat < 4; seat++) ...[
             chip(
@@ -738,7 +769,18 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 _slotSeat = seat;
               });
             }),
-            if (!_hk) _riichiToggle(seat),
+            if (_sichuan) ...[
+              chip(
+                  'void ${s.seats[seat].voidSuit == null ? '?' : context.l10n.suitName(s.seats[seat].voidSuit!)}',
+                  _slot == _Slot.voidSuit && _slotSeat == seat, () {
+                setState(() {
+                  _slot = _Slot.voidSuit;
+                  _slotSeat = seat;
+                });
+              }, key: Key('builderVoid_$seat')),
+              if (seat != kHumanSeat) _outToggle(seat),
+            ] else if (!_hk)
+              _riichiToggle(seat),
             const VerticalDivider(width: 14, color: Colors.white24),
           ],
         ],
@@ -746,42 +788,69 @@ class _ScenarioPageState extends State<ScenarioPage> {
     );
   }
 
-  Widget _riichiToggle(int seat) {
-    final st = s.seats[seat];
-    final canDeclare = st.pond.isNotEmpty;
+  /// A chip that flips a seat flag on and off: red when on, greyed out when
+  /// there is nothing to flip. [label] is its text when off, [onLabel] when on.
+  Widget _flagToggle({
+    required String label,
+    required String onLabel,
+    required bool on,
+    required bool enabled,
+    required VoidCallback onTap,
+    Key? key,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
-        onTap: !canDeclare
-            ? null
-            : () => _edit((sc) {
-                  final t = sc.seats[seat];
-                  t.riichi = !t.riichi;
-                  t.riichiPondIndex = t.riichi ? t.pond.length - 1 : -1;
-                }),
+        key: key,
+        onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(6),
         child: Container(
           constraints: _chipBox,
           alignment: _chipAlign,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color:
-                st.riichi ? const Color(0xffb71c1c) : const Color(0xff294342),
+            color: on ? const Color(0xffb71c1c) : const Color(0xff294342),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
-            st.riichi ? 'RIICHI on #${st.riichiPondIndex + 1}' : 'riichi',
+            on ? onLabel : label,
             style: TextStyle(
                 fontSize: _chipFont,
                 fontWeight: FontWeight.w700,
-                color: !canDeclare
+                color: !enabled
                     ? Colors.white24
-                    : (st.riichi ? Colors.white : Colors.white60)),
+                    : (on ? Colors.white : Colors.white60)),
           ),
         ),
       ),
     );
   }
+
+  Widget _riichiToggle(int seat) {
+    final st = s.seats[seat];
+    return _flagToggle(
+      label: 'riichi',
+      onLabel: 'RIICHI on #${st.riichiPondIndex + 1}',
+      on: st.riichi,
+      enabled: st.pond.isNotEmpty,
+      onTap: () => _edit((sc) {
+        final t = sc.seats[seat];
+        t.riichi = !t.riichi;
+        t.riichiPondIndex = t.riichi ? t.pond.length - 1 : -1;
+      }),
+    );
+  }
+
+  /// Sichuan: an opponent who has already declared Hu and sits out the rest
+  /// of the hand.
+  Widget _outToggle(int seat) => _flagToggle(
+        key: Key('builderOut_$seat'),
+        label: 'out',
+        onLabel: 'OUT',
+        on: s.seats[seat].out,
+        enabled: true,
+        onTap: () => _edit((sc) => sc.seats[seat].out = !sc.seats[seat].out),
+      );
 
   /// The selected slot's current contents — tap any tile to take it back off.
   Widget _slotContents() {
@@ -882,10 +951,49 @@ class _ScenarioPageState extends State<ScenarioPage> {
             ],
           ],
         );
+      case _Slot.voidSuit:
+        final st = s.seats[_slotSeat];
+        Widget suit(String label, int? value, Key key) => Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InkWell(
+                key: key,
+                onTap: () =>
+                    _edit((sc) => sc.seats[_slotSeat].voidSuit = value),
+                child: Container(
+                  constraints: _chipBox,
+                  alignment: _chipAlign,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: st.voidSuit == value
+                        ? const Color(0xff00695c)
+                        : const Color(0xff294342),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(label, style: TextStyle(fontSize: _chipFont)),
+                ),
+              ),
+            );
+        return Row(
+          children: [
+            Text(
+                _slotSeat == kHumanSeat
+                    ? 'You give up '
+                    : '${_windOf(_slotSeat)} gave up ',
+                style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            for (var suitIndex = 0; suitIndex < 3; suitIndex++)
+              suit(context.l10n.suitName(suitIndex), suitIndex,
+                  Key('builderVoidSuit_$suitIndex')),
+            // An opponent's suit is unknown until its first discard shows it.
+            if (_slotSeat != kHumanSeat)
+              suit('not shown', null, const Key('builderVoidSuit_none')),
+          ],
+        );
       case _Slot.melds:
         return Row(
           children: [
-            for (final k in _MeldKind.values)
+            for (final k in _MeldKind.values
+                .where((k) => !(_sichuan && k == _MeldKind.chi)))
               Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: InkWell(
@@ -989,11 +1097,13 @@ class _ScenarioPageState extends State<ScenarioPage> {
               child: Row(
                 children: [
                   // Hong Kong's flower slot takes flowers and seasons only.
-                  if (_hk && _slot == _Slot.dora)
+                  if (_flowers && _slot == _Slot.dora)
                     for (final t in TileType.values.where((t) => t.isBonus))
                       _paletteTile(t)
                   else
-                    for (var i = 0; i < 34; i++) _paletteTile(typeFrom34(i)),
+                    // Sichuan plays with the three suits only.
+                    for (var i = 0; i < (_sichuan ? 27 : 34); i++)
+                      _paletteTile(typeFrom34(i)),
                 ],
               ),
             ),
@@ -1005,7 +1115,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   Widget _paletteTile(TileType type) {
     final left = s.remainingCopies(type);
-    final enabled = left > 0;
+    // The void-suit slot takes no tiles.
+    final enabled = left > 0 && _slot != _Slot.voidSuit;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _phone ? 3 : 1),
       child: Column(

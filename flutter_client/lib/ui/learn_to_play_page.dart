@@ -15,6 +15,7 @@ import '../telemetry/src/platform_web.dart'
 import 'bar_back_button.dart';
 import 'language_button.dart';
 import 'tile_face.dart';
+import 'theme.dart';
 
 /// Whether the lesson has been seen on this device.
 abstract final class LearnToPlay {
@@ -41,8 +42,6 @@ abstract final class LearnToPlay {
   /// Forgets that the lesson was seen (for tests).
   static void reset() => _seenThisSession = false;
 }
-
-const _gold = Color(0xffcaa24e);
 
 /// The lesson's four cards, one at a time. [onFinish] runs on the last card's
 /// button and on Skip; [onBack] on Back from the first card.
@@ -161,7 +160,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
     // Material ancestor: without one, Text on web can render with a stray
     // underline decoration.
     return Material(
-      color: const Color(0xff042020),
+      color: AppColors.background,
       child: Stack(
         children: [
           LayoutBuilder(
@@ -196,7 +195,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
                           key: const Key('learnTitle'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            color: Color(0xffe9d58f),
+                            color: AppColors.goldText,
                             fontSize: 38,
                             fontWeight: FontWeight.w700,
                           ),
@@ -225,7 +224,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
                             label: Text(
                                 l10n.rulesPdf(l10n.rulesetName(widget.ruleset))),
                             style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xff80cbc4),
+                              foregroundColor: AppColors.link,
                               textStyle: const TextStyle(
                                   fontSize: 14,
                                   decoration: TextDecoration.underline),
@@ -252,9 +251,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
                             ElevatedButton(
                               key: Key(last ? 'learnDone' : 'learnNext'),
                               onPressed: _next,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _gold,
-                                foregroundColor: Colors.black,
+                              style: AppButtons.primary(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 40, vertical: 14),
                               ),
@@ -281,7 +278,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
               label: l10n.back,
               tooltip: l10n.backToMainMenu,
               onPressed: _back,
-              foregroundColor: const Color(0xff80cbc4),
+              foregroundColor: AppColors.link,
             ),
           ),
           const Positioned(right: 8, top: 8, child: LanguageButton()),

@@ -99,6 +99,51 @@ void main() {
     }
   });
 
+  testWidgets(
+      'the card and the quiz say it is riichi only, whatever rules are chosen',
+      (tester) async {
+    await pumpMenu(tester);
+    final choice = find.byKey(const Key('ruleset_hongKong'));
+    await tester.ensureVisible(choice);
+    await tester.tap(choice);
+    await tester.pump();
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('dailyQuizCard')),
+            matching: find.text('Riichi (Japanese) mahjong rules only')),
+        findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dailyQuizCard')));
+    await settle(tester);
+    expect(find.byKey(const Key('riichiOnlyBadge')), findsOneWidget);
+    expect(find.text('Riichi (Japanese) mahjong rules only'), findsOneWidget);
+  });
+
+  testWidgets(
+      "on a phone the quiz's Back is thumb-sized, and repeated at the bottom "
+      'of the panel', (tester) async {
+    const iPhone = Size(852, 393);
+    await tester.binding.setSurfaceSize(iPhone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('quizLink')));
+    await settle(tester);
+
+    // Both are drawn at the canvas's ~0.48 scale, so 44pt is about 92 canvas
+    // px: the bar has to be tall enough to give the top one that.
+    final top = tester.getRect(find.byKey(const Key('quizBack')));
+    final bottom = tester.getRect(find.byKey(const Key('quizBackBottom')));
+    expect(top.height, greaterThanOrEqualTo(40));
+    expect(bottom.height, greaterThanOrEqualTo(40));
+    expect(bottom.bottom, greaterThan(top.bottom + 100),
+        reason: 'the footer is down by the thumb, not up in the corner');
+
+    await tester.tap(find.byKey(const Key('quizBackBottom')));
+    await tester.pump();
+    expect(find.text('Single Player'), findsOneWidget);
+  });
+
   testWidgets('answering marks today done and starts the streak on the card',
       (tester) async {
     await pumpMenu(tester);

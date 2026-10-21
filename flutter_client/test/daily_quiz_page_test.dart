@@ -83,6 +83,22 @@ void main() {
         find.descendant(of: own, matching: find.byType(Image)), findsNothing);
   });
 
+  testWidgets('says riichi only, and Back is also at the bottom of the panel',
+      (tester) async {
+    var exits = 0;
+    await pumpLocalized(
+        tester,
+        DailyQuizPage(
+            puzzle: first((p) => p.kind == QuizKind.discard),
+            onExit: () => exits++),
+        size: const Size(1600, 820));
+    expect(find.text('Riichi (Japanese) mahjong rules only'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('quizBackBottom')));
+    await tester.pump();
+    expect(exits, 1);
+  });
+
   testWidgets('a ready hand is two questions: the cut, then riichi or dama',
       (tester) async {
     final puzzle = first((p) => p.riichiOption);

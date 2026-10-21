@@ -2665,6 +2665,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizTitle => 'What would TileSensor do?';
 
   @override
+  String get quizRiichiOnly => 'Riichi (Japanese) mahjong rules only';
+
+  @override
   String get quizAskDiscard =>
       'It\'s your turn and you\'ve drawn. What do you do?';
 

@@ -10,6 +10,7 @@ import 'package:mahjong_core/ruleset.dart';
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import 'e2e_id.dart';
+import 'theme.dart';
 
 class GlossaryEntry {
   const GlossaryEntry(this.id, this.term, this.definition);
@@ -78,7 +79,7 @@ Future<void> showGlossary(BuildContext context, Ruleset ruleset) =>
     showDialog<void>(
       context: context,
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xff0c3030),
+        backgroundColor: AppColors.sheet,
         insetPadding: const EdgeInsets.all(16),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
@@ -101,7 +102,6 @@ class GlossaryView extends StatefulWidget {
 }
 
 class _GlossaryViewState extends State<GlossaryView> {
-  static const _gold = Color(0xffe9d58f);
   final _controller = TextEditingController();
   String _query = '';
 
@@ -131,7 +131,7 @@ class _GlossaryViewState extends State<GlossaryView> {
                 Expanded(
                   child: Text(l10n.glossaryTitle,
                       style: const TextStyle(
-                          color: _gold,
+                          color: AppColors.goldText,
                           fontSize: 20,
                           fontWeight: FontWeight.w800)),
                 ),
@@ -161,7 +161,7 @@ class _GlossaryViewState extends State<GlossaryView> {
                   enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.white24)),
                   focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xffcaa24e))),
+                      borderSide: BorderSide(color: AppColors.gold)),
                 ),
               ),
             ),
@@ -190,7 +190,7 @@ class _GlossaryViewState extends State<GlossaryView> {
                               children: [
                                 Text(shown[i].term,
                                     style: const TextStyle(
-                                        color: _gold,
+                                        color: AppColors.goldText,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700)),
                                 const SizedBox(height: 2),

@@ -47,6 +47,7 @@ import 'ui/ruleset_flag.dart';
 import 'ui/small_window_hint.dart';
 import 'ui/table_view.dart';
 import 'ui/tilesensor.dart';
+import 'ui/theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,8 +74,8 @@ void main() {
 /// Colour for a play style, so the setting reads at a glance wherever it is
 /// shown: cool when it is folding, warm when it is pushing.
 Color playStyleColor(PlayStyle style) => switch (style) {
-      PlayStyle.defensive => const Color(0xff80cbc4),
-      PlayStyle.balanced => const Color(0xffe9d58f),
+      PlayStyle.defensive => AppColors.link,
+      PlayStyle.balanced => AppColors.goldText,
       PlayStyle.aggressive => const Color(0xffff8a65),
     };
 
@@ -161,9 +162,6 @@ Widget _barDial({
 Widget _barDivider() =>
     Container(width: 1, height: 28, color: const Color(0x22ffffff));
 
-/// Gold for Auto-Play being on — the border its group lights up with.
-const Color _autoPlayGold = Color(0xffcaa24e);
-
 /// TileSensor with a small play badge: the mascot that is the guide, now
 /// playing your seat. Greyed and dimmed when Auto-Play is off, the same way
 /// the guide toggle dims, and in full colour with a soft glow when on.
@@ -209,9 +207,9 @@ class _AutoPlayBadge extends StatelessWidget {
               height: badge,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: on ? _autoPlayGold : const Color(0xff1c3534),
+                color: on ? AppColors.gold : const Color(0xff1c3534),
                 border: Border.all(
-                    color: on ? _autoPlayGold : Colors.white38, width: 1),
+                    color: on ? AppColors.gold : Colors.white38, width: 1),
                 boxShadow: on
                     ? const [BoxShadow(color: Color(0x88caa24e), blurRadius: 6)]
                     : null,
@@ -232,14 +230,14 @@ class _AutoPlayBadge extends StatelessWidget {
 /// one.
 Color handFocusColor(HandFocus focus) => switch (focus) {
       HandFocus.speed => const Color(0xff64b5f6),
-      HandFocus.balanced => const Color(0xffe9d58f),
+      HandFocus.balanced => AppColors.goldText,
     };
 
 /// Colour for a strategy, on a third axis again: points stays the same gold
 /// every other dial's neutral setting uses, placement gets a podium-ish
 /// magenta so the three dials never read as one setting even at a glance.
 Color strategyColor(Strategy strategy) => switch (strategy) {
-      Strategy.points => const Color(0xffe9d58f),
+      Strategy.points => AppColors.goldText,
       Strategy.placement => const Color(0xffce93d8),
     };
 
@@ -311,7 +309,7 @@ bool isPhoneLayout(BuildContext context) =>
     MediaQuery.textScalerOf(context).scale(1) > 1;
 
 /// Colour shown in the letterbox bars around the scaled canvas.
-const Color kLetterboxColor = Color(0xff042020);
+const Color kLetterboxColor = AppColors.background;
 
 class TileSenseApp extends StatelessWidget {
   const TileSenseApp({super.key});
@@ -335,7 +333,7 @@ class TileSenseApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xffcaa24e),
+              seedColor: AppColors.gold,
               brightness: Brightness.dark,
             ),
             useMaterial3: true,
@@ -701,10 +699,7 @@ class _LearnButton extends StatelessWidget {
         onPressed: onPressed,
         icon: const Icon(Icons.school_outlined, size: 18),
         label: Text(context.l10n.learnNewLink),
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xff80cbc4),
-          textStyle: const TextStyle(fontSize: 14),
-        ),
+        style: AppButtons.link(),
       );
 }
 
@@ -765,7 +760,7 @@ class _NudgeCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             decoration: BoxDecoration(
               color: const Color(0x2280cbc4),
-              border: Border.all(color: const Color(0xff80cbc4)),
+              border: Border.all(color: AppColors.link),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -787,10 +782,7 @@ class _NudgeCard extends StatelessWidget {
                         accept();
                         store.finish(nudge);
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffcaa24e),
-                        foregroundColor: Colors.black,
-                      ),
+                      style: AppButtons.primary(),
                       child: Text(action,
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
@@ -831,10 +823,7 @@ class _PracticeButton extends StatelessWidget {
           onPressed: onPressed,
           icon: const Icon(Icons.fitness_center, size: 18),
           label: Text(context.l10n.practiceLink),
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xff80cbc4),
-            textStyle: const TextStyle(fontSize: 14),
-          ),
+          style: AppButtons.link(),
         ),
       );
 }
@@ -853,10 +842,7 @@ class _QuizButton extends StatelessWidget {
           onPressed: onPressed,
           icon: const Icon(Icons.quiz_outlined, size: 18),
           label: Text(context.l10n.quizLink),
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xff80cbc4),
-            textStyle: const TextStyle(fontSize: 14),
-          ),
+          style: AppButtons.link(),
         ),
       );
 }
@@ -885,7 +871,7 @@ class _DailyQuizCard extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
               side: BorderSide(
-                  color: done ? Colors.white24 : const Color(0xffcaa24e),
+                  color: done ? Colors.white24 : AppColors.gold,
                   width: done ? 1 : 2),
             ),
             child: InkWell(
@@ -912,14 +898,23 @@ class _DailyQuizCard extends StatelessWidget {
                       children: [
                         Text(l10n.quizTitle,
                             style: const TextStyle(
-                                color: Color(0xffe9d58f),
+                                color: AppColors.goldText,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
-                        Text(
-                          done ? l10n.quizCardDone : l10n.quizCardToday,
-                          key: const Key('dailyQuizStatus'),
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 14),
+                        // On the status line rather than a third one, to keep
+                        // the card, and so the welcome screen, no taller.
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              done ? l10n.quizCardDone : l10n.quizCardToday,
+                              key: const Key('dailyQuizStatus'),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            ),
+                            const SizedBox(width: 10),
+                            const RiichiOnlyBadge(fontSize: 12),
+                          ],
                         ),
                       ],
                     ),
@@ -930,7 +925,7 @@ class _DailyQuizCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xffcaa24e),
+                          color: AppColors.gold,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(l10n.quizStreak(streak),
@@ -965,10 +960,7 @@ class _GlossaryButton extends StatelessWidget {
           onPressed: () => showGlossary(context, ruleset),
           icon: const Icon(Icons.help_outline, size: 18),
           label: Text(context.l10n.glossaryTitle),
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xff80cbc4),
-            textStyle: const TextStyle(fontSize: 14),
-          ),
+          style: AppButtons.link(),
         ),
       );
 }
@@ -1027,10 +1019,7 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
         label: Text(
             full ? context.l10n.fullscreenExit : context.l10n.fullscreen),
         onPressed: fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp,
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xff80cbc4),
-          textStyle: const TextStyle(fontSize: 15),
-        ),
+        style: AppButtons.link(fontSize: 15),
       ),
     );
   }
@@ -1114,10 +1103,7 @@ class _UpdateButtonState extends State<_UpdateButton> {
             : const Icon(Icons.refresh, size: 22),
         label: Text(_busy ? context.l10n.working : context.l10n.update),
         onPressed: _busy ? null : _onPressed,
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xff80cbc4),
-          textStyle: const TextStyle(fontSize: 15),
-        ),
+        style: AppButtons.link(fontSize: 15),
       ),
     );
   }
@@ -1664,7 +1650,7 @@ class _GamePageState extends State<GamePage> {
                         _game.ruleset,
                         suffix: _minimumTag(),
                         style: const TextStyle(
-                          color: Color(0xffffdf76),
+                          color: AppColors.goldBright,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1721,7 +1707,7 @@ class _GamePageState extends State<GamePage> {
                         onPressed: _confirmToggleLength,
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          foregroundColor: const Color(0xffe9d58f),
+                          foregroundColor: AppColors.goldText,
                         ),
                         child: Text(
                           _game.hanchan
@@ -1749,7 +1735,7 @@ class _GamePageState extends State<GamePage> {
                     buttonKey: const Key('fastMode'),
                     label: _game.fastMode ? '2x' : '1x',
                     colour: _game.fastMode
-                        ? const Color(0xffffdf76)
+                        ? AppColors.goldBright
                         : Colors.white60,
                     tooltip: _game.fastMode
                         ? context.l10n.botSpeedFastTooltip
@@ -1817,7 +1803,7 @@ class _GamePageState extends State<GamePage> {
                   color: const Color(0x14ffffff),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: on ? _autoPlayGold : const Color(0x33ffffff),
+                    color: on ? AppColors.gold : const Color(0x33ffffff),
                     width: on ? 1.5 : 1,
                   ),
                   boxShadow: on
@@ -1844,7 +1830,7 @@ class _GamePageState extends State<GamePage> {
                           const SizedBox(width: 5),
                           Text(on ? context.l10n.on : context.l10n.off,
                               style: TextStyle(
-                                  color: on ? _autoPlayGold : Colors.white54,
+                                  color: on ? AppColors.gold : Colors.white54,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700)),
                         ],
@@ -1882,7 +1868,7 @@ class _GamePageState extends State<GamePage> {
                     _game.soundOn ? Icons.volume_up : Icons.volume_off,
                     size: 22,
                     color: _game.soundOn
-                        ? const Color(0xffe9d58f)
+                        ? AppColors.goldText
                         : Colors.white38,
                   ),
                 ),
@@ -1895,7 +1881,7 @@ class _GamePageState extends State<GamePage> {
                   tooltip: _game.paused ? context.l10n.resume : context.l10n.pause,
                   onTap: _game.togglePause,
                   value: Icon(_game.paused ? Icons.play_arrow : Icons.pause,
-                      size: 22, color: const Color(0xffe9d58f)),
+                      size: 22, color: AppColors.goldText),
                 ),
                 const SizedBox(width: 8),
                 _barTile(
@@ -1905,7 +1891,7 @@ class _GamePageState extends State<GamePage> {
                   tooltip: context.l10n.newGame,
                   onTap: _confirmNewGame,
                   value: const Icon(Icons.add_circle_outline,
-                      size: 22, color: Color(0xffe9d58f)),
+                      size: 22, color: AppColors.goldText),
                 ),
               ],
             ),
@@ -2066,9 +2052,9 @@ class _WelcomeScreen extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 backgroundColor: selected ? const Color(0x33caa24e) : null,
                 foregroundColor:
-                    selected ? const Color(0xffffdf76) : Colors.white54,
+                    selected ? AppColors.goldBright : Colors.white54,
                 side: BorderSide(
-                    color: selected ? const Color(0xffcaa24e) : Colors.white24,
+                    color: selected ? AppColors.gold : Colors.white24,
                     width: selected ? 2 : 1),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -2089,7 +2075,7 @@ class _WelcomeScreen extends StatelessWidget {
               icon: const Icon(Icons.open_in_new, size: 13),
               label: Text(context.l10n.rulesPdf(context.l10n.rulesetName(value))),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xff80cbc4),
+                foregroundColor: AppColors.link,
                 visualDensity: VisualDensity.compact,
                 textStyle: const TextStyle(
                     fontSize: 12, decoration: TextDecoration.underline),
@@ -2161,7 +2147,7 @@ class _WelcomeScreen extends StatelessWidget {
                       'TileSense',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Color(0xffe9d58f),
+                        color: AppColors.goldText,
                         fontSize: 66,
                         fontWeight: FontWeight.w800,
                       ),
@@ -2220,10 +2206,7 @@ class _WelcomeScreen extends StatelessWidget {
                         children: [
                           ElevatedButton(
                             onPressed: onStart,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xffcaa24e),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(
+                            style: AppButtons.primary(padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 12),
                             ),
                             child: Row(
@@ -2263,10 +2246,7 @@ class _WelcomeScreen extends StatelessWidget {
                           OutlinedButton(
                             key: const Key('playOnline'),
                             onPressed: onPlayOnline,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xffe9d58f),
-                              side: const BorderSide(color: Color(0xffcaa24e)),
-                              padding: const EdgeInsets.symmetric(
+                            style: AppButtons.secondary(padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 12),
                             ),
                             child: Row(
@@ -2299,10 +2279,7 @@ class _WelcomeScreen extends StatelessWidget {
                           OutlinedButton(
                             key: const Key('openBuilder'),
                             onPressed: onBuild,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xffe9d58f),
-                              side: const BorderSide(color: Color(0xffcaa24e)),
-                              padding: const EdgeInsets.symmetric(
+                            style: AppButtons.secondary(padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 12),
                             ),
                             child: Row(

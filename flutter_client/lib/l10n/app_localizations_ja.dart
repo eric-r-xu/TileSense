@@ -2605,6 +2605,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get quizTitle => 'TileSensorならどうする？';
 
   @override
+  String get quizRiichiOnly => 'リーチ麻雀（日本式）のルール専用';
+
+  @override
   String get quizAskDiscard => 'あなたの番で、牌をツモりました。どうしますか？';
 
   @override

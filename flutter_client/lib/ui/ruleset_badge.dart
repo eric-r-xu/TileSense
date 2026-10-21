@@ -8,6 +8,7 @@ import 'package:mahjong_core/ruleset.dart';
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import 'ruleset_flag.dart';
+import 'theme.dart';
 
 class RulesetBadge extends StatelessWidget {
   const RulesetBadge({
@@ -51,7 +52,7 @@ class RulesetBadge extends StatelessWidget {
                 if (minimum != null)
                   Text(' $minimum',
                       style: TextStyle(
-                        color: const Color(0xffffdf76),
+                        color: AppColors.goldBright,
                         fontSize: fontSize,
                         fontWeight: FontWeight.w800,
                       )),
@@ -61,11 +62,36 @@ class RulesetBadge extends StatelessWidget {
               minimum == null ? ruleset.flag : '${ruleset.flag} $minimum',
               key: const Key('rulesetBadge'),
               style: TextStyle(
-                color: const Color(0xffffdf76),
+                color: AppColors.goldBright,
                 fontSize: fontSize,
                 fontWeight: FontWeight.w800,
               ),
             ),
     );
   }
+}
+
+/// "Riichi (Japanese) mahjong rules only", for the daily quiz: its puzzles
+/// are riichi tables whatever rules the welcome screen has selected.
+class RiichiOnlyBadge extends StatelessWidget {
+  const RiichiOnlyBadge({super.key, this.fontSize = 13});
+
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        key: const Key('riichiOnlyBadge'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RulesetFlag(Ruleset.riichi, size: fontSize),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(context.l10n.quizRiichiOnly,
+                style: TextStyle(
+                    color: AppColors.goldText,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      );
 }
