@@ -96,11 +96,11 @@ void main() {
     final start = tester.getRect(find.byKey(const Key('charactersContinue')));
     expect(start.top, greaterThanOrEqualTo(0));
     expect(start.bottom, lessThanOrEqualTo(size.height));
-    final adri = find.byKey(const Key('seatCharacterPick_0_adri'));
-    expect(tester.getRect(adri).bottom, lessThanOrEqualTo(size.height));
-    await tester.tap(adri);
+    final nagomi = find.byKey(const Key('seatCharacterPick_0_nagomi'));
+    expect(tester.getRect(nagomi).bottom, lessThanOrEqualTo(size.height));
+    await tester.tap(nagomi);
     await tester.pump();
-    expect(_name(tester, 0), 'Adri');
+    expect(_name(tester, 0), 'Nagomi');
     expect(tester.takeException(), isNull);
   });
 
@@ -248,9 +248,9 @@ void main() {
     await tester.pump();
     expect(_name(tester, 0), 'Finley');
 
-    await tester.tap(find.byKey(const Key('seatCharacterPick_0_adri')));
+    await tester.tap(find.byKey(const Key('seatCharacterPick_0_nagomi')));
     await tester.pump();
-    expect(_name(tester, 0), 'Adri');
+    expect(_name(tester, 0), 'Nagomi');
 
     await tester.tap(find.byKey(const Key('charactersContinue')));
     await tester.pump(); // Render the startup/loading frame.
@@ -259,7 +259,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     final table = tester.widget<TableView>(find.byType(TableView));
     expect(table.game.characterForSeat(1), Character.erika);
-    expect(table.game.characterForSeat(0), Character.adri);
+    expect(table.game.characterForSeat(0), Character.nagomi);
     expect(table.game.characterForSeat(2), Character.matityahu);
     expect(table.game.characterForSeat(3), Character.sherman);
   });

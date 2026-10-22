@@ -65,6 +65,7 @@ enum Character {
   ricky,
   finley,
   adri,
+  nagomi,
 }
 
 /// The personas a human can pick from online. `resolveCharacter`
@@ -87,6 +88,7 @@ const List<Character> kSelectableCharacters = [
   Character.ricky,
   Character.finley,
   Character.adri,
+  Character.nagomi,
 ];
 
 const Map<Character, String> kCharacterName = {
@@ -105,6 +107,7 @@ const Map<Character, String> kCharacterName = {
   Character.ricky: 'Ricky',
   Character.finley: 'Finley',
   Character.adri: 'Adri',
+  Character.nagomi: 'Nagomi',
 };
 
 const Map<Character, String> kCharacterPortrait = {
@@ -123,6 +126,7 @@ const Map<Character, String> kCharacterPortrait = {
   Character.ricky: 'assets/ricky/ricky.png',
   Character.finley: 'assets/finley/finley.png',
   Character.adri: 'assets/adri/adri.png',
+  Character.nagomi: 'assets/nagomi/nagomi.png',
 };
 
 /// Fire-and-forget sound player.
@@ -179,6 +183,19 @@ class Sfx {
   /// Per-character voice assets. `null` means that character has no recording
   /// for that line, so it is silently skipped.
   static const Map<Character, Map<VoiceKind, String?>> _voiceAsset = {
+    // Calls synthesized locally from the supplied Nodoka sample; the
+    // match-win invitation is the original recording (tools/mknagomi.py).
+    Character.nagomi: {
+      VoiceKind.chi: 'nagomi/Nagomi_Chi.wav',
+      VoiceKind.pon: 'nagomi/Nagomi_Pon.wav',
+      VoiceKind.kan: 'nagomi/Nagomi_Kan.wav',
+      VoiceKind.riichi: 'nagomi/Nagomi_Riichi.wav',
+      VoiceKind.ron: 'nagomi/Nagomi_ron.wav',
+      VoiceKind.tsumo: 'nagomi/Nagomi_Tsumo.wav',
+      VoiceKind.yeah: 'nagomi/Nagomi_Yeah.wav',
+      VoiceKind.acquiescement: 'nagomi/Nagomi_Acquiescement.wav',
+      VoiceKind.win: 'nagomi/Nagomi_Win.wav',
+    },
     Character.adri: {
       VoiceKind.chi: 'adri/Adri_Chi.wav',
       VoiceKind.pon: 'adri/Adri_Pon.wav',
