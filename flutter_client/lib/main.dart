@@ -21,6 +21,7 @@ import 'l10n/mahjong_terms.dart';
 import 'l10n/guide_terms.dart';
 import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'logic/progress.dart';
+import 'logic/quiz_rules.dart';
 import 'net/guest_identity.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -787,105 +788,6 @@ class _NudgeCard extends StatelessWidget {
   }
 }
 
-/// The welcome screen's daily-quiz card: the TileSensor mascot, whether
-/// today's puzzle is waiting or done, and the streak.
-class _DailyQuizCard extends StatelessWidget {
-  const _DailyQuizCard(this.onPressed);
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = ProgressStore.instance;
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final l10n = context.l10n;
-        final today = DateTime.now();
-        final done = store.value.quizAnsweredOn(today);
-        final streak = store.value.quizStreakOn(today);
-        return e2eId(
-          'dailyQuizCard',
-          Material(
-            color: const Color(0xff0c3a3a),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(
-                  color: done ? Colors.white24 : AppColors.gold,
-                  width: done ? 1 : 2),
-            ),
-            child: InkWell(
-              key: const Key('dailyQuizCard'),
-              borderRadius: BorderRadius.circular(14),
-              onTap: onPressed,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      kTileSensorAsset,
-                      key: const Key('dailyQuizMascot'),
-                      height: 44,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(l10n.quizTitle,
-                            style: const TextStyle(
-                                color: AppColors.goldText,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
-                        // On the status line rather than a third one, to keep
-                        // the card, and so the welcome screen, no taller.
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              done ? l10n.quizCardDone : l10n.quizCardToday,
-                              key: const Key('dailyQuizStatus'),
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 14),
-                            ),
-                            const SizedBox(width: 10),
-                            const RiichiOnlyBadge(fontSize: 12),
-                          ],
-                        ),
-                      ],
-                    ),
-                    if (streak > 0) ...[
-                      const SizedBox(width: 18),
-                      Container(
-                        key: const Key('dailyQuizStreak'),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.gold,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(l10n.quizStreak(streak),
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 class _FullscreenButton extends StatefulWidget {
   const _FullscreenButton();
 
@@ -1450,6 +1352,7 @@ class _GamePageState extends State<GamePage> {
           label: context.l10n.loadingQuiz,
           onBack: () => setState(() => _dailyQuiz = false),
           builder: (_) => quiz.DailyQuizScreen(
+            ruleset: _selectedRuleset,
             onExit: () => setState(() => _dailyQuiz = false),
           ),
         );
@@ -1762,8 +1665,9 @@ class _GamePageState extends State<GamePage> {
                                 const SizedBox(width: 5),
                                 Text(on ? context.l10n.on : context.l10n.off,
                                     style: TextStyle(
-                                        color:
-                                            on ? AppColors.gold : Colors.white54,
+                                        color: on
+                                            ? AppColors.gold
+                                            : Colors.white54,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700)),
                               ],
@@ -2036,6 +1940,7 @@ class _WelcomeScreen extends StatelessWidget {
         key: const Key('learnPopup'),
         title: context.l10n.learnTile,
         children: [
+          _DailyQuizAction(ruleset: ruleset, onPressed: onDailyQuiz),
           _PopupAction(
             id: 'learnToPlay',
             icon: Icons.school_outlined,
@@ -2107,31 +2012,35 @@ class _WelcomeScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TileSensorTooltip(
-                      child: Image.asset(
-                        kTileSensorAsset,
-                        height: 96,
-                        filterQuality: FilterQuality.high,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.l10n.welcomeTo,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Text(
-                      'TileSense',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.goldText,
-                        fontSize: 66,
-                        fontWeight: FontWeight.w800,
+                    // The mascot beside the name, a lockup rather than a
+                    // greeting: scaled down together where the screen is
+                    // narrow.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        key: const Key('welcomeLockup'),
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          TileSensorTooltip(
+                            child: Image.asset(
+                              kTileSensorAsset,
+                              height: 104,
+                              filterQuality: FilterQuality.high,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+                          const SizedBox(width: 18),
+                          const Text(
+                            'TileSense',
+                            style: TextStyle(
+                              color: AppColors.goldText,
+                              fontSize: 72,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -2163,8 +2072,6 @@ class _WelcomeScreen extends StatelessWidget {
                       onRuleset: onRuleset,
                       onMinimumFaan: onMinimumFaan,
                     ),
-                    const SizedBox(height: 10),
-                    _DailyQuizCard(onDailyQuiz),
                     const SizedBox(height: 18),
                     // Play: three equal buttons, one tap from a game.
                     Wrap(
@@ -2220,12 +2127,29 @@ class _WelcomeScreen extends StatelessWidget {
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        _TitleButton(
-                          key: const Key('learnTile'),
-                          id: 'learnTile',
-                          onPressed: () => _showLearn(context),
-                          icon: const Icon(Icons.school_outlined, size: 28),
-                          title: context.l10n.learnTile,
+                        // Learn carries the daily quiz: gold while today's
+                        // puzzle is waiting, with the streak beneath.
+                        ListenableBuilder(
+                          listenable: ProgressStore.instance,
+                          builder: (context, _) {
+                            final l10n = context.l10n;
+                            final today = DateTime.now();
+                            final progress = ProgressStore.instance.value;
+                            final done = progress.quizAnsweredOn(today);
+                            final streak = progress.quizStreakOn(today);
+                            return _TitleButton(
+                              key: const Key('learnTile'),
+                              id: 'learnTile',
+                              accent: !done,
+                              onPressed: () => _showLearn(context),
+                              icon: const Icon(Icons.school_outlined, size: 28),
+                              title: l10n.learnTile,
+                              subtitle: [
+                                done ? l10n.quizCardDone : l10n.quizCardToday,
+                                if (streak > 0) l10n.quizStreak(streak),
+                              ].join(' · '),
+                            );
+                          },
                         ),
                         _TitleButton(
                           key: const Key('rulesTile'),
@@ -2343,6 +2267,7 @@ class _TitleButton extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.primary = false,
+    this.accent = false,
     this.id,
   });
 
@@ -2354,6 +2279,9 @@ class _TitleButton extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool primary;
+
+  /// Outlined in gold to say something here is waiting (today's quiz).
+  final bool accent;
 
   /// The Playwright handle, when the e2e suite drives this button.
   final String? id;
@@ -2400,7 +2328,11 @@ class _TitleButton extends StatelessWidget {
             )
           : OutlinedButton(
               onPressed: onPressed,
-              style: AppButtons.secondary(padding: padding),
+              style: accent
+                  ? AppButtons.secondary(padding: padding).copyWith(
+                      side: const WidgetStatePropertyAll(
+                          BorderSide(color: AppColors.gold, width: 3)))
+                  : AppButtons.secondary(padding: padding),
               child: label,
             ),
     );
@@ -2469,6 +2401,97 @@ Future<void> _showTitlePopup(
         ),
       ),
     );
+
+/// The Learn popup's first row: today's quiz, whether its puzzle is waiting or
+/// done, the streak, and the rules the puzzle is posed in.
+class _DailyQuizAction extends StatelessWidget {
+  const _DailyQuizAction({required this.ruleset, required this.onPressed});
+
+  /// The rules selected on the welcome screen; the puzzle is posed in these
+  /// where the quiz has them, and in [kQuizFallback]'s where it does not.
+  final Ruleset ruleset;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: ProgressStore.instance,
+        builder: (context, _) {
+          final l10n = context.l10n;
+          final today = DateTime.now();
+          final progress = ProgressStore.instance.value;
+          final done = progress.quizAnsweredOn(today);
+          final streak = progress.quizStreakOn(today);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: e2eId(
+              'dailyQuizCard',
+              OutlinedButton(
+                key: const Key('dailyQuizCard'),
+                onPressed: () {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  onPressed();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.link,
+                  side: BorderSide(
+                      color: done ? Colors.white24 : AppColors.gold,
+                      width: done ? 1 : 2),
+                  minimumSize: const Size(0, 76),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  alignment: Alignment.centerLeft,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.quiz_outlined, size: 28),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.quizTitle,
+                              style: const TextStyle(
+                                  color: AppColors.goldText,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text(
+                            done ? l10n.quizCardDone : l10n.quizCardToday,
+                            key: const Key('dailyQuizStatus'),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
+                          ),
+                          const SizedBox(height: 2),
+                          QuizRulesBadge(quizRulesetFor(ruleset), fontSize: 12),
+                        ],
+                      ),
+                    ),
+                    if (streak > 0) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        key: const Key('dailyQuizStreak'),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.gold,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(l10n.quizStreak(streak),
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+}
 
 /// One row in a title-screen popup. Closes the popup first, then runs
 /// [onPressed].

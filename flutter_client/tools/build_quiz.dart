@@ -1,11 +1,14 @@
 /// Builds `assets/quiz/daily.json`, the puzzles behind the daily quiz.
 ///
-/// Needs a running Mortal sidecar (`mortal_sidecar/server.py`). Run from
-/// flutter_client/ as a test, which gives it the Flutter libraries the guide
-/// is built on:
+/// Riichi puzzles need a running Mortal sidecar (`mortal_sidecar/server.py`).
+/// Run from flutter_client/ as a test, which gives it the Flutter libraries the
+/// guide is built on:
 ///
 ///     QUIZ_MORTAL_URL=http://127.0.0.1:8790 QUIZ_COUNT=60 QUIZ_SEED=1 \
 ///         flutter test tools/build_quiz.dart
+///
+/// QUIZ_RULESET=hongKong makes Hong Kong puzzles instead. Mortal does not play
+/// those rules, so no sidecar is needed: TileSense's own clear lead is the bar.
 ///
 /// QUIZ_COUNT is how many puzzles to add (default 60) and QUIZ_SEED picks the
 /// random tables (default 1). Puzzles already in the file are kept, and the new
@@ -18,16 +21,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/logic/daily_quiz.dart';
+import 'package:tilesense/logic/quiz_rules.dart';
 
 import 'quiz_generator.dart';
 
 void main() {
   test('build the daily quiz', () async {
     final env = Platform.environment;
+    final ruleset = Ruleset.values.byName(env['QUIZ_RULESET'] ?? 'riichi');
+    expect(kQuizRulesets, contains(ruleset), reason: 'no quiz for $ruleset');
     final url = env['QUIZ_MORTAL_URL'];
-    if (url == null || url.isEmpty) {
+    if (ruleset.isRiichi && (url == null || url.isEmpty)) {
       fail('Set QUIZ_MORTAL_URL to the Mortal sidecar, e.g. '
           'http://127.0.0.1:8790');
     }
@@ -42,14 +49,17 @@ void main() {
           ]
         : <QuizPuzzle>[];
 
-    final advisor = MortalAdvisor(url);
+    final advisor = ruleset.isRiichi ? MortalAdvisor(url!) : null;
     final generator = QuizGenerator(
       seed: int.parse(env['QUIZ_SEED'] ?? '1'),
+      ruleset: ruleset,
       minMargin: double.parse(env['QUIZ_MARGIN'] ?? '0.10'),
-      mortal: askSidecar(advisor.advise),
+      mortal: advisor == null ? null : askSidecar(advisor.advise),
     );
+    // Ids count up within a ruleset, so a pool can grow without renumbering.
+    final have = existing.where((p) => p.ruleset == ruleset).length;
     final made = await generator.generate(count,
-        firstNumber: existing.length + 1, maxTries: count * 400);
+        firstNumber: have + 1, maxTries: count * 400);
 
     // ignore: avoid_print
     print(

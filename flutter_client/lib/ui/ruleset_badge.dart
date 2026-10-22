@@ -71,22 +71,24 @@ class RulesetBadge extends StatelessWidget {
   }
 }
 
-/// "Riichi (Japanese) mahjong rules only", for the daily quiz: its puzzles
-/// are riichi tables whatever rules the welcome screen has selected.
-class RiichiOnlyBadge extends StatelessWidget {
-  const RiichiOnlyBadge({super.key, this.fontSize = 13});
+/// The rules a daily-quiz puzzle is posed under: the flag and the ruleset's
+/// name. The welcome screen's selection picks the puzzle, but Taiwanese and
+/// Sichuan have none yet and take riichi's, so this says which rules apply.
+class QuizRulesBadge extends StatelessWidget {
+  const QuizRulesBadge(this.ruleset, {super.key, this.fontSize = 13});
 
+  final Ruleset ruleset;
   final double fontSize;
 
   @override
   Widget build(BuildContext context) => Row(
-        key: const Key('riichiOnlyBadge'),
+        key: const Key('quizRulesBadge'),
         mainAxisSize: MainAxisSize.min,
         children: [
-          RulesetFlag(Ruleset.riichi, size: fontSize),
+          RulesetFlag(ruleset, size: fontSize),
           const SizedBox(width: 6),
           Flexible(
-            child: Text(context.l10n.quizRiichiOnly,
+            child: Text(context.l10n.rulesetName(ruleset),
                 style: TextStyle(
                     color: AppColors.goldText,
                     fontSize: fontSize,

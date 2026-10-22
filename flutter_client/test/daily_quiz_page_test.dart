@@ -83,7 +83,7 @@ void main() {
         find.descendant(of: own, matching: find.byType(Image)), findsNothing);
   });
 
-  testWidgets('says riichi only, and Back is also at the bottom of the panel',
+  testWidgets('says which rules, and Back is also at the bottom of the panel',
       (tester) async {
     var exits = 0;
     await pumpLocalized(
@@ -92,7 +92,11 @@ void main() {
             puzzle: first((p) => p.kind == QuizKind.discard),
             onExit: () => exits++),
         size: const Size(1600, 820));
-    expect(find.text('Riichi (Japanese) mahjong rules only'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('quizRulesBadge')),
+            matching: find.text('Riichi')),
+        findsOneWidget);
 
     await tester.tap(find.byKey(const Key('quizBackBottom')));
     await tester.pump();

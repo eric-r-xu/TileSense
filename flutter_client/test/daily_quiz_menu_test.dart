@@ -82,40 +82,78 @@ void main() {
     }
   }
 
-  testWidgets(
-      'the card opens the quiz and Back '
-      'returns', (tester) async {
-    await pumpMenu(tester);
-    expect(find.byKey(const Key('dailyQuizMascot')), findsOneWidget);
-    expect(find.byKey(const Key('dailyQuizStreak')), findsNothing);
+  /// Opens the quiz from the Learn popup.
+  Future<void> openQuiz(WidgetTester tester) =>
+      tapInPopup(tester, 'learnTile', find.byKey(const Key('dailyQuizCard')));
 
-    for (final entry in ['dailyQuizCard']) {
-      await tester.tap(find.byKey(Key(entry)));
-      await settle(tester);
-      expect(find.byKey(const Key('quizQuestion')), findsOneWidget,
-          reason: entry);
-      await tester.tap(find.byKey(const Key('quizBack')));
-      await tester.pump();
-      expect(find.text('Single Player'), findsOneWidget);
-    }
+  String tileText(WidgetTester tester) => tester
+      .widgetList<Text>(find.descendant(
+          of: find.byKey(const Key('learnTile')), matching: find.byType(Text)))
+      .map((t) => t.data)
+      .join('|');
+
+  testWidgets(
+      'the Learn tile says the puzzle is waiting, and its popup opens the '
+      'quiz and Back returns', (tester) async {
+    await pumpMenu(tester);
+    expect(tileText(tester), contains("Today's puzzle is ready"));
+    expect(find.byKey(const Key('dailyQuizCard')), findsNothing,
+        reason: 'the quiz is in the Learn popup, not a card of its own');
+    expect(find.byKey(const Key('dailyQuizMascot')), findsNothing);
+
+    await openPopup(tester, 'learnTile');
+    expect(find.byKey(const Key('dailyQuizStreak')), findsNothing);
+    await tester.tap(find.byKey(const Key('dailyQuizCard')));
+    await tester.pump();
+    await settle(tester);
+    expect(find.byKey(const Key('quizQuestion')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quizBack')));
+    await tester.pump();
+    expect(find.text('Single Player'), findsOneWidget);
   });
 
-  testWidgets(
-      'the card and the quiz say it is riichi only, whatever rules are chosen',
+  testWidgets('the quiz is posed in the rules chosen, riichi where it has none',
       (tester) async {
     await pumpMenu(tester);
-    await tapInPopup(
-        tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
+
+    // Hong Kong, the welcome screen's default, has puzzles of its own.
+    await openPopup(tester, 'learnTile');
     expect(
         find.descendant(
             of: find.byKey(const Key('dailyQuizCard')),
-            matching: find.text('Riichi (Japanese) mahjong rules only')),
-        findsOneWidget);
-
+            matching: find.text('Hong Kong')),
+        findsWidgets);
     await tester.tap(find.byKey(const Key('dailyQuizCard')));
+    await tester.pump();
     await settle(tester);
-    expect(find.byKey(const Key('riichiOnlyBadge')), findsOneWidget);
-    expect(find.text('Riichi (Japanese) mahjong rules only'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('quizRulesBadge')),
+            matching: find.text('Hong Kong')),
+        findsWidgets);
+    // Mortal does not play Hong Kong rules, so nothing here is Mortal's.
+    expect(find.byKey(const Key('quizRiichi')), findsNothing);
+    await tester.tap(find.byKey(const Key('quizChoice_0')));
+    await tester.pump();
+    expect(find.byKey(const Key('quizReveal')), findsOneWidget);
+    expect(find.byKey(const Key('quizAgree')), findsNothing);
+    expect(find.byKey(const Key('quizMortalLine')), findsNothing);
+    await tester.tap(find.byKey(const Key('quizBack')));
+    await tester.pump();
+
+    // Riichi, and Taiwanese which has no pool yet, both get riichi puzzles.
+    for (final ruleset in ['riichi', 'taiwanese']) {
+      await tapInPopup(
+          tester, 'rulesTile', find.byKey(Key('ruleset_$ruleset')));
+      await openPopup(tester, 'learnTile');
+      expect(
+          find.descendant(
+              of: find.byKey(const Key('dailyQuizCard')),
+              matching: find.text('Riichi')),
+          findsWidgets,
+          reason: ruleset);
+      await closePopup(tester);
+    }
   });
 
   testWidgets(
@@ -126,7 +164,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const TileSenseApp());
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('dailyQuizCard')));
+    await openQuiz(tester);
     await settle(tester);
 
     // Both are drawn at the canvas's ~0.48 scale, so 44pt is about 92 canvas
@@ -143,10 +181,10 @@ void main() {
     expect(find.text('Single Player'), findsOneWidget);
   });
 
-  testWidgets('answering marks today done and starts the streak on the card',
+  testWidgets('answering marks today done and starts the streak on the tile',
       (tester) async {
     await pumpMenu(tester);
-    await tester.tap(find.byKey(const Key('dailyQuizCard')));
+    await openQuiz(tester);
     await settle(tester);
     await tester.tap(find.byKey(const Key('quizChoice_0')));
     await tester.pump();
@@ -158,6 +196,9 @@ void main() {
     await tester.tap(find.byKey(const Key('quizBack')));
     await tester.pump();
 
+    expect(tileText(tester),
+        contains('Done for today. Back tomorrow! · 1-day streak'));
+    await openPopup(tester, 'learnTile');
     expect(tester.widget<Text>(find.byKey(const Key('dailyQuizStatus'))).data,
         'Done for today. Back tomorrow!');
     expect(

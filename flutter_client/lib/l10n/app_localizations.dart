@@ -677,12 +677,6 @@ abstract class AppLocalizations {
   /// **'17 tiles, flowers, 1–5 tai minimum'**
   String get rulesetSubtitleTaiwanese;
 
-  /// No description provided for @welcomeTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Welcome to'**
-  String get welcomeTo;
-
   /// No description provided for @welcomeTagline.
   ///
   /// In en, this message translates to:
@@ -4756,12 +4750,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What would TileSensor do?'**
   String get quizTitle;
-
-  /// No description provided for @quizRiichiOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Riichi (Japanese) mahjong rules only'**
-  String get quizRiichiOnly;
 
   /// No description provided for @quizAskDiscard.
   ///

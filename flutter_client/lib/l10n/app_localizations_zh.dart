@@ -324,9 +324,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rulesetSubtitleTaiwanese => '17张、花牌、最低1–5台';
 
   @override
-  String get welcomeTo => '欢迎来到';
-
-  @override
   String welcomeTagline(String rules) {
     return '磨练你的$rules麻将决策\n指南只看你看得到的信息。';
   }
@@ -2583,9 +2580,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quizTitle => 'TileSensor会怎么打？';
 
   @override
-  String get quizRiichiOnly => '仅限日本立直麻将规则';
-
-  @override
   String get quizAskDiscard => '轮到你了，你刚摸了一张牌。你怎么做？';
 
   @override
@@ -3069,9 +3063,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get rulesetSubtitleTaiwanese => '17張、花牌、最低1–5台';
-
-  @override
-  String get welcomeTo => '歡迎來到';
 
   @override
   String welcomeTagline(String rules) {
@@ -5328,9 +5319,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get quizTitle => 'TileSensor會怎麼打？';
-
-  @override
-  String get quizRiichiOnly => '僅限日本立直麻將規則';
 
   @override
   String get quizAskDiscard => '輪到你了，你剛摸了一張牌。你怎麼做？';

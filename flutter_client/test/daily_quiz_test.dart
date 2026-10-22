@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/logic/efficiency_engine.dart' show Strategy;
+import 'package:tilesense/logic/quiz_rules.dart';
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/logic/daily_quiz.dart';
 import 'package:tilesense/scenario/scenario.dart';
@@ -234,6 +236,79 @@ void main() {
       expect(p.choices.where((x) => x == cut), hasLength(1), reason: p.id);
       c.dispose();
     }
+  });
+
+  group('Hong Kong', () {
+    Future<List<QuizPuzzle>> make(int count, {int seed = 3}) =>
+        QuizGenerator(seed: seed, ruleset: Ruleset.hongKong)
+            .generate(count, maxTries: 600);
+
+    test('puzzles are made without Mortal, on tables with no dora or riichi',
+        () async {
+      final puzzles = await make(6);
+      expect(puzzles, hasLength(6));
+      for (final p in puzzles) {
+        expect(p.id, startsWith('hk'));
+        expect(p.ruleset, Ruleset.hongKong);
+        expect(p.riichiOption, isFalse);
+        expect(p.mortalRanks, isEmpty);
+        expect(p.table.dora, isEmpty);
+        expect(p.table.riichiAt, everyElement(-1));
+        expect(p.table.riichiSticks, 0);
+        final c = p.pose();
+        expect(c.ruleset, Ruleset.hongKong);
+        expect(tileSenseChoice(c), p.answer, reason: p.id);
+        c.dispose();
+      }
+    });
+
+    test('a puzzle keeps its rules through JSON; riichi ones omit them',
+        () async {
+      final hk = (await make(1)).single;
+      final again = QuizPuzzle.fromJson(
+          jsonDecode(jsonEncode(hk.toJson())) as Map<String, Object?>);
+      expect(again.ruleset, Ruleset.hongKong);
+      expect(again.table.minimumFaan, hk.table.minimumFaan);
+      expect(jsonEncode(again.toJson()), jsonEncode(hk.toJson()));
+
+      final riichi = (await QuizGenerator(seed: 7, mortal: stand())
+              .generate(1, maxTries: 400))
+          .single;
+      expect(riichi.toJson()['table'], isNot(contains('ruleset')),
+          reason: 'the shipped riichi puzzles carry no ruleset key');
+      expect(
+          QuizPuzzle.fromJson(jsonDecode(jsonEncode(riichi.toJson()))
+                  as Map<String, Object?>)
+              .ruleset,
+          Ruleset.riichi);
+    });
+
+    test('the shipped file has a pool of each, and riichi\'s is first', () {
+      final puzzles = [
+        for (final p
+            in (jsonDecode(File('assets/quiz/daily.json').readAsStringSync())
+                as Map<String, Object?>)['puzzles']! as List)
+          QuizPuzzle.fromJson(p as Map<String, Object?>),
+      ];
+      final riichi = puzzles.where((p) => p.ruleset == Ruleset.riichi);
+      final hk = puzzles.where((p) => p.ruleset == Ruleset.hongKong);
+      expect(riichi.length, greaterThanOrEqualTo(360));
+      expect(hk.length, greaterThanOrEqualTo(60));
+      expect(riichi.every((p) => p.id.startsWith('q')), isTrue);
+      expect(hk.every((p) => p.id.startsWith('hk')), isTrue);
+      expect(
+          puzzles.take(riichi.length).every((p) => p.ruleset.isRiichi), isTrue,
+          reason: 'riichi stays first so no day\'s riichi puzzle moves');
+      expect(hk.where((p) => p.kind == QuizKind.call), isNotEmpty);
+    });
+
+    test('rulesets without puzzles of their own take riichi\'s', () {
+      expect(quizRulesetFor(Ruleset.riichi), Ruleset.riichi);
+      expect(quizRulesetFor(Ruleset.hongKong), Ruleset.hongKong);
+      for (final r in [Ruleset.taiwanese, Ruleset.sichuan, Ruleset.mcr]) {
+        expect(quizRulesetFor(r), Ruleset.riichi, reason: r.name);
+      }
+    });
   });
 
   test('the daily puzzle follows the calendar date, round the pool', () {
