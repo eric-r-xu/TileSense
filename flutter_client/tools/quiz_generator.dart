@@ -1,11 +1,14 @@
 /// Makes daily-quiz puzzles out of random tables, keeping only the ones
-/// TileSense and Mortal answer the same way, with a clear margin. Driven by
+/// TileSense and Mortal answer the same way, with a clear margin. Under Hong
+/// Kong rules there is no Mortal to ask, so TileSense's clear margin is all
+/// that is asked of a table. Driven by
 /// `build_quiz.dart`; split out so tests can run it with a stand-in Mortal.
 library;
 
 import 'dart:math';
 
 import 'package:mahjong_core/mjai.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/game/mortal_advisor.dart' show MortalAdvice;
 import 'package:tilesense/logic/daily_quiz.dart';
@@ -42,11 +45,17 @@ enum Reject {
 class QuizGenerator {
   QuizGenerator({
     required int seed,
-    required this.mortal,
+    this.mortal,
+    this.ruleset = Ruleset.riichi,
     this.minMargin = 0.10,
-  }) : _random = Random(seed);
+  })  : assert(mortal != null || !ruleset.isRiichi, 'riichi needs Mortal'),
+        _random = Random(seed);
 
-  final MortalAsk mortal;
+  /// Mortal's second opinion; null under rules it does not play.
+  final MortalAsk? mortal;
+
+  /// The rules the tables are played under.
+  final Ruleset ruleset;
 
   /// The least lead TileSense's pick must have over the next line, as a
   /// fraction of its expected value.
@@ -64,7 +73,7 @@ class QuizGenerator {
   /// Tries one random table of [kind]; null when it is not worth asking.
   Future<QuizPuzzle?> attempt(String id, QuizKind kind) async {
     final c = ScenarioController(askMortal: false);
-    final table = randomTable(_random, kind);
+    final table = randomTable(_random, kind, ruleset: ruleset);
     c.edit(table.applyTo);
     QuizPuzzle? out;
     final why = await _judge(id, c, kind, (p) => out = p);
@@ -95,7 +104,7 @@ class QuizGenerator {
       // A cut that leaves a ready hand is a two-part question: which cut,
       // then riichi or dama. The stored choices are just the cuts; the page
       // asks riichi or dama once a cut that leaves you ready is picked.
-      riichiOption = best.shanten == 0;
+      riichiOption = ruleset.isRiichi && best.shanten == 0;
       choices = [
         QuizChoice(QuizMove.discard, answer.tile),
         for (final l in rest) QuizChoice(QuizMove.discard, l.discard),
@@ -112,10 +121,16 @@ class QuizGenerator {
     }
     if (margin < minMargin) return Reject.tooClose;
 
-    final advice = await mortal(c.scenario, call: kind == QuizKind.call);
-    final theirs = advice == null ? null : mortalChoice(advice, kind: kind);
-    if (theirs == null) return Reject.mortalSilent;
-    if (theirs != answer) return Reject.disagree;
+    final ask = mortal;
+    final MortalAdvice? advice;
+    if (ask == null) {
+      advice = null;
+    } else {
+      advice = await ask(c.scenario, call: kind == QuizKind.call);
+      final theirs = advice == null ? null : mortalChoice(advice, kind: kind);
+      if (theirs == null) return Reject.mortalSilent;
+      if (theirs != answer) return Reject.disagree;
+    }
 
     if (kind == QuizKind.call) {
       final pass = answer.move == QuizMove.pass;
@@ -129,12 +144,15 @@ class QuizGenerator {
       table: QuizTable.fromScenario(c.scenario),
       choices: choices..shuffle(_random),
       answer: answer,
-      mortalRanks: advice!.ranks,
+      mortalRanks: advice?.ranks ?? const {},
       margin: margin,
       riichiOption: riichiOption,
     ));
     return null;
   }
+
+  /// The id prefix for [ruleset]: riichi's are `q0001`, the original ones.
+  static String idPrefix(Ruleset ruleset) => ruleset.isRiichi ? 'q' : 'hk';
 
   /// Puzzles of alternating kinds until [count] are made or [maxTries] tables
   /// have been asked about. Ids continue from [firstNumber].
@@ -144,7 +162,8 @@ class QuizGenerator {
     for (var tries = 0; out.length < count && tries < maxTries; tries++) {
       // Mostly discards: they are what a hand is mostly made of.
       final kind = _random.nextInt(3) == 0 ? QuizKind.call : QuizKind.discard;
-      final id = 'q${(firstNumber + out.length).toString().padLeft(4, '0')}';
+      final id = '${idPrefix(ruleset)}'
+          '${(firstNumber + out.length).toString().padLeft(4, '0')}';
       final puzzle = await attempt(id, kind);
       if (puzzle != null) out.add(puzzle);
     }
@@ -157,7 +176,9 @@ class QuizGenerator {
 /// A random mid-game table. The hand is a finished hand with a few tiles
 /// swapped for others, so it sits one to four steps from ready rather than
 /// being the junk a plain deal usually is.
-QuizTable randomTable(Random r, QuizKind kind) {
+QuizTable randomTable(Random r, QuizKind kind,
+    {Ruleset ruleset = Ruleset.riichi}) {
+  final riichi = ruleset.isRiichi;
   // Copies of each playing tile still unplaced, indexed by type - 1.
   final left = List.filled(34, 4);
   bool has(TileType t) => left[t.index - 1] > 0;
@@ -278,12 +299,15 @@ QuizTable randomTable(Random r, QuizKind kind) {
   }
   if (kind == QuizKind.call) hand.sort((a, b) => a.index.compareTo(b.index));
 
-  // One dora indicator.
-  TileType indicator;
-  do {
-    indicator = at(1 + r.nextInt(34));
-  } while (!has(indicator));
-  take(indicator);
+  // One dora indicator; Hong Kong has none.
+  final dora = <TileType>[];
+  if (riichi) {
+    TileType indicator;
+    do {
+      indicator = at(1 + r.nextInt(34));
+    } while (!has(indicator));
+    dora.add(take(indicator));
+  }
 
   // Ponds: the same number of turns for every seat. Early cuts lean on
   // terminals and honors, as real ones do.
@@ -307,7 +331,7 @@ QuizTable randomTable(Random r, QuizKind kind) {
   // Sometimes one opponent is in riichi, declared a few cuts ago.
   final riichiAt = [-1, -1, -1, -1];
   var sticks = 0;
-  if (r.nextInt(10) < 3) {
+  if (riichi && r.nextInt(10) < 3) {
     riichiAt[1 + r.nextInt(3)] = max(2, turns - 1 - r.nextInt(4));
     sticks = 1;
   }
@@ -315,7 +339,7 @@ QuizTable randomTable(Random r, QuizKind kind) {
   // Half the tables are level on points; the rest have a spread, which is
   // what makes placement matter in the last hands.
   var points = const [25000, 25000, 25000, 25000];
-  if (r.nextBool()) {
+  if (riichi && r.nextBool()) {
     List<int> spread;
     do {
       final d = [for (var i = 0; i < 3; i++) (r.nextInt(301) - 150) * 100];
@@ -333,7 +357,7 @@ QuizTable randomTable(Random r, QuizKind kind) {
     dealer: dealer,
     honba: 0,
     riichiSticks: sticks,
-    dora: [indicator],
+    dora: dora,
     wallRemaining: max(10, 70 - 4 * turns - 1),
     hand: hand,
     ponds: ponds,
@@ -341,5 +365,6 @@ QuizTable randomTable(Random r, QuizKind kind) {
     offered: offered,
     offeredFrom: offeredFrom,
     points: points,
+    ruleset: ruleset,
   );
 }

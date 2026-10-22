@@ -182,7 +182,6 @@
   "rulesetSubtitleRiichi": "yaku, dora, riichi",
   "rulesetSubtitleHongKong": "faan, flowers, 0–3 faan minimum",
   "rulesetSubtitleTaiwanese": "17 tiles, flowers, 1–5 tai minimum",
-  "welcomeTo": "Welcome to",
   "welcomeTagline": "Sharpen your {rules} Mahjong decisions\nwith a guide that sees only what you see.",
   "@welcomeTagline": {
     "placeholders": {
@@ -1608,7 +1607,6 @@
   "nudgeNotNow": "Not now",
   "nudgeStop": "Stop suggesting",
   "quizTitle": "What would TileSensor do?",
-  "quizRiichiOnly": "Riichi (Japanese) mahjong rules only",
   "quizAskDiscard": "It's your turn and you've drawn. What do you do?",
   "quizAskCall": "{seat} just discarded. What do you do?",
   "@quizAskCall": {

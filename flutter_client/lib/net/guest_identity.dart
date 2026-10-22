@@ -58,7 +58,9 @@ class GuestIdentity {
     final name = platform.localStorageGet(_kNameKey) ?? '';
     final character = kSelectableCharacters.firstWhere(
       (c) => c.name == platform.localStorageGet(_kCharacterKey),
-      orElse: () => Character.eric,
+      // Nobody has picked yet: a random persona, so a table of newcomers is
+      // not four Erics. Not saved, so it stays random until they choose.
+      orElse: () => (List.of(kSelectableCharacters)..shuffle()).first,
     );
     final identity = GuestIdentity._(id, name, character);
     final room = platform.localStorageGet(_kActiveRoomKey);

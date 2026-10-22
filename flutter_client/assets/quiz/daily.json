@@ -37760,6 +37760,5447 @@
    },
    "margin": 0.754,
    "riichiOption": true
+  },
+  {
+   "id": "hk0001",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 0,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "3m",
+     "3p",
+     "4p",
+     "4p",
+     "5p",
+     "5p",
+     "6p",
+     "6p",
+     "7p",
+     "8p",
+     "9p",
+     "9p",
+     "9p",
+     "8p"
+    ],
+    "ponds": [
+     [
+      "6m",
+      "1m",
+      "7m",
+      "7p",
+      "N",
+      "4p",
+      "5s"
+     ],
+     [
+      "3p",
+      "9m",
+      "5s",
+      "3s",
+      "S",
+      "3s",
+      "1p"
+     ],
+     [
+      "2s",
+      "6s",
+      "9m",
+      "3p",
+      "R",
+      "2m",
+      "7s"
+     ],
+     [
+      "G",
+      "B",
+      "1s",
+      "B",
+      "W",
+      "4s",
+      "E"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "3m"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "3m"
+   },
+   "margin": 0.657
+  },
+  {
+   "id": "hk0002",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 1,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "3m",
+     "4m",
+     "4m",
+     "5m",
+     "6m",
+     "7m",
+     "8m",
+     "8m",
+     "6s",
+     "N",
+     "N",
+     "B",
+     "B",
+     "N"
+    ],
+    "ponds": [
+     [
+      "E",
+      "5p",
+      "9p",
+      "6p",
+      "4p",
+      "5m",
+      "7p",
+      "6m",
+      "9m",
+      "1p",
+      "3m"
+     ],
+     [
+      "S",
+      "E",
+      "2p",
+      "6s",
+      "6p",
+      "2m",
+      "1s",
+      "8p",
+      "7s",
+      "W",
+      "S"
+     ],
+     [
+      "9p",
+      "1p",
+      "9p",
+      "4m",
+      "2p",
+      "G",
+      "3m",
+      "W",
+      "4s",
+      "4s",
+      "G"
+     ],
+     [
+      "8s",
+      "8p",
+      "6s",
+      "8p",
+      "9p",
+      "9s",
+      "3s",
+      "R",
+      "N",
+      "7m",
+      "7m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "4m"
+    },
+    {
+     "move": "discard",
+     "tile": "8m"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "7m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "6s"
+   },
+   "margin": 0.422
+  },
+  {
+   "id": "hk0003",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 3,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "3p",
+     "4p",
+     "6p",
+     "6p",
+     "7p",
+     "7p",
+     "8p",
+     "8p",
+     "4s",
+     "4s",
+     "W",
+     "W",
+     "W",
+     "8p"
+    ],
+    "ponds": [
+     [
+      "1m",
+      "8m",
+      "4m",
+      "7m",
+      "9p"
+     ],
+     [
+      "R",
+      "S",
+      "6s",
+      "2p",
+      "G"
+     ],
+     [
+      "4p",
+      "1s",
+      "7s",
+      "N",
+      "B"
+     ],
+     [
+      "8m",
+      "7s",
+      "1m",
+      "8s",
+      "S"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "8p"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8p"
+   },
+   "margin": 0.494
+  },
+  {
+   "id": "hk0004",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 1,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "8m",
+     "1p",
+     "2p",
+     "3p",
+     "4p",
+     "5p",
+     "5p",
+     "6p",
+     "7s",
+     "8s",
+     "R",
+     "R",
+     "R",
+     "5p"
+    ],
+    "ponds": [
+     [
+      "7m",
+      "S",
+      "W",
+      "B",
+      "9s",
+      "W",
+      "9m"
+     ],
+     [
+      "2p",
+      "2s",
+      "W",
+      "S",
+      "1p",
+      "B",
+      "N"
+     ],
+     [
+      "4m",
+      "3m",
+      "G",
+      "7m",
+      "4p",
+      "3m",
+      "6m"
+     ],
+     [
+      "1m",
+      "B",
+      "1p",
+      "1p",
+      "E",
+      "8p",
+      "W"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "4p"
+    },
+    {
+     "move": "discard",
+     "tile": "8m"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "1p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8m"
+   },
+   "margin": 0.455
+  },
+  {
+   "id": "hk0005",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 37,
+    "hand": [
+     "4m",
+     "3p",
+     "3p",
+     "3p",
+     "4p",
+     "7p",
+     "8p",
+     "9p",
+     "9s",
+     "9s",
+     "B",
+     "B",
+     "B",
+     "4p"
+    ],
+    "ponds": [
+     [
+      "5m",
+      "6m",
+      "R",
+      "S",
+      "G",
+      "5p",
+      "9p",
+      "1m"
+     ],
+     [
+      "7s",
+      "W",
+      "7m",
+      "8s",
+      "R",
+      "W",
+      "9m",
+      "2m"
+     ],
+     [
+      "1m",
+      "2m",
+      "2s",
+      "5s",
+      "1p",
+      "4m",
+      "G",
+      "6p"
+     ],
+     [
+      "G",
+      "4s",
+      "R",
+      "6s",
+      "5s",
+      "8m",
+      "W",
+      "E"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "4m"
+    },
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    },
+    {
+     "move": "discard",
+     "tile": "9s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "4m"
+   },
+   "margin": 0.29
+  },
+  {
+   "id": "hk0006",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 17,
+    "hand": [
+     "2m",
+     "4m",
+     "4m",
+     "4m",
+     "4m",
+     "6m",
+     "6m",
+     "7m",
+     "7m",
+     "8m",
+     "9m",
+     "4p",
+     "9s",
+     "8m"
+    ],
+    "ponds": [
+     [
+      "G",
+      "6p",
+      "3s",
+      "1p",
+      "6s",
+      "3m",
+      "5p",
+      "E",
+      "1m",
+      "B",
+      "8s",
+      "6p",
+      "9s"
+     ],
+     [
+      "B",
+      "5p",
+      "7s",
+      "B",
+      "R",
+      "1s",
+      "4s",
+      "2p",
+      "3p",
+      "1s",
+      "W",
+      "1p",
+      "3m"
+     ],
+     [
+      "4s",
+      "2m",
+      "S",
+      "N",
+      "R",
+      "1s",
+      "9m",
+      "5m",
+      "9p",
+      "S",
+      "5p",
+      "S",
+      "1s"
+     ],
+     [
+      "G",
+      "9p",
+      "1m",
+      "R",
+      "6s",
+      "2p",
+      "6m",
+      "9s",
+      "9p",
+      "3s",
+      "N",
+      "S",
+      "E"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "9s"
+    },
+    {
+     "move": "discard",
+     "tile": "2m"
+    },
+    {
+     "move": "discard",
+     "tile": "6m"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "9s"
+   },
+   "margin": 0.141
+  },
+  {
+   "id": "hk0007",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "2m",
+     "4m",
+     "3p",
+     "4p",
+     "5p",
+     "7p",
+     "7p",
+     "7p",
+     "3s",
+     "5s",
+     "6s",
+     "6s",
+     "7s",
+     "7p"
+    ],
+    "ponds": [
+     [
+      "5p",
+      "N",
+      "B",
+      "N",
+      "3p",
+      "4s",
+      "3m"
+     ],
+     [
+      "R",
+      "9m",
+      "2s",
+      "2p",
+      "1m",
+      "2m",
+      "9m"
+     ],
+     [
+      "6m",
+      "9s",
+      "8s",
+      "B",
+      "G",
+      "7s",
+      "5p"
+     ],
+     [
+      "8m",
+      "G",
+      "9p",
+      "E",
+      "2p",
+      "B",
+      "S"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "7s"
+    },
+    {
+     "move": "discard",
+     "tile": "2m"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "7p"
+   },
+   "margin": 0.369
+  },
+  {
+   "id": "hk0008",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 17,
+    "hand": [
+     "1s",
+     "2s",
+     "3s",
+     "3s",
+     "3s",
+     "4s",
+     "4s",
+     "5s",
+     "6s",
+     "7s",
+     "N",
+     "N",
+     "N",
+     "2s"
+    ],
+    "ponds": [
+     [
+      "4s",
+      "E",
+      "B",
+      "G",
+      "B",
+      "6s",
+      "9s",
+      "3p",
+      "1p",
+      "7s",
+      "9p",
+      "S",
+      "E"
+     ],
+     [
+      "3m",
+      "1p",
+      "8p",
+      "1m",
+      "2s",
+      "B",
+      "5p",
+      "8m",
+      "E",
+      "W",
+      "5s",
+      "W",
+      "3m"
+     ],
+     [
+      "8p",
+      "5p",
+      "5m",
+      "7m",
+      "1p",
+      "9p",
+      "1m",
+      "G",
+      "3p",
+      "3p",
+      "9s",
+      "S",
+      "6p"
+     ],
+     [
+      "6p",
+      "7m",
+      "1s",
+      "8m",
+      "6m",
+      "6m",
+      "G",
+      "9m",
+      "6m",
+      "2p",
+      "1s",
+      "9s",
+      "N"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "3s"
+    },
+    {
+     "move": "discard",
+     "tile": "7s"
+    },
+    {
+     "move": "discard",
+     "tile": "N"
+    },
+    {
+     "move": "discard",
+     "tile": "1s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "N"
+   },
+   "margin": 0.593
+  },
+  {
+   "id": "hk0009",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 0,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "2p",
+     "2p",
+     "2p",
+     "2p",
+     "3p",
+     "4p",
+     "6p",
+     "6p",
+     "6p",
+     "7p",
+     "8p",
+     "9p",
+     "9p",
+     "6s"
+    ],
+    "ponds": [
+     [
+      "8m",
+      "N",
+      "G",
+      "G",
+      "N"
+     ],
+     [
+      "5s",
+      "R",
+      "8m",
+      "1s",
+      "N"
+     ],
+     [
+      "3p",
+      "S",
+      "R",
+      "6s",
+      "9m"
+     ],
+     [
+      "6m",
+      "5m",
+      "5s",
+      "1m",
+      "6p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "2p"
+    },
+    {
+     "move": "discard",
+     "tile": "8p"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "6s"
+   },
+   "margin": 0.427
+  },
+  {
+   "id": "hk0010",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "2s",
+     "2s",
+     "3s",
+     "4s",
+     "4s",
+     "4s",
+     "4s",
+     "6s",
+     "S",
+     "S",
+     "S",
+     "S",
+     "G",
+     "7p"
+    ],
+    "ponds": [
+     [
+      "6m",
+      "B",
+      "3p",
+      "W",
+      "3s",
+      "8m"
+     ],
+     [
+      "5p",
+      "9s",
+      "4p",
+      "5s",
+      "N",
+      "8p"
+     ],
+     [
+      "8s",
+      "W",
+      "5m",
+      "5s",
+      "4m",
+      "9s"
+     ],
+     [
+      "3p",
+      "9s",
+      "7s",
+      "2m",
+      "9s",
+      "G"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "2s"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    },
+    {
+     "move": "discard",
+     "tile": "G"
+    },
+    {
+     "move": "discard",
+     "tile": "S"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "7p"
+   },
+   "margin": 0.409
+  },
+  {
+   "id": "hk0011",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "1m",
+     "7m",
+     "7m",
+     "7m",
+     "7m",
+     "8m",
+     "8m",
+     "8m",
+     "9m",
+     "4s",
+     "6s",
+     "E",
+     "E",
+     "E"
+    ],
+    "ponds": [
+     [
+      "R",
+      "G",
+      "1s",
+      "W",
+      "S",
+      "9m"
+     ],
+     [
+      "8s",
+      "R",
+      "1s",
+      "9p",
+      "N",
+      "9m"
+     ],
+     [
+      "7s",
+      "1p",
+      "4p",
+      "8p",
+      "G",
+      "1s"
+     ],
+     [
+      "8s",
+      "1m",
+      "9p",
+      "R",
+      "1m",
+      "9s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "8m"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    },
+    {
+     "move": "discard",
+     "tile": "1m"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "1m"
+   },
+   "margin": 0.25
+  },
+  {
+   "id": "hk0012",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 29,
+    "hand": [
+     "1m",
+     "1m",
+     "2m",
+     "2m",
+     "3m",
+     "3m",
+     "3m",
+     "4m",
+     "9m",
+     "2p",
+     "1s",
+     "W",
+     "W",
+     "W"
+    ],
+    "ponds": [
+     [
+      "1s",
+      "7s",
+      "2p",
+      "8p",
+      "9m",
+      "2s",
+      "6s",
+      "E",
+      "1m",
+      "R"
+     ],
+     [
+      "4m",
+      "8s",
+      "1s",
+      "R",
+      "5p",
+      "1p",
+      "2p",
+      "7p",
+      "S",
+      "8p"
+     ],
+     [
+      "4s",
+      "9p",
+      "B",
+      "B",
+      "9s",
+      "5m",
+      "2p",
+      "2m",
+      "R",
+      "1m"
+     ],
+     [
+      "6s",
+      "B",
+      "9s",
+      "N",
+      "8m",
+      "R",
+      "1p",
+      "4m",
+      "G",
+      "9p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "9m"
+    },
+    {
+     "move": "discard",
+     "tile": "3m"
+    },
+    {
+     "move": "discard",
+     "tile": "1s"
+    },
+    {
+     "move": "discard",
+     "tile": "2p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "2p"
+   },
+   "margin": 0.124
+  },
+  {
+   "id": "hk0013",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 0,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "7m",
+     "8m",
+     "8m",
+     "9m",
+     "9m",
+     "5p",
+     "6p",
+     "6p",
+     "7p",
+     "7p",
+     "B",
+     "B",
+     "B",
+     "5p"
+    ],
+    "ponds": [
+     [
+      "S",
+      "9m",
+      "1m",
+      "4s",
+      "1s",
+      "7s",
+      "2s"
+     ],
+     [
+      "N",
+      "1s",
+      "4p",
+      "7m",
+      "4m",
+      "6s",
+      "4p"
+     ],
+     [
+      "9p",
+      "G",
+      "4s",
+      "1s",
+      "1p",
+      "S",
+      "1m"
+     ],
+     [
+      "9s",
+      "N",
+      "2s",
+      "N",
+      "9s",
+      "1s",
+      "3p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "B"
+    },
+    {
+     "move": "discard",
+     "tile": "7m"
+    },
+    {
+     "move": "discard",
+     "tile": "8m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8m"
+   },
+   "margin": 0.478
+  },
+  {
+   "id": "hk0014",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 1,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "2m",
+     "3m",
+     "3m",
+     "4m",
+     "5m",
+     "7p",
+     "4s",
+     "5s",
+     "6s",
+     "7s",
+     "9s",
+     "9s",
+     "9s",
+     "4m"
+    ],
+    "ponds": [
+     [
+      "6m",
+      "G",
+      "R",
+      "W",
+      "9m",
+      "N"
+     ],
+     [
+      "8m",
+      "2m",
+      "E",
+      "9m",
+      "8s",
+      "8s"
+     ],
+     [
+      "1p",
+      "1s",
+      "6m",
+      "8s",
+      "6p",
+      "6p"
+     ],
+     [
+      "N",
+      "8p",
+      "3m",
+      "2p",
+      "4m",
+      "5s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "7p"
+    },
+    {
+     "move": "discard",
+     "tile": "9s"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "7p"
+   },
+   "margin": 0.601
+  },
+  {
+   "id": "hk0015",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 17,
+    "hand": [
+     "3p",
+     "5p",
+     "5p",
+     "7p",
+     "8p",
+     "9p",
+     "3s",
+     "4s",
+     "5s",
+     "5s",
+     "R",
+     "R",
+     "R",
+     "3p"
+    ],
+    "ponds": [
+     [
+      "8m",
+      "6p",
+      "1s",
+      "N",
+      "W",
+      "9p",
+      "6p",
+      "6m",
+      "9m",
+      "8s",
+      "B",
+      "4m",
+      "E"
+     ],
+     [
+      "7m",
+      "4s",
+      "2s",
+      "4m",
+      "7p",
+      "6s",
+      "W",
+      "E",
+      "W",
+      "1p",
+      "1m",
+      "8s",
+      "1m"
+     ],
+     [
+      "5m",
+      "5s",
+      "5p",
+      "1s",
+      "5m",
+      "G",
+      "E",
+      "4m",
+      "9m",
+      "4p",
+      "1p",
+      "6s",
+      "G"
+     ],
+     [
+      "4s",
+      "4s",
+      "R",
+      "7p",
+      "6m",
+      "N",
+      "7s",
+      "2p",
+      "9s",
+      "G",
+      "5p",
+      "N",
+      "B"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "3s"
+    },
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "5s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "5s"
+   },
+   "margin": 0.514
+  },
+  {
+   "id": "hk0016",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "9m",
+     "9m",
+     "9m",
+     "4p",
+     "4p",
+     "5p",
+     "6p",
+     "8p",
+     "8p",
+     "6s",
+     "B",
+     "R",
+     "R"
+    ],
+    "ponds": [
+     [
+      "S",
+      "5p",
+      "9p",
+      "7s",
+      "S",
+      "S",
+      "3p"
+     ],
+     [
+      "5p",
+      "8s",
+      "W",
+      "1s",
+      "9p",
+      "9s",
+      "S"
+     ],
+     [
+      "8m",
+      "4m",
+      "E",
+      "5s",
+      "1m",
+      "2m",
+      "4m"
+     ],
+     [
+      "6p",
+      "N",
+      "6s",
+      "7m",
+      "4s",
+      "9p",
+      "6m"
+     ]
+    ],
+    "offered": "4p",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "chi",
+     "tile": "4p"
+    },
+    {
+     "move": "pass"
+    },
+    {
+     "move": "pon"
+    }
+   ],
+   "answer": {
+    "move": "pon"
+   },
+   "margin": 0.137
+  },
+  {
+   "id": "hk0017",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 37,
+    "hand": [
+     "2p",
+     "7p",
+     "7p",
+     "7p",
+     "7p",
+     "8p",
+     "8p",
+     "8p",
+     "8p",
+     "9p",
+     "W",
+     "W",
+     "W",
+     "9p"
+    ],
+    "ponds": [
+     [
+      "R",
+      "1s",
+      "1p",
+      "9p",
+      "E",
+      "9m",
+      "9p",
+      "4p"
+     ],
+     [
+      "1m",
+      "6p",
+      "6s",
+      "B",
+      "8m",
+      "G",
+      "2s",
+      "7m"
+     ],
+     [
+      "7s",
+      "1p",
+      "1s",
+      "R",
+      "8s",
+      "B",
+      "E",
+      "4p"
+     ],
+     [
+      "S",
+      "5s",
+      "9m",
+      "5s",
+      "1m",
+      "5m",
+      "1s",
+      "2p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "2p"
+    },
+    {
+     "move": "discard",
+     "tile": "8p"
+    },
+    {
+     "move": "discard",
+     "tile": "9p"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "2p"
+   },
+   "margin": 0.429
+  },
+  {
+   "id": "hk0018",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "3m",
+     "4p",
+     "5p",
+     "5p",
+     "5p",
+     "5p",
+     "6p",
+     "6p",
+     "8p",
+     "8p",
+     "8p",
+     "G",
+     "G",
+     "G"
+    ],
+    "ponds": [
+     [
+      "9m",
+      "4p",
+      "8m",
+      "B",
+      "3p",
+      "N",
+      "9m",
+      "3p",
+      "9s",
+      "9s",
+      "R"
+     ],
+     [
+      "N",
+      "W",
+      "7p",
+      "7s",
+      "7s",
+      "6s",
+      "S",
+      "8m",
+      "R",
+      "1s",
+      "E"
+     ],
+     [
+      "8m",
+      "S",
+      "7p",
+      "7s",
+      "2s",
+      "E",
+      "R",
+      "4s",
+      "9m",
+      "2p",
+      "9p"
+     ],
+     [
+      "1p",
+      "9s",
+      "6m",
+      "W",
+      "4p",
+      "W",
+      "R",
+      "7p",
+      "2s",
+      "N",
+      "3m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "3m"
+    },
+    {
+     "move": "discard",
+     "tile": "8p"
+    },
+    {
+     "move": "discard",
+     "tile": "G"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "3m"
+   },
+   "margin": 0.632
+  },
+  {
+   "id": "hk0019",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 0,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "2m",
+     "3m",
+     "3m",
+     "4m",
+     "5m",
+     "5m",
+     "8m",
+     "8m",
+     "7s",
+     "E",
+     "E",
+     "G",
+     "G",
+     "5m"
+    ],
+    "ponds": [
+     [
+      "1s",
+      "9m",
+      "4s",
+      "9p",
+      "1p"
+     ],
+     [
+      "S",
+      "9s",
+      "6s",
+      "5p",
+      "S"
+     ],
+     [
+      "9m",
+      "4p",
+      "1p",
+      "W",
+      "W"
+     ],
+     [
+      "9p",
+      "1s",
+      "6m",
+      "6s",
+      "8s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "3m"
+    },
+    {
+     "move": "discard",
+     "tile": "2m"
+    },
+    {
+     "move": "discard",
+     "tile": "7s"
+    },
+    {
+     "move": "discard",
+     "tile": "5m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "7s"
+   },
+   "margin": 0.593
+  },
+  {
+   "id": "hk0020",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 37,
+    "hand": [
+     "2m",
+     "5m",
+     "6m",
+     "6m",
+     "6m",
+     "6m",
+     "7m",
+     "9m",
+     "9m",
+     "2s",
+     "4s",
+     "E",
+     "E",
+     "E"
+    ],
+    "ponds": [
+     [
+      "E",
+      "3s",
+      "1p",
+      "S",
+      "1m",
+      "2m",
+      "R",
+      "R"
+     ],
+     [
+      "2p",
+      "2s",
+      "1p",
+      "8m",
+      "6p",
+      "1m",
+      "9s",
+      "S"
+     ],
+     [
+      "5s",
+      "8p",
+      "7s",
+      "2p",
+      "5p",
+      "7p",
+      "8m",
+      "9s"
+     ],
+     [
+      "7s",
+      "7s",
+      "8s",
+      "4m",
+      "2p",
+      "2s",
+      "W",
+      "1m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "7m"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    },
+    {
+     "move": "discard",
+     "tile": "2s"
+    },
+    {
+     "move": "discard",
+     "tile": "2m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "2m"
+   },
+   "margin": 0.186
+  },
+  {
+   "id": "hk0021",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "4p",
+     "4p",
+     "5p",
+     "5p",
+     "5p",
+     "5p",
+     "6p",
+     "7p",
+     "9p",
+     "9p",
+     "9p",
+     "9p",
+     "S"
+    ],
+    "ponds": [
+     [
+      "R",
+      "1s",
+      "9m",
+      "6p",
+      "6p",
+      "W",
+      "7s",
+      "7p",
+      "6s"
+     ],
+     [
+      "1m",
+      "1p",
+      "2p",
+      "7p",
+      "8m",
+      "2m",
+      "R",
+      "7m",
+      "7s"
+     ],
+     [
+      "4m",
+      "B",
+      "E",
+      "8p",
+      "1s",
+      "9s",
+      "6s",
+      "2p",
+      "1m"
+     ],
+     [
+      "6s",
+      "N",
+      "3p",
+      "8p",
+      "9s",
+      "1m",
+      "G",
+      "N",
+      "G"
+     ]
+    ],
+    "offered": "4p",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "pass"
+    },
+    {
+     "move": "chi",
+     "tile": "4p"
+    },
+    {
+     "move": "pon"
+    }
+   ],
+   "answer": {
+    "move": "pass"
+   },
+   "margin": 0.254
+  },
+  {
+   "id": "hk0022",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 1,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "1m",
+     "2m",
+     "3m",
+     "5p",
+     "5p",
+     "5p",
+     "6s",
+     "E",
+     "E",
+     "E",
+     "G",
+     "R",
+     "R",
+     "R"
+    ],
+    "ponds": [
+     [
+      "9s",
+      "1p",
+      "5m",
+      "W",
+      "9p",
+      "E",
+      "S",
+      "9s",
+      "G",
+      "N",
+      "2s"
+     ],
+     [
+      "9s",
+      "8m",
+      "1s",
+      "8m",
+      "5s",
+      "1s",
+      "2s",
+      "B",
+      "1s",
+      "6p",
+      "5s"
+     ],
+     [
+      "1m",
+      "3s",
+      "1p",
+      "S",
+      "2s",
+      "6p",
+      "9s",
+      "8s",
+      "3p",
+      "7m",
+      "S"
+     ],
+     [
+      "2p",
+      "1m",
+      "N",
+      "1p",
+      "6m",
+      "9m",
+      "9p",
+      "8s",
+      "N",
+      "3s",
+      "7m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "R"
+    },
+    {
+     "move": "discard",
+     "tile": "G"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "G"
+   },
+   "margin": 0.436
+  },
+  {
+   "id": "hk0023",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "7m",
+     "2p",
+     "3p",
+     "3p",
+     "4p",
+     "5p",
+     "6p",
+     "8p",
+     "8p",
+     "8p",
+     "S",
+     "S",
+     "G",
+     "4p"
+    ],
+    "ponds": [
+     [
+      "E",
+      "6p",
+      "2p",
+      "W",
+      "4m",
+      "4p",
+      "7s"
+     ],
+     [
+      "6m",
+      "6s",
+      "5p",
+      "N",
+      "7p",
+      "2s",
+      "1m"
+     ],
+     [
+      "3s",
+      "7p",
+      "2m",
+      "N",
+      "3s",
+      "1p",
+      "3p"
+     ],
+     [
+      "N",
+      "9m",
+      "5m",
+      "7p",
+      "R",
+      "4s",
+      "1p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "7m"
+    },
+    {
+     "move": "discard",
+     "tile": "G"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "7m"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0024",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "5p",
+     "6p",
+     "7p",
+     "7p",
+     "7p",
+     "1s",
+     "1s",
+     "1s",
+     "1s",
+     "4s",
+     "5s",
+     "6s",
+     "R",
+     "R"
+    ],
+    "ponds": [
+     [
+      "9s",
+      "G",
+      "R",
+      "9s",
+      "9s",
+      "6s"
+     ],
+     [
+      "3m",
+      "B",
+      "4m",
+      "N",
+      "9s",
+      "1p"
+     ],
+     [
+      "5m",
+      "1m",
+      "G",
+      "4p",
+      "6s",
+      "9m"
+     ],
+     [
+      "B",
+      "G",
+      "9m",
+      "5p",
+      "6s",
+      "W"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "1s"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "1s"
+   },
+   "margin": 0.502
+  },
+  {
+   "id": "hk0025",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 0,
+    "dora": [],
+    "wall": 37,
+    "hand": [
+     "1m",
+     "4p",
+     "5p",
+     "6p",
+     "6p",
+     "6p",
+     "6p",
+     "7p",
+     "9p",
+     "9p",
+     "S",
+     "S",
+     "W",
+     "5p"
+    ],
+    "ponds": [
+     [
+      "E",
+      "1s",
+      "N",
+      "1m",
+      "7p",
+      "6m",
+      "W",
+      "9s"
+     ],
+     [
+      "7s",
+      "7s",
+      "B",
+      "7m",
+      "1s",
+      "1s",
+      "8s",
+      "5p"
+     ],
+     [
+      "S",
+      "4s",
+      "G",
+      "3s",
+      "1p",
+      "8m",
+      "3p",
+      "B"
+     ],
+     [
+      "8p",
+      "6m",
+      "5s",
+      "E",
+      "2m",
+      "7p",
+      "6m",
+      "E"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "W"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    },
+    {
+     "move": "discard",
+     "tile": "1m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "1m"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0026",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "1m",
+     "6m",
+     "7m",
+     "7m",
+     "8m",
+     "8m",
+     "9m",
+     "9m",
+     "1p",
+     "1p",
+     "W",
+     "W",
+     "W",
+     "1m"
+    ],
+    "ponds": [
+     [
+      "9s",
+      "6s",
+      "2p",
+      "N",
+      "8p",
+      "R",
+      "8p",
+      "N",
+      "2s",
+      "9p",
+      "1m"
+     ],
+     [
+      "3s",
+      "N",
+      "1m",
+      "B",
+      "2m",
+      "4s",
+      "3m",
+      "2m",
+      "3p",
+      "7s",
+      "1s"
+     ],
+     [
+      "R",
+      "5s",
+      "5m",
+      "9m",
+      "W",
+      "4m",
+      "2p",
+      "8s",
+      "7p",
+      "9s",
+      "B"
+     ],
+     [
+      "3s",
+      "7p",
+      "2s",
+      "S",
+      "6p",
+      "5p",
+      "G",
+      "9p",
+      "4m",
+      "S",
+      "R"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "9m"
+    },
+    {
+     "move": "discard",
+     "tile": "W"
+    },
+    {
+     "move": "discard",
+     "tile": "6m"
+    },
+    {
+     "move": "discard",
+     "tile": "1m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "W"
+   },
+   "margin": 0.762
+  },
+  {
+   "id": "hk0027",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "3p",
+     "3p",
+     "5p",
+     "6p",
+     "7p",
+     "3s",
+     "5s",
+     "6s",
+     "6s",
+     "6s",
+     "S",
+     "S",
+     "S",
+     "4s"
+    ],
+    "ponds": [
+     [
+      "6m",
+      "1s",
+      "3p",
+      "N",
+      "B"
+     ],
+     [
+      "2s",
+      "4m",
+      "B",
+      "4p",
+      "9s"
+     ],
+     [
+      "1p",
+      "4m",
+      "9p",
+      "R",
+      "R"
+     ],
+     [
+      "5s",
+      "7p",
+      "1s",
+      "6p",
+      "9p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "7p"
+    },
+    {
+     "move": "discard",
+     "tile": "3s"
+    },
+    {
+     "move": "discard",
+     "tile": "5s"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "5p"
+   },
+   "margin": 0.312
+  },
+  {
+   "id": "hk0028",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 0,
+    "dora": [],
+    "wall": 53,
+    "hand": [
+     "9m",
+     "7p",
+     "2s",
+     "2s",
+     "4s",
+     "4s",
+     "4s",
+     "5s",
+     "6s",
+     "7s",
+     "8s",
+     "9s",
+     "S",
+     "3s"
+    ],
+    "ponds": [
+     [
+      "3m",
+      "6p",
+      "E",
+      "7s"
+     ],
+     [
+      "4p",
+      "E",
+      "6p",
+      "6m"
+     ],
+     [
+      "9m",
+      "9s",
+      "9m",
+      "N"
+     ],
+     [
+      "E",
+      "9p",
+      "G",
+      "1m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "2s"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    },
+    {
+     "move": "discard",
+     "tile": "9m"
+    },
+    {
+     "move": "discard",
+     "tile": "S"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "9m"
+   },
+   "margin": 0.165
+  },
+  {
+   "id": "hk0029",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "1s",
+     "2s",
+     "2s",
+     "2s",
+     "3s",
+     "4s",
+     "4s",
+     "6s",
+     "7s",
+     "8s",
+     "9s",
+     "E",
+     "N",
+     "6p"
+    ],
+    "ponds": [
+     [
+      "1m",
+      "3p",
+      "4p",
+      "9s",
+      "9p"
+     ],
+     [
+      "W",
+      "9m",
+      "4p",
+      "9p",
+      "1s"
+     ],
+     [
+      "9p",
+      "1p",
+      "5s",
+      "7p",
+      "3m"
+     ],
+     [
+      "8s",
+      "6m",
+      "3s",
+      "6m",
+      "5m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "N"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "E"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "6p"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0030",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 0,
+    "dora": [],
+    "wall": 21,
+    "hand": [
+     "5m",
+     "6p",
+     "1s",
+     "1s",
+     "1s",
+     "2s",
+     "4s",
+     "7s",
+     "8s",
+     "9s",
+     "9s",
+     "R",
+     "R",
+     "R"
+    ],
+    "ponds": [
+     [
+      "3m",
+      "5s",
+      "4s",
+      "8s",
+      "2m",
+      "1p",
+      "G",
+      "5p",
+      "9s",
+      "6s",
+      "7s",
+      "9m"
+     ],
+     [
+      "7p",
+      "6m",
+      "2p",
+      "8p",
+      "2s",
+      "E",
+      "S",
+      "E",
+      "9p",
+      "9m",
+      "9s",
+      "1m"
+     ],
+     [
+      "9m",
+      "9p",
+      "2m",
+      "1m",
+      "7p",
+      "7m",
+      "3p",
+      "5s",
+      "N",
+      "9p",
+      "E",
+      "N"
+     ],
+     [
+      "1s",
+      "B",
+      "G",
+      "4s",
+      "3s",
+      "8m",
+      "1p",
+      "5m",
+      "2m",
+      "9m",
+      "B",
+      "W"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "5m"
+    },
+    {
+     "move": "discard",
+     "tile": "9s"
+    },
+    {
+     "move": "discard",
+     "tile": "2s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "5m"
+   },
+   "margin": 0.1
+  },
+  {
+   "id": "hk0031",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 3,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "1p",
+     "2p",
+     "2p",
+     "3p",
+     "3p",
+     "4p",
+     "5p",
+     "6p",
+     "7p",
+     "7p",
+     "S",
+     "S",
+     "R",
+     "S"
+    ],
+    "ponds": [
+     [
+      "S",
+      "9s",
+      "G",
+      "4s",
+      "1s",
+      "N",
+      "2s",
+      "E",
+      "5s"
+     ],
+     [
+      "9s",
+      "1p",
+      "R",
+      "6s",
+      "G",
+      "3s",
+      "R",
+      "W",
+      "1p"
+     ],
+     [
+      "9m",
+      "W",
+      "E",
+      "1m",
+      "6p",
+      "7p",
+      "9p",
+      "B",
+      "4s"
+     ],
+     [
+      "N",
+      "9p",
+      "6s",
+      "1s",
+      "1m",
+      "6m",
+      "9m",
+      "1m",
+      "3s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "R"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "2p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "R"
+   },
+   "margin": 0.724
+  },
+  {
+   "id": "hk0032",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 37,
+    "hand": [
+     "3m",
+     "7m",
+     "9m",
+     "9m",
+     "1p",
+     "6s",
+     "7s",
+     "8s",
+     "9s",
+     "9s",
+     "G",
+     "G",
+     "G"
+    ],
+    "ponds": [
+     [
+      "1s",
+      "6s",
+      "E",
+      "2p",
+      "6p",
+      "9m",
+      "1p",
+      "N"
+     ],
+     [
+      "R",
+      "1m",
+      "1m",
+      "1s",
+      "W",
+      "9p",
+      "7m",
+      "W"
+     ],
+     [
+      "9p",
+      "6m",
+      "B",
+      "6p",
+      "7m",
+      "3s",
+      "E",
+      "1p"
+     ],
+     [
+      "S",
+      "7m",
+      "W",
+      "8m",
+      "4m",
+      "E",
+      "8p",
+      "5m"
+     ]
+    ],
+    "offered": "9s",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "pass"
+    },
+    {
+     "move": "pon"
+    },
+    {
+     "move": "chi",
+     "tile": "7s"
+    }
+   ],
+   "answer": {
+    "move": "pon"
+   },
+   "margin": 0.401
+  },
+  {
+   "id": "hk0033",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "3p",
+     "3p",
+     "3p",
+     "6p",
+     "6p",
+     "7p",
+     "7p",
+     "8p",
+     "1s",
+     "4s",
+     "5s",
+     "5s",
+     "5s",
+     "6s"
+    ],
+    "ponds": [
+     [
+      "1p",
+      "7m",
+      "7m",
+      "9s",
+      "2m",
+      "S",
+      "R",
+      "B",
+      "2s"
+     ],
+     [
+      "1m",
+      "9p",
+      "W",
+      "B",
+      "3m",
+      "G",
+      "9s",
+      "7p",
+      "3s"
+     ],
+     [
+      "7s",
+      "7p",
+      "2p",
+      "N",
+      "S",
+      "2s",
+      "W",
+      "1p",
+      "1p"
+     ],
+     [
+      "R",
+      "2s",
+      "8s",
+      "B",
+      "8s",
+      "5p",
+      "9m",
+      "6m",
+      "6s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "1s"
+    },
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "1s"
+   },
+   "margin": 0.544
+  },
+  {
+   "id": "hk0034",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "1m",
+     "1m",
+     "1m",
+     "1m",
+     "2m",
+     "3m",
+     "3m",
+     "4m",
+     "4m",
+     "5m",
+     "6m",
+     "6m",
+     "8s",
+     "5m"
+    ],
+    "ponds": [
+     [
+      "W",
+      "R",
+      "E",
+      "9s",
+      "N",
+      "7m"
+     ],
+     [
+      "7p",
+      "9s",
+      "S",
+      "B",
+      "9m",
+      "9s"
+     ],
+     [
+      "R",
+      "R",
+      "4s",
+      "2m",
+      "9m",
+      "4p"
+     ],
+     [
+      "S",
+      "1s",
+      "1p",
+      "W",
+      "1p",
+      "9p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "8s"
+    },
+    {
+     "move": "discard",
+     "tile": "1m"
+    },
+    {
+     "move": "discard",
+     "tile": "4m"
+    },
+    {
+     "move": "discard",
+     "tile": "3m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8s"
+   },
+   "margin": 0.834
+  },
+  {
+   "id": "hk0035",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 37,
+    "hand": [
+     "2m",
+     "3m",
+     "3m",
+     "4m",
+     "5m",
+     "6m",
+     "6m",
+     "6m",
+     "9p",
+     "B",
+     "B",
+     "B",
+     "R",
+     "3m"
+    ],
+    "ponds": [
+     [
+      "9s",
+      "7p",
+      "8s",
+      "4s",
+      "3p",
+      "1p",
+      "E",
+      "5p"
+     ],
+     [
+      "1s",
+      "1m",
+      "5p",
+      "8p",
+      "1p",
+      "4p",
+      "1s",
+      "N"
+     ],
+     [
+      "G",
+      "N",
+      "6p",
+      "S",
+      "G",
+      "4s",
+      "2s",
+      "G"
+     ],
+     [
+      "7m",
+      "1p",
+      "4s",
+      "6p",
+      "W",
+      "W",
+      "4m",
+      "7s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "R"
+    },
+    {
+     "move": "discard",
+     "tile": "9p"
+    },
+    {
+     "move": "discard",
+     "tile": "2m"
+    },
+    {
+     "move": "discard",
+     "tile": "5m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "9p"
+   },
+   "margin": 0.422
+  },
+  {
+   "id": "hk0036",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "1m",
+     "1m",
+     "2m",
+     "3m",
+     "7m",
+     "8m",
+     "9m",
+     "8s",
+     "W",
+     "W",
+     "N",
+     "R",
+     "R",
+     "W"
+    ],
+    "ponds": [
+     [
+      "9p",
+      "9m",
+      "1m",
+      "9p",
+      "G",
+      "1m",
+      "5s",
+      "5m",
+      "9m"
+     ],
+     [
+      "7s",
+      "2p",
+      "5s",
+      "E",
+      "3s",
+      "S",
+      "6p",
+      "6s",
+      "6m"
+     ],
+     [
+      "E",
+      "G",
+      "S",
+      "7p",
+      "2p",
+      "B",
+      "7m",
+      "9p",
+      "6p"
+     ],
+     [
+      "6s",
+      "4m",
+      "9m",
+      "R",
+      "1p",
+      "W",
+      "6p",
+      "1p",
+      "8m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "8s"
+    },
+    {
+     "move": "discard",
+     "tile": "1m"
+    },
+    {
+     "move": "discard",
+     "tile": "2m"
+    },
+    {
+     "move": "discard",
+     "tile": "N"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8s"
+   },
+   "margin": 0.477
+  },
+  {
+   "id": "hk0037",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "7p",
+     "9p",
+     "4s",
+     "4s",
+     "5s",
+     "6s",
+     "6s",
+     "6s",
+     "7s",
+     "E",
+     "E",
+     "S",
+     "W"
+    ],
+    "ponds": [
+     [
+      "W",
+      "7m",
+      "G",
+      "1p",
+      "2s",
+      "1s",
+      "5p",
+      "7s",
+      "R"
+     ],
+     [
+      "7m",
+      "5s",
+      "1s",
+      "1m",
+      "9p",
+      "1m",
+      "7p",
+      "8m",
+      "2p"
+     ],
+     [
+      "4s",
+      "G",
+      "8m",
+      "9s",
+      "9p",
+      "5m",
+      "8p",
+      "6m",
+      "4m"
+     ],
+     [
+      "B",
+      "3m",
+      "N",
+      "S",
+      "9m",
+      "4p",
+      "9m",
+      "5p",
+      "N"
+     ]
+    ],
+    "offered": "4s",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "pass"
+    },
+    {
+     "move": "chi",
+     "tile": "4s"
+    },
+    {
+     "move": "pon"
+    }
+   ],
+   "answer": {
+    "move": "pon"
+   },
+   "margin": 0.55
+  },
+  {
+   "id": "hk0038",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 3,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "1s",
+     "2s",
+     "2s",
+     "3s",
+     "3s",
+     "3s",
+     "4s",
+     "4s",
+     "4s",
+     "7s",
+     "9s",
+     "E",
+     "R",
+     "2s"
+    ],
+    "ponds": [
+     [
+      "1m",
+      "N",
+      "1p",
+      "3s",
+      "R",
+      "3m"
+     ],
+     [
+      "8s",
+      "3m",
+      "4m",
+      "9p",
+      "G",
+      "S"
+     ],
+     [
+      "4p",
+      "W",
+      "1s",
+      "1m",
+      "7p",
+      "5p"
+     ],
+     [
+      "6m",
+      "8p",
+      "2p",
+      "5p",
+      "R",
+      "9p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "R"
+    },
+    {
+     "move": "discard",
+     "tile": "E"
+    },
+    {
+     "move": "discard",
+     "tile": "1s"
+    },
+    {
+     "move": "discard",
+     "tile": "4s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "R"
+   },
+   "margin": 0.15
+  },
+  {
+   "id": "hk0039",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 1,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "5p",
+     "2s",
+     "2s",
+     "3s",
+     "4s",
+     "5s",
+     "6s",
+     "6s",
+     "7s",
+     "8s",
+     "8s",
+     "9s",
+     "W"
+    ],
+    "ponds": [
+     [
+      "R",
+      "7p",
+      "R",
+      "E",
+      "9s"
+     ],
+     [
+      "1s",
+      "4s",
+      "N",
+      "2s",
+      "S"
+     ],
+     [
+      "N",
+      "7m",
+      "9s",
+      "1p",
+      "5p"
+     ],
+     [
+      "4p",
+      "E",
+      "9m",
+      "4m",
+      "2m"
+     ]
+    ],
+    "offered": "8s",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "chi",
+     "tile": "7s"
+    },
+    {
+     "move": "pon"
+    },
+    {
+     "move": "pass"
+    }
+   ],
+   "answer": {
+    "move": "chi",
+    "tile": "7s"
+   },
+   "margin": 0.358
+  },
+  {
+   "id": "hk0040",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "5p",
+     "1s",
+     "1s",
+     "1s",
+     "3s",
+     "3s",
+     "4s",
+     "5s",
+     "6s",
+     "7s",
+     "E",
+     "E",
+     "E"
+    ],
+    "ponds": [
+     [
+      "B",
+      "G",
+      "S",
+      "8m",
+      "W",
+      "8p",
+      "6s"
+     ],
+     [
+      "6p",
+      "G",
+      "1m",
+      "6m",
+      "9p",
+      "N",
+      "N"
+     ],
+     [
+      "2m",
+      "3m",
+      "9s",
+      "1m",
+      "8m",
+      "N",
+      "1p"
+     ],
+     [
+      "9m",
+      "9p",
+      "2p",
+      "2m",
+      "S",
+      "1m",
+      "R"
+     ]
+    ],
+    "offered": "3s",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "pon"
+    },
+    {
+     "move": "pass"
+    },
+    {
+     "move": "chi",
+     "tile": "3s"
+    }
+   ],
+   "answer": {
+    "move": "chi",
+    "tile": "3s"
+   },
+   "margin": 0.157
+  },
+  {
+   "id": "hk0041",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "7m",
+     "7m",
+     "8m",
+     "3p",
+     "4p",
+     "5p",
+     "1s",
+     "1s",
+     "1s",
+     "5s",
+     "6s",
+     "G",
+     "G",
+     "8s"
+    ],
+    "ponds": [
+     [
+      "6p",
+      "N",
+      "7m",
+      "2s",
+      "N",
+      "2m",
+      "5p",
+      "7p",
+      "6m",
+      "W",
+      "E"
+     ],
+     [
+      "7s",
+      "S",
+      "6m",
+      "9m",
+      "2m",
+      "9p",
+      "B",
+      "R",
+      "1m",
+      "1p",
+      "R"
+     ],
+     [
+      "8m",
+      "E",
+      "9p",
+      "8p",
+      "G",
+      "1m",
+      "7p",
+      "W",
+      "3s",
+      "7s",
+      "E"
+     ],
+     [
+      "E",
+      "W",
+      "9p",
+      "R",
+      "S",
+      "B",
+      "4p",
+      "5p",
+      "9m",
+      "3p",
+      "5s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "8m"
+    },
+    {
+     "move": "discard",
+     "tile": "7m"
+    },
+    {
+     "move": "discard",
+     "tile": "5s"
+    },
+    {
+     "move": "discard",
+     "tile": "8s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8s"
+   },
+   "margin": 0.139
+  },
+  {
+   "id": "hk0042",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "3p",
+     "3p",
+     "3p",
+     "4p",
+     "4p",
+     "5p",
+     "5p",
+     "5p",
+     "7p",
+     "8p",
+     "9p",
+     "R",
+     "R",
+     "R"
+    ],
+    "ponds": [
+     [
+      "2s",
+      "6m",
+      "1p",
+      "6s",
+      "2s",
+      "1p",
+      "2s",
+      "4m",
+      "9p"
+     ],
+     [
+      "9s",
+      "S",
+      "7m",
+      "7p",
+      "8m",
+      "2m",
+      "3m",
+      "N",
+      "8m"
+     ],
+     [
+      "1s",
+      "6m",
+      "8p",
+      "W",
+      "4s",
+      "W",
+      "1m",
+      "5s",
+      "3s"
+     ],
+     [
+      "E",
+      "9s",
+      "B",
+      "5m",
+      "S",
+      "7m",
+      "4s",
+      "1p",
+      "3p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    },
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "9p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "4p"
+   },
+   "margin": 0.369
+  },
+  {
+   "id": "hk0043",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 0,
+    "dora": [],
+    "wall": 29,
+    "hand": [
+     "1p",
+     "2p",
+     "3p",
+     "5p",
+     "5p",
+     "1s",
+     "1s",
+     "2s",
+     "2s",
+     "2s",
+     "5s",
+     "6s",
+     "G",
+     "1s"
+    ],
+    "ponds": [
+     [
+      "1m",
+      "R",
+      "9p",
+      "9s",
+      "8m",
+      "N",
+      "5p",
+      "3m",
+      "4s",
+      "8m"
+     ],
+     [
+      "E",
+      "1m",
+      "7p",
+      "S",
+      "9p",
+      "S",
+      "R",
+      "5m",
+      "7s",
+      "7p"
+     ],
+     [
+      "6m",
+      "9m",
+      "8p",
+      "6p",
+      "8p",
+      "4s",
+      "2s",
+      "B",
+      "9p",
+      "7p"
+     ],
+     [
+      "G",
+      "2m",
+      "G",
+      "7m",
+      "5m",
+      "B",
+      "B",
+      "3m",
+      "1p",
+      "3s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "5s"
+    },
+    {
+     "move": "discard",
+     "tile": "1p"
+    },
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "G"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "G"
+   },
+   "margin": 0.743
+  },
+  {
+   "id": "hk0044",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 53,
+    "hand": [
+     "4m",
+     "6m",
+     "7m",
+     "2s",
+     "2s",
+     "4s",
+     "5s",
+     "7s",
+     "8s",
+     "W",
+     "W",
+     "G",
+     "G",
+     "9s"
+    ],
+    "ponds": [
+     [
+      "E",
+      "4p",
+      "1m",
+      "E"
+     ],
+     [
+      "6s",
+      "4m",
+      "8m",
+      "9m"
+     ],
+     [
+      "1s",
+      "S",
+      "8m",
+      "N"
+     ],
+     [
+      "1s",
+      "9p",
+      "2m",
+      "6m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "W"
+    },
+    {
+     "move": "discard",
+     "tile": "2s"
+    },
+    {
+     "move": "discard",
+     "tile": "4m"
+    },
+    {
+     "move": "discard",
+     "tile": "7m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "4m"
+   },
+   "margin": 0.108
+  },
+  {
+   "id": "hk0045",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "1m",
+     "2m",
+     "3m",
+     "4m",
+     "5m",
+     "5m",
+     "5m",
+     "6m",
+     "5p",
+     "N",
+     "N",
+     "N",
+     "B",
+     "4p"
+    ],
+    "ponds": [
+     [
+      "8m",
+      "1p",
+      "9p",
+      "9p",
+      "7s",
+      "1p",
+      "5s",
+      "8p",
+      "4s",
+      "4s",
+      "G"
+     ],
+     [
+      "9p",
+      "2m",
+      "5s",
+      "W",
+      "1p",
+      "G",
+      "9s",
+      "5m",
+      "7m",
+      "6p",
+      "S"
+     ],
+     [
+      "6s",
+      "2s",
+      "B",
+      "7p",
+      "B",
+      "4s",
+      "6m",
+      "6s",
+      "1p",
+      "9m",
+      "4p"
+     ],
+     [
+      "E",
+      "7s",
+      "1m",
+      "2s",
+      "W",
+      "8s",
+      "1s",
+      "S",
+      "7p",
+      "9s",
+      "2m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "B"
+    },
+    {
+     "move": "discard",
+     "tile": "6m"
+    },
+    {
+     "move": "discard",
+     "tile": "1m"
+    },
+    {
+     "move": "discard",
+     "tile": "4m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "B"
+   },
+   "margin": 0.557
+  },
+  {
+   "id": "hk0046",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 3,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "4m",
+     "5m",
+     "6m",
+     "7m",
+     "8m",
+     "8m",
+     "8m",
+     "8m",
+     "9m",
+     "9p",
+     "S",
+     "S",
+     "S",
+     "7m"
+    ],
+    "ponds": [
+     [
+      "9s",
+      "2m",
+      "1s",
+      "N",
+      "1s",
+      "9m",
+      "1s",
+      "G",
+      "W"
+     ],
+     [
+      "1p",
+      "9m",
+      "5p",
+      "4s",
+      "G",
+      "R",
+      "4m",
+      "7s",
+      "E"
+     ],
+     [
+      "E",
+      "8s",
+      "7p",
+      "9p",
+      "9s",
+      "6p",
+      "N",
+      "1m",
+      "2s"
+     ],
+     [
+      "7m",
+      "5s",
+      "1m",
+      "7p",
+      "3s",
+      "2p",
+      "4m",
+      "1m",
+      "2m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "9m"
+    },
+    {
+     "move": "discard",
+     "tile": "9p"
+    },
+    {
+     "move": "discard",
+     "tile": "6m"
+    },
+    {
+     "move": "discard",
+     "tile": "5m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "9p"
+   },
+   "margin": 0.869
+  },
+  {
+   "id": "hk0047",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "7p",
+     "1s",
+     "1s",
+     "2s",
+     "2s",
+     "6s",
+     "7s",
+     "N",
+     "N",
+     "N",
+     "G",
+     "G",
+     "G",
+     "2s"
+    ],
+    "ponds": [
+     [
+      "2m",
+      "1s",
+      "R",
+      "8p",
+      "2p"
+     ],
+     [
+      "9m",
+      "S",
+      "W",
+      "N",
+      "6p"
+     ],
+     [
+      "E",
+      "5s",
+      "9s",
+      "6p",
+      "1m"
+     ],
+     [
+      "8s",
+      "4p",
+      "G",
+      "8m",
+      "9p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "7s"
+    },
+    {
+     "move": "discard",
+     "tile": "1s"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "7p"
+   },
+   "margin": 0.6
+  },
+  {
+   "id": "hk0048",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 1,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "3m",
+     "1p",
+     "1p",
+     "1p",
+     "3p",
+     "3p",
+     "5p",
+     "6p",
+     "6p",
+     "7p",
+     "8p",
+     "8p",
+     "G",
+     "7p"
+    ],
+    "ponds": [
+     [
+      "N",
+      "R",
+      "7s",
+      "N",
+      "4s",
+      "4p",
+      "3m",
+      "2m",
+      "6p"
+     ],
+     [
+      "R",
+      "8s",
+      "9p",
+      "N",
+      "1m",
+      "N",
+      "G",
+      "S",
+      "8m"
+     ],
+     [
+      "B",
+      "3s",
+      "9m",
+      "3s",
+      "7m",
+      "7s",
+      "W",
+      "8m",
+      "2s"
+     ],
+     [
+      "4p",
+      "E",
+      "9s",
+      "1s",
+      "R",
+      "R",
+      "8s",
+      "9s",
+      "1m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "3m"
+    },
+    {
+     "move": "discard",
+     "tile": "G"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    },
+    {
+     "move": "discard",
+     "tile": "8p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "3m"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0049",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "8m",
+     "2s",
+     "3s",
+     "3s",
+     "3s",
+     "4s",
+     "4s",
+     "5s",
+     "7s",
+     "8s",
+     "9s",
+     "9s",
+     "S",
+     "9s"
+    ],
+    "ponds": [
+     [
+      "4m",
+      "1p",
+      "2m",
+      "7m",
+      "G",
+      "E",
+      "R"
+     ],
+     [
+      "2s",
+      "9p",
+      "6s",
+      "N",
+      "9m",
+      "6m",
+      "1p"
+     ],
+     [
+      "8p",
+      "1m",
+      "E",
+      "E",
+      "9p",
+      "8m",
+      "R"
+     ],
+     [
+      "1m",
+      "N",
+      "G",
+      "B",
+      "5m",
+      "2p",
+      "1p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "2s"
+    },
+    {
+     "move": "discard",
+     "tile": "3s"
+    },
+    {
+     "move": "discard",
+     "tile": "8m"
+    },
+    {
+     "move": "discard",
+     "tile": "S"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "8m"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0050",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "5m",
+     "6m",
+     "6m",
+     "7m",
+     "8m",
+     "9m",
+     "9s",
+     "S",
+     "N",
+     "N",
+     "N",
+     "B",
+     "B",
+     "6m"
+    ],
+    "ponds": [
+     [
+      "1s",
+      "5s",
+      "3s",
+      "5s",
+      "9p"
+     ],
+     [
+      "G",
+      "1m",
+      "9s",
+      "6s",
+      "9s"
+     ],
+     [
+      "1s",
+      "1p",
+      "7s",
+      "S",
+      "8p"
+     ],
+     [
+      "1p",
+      "W",
+      "2s",
+      "3p",
+      "5s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6m"
+    },
+    {
+     "move": "discard",
+     "tile": "S"
+    },
+    {
+     "move": "discard",
+     "tile": "5m"
+    },
+    {
+     "move": "discard",
+     "tile": "9s"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "9s"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0051",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 0,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "5m",
+     "1p",
+     "1p",
+     "4p",
+     "5p",
+     "6p",
+     "6p",
+     "7p",
+     "7p",
+     "8p",
+     "8p",
+     "9p",
+     "9p"
+    ],
+    "ponds": [
+     [
+      "E",
+      "9s",
+      "G",
+      "3s",
+      "3m",
+      "2p",
+      "9m",
+      "8s",
+      "1s"
+     ],
+     [
+      "7m",
+      "4s",
+      "2m",
+      "N",
+      "7p",
+      "G",
+      "9m",
+      "3m",
+      "3s"
+     ],
+     [
+      "5m",
+      "N",
+      "6m",
+      "3p",
+      "6s",
+      "9s",
+      "4s",
+      "S",
+      "9m"
+     ],
+     [
+      "4p",
+      "6m",
+      "2m",
+      "8s",
+      "W",
+      "2s",
+      "S",
+      "6m",
+      "1m"
+     ]
+    ],
+    "offered": "9p",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "pon"
+    },
+    {
+     "move": "pass"
+    },
+    {
+     "move": "chi",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "pon"
+   },
+   "margin": 0.587
+  },
+  {
+   "id": "hk0052",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 53,
+    "hand": [
+     "1p",
+     "1p",
+     "2p",
+     "3p",
+     "4p",
+     "4p",
+     "5p",
+     "6p",
+     "8p",
+     "4s",
+     "4s",
+     "S",
+     "S"
+    ],
+    "ponds": [
+     [
+      "9p",
+      "1m",
+      "9s",
+      "E"
+     ],
+     [
+      "8s",
+      "9p",
+      "6s",
+      "E"
+     ],
+     [
+      "G",
+      "N",
+      "S",
+      "E"
+     ],
+     [
+      "3m",
+      "8m",
+      "N",
+      "1p"
+     ]
+    ],
+    "offered": "1p",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "chi",
+     "tile": "1p"
+    },
+    {
+     "move": "pon"
+    },
+    {
+     "move": "pass"
+    }
+   ],
+   "answer": {
+    "move": "pon"
+   },
+   "margin": 0.311
+  },
+  {
+   "id": "hk0053",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 41,
+    "hand": [
+     "3m",
+     "3m",
+     "4m",
+     "5m",
+     "5m",
+     "6m",
+     "6m",
+     "2s",
+     "5s",
+     "5s",
+     "7s",
+     "8s",
+     "9s",
+     "3m"
+    ],
+    "ponds": [
+     [
+      "1s",
+      "9s",
+      "1p",
+      "R",
+      "G",
+      "W",
+      "E"
+     ],
+     [
+      "4s",
+      "2p",
+      "5p",
+      "6m",
+      "R",
+      "3p",
+      "8p"
+     ],
+     [
+      "B",
+      "N",
+      "2m",
+      "8m",
+      "9m",
+      "8s",
+      "4s"
+     ],
+     [
+      "W",
+      "7s",
+      "8m",
+      "W",
+      "1p",
+      "B",
+      "1p"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "5m"
+    },
+    {
+     "move": "discard",
+     "tile": "2s"
+    },
+    {
+     "move": "discard",
+     "tile": "9s"
+    },
+    {
+     "move": "discard",
+     "tile": "6m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "2s"
+   },
+   "margin": 0.644
+  },
+  {
+   "id": "hk0054",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 2,
+    "dora": [],
+    "wall": 53,
+    "hand": [
+     "3p",
+     "4p",
+     "4p",
+     "5p",
+     "5p",
+     "5p",
+     "6p",
+     "6p",
+     "7p",
+     "7p",
+     "7p",
+     "1s",
+     "B",
+     "3p"
+    ],
+    "ponds": [
+     [
+      "R",
+      "7m",
+      "3m",
+      "1m"
+     ],
+     [
+      "5m",
+      "7s",
+      "1s",
+      "9m"
+     ],
+     [
+      "S",
+      "N",
+      "9s",
+      "6s"
+     ],
+     [
+      "7m",
+      "4s",
+      "9m",
+      "6m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "B"
+    },
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "1s"
+    },
+    {
+     "move": "discard",
+     "tile": "5p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "1s"
+   },
+   "margin": 0.505
+  },
+  {
+   "id": "hk0055",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 0,
+    "dora": [],
+    "wall": 25,
+    "hand": [
+     "3p",
+     "3p",
+     "3p",
+     "3p",
+     "4p",
+     "6p",
+     "6p",
+     "7p",
+     "7p",
+     "8p",
+     "8p",
+     "8p",
+     "3s",
+     "8p"
+    ],
+    "ponds": [
+     [
+      "S",
+      "9m",
+      "N",
+      "9s",
+      "9s",
+      "7p",
+      "B",
+      "R",
+      "W",
+      "3m",
+      "1m"
+     ],
+     [
+      "1m",
+      "3m",
+      "S",
+      "4m",
+      "1m",
+      "7m",
+      "5m",
+      "G",
+      "B",
+      "4s",
+      "7s"
+     ],
+     [
+      "6s",
+      "6m",
+      "G",
+      "1s",
+      "E",
+      "3s",
+      "8m",
+      "1m",
+      "3m",
+      "8m",
+      "8s"
+     ],
+     [
+      "5p",
+      "5s",
+      "9s",
+      "W",
+      "6m",
+      "9p",
+      "4p",
+      "4s",
+      "E",
+      "2m",
+      "9m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6p"
+    },
+    {
+     "move": "discard",
+     "tile": "3s"
+    },
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "3s"
+   },
+   "margin": 0.684
+  },
+  {
+   "id": "hk0056",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 3,
+    "dora": [],
+    "wall": 49,
+    "hand": [
+     "6p",
+     "6p",
+     "3s",
+     "3s",
+     "5s",
+     "6s",
+     "6s",
+     "7s",
+     "7s",
+     "8s",
+     "8s",
+     "9s",
+     "R",
+     "6p"
+    ],
+    "ponds": [
+     [
+      "W",
+      "4p",
+      "1m",
+      "B",
+      "S"
+     ],
+     [
+      "2p",
+      "8p",
+      "3m",
+      "2p",
+      "1s"
+     ],
+     [
+      "E",
+      "9p",
+      "4m",
+      "9p",
+      "N"
+     ],
+     [
+      "N",
+      "G",
+      "9m",
+      "1m",
+      "1s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "6s"
+    },
+    {
+     "move": "discard",
+     "tile": "8s"
+    },
+    {
+     "move": "discard",
+     "tile": "9s"
+    },
+    {
+     "move": "discard",
+     "tile": "R"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "R"
+   },
+   "margin": 0.453
+  },
+  {
+   "id": "hk0057",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 1,
+    "dora": [],
+    "wall": 45,
+    "hand": [
+     "1p",
+     "1p",
+     "4p",
+     "4p",
+     "7p",
+     "8p",
+     "E",
+     "E",
+     "E",
+     "W",
+     "B",
+     "B",
+     "B",
+     "1p"
+    ],
+    "ponds": [
+     [
+      "6p",
+      "4s",
+      "9s",
+      "4m",
+      "2m",
+      "E"
+     ],
+     [
+      "5s",
+      "3p",
+      "R",
+      "7s",
+      "3p",
+      "8s"
+     ],
+     [
+      "4s",
+      "W",
+      "9m",
+      "2s",
+      "6m",
+      "S"
+     ],
+     [
+      "W",
+      "S",
+      "G",
+      "N",
+      "5p",
+      "1m"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "1p"
+    },
+    {
+     "move": "discard",
+     "tile": "W"
+    },
+    {
+     "move": "discard",
+     "tile": "8p"
+    },
+    {
+     "move": "discard",
+     "tile": "7p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "W"
+   },
+   "margin": 0.742
+  },
+  {
+   "id": "hk0058",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 3,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "7m",
+     "8m",
+     "8m",
+     "9m",
+     "1s",
+     "2s",
+     "2s",
+     "3s",
+     "E",
+     "G",
+     "R",
+     "R",
+     "R"
+    ],
+    "ponds": [
+     [
+      "B",
+      "N",
+      "8s",
+      "G",
+      "5m",
+      "2p",
+      "9s",
+      "2m",
+      "G"
+     ],
+     [
+      "2s",
+      "G",
+      "S",
+      "S",
+      "4p",
+      "4p",
+      "1m",
+      "1m",
+      "1s"
+     ],
+     [
+      "2p",
+      "S",
+      "E",
+      "5m",
+      "R",
+      "N",
+      "3m",
+      "5m",
+      "4m"
+     ],
+     [
+      "4s",
+      "4p",
+      "3s",
+      "7p",
+      "7s",
+      "1p",
+      "6m",
+      "6s",
+      "2s"
+     ]
+    ],
+    "offered": "8m",
+    "offeredFrom": 3
+   },
+   "choices": [
+    {
+     "move": "chi",
+     "tile": "7m"
+    },
+    {
+     "move": "pass"
+    },
+    {
+     "move": "pon"
+    }
+   ],
+   "answer": {
+    "move": "chi",
+    "tile": "7m"
+   },
+   "margin": 0.475
+  },
+  {
+   "id": "hk0059",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "south",
+    "dealer": 2,
+    "dora": [],
+    "wall": 21,
+    "hand": [
+     "1m",
+     "1m",
+     "1m",
+     "5m",
+     "5m",
+     "5m",
+     "6m",
+     "9m",
+     "9m",
+     "5s",
+     "N",
+     "N",
+     "N",
+     "7m"
+    ],
+    "ponds": [
+     [
+      "S",
+      "R",
+      "E",
+      "S",
+      "6p",
+      "7s",
+      "B",
+      "1p",
+      "1p",
+      "2m",
+      "9m",
+      "1m"
+     ],
+     [
+      "9m",
+      "8m",
+      "E",
+      "4p",
+      "2m",
+      "6m",
+      "W",
+      "2p",
+      "6m",
+      "B",
+      "E",
+      "9s"
+     ],
+     [
+      "S",
+      "G",
+      "7s",
+      "9p",
+      "2p",
+      "3p",
+      "6p",
+      "4p",
+      "3p",
+      "R",
+      "G",
+      "8m"
+     ],
+     [
+      "W",
+      "2m",
+      "8s",
+      "5p",
+      "1p",
+      "7p",
+      "N",
+      "9s",
+      "3s",
+      "E",
+      "5p",
+      "1s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "5s"
+    },
+    {
+     "move": "discard",
+     "tile": "5m"
+    },
+    {
+     "move": "discard",
+     "tile": "9m"
+    },
+    {
+     "move": "discard",
+     "tile": "7m"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "5s"
+   },
+   "margin": 0.206
+  },
+  {
+   "id": "hk0060",
+   "table": {
+    "ruleset": "hongKong",
+    "minimumFaan": 0,
+    "roundWind": "east",
+    "dealer": 0,
+    "dora": [],
+    "wall": 33,
+    "hand": [
+     "1p",
+     "2p",
+     "3p",
+     "3p",
+     "4p",
+     "4p",
+     "6p",
+     "6p",
+     "7p",
+     "8p",
+     "8p",
+     "R",
+     "R",
+     "7p"
+    ],
+    "ponds": [
+     [
+      "8m",
+      "B",
+      "6s",
+      "N",
+      "S",
+      "1m",
+      "2s",
+      "E",
+      "2m"
+     ],
+     [
+      "9m",
+      "6p",
+      "5s",
+      "W",
+      "4m",
+      "N",
+      "7p",
+      "8m",
+      "G"
+     ],
+     [
+      "7m",
+      "9s",
+      "4s",
+      "B",
+      "6m",
+      "1m",
+      "2p",
+      "5m",
+      "9m"
+     ],
+     [
+      "3s",
+      "3p",
+      "W",
+      "9m",
+      "4p",
+      "G",
+      "8s",
+      "W",
+      "1s"
+     ]
+    ]
+   },
+   "choices": [
+    {
+     "move": "discard",
+     "tile": "1p"
+    },
+    {
+     "move": "discard",
+     "tile": "2p"
+    },
+    {
+     "move": "discard",
+     "tile": "3p"
+    },
+    {
+     "move": "discard",
+     "tile": "4p"
+    }
+   ],
+   "answer": {
+    "move": "discard",
+    "tile": "1p"
+   },
+   "margin": 0.192
   }
  ]
 }

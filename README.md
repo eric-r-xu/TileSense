@@ -153,6 +153,16 @@ New puzzles are appended after the existing ones, so a day's puzzle never change
 underneath it; use a seed not used before. The tables are random: a finished hand
 with a few tiles swapped, ponds, a dora, sometimes a riichi against you and
 sometimes uneven scores. Only the tables both engines answer the same way are kept.
+
+The quiz has riichi and Hong Kong puzzles, and today's is drawn from the pool for the
+rules chosen on the welcome screen (Taiwanese, MCR and Sichuan take riichi's until they
+have pools). Mortal does not play Hong Kong, so those puzzles need no sidecar: they
+keep a table when TileSense's best line leads the next clearly. To grow that pool:
+
+```sh
+QUIZ_RULESET=hongKong QUIZ_COUNT=60 QUIZ_SEED=2 flutter test tools/build_quiz.dart
+```
+
 Answers are sent as a `quiz_answered` telemetry event.
 
 ### Custom Hand & Context Builder

@@ -1,5 +1,7 @@
-/// The daily quiz, "What would TileSensor do?": a posed riichi table, four
-/// choices, and one right answer that TileSense and Mortal both give.
+/// The daily quiz, "What would TileSensor do?": a posed table, four choices,
+/// and one right answer. A riichi puzzle's answer is one that TileSense and
+/// Mortal both give; a Hong Kong puzzle has no Mortal to ask, so its answer is
+/// TileSense's, kept only where the guide leads by a clear margin.
 ///
 /// A puzzle is stored as its table, its choices and the answer. TileSense's
 /// side is never trusted from the file: [tileSenseChoice] works it out again
@@ -9,7 +11,9 @@
 /// `tools/build_quiz.dart`, which keeps only the tables both agree on.
 library;
 
+import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/mjai.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 
 import '../game/mortal_advisor.dart' show MortalAdvice, MortalStatus;
@@ -109,7 +113,16 @@ class QuizTable {
     this.offered,
     this.offeredFrom = 1,
     this.points = const [25000, 25000, 25000, 25000],
+    this.ruleset = Ruleset.riichi,
+    this.minimumFaan = HongKongRules.defaultMinimumFaan,
   });
+
+  /// The rules the table is played under; the quiz offers riichi and Hong
+  /// Kong (see [kQuizRulesets]).
+  final Ruleset ruleset;
+
+  /// A Hong Kong table's minimum faan; unused under any other rules.
+  final int minimumFaan;
 
   final Wind roundWind;
 
@@ -154,10 +167,14 @@ class QuizTable {
         offered: s.offered?.type,
         offeredFrom: s.offeredFrom,
         points: List.of(s.points),
+        ruleset: s.ruleset,
+        minimumFaan: s.minimumFaan,
       );
 
-  /// Poses this table on [s], replacing whatever it held. Rules stay riichi.
+  /// Poses this table on [s], replacing whatever it held.
   void applyTo(Scenario s) {
+    s.ruleset = ruleset;
+    s.minimumFaan = minimumFaan;
     s.clear();
     s.roundWind = roundWind;
     s.dealer = dealer;
@@ -191,6 +208,8 @@ class QuizTable {
         ..edit(applyTo);
 
   Map<String, Object?> toJson() => {
+        if (ruleset != Ruleset.riichi) 'ruleset': ruleset.name,
+        if (ruleset.isHongKong) 'minimumFaan': minimumFaan,
         'roundWind': roundWind.name,
         'dealer': dealer,
         if (honba != 0) 'honba': honba,
@@ -211,6 +230,11 @@ class QuizTable {
     List<TileType> tiles(Object? codes) =>
         [for (final c in codes! as List) tileOfCode(c as String)];
     return QuizTable(
+      ruleset: json['ruleset'] == null
+          ? Ruleset.riichi
+          : Ruleset.values.byName(json['ruleset']! as String),
+      minimumFaan:
+          json['minimumFaan'] as int? ?? HongKongRules.defaultMinimumFaan,
       roundWind: Wind.values.byName(json['roundWind']! as String),
       dealer: json['dealer']! as int,
       honba: json['honba'] as int? ?? 0,
@@ -315,8 +339,9 @@ QuizSituation quizSituation(QuizTable t) {
     behindFirst: lead - mine,
     aheadOfNext:
         below.isEmpty ? 0 : mine - below.reduce((a, b) => a > b ? a : b),
-    placementFocus:
-        scores.toSet().length > 1 && scenarioHands <= kPlacementHands,
+    placementFocus: t.ruleset.isRiichi &&
+        scores.toSet().length > 1 &&
+        scenarioHands <= kPlacementHands,
     riichiSeat: riichiSeat,
     riichiTurnsAgo: riichiSeat == null
         ? null
@@ -343,7 +368,7 @@ class QuizPuzzle {
   /// The options as shown, in order; [answer] is one of them.
   final List<QuizChoice> choices;
 
-  /// What TileSense and Mortal both say.
+  /// What TileSense says, and under riichi Mortal too.
   final QuizChoice answer;
 
   /// Mortal's order of preference over the legal discards, 1 = its pick, keyed
@@ -361,6 +386,9 @@ class QuizPuzzle {
   final bool riichiOption;
 
   QuizKind get kind => table.kind;
+
+  /// The rules the puzzle is posed under.
+  Ruleset get ruleset => table.ruleset;
 
   /// Mortal's rank for [tile], 1 = its pick.
   int? mortalRankOf(TileType tile) => mortalRanks[mjaiTile(Tile(-1, tile))];

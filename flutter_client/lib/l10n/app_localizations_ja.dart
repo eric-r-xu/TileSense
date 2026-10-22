@@ -328,9 +328,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rulesetSubtitleTaiwanese => '17枚・花牌・最低1〜5台';
 
   @override
-  String get welcomeTo => 'ようこそ';
-
-  @override
   String welcomeTagline(String rules) {
     return '$rules麻雀の判断力を磨こう\nあなたと同じ情報だけを見るガイドと一緒に。';
   }
@@ -2609,9 +2606,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get quizTitle => 'TileSensorならどうする？';
-
-  @override
-  String get quizRiichiOnly => 'リーチ麻雀（日本式）のルール専用';
 
   @override
   String get quizAskDiscard => 'あなたの番で、牌をツモりました。どうしますか？';

@@ -332,9 +332,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesetSubtitleTaiwanese => '17 tiles, flowers, 1–5 tai minimum';
 
   @override
-  String get welcomeTo => 'Welcome to';
-
-  @override
   String welcomeTagline(String rules) {
     return 'Sharpen your $rules Mahjong decisions\nwith a guide that sees only what you see.';
   }
@@ -2668,9 +2665,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quizTitle => 'What would TileSensor do?';
-
-  @override
-  String get quizRiichiOnly => 'Riichi (Japanese) mahjong rules only';
 
   @override
   String get quizAskDiscard =>

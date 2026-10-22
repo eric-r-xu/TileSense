@@ -17,6 +17,7 @@ import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
 import '../logic/daily_quiz.dart';
 import '../logic/progress.dart';
+import '../logic/quiz_rules.dart';
 import '../telemetry/telemetry.dart';
 import '../scenario/scenario_controller.dart';
 import 'bar_back_button.dart';
@@ -26,7 +27,6 @@ import 'language_button.dart';
 import 'ruleset_badge.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
-import 'tilesensor.dart' show kTileSensorAsset;
 import 'theme.dart';
 
 /// Reads the shipped puzzles.
@@ -45,11 +45,16 @@ class DailyQuizScreen extends StatefulWidget {
   const DailyQuizScreen(
       {super.key,
       required this.onExit,
+      this.ruleset = Ruleset.riichi,
       this.puzzles,
       this.progress,
       this.onTelemetry});
 
   final VoidCallback onExit;
+
+  /// The rules selected on the welcome screen. Today's puzzle is one of that
+  /// ruleset's, or of [kQuizFallback]'s where it has none yet.
+  final Ruleset ruleset;
 
   /// Puzzles to use instead of the shipped file, for tests.
   final Future<List<QuizPuzzle>>? puzzles;
@@ -90,11 +95,24 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
     (widget.onTelemetry ?? Telemetry.shared()?.quizAnswered)?.call(payload);
   }
 
+  /// The puzzles for the rules in play, in file order so a day's puzzle stays
+  /// put as other rules' pools grow. A file with none of them (a test's) is
+  /// used whole.
+  List<QuizPuzzle> _poolFor(List<QuizPuzzle> all) {
+    final rules = quizRulesetFor(widget.ruleset);
+    final pool = [
+      for (final p in all)
+        if (p.ruleset == rules) p
+    ];
+    return pool.isEmpty ? all : pool;
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<List<QuizPuzzle>>(
         future: _puzzles,
         builder: (context, snapshot) {
-          final puzzles = snapshot.data;
+          final all = snapshot.data;
+          final puzzles = all == null ? null : _poolFor(all);
           if (puzzles != null && puzzles.isNotEmpty) {
             return DailyQuizPage(
               puzzle: puzzles[dailyIndex(DateTime.now(), puzzles.length)],
@@ -236,9 +254,9 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
         QuizMove.discard => l10n.quizDiscard,
         QuizMove.riichi => l10n.quizRiichi,
         QuizMove.pass => l10n.practiceOptionPass,
-        QuizMove.chi => l10n.callLabel(CallType.chi, Ruleset.riichi),
-        QuizMove.pon => l10n.callLabel(CallType.pon, Ruleset.riichi),
-        QuizMove.kan => l10n.callLabel(CallType.kan, Ruleset.riichi),
+        QuizMove.chi => l10n.callLabel(CallType.chi, _puzzle.ruleset),
+        QuizMove.pon => l10n.callLabel(CallType.pon, _puzzle.ruleset),
+        QuizMove.kan => l10n.callLabel(CallType.kan, _puzzle.ruleset),
       };
 
   /// The tiles a choice puts on its button: the cut, or what the call makes.
@@ -409,18 +427,24 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
             QuizStage.late => l10n.quizStageLate,
           },
           t.wallRemaining),
-      if (t.evenScores)
-        l10n.quizPlaceEven(_n(t.points.first))
-      else if (t.rank == 1)
-        l10n.quizPlaceLead(t.rank, _n(t.aheadOfNext))
-      else
-        l10n.quizPlaceBehind(t.rank, _n(t.behindFirst)),
+      // Scores, riichi and placement are riichi's; a Hong Kong table is
+      // level on chips and has only the hand to weigh.
+      if (_puzzle.ruleset.isRiichi) ...[
+        if (t.evenScores)
+          l10n.quizPlaceEven(_n(t.points.first))
+        else if (t.rank == 1)
+          l10n.quizPlaceLead(t.rank, _n(t.aheadOfNext))
+        else
+          l10n.quizPlaceBehind(t.rank, _n(t.behindFirst)),
+      ],
       t.isDealer ? l10n.quizDealerYes : l10n.quizDealerNo,
-      if (t.riichiSeat case final seat?)
-        l10n.quizThreat(_c.seatLabel(seat), t.riichiTurnsAgo!)
-      else
-        l10n.quizNoThreat,
-      if (t.placementFocus) l10n.quizFocusPlacement else l10n.quizFocusPoints,
+      if (_puzzle.ruleset.isRiichi) ...[
+        if (t.riichiSeat case final seat?)
+          l10n.quizThreat(_c.seatLabel(seat), t.riichiTurnsAgo!)
+        else
+          l10n.quizNoThreat,
+        if (t.placementFocus) l10n.quizFocusPlacement else l10n.quizFocusPoints,
+      ],
     ];
     return Column(
       key: const Key('quizSituation'),
@@ -487,17 +511,21 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
                     fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 6),
-          Row(
-            key: const Key('quizAgree'),
-            children: [
-              const Icon(Icons.check_circle, color: AppColors.right, size: 20),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(l10n.quizAgree,
-                    style: const TextStyle(color: Colors.white, fontSize: 16)),
-              ),
-            ],
-          ),
+          // Mortal plays riichi only; other rules' answers are the guide's own.
+          if (_puzzle.ruleset.isRiichi)
+            Row(
+              key: const Key('quizAgree'),
+              children: [
+                const Icon(Icons.check_circle,
+                    color: AppColors.right, size: 20),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(l10n.quizAgree,
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+              ],
+            ),
           heading(l10n.quizSituation),
           _situation(l10n),
           heading(l10n.quizTileSenseSays),
@@ -512,13 +540,15 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
                 style: const TextStyle(
                     color: Colors.white, fontSize: 15, height: 1.4)),
           ],
-          heading(l10n.quizMortalSays),
-          Text(_mortalLine(l10n),
-              key: const Key('quizMortalLine'),
-              style: const TextStyle(color: Colors.white, fontSize: 15)),
-          const SizedBox(height: 4),
-          Text(l10n.quizMortalNote,
-              style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          if (_puzzle.ruleset.isRiichi) ...[
+            heading(l10n.quizMortalSays),
+            Text(_mortalLine(l10n),
+                key: const Key('quizMortalLine'),
+                style: const TextStyle(color: Colors.white, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text(l10n.quizMortalNote,
+                style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          ],
           const SizedBox(height: 10),
           Text(l10n.quizDone,
               key: const Key('quizDone'),
@@ -583,7 +613,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const RiichiOnlyBadge(),
+          QuizRulesBadge(_puzzle.ruleset),
           const SizedBox(height: 10),
           Text(ask,
               key: const Key('quizQuestion'),
@@ -660,12 +690,6 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
               leading: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(kTileSensorAsset,
-                      height: 30,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.school, size: 30)),
-                  const SizedBox(width: 8),
                   Flexible(
                     child: Text(l10n.quizTitle,
                         key: const Key('quizTitle'),
