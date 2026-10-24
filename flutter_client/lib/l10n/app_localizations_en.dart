@@ -2726,6 +2726,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizMortalRankFirst => 'Mortal\'s top pick.';
 
   @override
+  String get quizMortalKan => 'Mortal declares the kan here too.';
+
+  @override
+  String get quizMortalNoKan => 'Mortal does not declare a kan here.';
+
+  @override
   String get quizMortalNote =>
       'Mortal does not explain its choices; this is its ranking.';
 
@@ -2736,7 +2742,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizDora => 'Dora indicator';
 
   @override
-  String get quizDone => 'Come back tomorrow for a new puzzle.';
+  String quizProgress(int number, int total) {
+    return 'Question $number of $total';
+  }
+
+  @override
+  String get quizNext => 'Next question';
+
+  @override
+  String get quizSeeResults => 'See today\'s results';
+
+  @override
+  String get quizResultsTitle => 'Today\'s quiz is done';
+
+  @override
+  String quizResultsScore(int right, int total) {
+    return 'You got $right of $total right.';
+  }
+
+  @override
+  String get quizDone => 'Come back tomorrow for new puzzles.';
 
   @override
   String get quizLoadFailed => 'Today\'s puzzle could not be loaded.';
@@ -2745,7 +2770,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizLink => 'Daily quiz';
 
   @override
-  String get quizCardToday => 'Today\'s puzzle is ready';
+  String get quizCardToday => 'Today\'s puzzles are ready';
 
   @override
   String get quizCardDone => 'Done for today. Back tomorrow!';

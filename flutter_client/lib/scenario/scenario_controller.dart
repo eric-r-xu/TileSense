@@ -74,7 +74,18 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
 
   // The builder has no dials of its own — it plays what the guide would.
   @override
-  PlayStyle get playStyle => _autoDials.style;
+  PlayStyle get playStyle => _styleOverride ?? _autoDials.style;
+
+  PlayStyle? _styleOverride;
+
+  /// Reads the table under [style] instead of the one the guide would pick,
+  /// or under its own when null. The daily quiz uses it to keep only the
+  /// Hong Kong tables every style answers the same way.
+  void overrideStyle(PlayStyle? style) {
+    if (_styleOverride == style) return;
+    _styleOverride = style;
+    rebuild();
+  }
 
   @override
   void setPlayStyle(PlayStyle value) {}

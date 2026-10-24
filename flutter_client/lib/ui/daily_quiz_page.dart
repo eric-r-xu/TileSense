@@ -1,5 +1,6 @@
-/// The daily quiz, "What would TileSensor do?": today's posed table, four
-/// choices, and once you answer, why TileSense and Mortal pick what they do.
+/// The daily quiz, "What would TileSensor do?": today's five posed tables, each
+/// with its choices, and once you answer, why TileSense and Mortal pick what
+/// they do.
 /// The puzzles are `assets/quiz/daily.json`, built by `tools/build_quiz.dart`;
 /// the model and the explanation numbers are in `logic/daily_quiz.dart`.
 library;
@@ -40,7 +41,8 @@ Future<List<QuizPuzzle>> loadQuizPuzzles([AssetBundle? bundle]) async {
   ];
 }
 
-/// Loads the puzzles and opens today's.
+/// Loads the puzzles and takes you through today's [kQuizPerDay], one after
+/// another, to a score.
 class DailyQuizScreen extends StatefulWidget {
   const DailyQuizScreen(
       {super.key,
@@ -74,13 +76,25 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
   late final Future<List<QuizPuzzle>> _puzzles =
       widget.puzzles ?? loadQuizPuzzles();
 
-  /// Counts the answer toward the streak (only a day's first does) and
-  /// reports it.
-  void _record(QuizPuzzle puzzle, QuizChoice picked, bool correct) {
-    final store = widget.progress ?? ProgressStore.instance;
-    final now = DateTime.now();
-    final first = !store.value.quizAnsweredOn(now);
-    store.recordQuiz(now, correct: correct);
+  /// The day being played, fixed when the quiz opens so that a game left
+  /// open past midnight finishes the day it started.
+  final DateTime _day = DateTime.now();
+
+  /// Which of today's questions is up, and how many have been right so far.
+  int _step = 0;
+  int _right = 0;
+
+  ProgressStore get _store => widget.progress ?? ProgressStore.instance;
+
+  /// Reports the answer. The streak is kept when the last question of the day
+  /// is answered: the day counts once it has been played through.
+  void _record(QuizPuzzle puzzle, QuizChoice picked, bool correct,
+      {required bool last}) {
+    final store = _store;
+    final now = _day;
+    final first = _step == 0 && !store.value.quizAnsweredOn(now);
+    if (correct) _right++;
+    if (last) store.recordQuiz(now, correct: _right == kQuizPerDay);
     final payload = Telemetry.quizAnsweredPayload(
       puzzleId: puzzle.id,
       puzzleKind: puzzle.kind.name,
@@ -95,7 +109,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
     (widget.onTelemetry ?? Telemetry.shared()?.quizAnswered)?.call(payload);
   }
 
-  /// The puzzles for the rules in play, in file order so a day's puzzle stays
+  /// The puzzles for the rules in play, in file order so a day's puzzles stay
   /// put as other rules' pools grow. A file with none of them (a test's) is
   /// used whole.
   List<QuizPuzzle> _poolFor(List<QuizPuzzle> all) {
@@ -114,11 +128,29 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           final all = snapshot.data;
           final puzzles = all == null ? null : _poolFor(all);
           if (puzzles != null && puzzles.isNotEmpty) {
+            final today = [
+              for (final i in dailyIndexes(_day, puzzles.length)) puzzles[i],
+            ];
+            if (_step >= today.length) {
+              return QuizResultsPage(
+                right: _right,
+                total: today.length,
+                streak: _store.value.quizStreakOn(_day),
+                onExit: widget.onExit,
+              );
+            }
+            final puzzle = today[_step];
+            final last = _step == today.length - 1;
             return DailyQuizPage(
-              puzzle: puzzles[dailyIndex(DateTime.now(), puzzles.length)],
+              // A new page, with a new table, for each question.
+              key: ValueKey('${puzzle.id}@$_step'),
+              puzzle: puzzle,
+              number: _step + 1,
+              total: today.length,
               onExit: widget.onExit,
               onAnswered: (puzzle, picked, correct) =>
-                  _record(puzzle, picked, correct),
+                  _record(puzzle, picked, correct, last: last),
+              onNext: () => setState(() => _step++),
             );
           }
           return Material(
@@ -156,10 +188,22 @@ class DailyQuizPage extends StatefulWidget {
     required this.puzzle,
     required this.onExit,
     this.onAnswered,
+    this.onNext,
+    this.number = 1,
+    this.total = 1,
     this.random,
   });
 
   final QuizPuzzle puzzle;
+
+  /// Which question of the day this is, out of [total]; shown only when there
+  /// is more than one.
+  final int number;
+  final int total;
+
+  /// Moves on to the next question, offered once this one is answered; the
+  /// last question's takes you to the results. No button when null.
+  final VoidCallback? onNext;
 
   /// Picks the three opponents; unseeded when null.
   final Random? random;
@@ -206,7 +250,9 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
   /// is the whole answer.
   void _pick(QuizChoice choice) {
     if (_answered || _cut != null) return;
-    if (_puzzle.riichiOption && quizFacts(_c, choice)?.shanten == 0) {
+    if (_puzzle.riichiOption &&
+        choice.move != QuizMove.kan &&
+        quizFacts(_c, choice)?.shanten == 0) {
       setState(() => _cut = choice);
     } else {
       _finish(choice);
@@ -224,9 +270,11 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
   /// puzzle a cut is right or wrong by its tile, whatever came after.
   Color? _mark(QuizChoice choice) {
     if (!_answered) return null;
-    if (_puzzle.riichiOption) {
+    if (_puzzle.riichiOption && choice.move != QuizMove.kan) {
       if (choice.tile == _puzzle.answer.tile) return AppColors.right;
-      return choice.tile == _picked!.tile ? AppColors.wrong : null;
+      return _picked!.move != QuizMove.kan && choice.tile == _picked!.tile
+          ? AppColors.wrong
+          : null;
     }
     if (choice == _puzzle.answer) return AppColors.right;
     return choice == _picked ? AppColors.wrong : null;
@@ -268,13 +316,17 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
           for (var i = 0; i < 3; i++) TileType.values[choice.tile!.index + i],
         ],
       QuizMove.pon => [offered!, offered, offered],
-      QuizMove.kan => [offered!, offered, offered, offered],
+      // A kan from the hand names its tile; one called from a discard is the
+      // offered tile.
+      QuizMove.kan => [for (var i = 0; i < 4; i++) choice.tile ?? offered!],
       QuizMove.pass => const [],
     };
   }
 
   Widget _choiceButton(AppLocalizations l10n, int i, QuizChoice choice) {
-    final selected = _cut != null && _cut!.tile == choice.tile;
+    final selected = _cut != null &&
+        choice.move != QuizMove.kan &&
+        _cut!.tile == choice.tile;
     final mark = _mark(choice) ?? (selected ? AppColors.gold : null);
     final faces = _faces(choice);
     final id = 'quizChoice_$i';
@@ -393,6 +445,9 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
   String _mortalLine(AppLocalizations l10n) {
     final picked = _picked!;
     if (_puzzle.kind == QuizKind.call) return l10n.quizMortalPicked;
+    // Mortal ranks cuts, so a kan is told apart from them.
+    if (_puzzle.answer.move == QuizMove.kan) return l10n.quizMortalKan;
+    if (picked.move == QuizMove.kan) return l10n.quizMortalNoKan;
     if (picked == _puzzle.answer) return l10n.quizMortalRankFirst;
     // The right cut with the wrong riichi call: Mortal's ranking is by cut, so
     // say what it does about riichi instead.
@@ -479,7 +534,8 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
     final best = quizFacts(_c, _puzzle.answer);
     final mine = ok ? best : quizFacts(_c, picked);
     final reason = best?.reason ?? '';
-    final sameCut = picked.tile == _puzzle.answer.tile;
+    final sameCut =
+        picked.move != QuizMove.kan && picked.tile == _puzzle.answer.tile;
     Widget heading(String s) => Padding(
           padding: const EdgeInsets.only(top: 12, bottom: 4),
           child: Text(s,
@@ -549,10 +605,11 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
             Text(l10n.quizMortalNote,
                 style: const TextStyle(color: Colors.white54, fontSize: 12)),
           ],
-          const SizedBox(height: 10),
-          Text(l10n.quizDone,
-              key: const Key('quizDone'),
-              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 12),
+          if (widget.onNext == null)
+            Text(l10n.quizDone,
+                key: const Key('quizDone'),
+                style: const TextStyle(color: Colors.white70, fontSize: 14)),
         ],
       ),
     );
@@ -604,6 +661,30 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
         ],
       );
 
+  /// Moves on once answered. Pinned beside Back, so it is under the thumb
+  /// however far the reveal scrolls.
+  Widget _nextBar(AppLocalizations l10n) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        child: e2eId(
+          'quizNext',
+          FilledButton(
+            key: const Key('quizNext'),
+            onPressed: widget.onNext,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              foregroundColor: Colors.black,
+              minimumSize: const Size.fromHeight(56),
+            ),
+            child: Text(
+                widget.number < widget.total
+                    ? l10n.quizNext
+                    : l10n.quizSeeResults,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      );
+
   Widget _panel(AppLocalizations l10n) {
     final ask = _puzzle.kind == QuizKind.call
         ? l10n.quizAskCall(_seatName(l10n))
@@ -613,7 +694,21 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          QuizRulesBadge(_puzzle.ruleset),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              QuizRulesBadge(_puzzle.ruleset),
+              if (widget.total > 1)
+                Text(l10n.quizProgress(widget.number, widget.total),
+                    key: const Key('quizProgress'),
+                    style: const TextStyle(
+                        color: AppColors.goldText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold)),
+            ],
+          ),
           const SizedBox(height: 10),
           Text(ask,
               key: const Key('quizQuestion'),
@@ -648,6 +743,7 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
     return Column(
       children: [
         Expanded(child: questions),
+        if (_answered && widget.onNext != null) _nextBar(l10n),
         BackFooter(
           buttonKey: const Key('quizBackBottom'),
           label: l10n.backToMenu,
@@ -714,6 +810,95 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
                 child:
                     TableView(game: _c, acrossInBar: true, ownPortrait: false)),
             SizedBox(width: _panelWidth, child: _panel(l10n)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the day's questions came to, once the last is answered.
+class QuizResultsPage extends StatelessWidget {
+  const QuizResultsPage({
+    super.key,
+    required this.right,
+    required this.total,
+    required this.streak,
+    required this.onExit,
+  });
+
+  final int right;
+  final int total;
+  final int streak;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        toolbarHeight: BarBackButton.toolbarHeight(context),
+        titleSpacing: 8,
+        leadingWidth: BarBackButton.leadingWidth,
+        leading: BarBackButton(
+          buttonKey: const Key('quizBack'),
+          label: l10n.back,
+          tooltip: l10n.backToMainMenu,
+          onPressed: onExit,
+        ),
+        title: Text(l10n.quizTitle,
+            style: const TextStyle(
+                color: AppColors.gold,
+                fontSize: 16,
+                fontWeight: FontWeight.bold)),
+        actions: const [LanguageButton(), SizedBox(width: 8)],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(l10n.quizResultsTitle,
+                          key: const Key('quizResultsTitle'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: AppColors.gold,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 14),
+                      Text(l10n.quizResultsScore(right, total),
+                          key: const Key('quizResultsScore'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 22)),
+                      if (streak > 0) ...[
+                        const SizedBox(height: 8),
+                        Text(l10n.quizStreak(streak),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 16)),
+                      ],
+                      const SizedBox(height: 14),
+                      Text(l10n.quizDone,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 15)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            BackFooter(
+              buttonKey: const Key('quizBackBottom'),
+              label: l10n.backToMenu,
+              tooltip: l10n.backToMainMenu,
+              onPressed: onExit,
+            ),
           ],
         ),
       ),

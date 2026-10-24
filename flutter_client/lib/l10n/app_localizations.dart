@@ -4859,6 +4859,18 @@ abstract class AppLocalizations {
   /// **'Mortal\'s top pick.'**
   String get quizMortalRankFirst;
 
+  /// No description provided for @quizMortalKan.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal declares the kan here too.'**
+  String get quizMortalKan;
+
+  /// No description provided for @quizMortalNoKan.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortal does not declare a kan here.'**
+  String get quizMortalNoKan;
+
   /// No description provided for @quizMortalNote.
   ///
   /// In en, this message translates to:
@@ -4877,10 +4889,40 @@ abstract class AppLocalizations {
   /// **'Dora indicator'**
   String get quizDora;
 
+  /// No description provided for @quizProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number} of {total}'**
+  String quizProgress(int number, int total);
+
+  /// No description provided for @quizNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next question'**
+  String get quizNext;
+
+  /// No description provided for @quizSeeResults.
+  ///
+  /// In en, this message translates to:
+  /// **'See today\'s results'**
+  String get quizSeeResults;
+
+  /// No description provided for @quizResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s quiz is done'**
+  String get quizResultsTitle;
+
+  /// No description provided for @quizResultsScore.
+  ///
+  /// In en, this message translates to:
+  /// **'You got {right} of {total} right.'**
+  String quizResultsScore(int right, int total);
+
   /// No description provided for @quizDone.
   ///
   /// In en, this message translates to:
-  /// **'Come back tomorrow for a new puzzle.'**
+  /// **'Come back tomorrow for new puzzles.'**
   String get quizDone;
 
   /// No description provided for @quizLoadFailed.
@@ -4898,7 +4940,7 @@ abstract class AppLocalizations {
   /// No description provided for @quizCardToday.
   ///
   /// In en, this message translates to:
-  /// **'Today\'s puzzle is ready'**
+  /// **'Today\'s puzzles are ready'**
   String get quizCardToday;
 
   /// No description provided for @quizCardDone.

@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/daily_quiz.dart';
 import 'package:tilesense/logic/progress.dart';
 import 'package:tilesense/ui/daily_quiz_page.dart';
+import 'package:tilesense/ui/tile_face.dart';
 
 import 'l10n_helpers.dart';
 
@@ -101,6 +103,108 @@ void main() {
     await tester.tap(find.byKey(const Key('quizBackBottom')));
     await tester.pump();
     expect(exits, 1);
+  });
+
+  testWidgets(
+      'a kan on offer is a choice showing all four tiles; in Hong Kong '
+      'it is a kong', (tester) async {
+    for (final (ruleset, word) in [
+      (Ruleset.riichi, 'Kan'),
+      (Ruleset.hongKong, 'Kong'),
+    ]) {
+      final puzzle = first((p) =>
+          p.ruleset == ruleset &&
+          p.kind == QuizKind.discard &&
+          p.answer.move == QuizMove.kan);
+      QuizChoice? told;
+      // A fresh page for each, not the last one's state with a new puzzle.
+      await tester.pumpWidget(const SizedBox());
+      await pumpPuzzle(tester, puzzle, onAnswered: (_, c, __) => told = c);
+      final i = puzzle.choices.indexOf(puzzle.answer);
+      final button = find.byKey(Key('quizChoice_$i'));
+      expect(find.descendant(of: button, matching: find.text(word)),
+          findsOneWidget);
+      expect(find.descendant(of: button, matching: find.byType(TileFace)),
+          findsNWidgets(4));
+
+      await tester.tap(button);
+      await tester.pump();
+      expect(text(tester, 'quizVerdict'), 'Correct!');
+      expect(told, puzzle.answer);
+      // A kan is the whole answer: no riichi-or-dama follow-up.
+      expect(find.byKey(const Key('quizSecondPart')), findsNothing);
+      if (ruleset.isRiichi) {
+        expect(text(tester, 'quizMortalLine'), contains('kan'));
+      }
+    }
+  });
+
+  testWidgets(
+      'kanning when the guide would not is wrong, and says what Mortal '
+      'does', (tester) async {
+    final puzzle = first((p) =>
+        p.ruleset.isRiichi &&
+        p.kind == QuizKind.discard &&
+        p.answer.move != QuizMove.kan &&
+        p.choices.any((c) => c.move == QuizMove.kan));
+    await pumpPuzzle(tester, puzzle);
+    final i = puzzle.choices.indexWhere((c) => c.move == QuizMove.kan);
+    await tester.tap(find.byKey(Key('quizChoice_$i')));
+    await tester.pump();
+    expect(text(tester, 'quizVerdict'), 'Not quite.');
+    expect(find.byKey(const Key('quizSecondPart')), findsNothing);
+    expect(text(tester, 'quizMortalLine'), contains('does not declare a kan'));
+  });
+
+  testWidgets(
+      'a question of five shows its number, and Next moves on once '
+      'answered', (tester) async {
+    final puzzle = first((p) => p.kind == QuizKind.discard && !p.riichiOption);
+    var next = 0;
+    await pumpLocalized(
+        tester,
+        DailyQuizPage(
+            puzzle: puzzle,
+            number: 2,
+            total: 5,
+            onExit: () {},
+            onNext: () => next++),
+        size: const Size(1600, 820));
+    expect(text(tester, 'quizProgress'), 'Question 2 of 5');
+    expect(find.byKey(const Key('quizNext')), findsNothing,
+        reason: 'not before answering');
+    await choose(tester, puzzle, puzzle.answer);
+    expect(find.text('Next question'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quizNext')));
+    expect(next, 1);
+  });
+
+  testWidgets('the last question leads to the results, a lone one to neither',
+      (tester) async {
+    final puzzle = first((p) => p.kind == QuizKind.discard && !p.riichiOption);
+    await pumpLocalized(
+        tester,
+        DailyQuizPage(
+            puzzle: puzzle, number: 5, total: 5, onExit: () {}, onNext: () {}),
+        size: const Size(1600, 820));
+    await choose(tester, puzzle, puzzle.answer);
+    expect(find.text("See today's results"), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await pumpPuzzle(tester, puzzle);
+    expect(find.byKey(const Key('quizProgress')), findsNothing);
+    await choose(tester, puzzle, puzzle.answer);
+    expect(find.byKey(const Key('quizNext')), findsNothing);
+    expect(find.byKey(const Key('quizDone')), findsOneWidget);
+  });
+
+  testWidgets('the results say how many were right and the streak',
+      (tester) async {
+    await pumpLocalized(
+        tester, QuizResultsPage(right: 4, total: 5, streak: 3, onExit: () {}),
+        size: const Size(1600, 820));
+    expect(text(tester, 'quizResultsScore'), 'You got 4 of 5 right.');
+    expect(find.text('3-day streak'), findsOneWidget);
   });
 
   testWidgets('a ready hand is two questions: the cut, then riichi or dama',

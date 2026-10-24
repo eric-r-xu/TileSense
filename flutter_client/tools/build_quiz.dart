@@ -10,6 +10,10 @@
 /// QUIZ_RULESET=hongKong makes Hong Kong puzzles instead. Mortal does not play
 /// those rules, so no sidecar is needed: TileSense's own clear lead is the bar.
 ///
+/// Every run first re-checks the puzzles already in the file and drops any that
+/// no longer stand (see [puzzleProblem]), and a Hong Kong puzzle is kept only
+/// if the guide answers it the same aggressively, defensively and by default.
+///
 /// QUIZ_COUNT is how many puzzles to add (default 60) and QUIZ_SEED picks the
 /// random tables (default 1). Puzzles already in the file are kept, and the new
 /// ones follow them, so a day's puzzle never changes under a player: grow the
@@ -49,6 +53,21 @@ void main() {
           ]
         : <QuizPuzzle>[];
 
+    // Puzzles that no longer stand (the guide has been retuned, or they predate
+    // kan being offered or Hong Kong's style check) are dropped, so every
+    // puzzle in the pool meets today's bar. QUIZ_KEEP_STALE=1 keeps them.
+    final dropped = env['QUIZ_KEEP_STALE'] == '1'
+        ? <String>[]
+        : [
+            for (final p in existing)
+              if (puzzleProblem(p) case final why?) '${p.id}: $why',
+          ];
+    if (dropped.isNotEmpty) {
+      // ignore: avoid_print
+      print('dropping ${dropped.length} stale puzzles:\n${dropped.join('\n')}');
+      existing.removeWhere((p) => dropped.any((d) => d.startsWith('${p.id}:')));
+    }
+
     final advisor = ruleset.isRiichi ? MortalAdvisor(url!) : null;
     final generator = QuizGenerator(
       seed: int.parse(env['QUIZ_SEED'] ?? '1'),
@@ -57,9 +76,14 @@ void main() {
       mortal: advisor == null ? null : askSidecar(advisor.advise),
     );
     // Ids count up within a ruleset, so a pool can grow without renumbering.
-    final have = existing.where((p) => p.ruleset == ruleset).length;
+    // Counting on from the highest id, since dropped puzzles leave gaps.
+    final prefix = QuizGenerator.idPrefix(ruleset);
+    final last = existing
+        .where((p) => p.ruleset == ruleset)
+        .map((p) => int.parse(p.id.substring(prefix.length)))
+        .fold(0, (a, b) => a > b ? a : b);
     final made = await generator.generate(count,
-        firstNumber: have + 1, maxTries: count * 400);
+        firstNumber: last + 1, maxTries: count * 400);
 
     // ignore: avoid_print
     print(
