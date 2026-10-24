@@ -1521,7 +1521,10 @@ void sichuanRoomMain() {
     expect(res['nextDealer'], isNotNull);
     // The settlement lines add up to what each seat gained or lost.
     final net = <int, int>{for (var i = 0; i < 4; i++) i: 0};
-    for (final p in (res['sichuanPayments'] as List).cast<Map<String, dynamic>>()) {
+    // The key is left out when a hand settles with no payments.
+    final payments = (res['sichuanPayments'] as List? ?? const [])
+        .cast<Map<String, dynamic>>();
+    for (final p in payments) {
       net[p['from'] as int] = net[p['from'] as int]! - (p['points'] as int);
       net[p['to'] as int] = net[p['to'] as int]! + (p['points'] as int);
     }
