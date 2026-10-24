@@ -15,7 +15,8 @@ import 'package:mahjong_core/mahjong_core.dart';
 /// Posts one seat's view of a hand and returns Mortal's reply; throws on
 /// any failure.
 typedef MortalAsk = Future<Map<String, Object?>> Function(
-    int seat, List<MjaiEvent> events);
+    int seat, List<MjaiEvent> events,
+    {required bool hanchan});
 
 class MortalClient {
   MortalClient(String url) : _url = Uri.parse('$url/react');
@@ -31,15 +32,20 @@ class MortalClient {
   }
 
   /// Mortal's reply for [seat]. [events] is the hand with nothing hidden;
-  /// only [seat]'s own view of it ([mjaiView]) is sent.
-  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
+  /// only [seat]'s own view of it ([mjaiView]) is sent. [hanchan] false tells
+  /// Mortal the game ends after East.
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
+      {bool hanchan = true}) async {
     Future<Map<String, Object?>> post() async {
       final req = await _http.postUrl(_url);
       req.headers.contentType = ContentType.json;
       // The sidecar reads Content-Length and answers 413 without it; left to
       // itself Dart sends a body like this chunked, with no length.
-      final bytes = utf8.encode(
-          jsonEncode({'player_id': seat, 'events': mjaiView(events, seat)}));
+      final bytes = utf8.encode(jsonEncode({
+        'player_id': seat,
+        'events': mjaiView(events, seat),
+        'game_length': hanchan ? 8 : 4,
+      }));
       req.contentLength = bytes.length;
       req.add(bytes);
       final res = await req.close();

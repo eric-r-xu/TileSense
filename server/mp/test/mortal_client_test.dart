@@ -67,4 +67,16 @@ void main() {
     }
     expect((events[2] as Map)['pai'], '?');
   });
+
+  test('ask names the game length: hanchan by default, East-only on request',
+      () async {
+    final hand = [
+      {'type': 'start_kyoku', 'tehais': [
+        for (var i = 0; i < 4; i++) List.filled(13, '1m')
+      ]},
+    ];
+    await client.ask(0, hand);
+    await client.ask(0, hand, hanchan: false);
+    expect(seen.map((b) => b['game_length']), [8, 4]);
+  });
 }

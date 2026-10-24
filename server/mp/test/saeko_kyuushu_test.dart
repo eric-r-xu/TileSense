@@ -30,7 +30,7 @@ void main() {
         abandonGrace: const Duration(milliseconds: 400),
         continueTimeout: Duration.zero,
         continueLock: Duration.zero,
-        mortal: (seat, events) async {
+        mortal: (seat, events, {hanchan = true}) async {
           final last = events.last;
           if (asked != null || last['type'] != 'tsumo' || last['actor'] != seat) {
             return {'reaction': null}; // pass any call; later turns are not under test

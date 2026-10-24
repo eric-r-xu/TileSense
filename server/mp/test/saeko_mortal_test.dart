@@ -52,7 +52,7 @@ void main() {
       abandonGrace: const Duration(milliseconds: 400),
       continueTimeout: Duration.zero,
       continueLock: Duration.zero,
-      mortal: (seat, events) async {
+      mortal: (seat, events, {hanchan = true}) async {
         calls++;
         expect(seat, saekoSeat);
         final view = mjaiView(events, seat);

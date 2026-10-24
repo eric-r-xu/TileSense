@@ -508,7 +508,8 @@ class TableLoop {
     final mjai = _mjai;
     if (mjai == null) return fallback();
     try {
-      return read(await _mortal!(seat, List.of(mjai.events)));
+      return read(await _mortal!(seat, List.of(mjai.events),
+          hanchan: room.hanchan));
     } catch (e) {
       print('[mp] Saeko (Mortal) fell back to SimpleBot: $e');
       return fallback();

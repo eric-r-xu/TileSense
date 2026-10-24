@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/bot.dart';
 import 'package:mahjong_core/game_timing.dart';
+import 'package:mahjong_core/hand_parse.dart' show isTenpai;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
@@ -67,6 +68,12 @@ const List<String> kSeatNames = ['Orderic', 'Grant', 'Hubert', 'Astaroth'];
 /// How many East-round hands before the game ends (tonpuusen). Renchan can
 /// extend past this.
 const int kRoundsPerGame = 4;
+
+/// A kind of decision on your seat that [GameController.mortalParts] can give
+/// to Mortal while the guide keeps the rest: which tile to cut, whether to
+/// declare riichi, closed and added kans, or answers to calls (open kan
+/// included).
+enum MortalPart { discard, riichi, kan, calls }
 
 class GameController extends ChangeNotifier implements TableGameHost {
   /// [botFactory] builds the four opponents, one per seat, and defaults to the
@@ -193,7 +200,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   Future<Map<String, Object?>> _mortalReply(int seat) =>
       _mortalReplies.putIfAbsent((round, _log.length, seat),
-          () => _mortal!.ask(seat, _mjaiEvents()));
+          () => _mortal!.ask(seat, _mjaiEvents(), hanchan: hanchan));
 
   @override
   bool get mortalAvailable => _mortal != null && ruleset.isRiichi;
@@ -214,6 +221,30 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// Whether Auto-Play is playing your seat on Mortal's moves right now.
   bool get _mortalPlaysYou =>
       autoplay && autoplayBrain == AutoplayBrain.mortal && mortalAvailable;
+
+  /// Which of your decisions Mortal makes while the guide plays the rest, for
+  /// the simulations that apportion their gap. Empty in the app.
+  @visibleForTesting
+  Set<MortalPart> mortalParts = const {};
+
+  /// Told what the guide decided on Auto-Play, with the hand as mjai events
+  /// and the numbers behind it, for the simulations that explain its moves.
+  @visibleForTesting
+  void Function(List<MjaiEvent> events, EfficiencyReport report, BotTurn move)?
+      traceGuideTurn;
+  @visibleForTesting
+  void Function(List<MjaiEvent> events, CallAdvice? advice)? traceGuideCall;
+
+  bool get _mortalHybrid =>
+      autoplay &&
+      autoplayBrain == AutoplayBrain.tilesense &&
+      mortalAvailable &&
+      mortalParts.isNotEmpty;
+
+  /// Whether Mortal answers the calls offered to your seat.
+  bool get _mortalCalls =>
+      _mortalPlaysYou ||
+      (_mortalHybrid && mortalParts.contains(MortalPart.calls));
 
   /// Your decisions this hand, newest last: where [_log] stood just before
   /// each one, and what to call it on the take-back button.
@@ -1123,7 +1154,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
       for (final opt in round.callOptions)
         if (_playsMortal(opt.seat))
           _botCall(opt, {})
-        else if (opt.seat == kHumanSeat && _mortalPlaysYou)
+        else if (opt.seat == kHumanSeat && _mortalCalls)
           _autoCall(opt, {}),
     ].contains(null);
     if (mortalThinking) return;
@@ -1637,11 +1668,55 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// Your turn on Auto-Play: the guide's, or Mortal's when it plays you (the
   /// guide's if Mortal can't answer). Null while Mortal is still thinking.
   BotTurn? _autoTurn() {
-    if (!_mortalPlaysYou) return _guidedTurnDecision();
+    final turnParts = mortalParts.difference({MortalPart.calls});
+    if (!_mortalPlaysYou && !(_mortalHybrid && turnParts.isNotEmpty)) {
+      final move = _guidedTurnDecision();
+      // A win or a riichi hand's forced cut has no fresh report behind it.
+      if (!move.tsumo && !round.seats[kHumanSeat].riichi) {
+        traceGuideTurn?.call(_mjaiEvents(), report, move);
+      }
+      return move;
+    }
     return _askMortalMove(
         kHumanSeat,
-        (reply) => MortalMove.turn(reply, round, kHumanSeat),
+        (reply) {
+          final mortal = MortalMove.turn(reply, round, kHumanSeat);
+          return _mortalPlaysYou ? mortal : _blendTurn(mortal);
+        },
         _guidedTurnDecision);
+  }
+
+  /// Your turn with the guide's decision, except for the [mortalParts] that
+  /// are Mortal's. A riichi Mortal declares keeps the discard it paired with
+  /// it, since only that discard leaves the hand ready.
+  BotTurn _blendTurn(BotTurn mortal) {
+    final guide = _guidedTurnDecision();
+    final seat = round.seats[kHumanSeat];
+    if (guide.tsumo || seat.riichi) return guide;
+    if (mortal.kyuushu && mortalParts.contains(MortalPart.discard)) {
+      return mortal;
+    }
+
+    final kan = mortalParts.contains(MortalPart.kan) ? mortal : guide;
+    if (kan.closedKan != null || kan.addedKan != null) {
+      return BotTurn(closedKan: kan.closedKan, addedKan: kan.addedKan);
+    }
+
+    final mortalRiichi =
+        mortalParts.contains(MortalPart.riichi) && mortal.riichi;
+    final tile = mortalRiichi
+        ? mortal.discard
+        : (mortalParts.contains(MortalPart.discard) ? mortal : guide).discard ??
+            (mortal.discard ?? guide.discard);
+    final riichi = mortalParts.contains(MortalPart.riichi)
+        ? mortal.riichi
+        : guide.riichi &&
+            tile != null &&
+            isTenpai([
+              for (final t in seat.hand)
+                if (t.id != tile.id) t
+            ], openMelds: seat.melds.length);
+    return BotTurn(discard: tile, riichi: riichi);
   }
 
   /// Your answer to a call on Auto-Play, like [_autoTurn]. A chi names its
@@ -1649,10 +1724,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
   CallType? _autoCall(CallOption opt, Map<int, TileType> chiLow) {
     ({CallType call, TileType? chiLow}) guided() {
       final advice = _guidedCallAdvice(opt);
+      traceGuideCall?.call(_mjaiEvents(), advice);
       return (call: _callTypeFor(advice?.recommended), chiLow: _chiLowFor(advice));
     }
 
-    final answer = _mortalPlaysYou
+    final answer = _mortalCalls
         ? _askMortalMove(
             kHumanSeat,
             (reply) => MortalMove.call(reply, round, kHumanSeat, opt.types),
