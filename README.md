@@ -117,11 +117,16 @@ its header).
 
 ### Daily quiz: "What would TileSensor do?"
 
-A new puzzle each day, from the start page (the card under the rules choice, or
-**Daily quiz** beside Practice). It poses a riichi table and asks what you would
-do, in multiple choice:
+Five new puzzles each day, from the start page (the card under the rules choice, or
+**Daily quiz** beside Practice). Each poses a table and asks what you would do, in
+multiple choice, then moves on with **Next question**; a results page gives the
+score, and the day-streak extends once the fifth is answered. The five are
+different puzzles, and the pool is worked through in turn before any repeats.
 
 - **A cut**, or what to do with an opponent's discard (chi, pon, kan or pass).
+- **Kan (kong in Hong Kong) whenever it could be declared**: holding all four of a
+  tile adds it to a cut puzzle's choices, and three held with the fourth offered
+  makes a call puzzle kan, pon or pass.
 - **When the cut leaves you ready, a second question**: riichi, or stay quiet
   (dama)? Both parts must be right.
 - Every puzzle is one **TileSense and Mortal agree on**, with a clear lead over
@@ -139,8 +144,8 @@ Everything but the puzzles themselves is live: the app works TileSense's answer 
 again from the table and fails a test if it ever stops matching the stored one, so
 retuning the guide shows up as a stale puzzle rather than a wrong answer. Mortal's
 side is stored with each puzzle, so the quiz needs no sidecar to play. The pool is
-`flutter_client/assets/quiz/daily.json`; one puzzle a day, the same for everyone on
-the same date, round the pool.
+`flutter_client/assets/quiz/daily.json`; five puzzles a day, the same for everyone
+on the same date, round the pool.
 
 To grow it, start the Mortal sidecar and run, from `flutter_client/`:
 
@@ -149,15 +154,18 @@ QUIZ_MORTAL_URL=http://127.0.0.1:8790 QUIZ_COUNT=100 QUIZ_SEED=3 \
     flutter test tools/build_quiz.dart
 ```
 
-New puzzles are appended after the existing ones, so a day's puzzle never changes
-underneath it; use a seed not used before. The tables are random: a finished hand
+New puzzles are appended after the existing ones; use a seed not used before. Each
+run first re-checks the puzzles already in the file and drops any that no longer
+stand (the guide's answer changed, a possible kan is not offered, or a Hong Kong
+answer depends on play style). The tables are random: a finished hand
 with a few tiles swapped, ponds, a dora, sometimes a riichi against you and
 sometimes uneven scores. Only the tables both engines answer the same way are kept.
 
 The quiz has riichi and Hong Kong puzzles, and today's is drawn from the pool for the
 rules chosen on the welcome screen (Taiwanese, MCR and Sichuan take riichi's until they
 have pools). Mortal does not play Hong Kong, so those puzzles need no sidecar: they
-keep a table when TileSense's best line leads the next clearly. To grow that pool:
+keep a table when TileSense's best line leads the next clearly **and** the guide gives
+the same answer playing aggressively, defensively and by default. To grow that pool:
 
 ```sh
 QUIZ_RULESET=hongKong QUIZ_COUNT=60 QUIZ_SEED=2 flutter test tools/build_quiz.dart

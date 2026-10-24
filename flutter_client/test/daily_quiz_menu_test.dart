@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/logic/daily_quiz.dart' show kQuizPerDay;
 import 'package:tilesense/logic/progress.dart';
 import 'package:tilesense/main.dart';
 import 'helpers.dart';
@@ -96,7 +97,7 @@ void main() {
       'the Learn tile says the puzzle is waiting, and its popup opens the '
       'quiz and Back returns', (tester) async {
     await pumpMenu(tester);
-    expect(tileText(tester), contains("Today's puzzle is ready"));
+    expect(tileText(tester), contains("Today's puzzles are ready"));
     expect(find.byKey(const Key('dailyQuizCard')), findsNothing,
         reason: 'the quiz is in the Learn popup, not a card of its own');
     expect(find.byKey(const Key('dailyQuizMascot')), findsNothing);
@@ -186,13 +187,33 @@ void main() {
     await pumpMenu(tester);
     await openQuiz(tester);
     await settle(tester);
-    await tester.tap(find.byKey(const Key('quizChoice_0')));
+    // Five questions make a day; the streak waits for the fifth. Leaving
+    // after the first leaves the day undone and starts it again.
+    Future<void> answer() async {
+      await tester.tap(find.byKey(const Key('quizChoice_0')));
+      await tester.pump();
+      // A puzzle may be a riichi-or-dama one, which asks a second part.
+      if (find.byKey(const Key('quizRiichi')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('quizRiichi')));
+        await tester.pump();
+      }
+    }
+
+    await answer();
+    await tester.tap(find.byKey(const Key('quizBack')));
     await tester.pump();
-    // Today's puzzle may be a riichi-or-dama one, which asks a second part.
-    if (find.byKey(const Key('quizRiichi')).evaluate().isNotEmpty) {
-      await tester.tap(find.byKey(const Key('quizRiichi')));
+    expect(tileText(tester), isNot(contains('Done for today')),
+        reason: 'a day half played is not done');
+    await openQuiz(tester);
+    await settle(tester);
+
+    for (var q = 1; q <= kQuizPerDay; q++) {
+      expect(find.text('Question $q of $kQuizPerDay'), findsOneWidget);
+      await answer();
+      await tester.tap(find.byKey(const Key('quizNext')));
       await tester.pump();
     }
+    expect(find.byKey(const Key('quizResultsScore')), findsOneWidget);
     await tester.tap(find.byKey(const Key('quizBack')));
     await tester.pump();
 

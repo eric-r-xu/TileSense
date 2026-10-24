@@ -2638,6 +2638,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quizMortalRankFirst => '这是Mortal的首选。';
 
   @override
+  String get quizMortalKan => 'Mortal在这里也会杠。';
+
+  @override
+  String get quizMortalNoKan => 'Mortal在这里不会杠。';
+
+  @override
   String get quizMortalNote => 'Mortal不会解释原因，这是它的排名。';
 
   @override
@@ -2645,6 +2651,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get quizDora => '宝牌指示牌';
+
+  @override
+  String quizProgress(int number, int total) {
+    return '第$number题，共$total题';
+  }
+
+  @override
+  String get quizNext => '下一题';
+
+  @override
+  String get quizSeeResults => '查看今天的结果';
+
+  @override
+  String get quizResultsTitle => '今天的题目已完成';
+
+  @override
+  String quizResultsScore(int right, int total) {
+    return '$total题中答对了$right题。';
+  }
 
   @override
   String get quizDone => '明天再来挑战新题目。';
@@ -5379,6 +5404,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get quizMortalRankFirst => '這是Mortal的首選。';
 
   @override
+  String get quizMortalKan => 'Mortal在這裡也會槓。';
+
+  @override
+  String get quizMortalNoKan => 'Mortal在這裡不會槓。';
+
+  @override
   String get quizMortalNote => 'Mortal不會解釋原因，這是它的排名。';
 
   @override
@@ -5386,6 +5417,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get quizDora => '寶牌指示牌';
+
+  @override
+  String quizProgress(int number, int total) {
+    return '第$number題，共$total題';
+  }
+
+  @override
+  String get quizNext => '下一題';
+
+  @override
+  String get quizSeeResults => '查看今天的結果';
+
+  @override
+  String get quizResultsTitle => '今天的題目已完成';
+
+  @override
+  String quizResultsScore(int right, int total) {
+    return '$total題中答對了$right題。';
+  }
 
   @override
   String get quizDone => '明天再來挑戰新題目。';

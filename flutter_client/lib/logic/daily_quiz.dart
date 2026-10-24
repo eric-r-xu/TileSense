@@ -13,6 +13,7 @@ library;
 
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/mjai.dart';
+import 'package:mahjong_core/round.dart' show CallType;
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 
@@ -21,7 +22,7 @@ import '../game/sfx.dart' show Character;
 import '../scenario/scenario.dart';
 import 'auto_dials.dart' show kPlacementHands;
 import '../scenario/scenario_controller.dart';
-import 'efficiency_engine.dart' show GuidedAction;
+import 'efficiency_engine.dart' show GuidedAction, PlayStyle;
 
 /// What a choice does.
 enum QuizMove {
@@ -38,6 +39,9 @@ enum QuizMove {
   /// [QuizChoice.tile].
   chi,
   pon,
+
+  /// Declare a kan (a kong in Hong Kong): the four held tiles
+  /// [QuizChoice.tile] on a discard puzzle, the offered tile on a call.
   kan,
 }
 
@@ -57,7 +61,8 @@ class QuizChoice {
   final QuizMove move;
 
   /// The tile cut by [QuizMove.discard] and [QuizMove.riichi]; the run's
-  /// lowest tile for [QuizMove.chi]; null otherwise.
+  /// lowest tile for [QuizMove.chi]; the tile kanned from the hand on a
+  /// discard puzzle's [QuizMove.kan]; null otherwise.
   final TileType? tile;
 
   @override
@@ -424,9 +429,15 @@ class QuizPuzzle {
 
 /// TileSense's one clear answer on the posed table, or null when there is
 /// none: no table to read, a win on offer, or several lines tied for first.
+///
+/// A kan you could declare is the answer whenever the guide finds it
+/// worthwhile, as in a game: it takes the kan before it looks at a cut.
 QuizChoice? tileSenseChoice(ScenarioController c) {
   if (c.blockedReason != null) return null;
   if (c.scenario.isDiscardRead) {
+    if (kanOnOffer(c) case final kan? when c.kanAdvice!.advice.eligible) {
+      return kan;
+    }
     final best = [
       for (final l in c.report.lines)
         if (l.recommended) l
@@ -438,7 +449,57 @@ QuizChoice? tileSenseChoice(ScenarioController c) {
   }
   final advice = c.callAdvice;
   if (advice == null) return null;
-  return _callChoice(advice.best.action, advice.best.meldLow);
+  // The move the guide recommends, which is what a game plays; a kan is
+  // recommended without being the highest-valued option, so it is not simply
+  // the first of them.
+  final move = advice.forAction(advice.recommended) ?? advice.best;
+  return _callChoice(move.action, move.meldLow);
+}
+
+/// The play styles a Hong Kong table must be answered the same under, besides
+/// the one the guide plays by default: a Hong Kong puzzle has no Mortal for a
+/// second opinion, so the guide has to agree with itself whether it plays
+/// aggressively or defensively.
+const List<PlayStyle> kStylesToAgree = [
+  PlayStyle.aggressive,
+  PlayStyle.defensive,
+];
+
+/// Why [p] no longer stands as a puzzle, or null when it does: the guide
+/// answers it differently now, a kan that could be declared is not among the
+/// choices, or (Hong Kong) the answer depends on how the guide plays.
+String? puzzleProblem(QuizPuzzle p) {
+  final c = p.pose();
+  try {
+    final now = tileSenseChoice(c);
+    if (now != p.answer) return 'the guide now answers $now, not ${p.answer}';
+    final kanOffered = p.kind == QuizKind.discard
+        ? kanOnOffer(c)
+        : c.humanCallOption?.types.contains(CallType.kan) == true
+            ? const QuizChoice(QuizMove.kan)
+            : null;
+    if (kanOffered != null && !p.choices.contains(kanOffered)) {
+      return 'a kan could be declared but is not a choice';
+    }
+    if (p.ruleset.isHongKong) {
+      for (final style in kStylesToAgree) {
+        c.overrideStyle(style);
+        final other = c.blockedReason == null ? tileSenseChoice(c) : null;
+        c.overrideStyle(null);
+        if (other != p.answer) return '${style.label} play answers $other';
+      }
+    }
+    return null;
+  } finally {
+    c.dispose();
+  }
+}
+
+/// The kan on offer on a discard puzzle (four of one tile in hand), or null.
+/// A posed table holds no calls, so only a concealed kan can come up.
+QuizChoice? kanOnOffer(ScenarioController c) {
+  final kan = c.kanAdvice;
+  return kan == null ? null : QuizChoice(QuizMove.kan, kan.type);
 }
 
 QuizChoice? _callChoice(GuidedAction action, TileType? meldLow) =>
@@ -459,10 +520,17 @@ List<QuizChoice> callChoices(ScenarioController c) => [
 
 /// Mortal's answer as a choice, or null when it gave no usable move (a win,
 /// nine terminals, or the sidecar failing).
-QuizChoice? mortalChoice(MortalAdvice advice, {required QuizKind kind}) {
+///
+/// [kanTile] is the tile a discard puzzle could kan: Mortal's reply says only
+/// that it kans, and on a table with one kan on offer that is the tile.
+QuizChoice? mortalChoice(MortalAdvice advice,
+    {required QuizKind kind, TileType? kanTile}) {
   if (advice.status != MortalStatus.ready) return null;
   final action = advice.action;
   if (kind == QuizKind.discard) {
+    if (action == 'KAN' && kanTile != null) {
+      return QuizChoice(QuizMove.kan, kanTile);
+    }
     if (action != null || advice.discard == null) return null;
     return QuizChoice(advice.riichi ? QuizMove.riichi : QuizMove.discard,
         tileOfMjai(advice.discard!));
@@ -480,14 +548,20 @@ QuizChoice? mortalChoice(MortalAdvice advice, {required QuizKind kind}) {
   return null;
 }
 
-/// The puzzle for [day], one a day for ever: the local calendar date counted
-/// in days, taken round the [count] puzzles. Needs no clock but the device's,
-/// and two players on the same date get the same puzzle.
-int dailyIndex(DateTime day, int count) {
+/// How many questions a day has.
+const int kQuizPerDay = 5;
+
+/// The [perDay] puzzles for [day], as positions in a pool of [count]: the
+/// next [perDay] along from where the day before stopped, so a day's puzzles
+/// are all different from each other and the pool is used up before any
+/// puzzle comes round again. A pool smaller than [perDay] gives each puzzle
+/// once.
+List<int> dailyIndexes(DateTime day, int count, {int perDay = kQuizPerDay}) {
   final days = DateTime.utc(day.year, day.month, day.day)
       .difference(DateTime.utc(2024))
       .inDays;
-  return days % count;
+  final n = perDay < count ? perDay : count;
+  return [for (var i = 0; i < n; i++) (days * perDay + i) % count];
 }
 
 /// The numbers the guide has behind one choice, for the answer's explanation.
@@ -531,6 +605,14 @@ QuizFacts? quizFacts(ScenarioController c, QuizChoice choice) {
           risk: l.dealInCost > 0 ? l.dealInCost : null,
           reason: l.reason,
         );
+      }
+    case QuizMove.kan when c.scenario.isDiscardRead:
+      final kan = c.kanAdvice;
+      if (kan != null && kan.type == choice.tile) {
+        return QuizFacts(
+            shanten: kan.advice.shantenAfter,
+            expectedValue: kan.advice.expectedValue,
+            reason: kan.advice.reason);
       }
     case QuizMove.pass || QuizMove.chi || QuizMove.pon || QuizMove.kan:
       final action = switch (choice.move) {

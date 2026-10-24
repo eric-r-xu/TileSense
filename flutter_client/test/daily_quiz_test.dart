@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
-import 'package:tilesense/logic/efficiency_engine.dart' show Strategy;
+import 'package:tilesense/logic/efficiency_engine.dart'
+    show PlayStyle, Strategy;
 import 'package:tilesense/logic/quiz_rules.dart';
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/logic/daily_quiz.dart';
@@ -100,10 +101,12 @@ void main() {
     for (final p in asking) {
       final a = p.answer;
       expect(a.move, anyOf(QuizMove.riichi, QuizMove.discard));
-      // Part one offers cuts only, each tile once; riichi comes after.
-      expect(p.choices.every((c) => c.move == QuizMove.discard), isTrue,
+      // Part one offers cuts (and a kan, if one could be declared), each cut
+      // once; riichi comes after.
+      final cuts = p.choices.where((c) => c.move != QuizMove.kan).toList();
+      expect(cuts.every((c) => c.move == QuizMove.discard), isTrue,
           reason: p.id);
-      expect(p.choices.map((c) => c.tile).toSet(), hasLength(p.choices.length),
+      expect(cuts.map((c) => c.tile).toSet(), hasLength(cuts.length),
           reason: p.id);
       expect(p.choices, contains(QuizChoice(QuizMove.discard, a.tile)),
           reason: p.id);
@@ -228,14 +231,143 @@ void main() {
     expect(puzzles, isNotEmpty);
     expect(puzzles.map((p) => p.id).toSet(), hasLength(puzzles.length));
     for (final p in puzzles) {
-      final c = p.pose();
-      expect(tileSenseChoice(c), p.answer, reason: p.id);
-      final cut = p.riichiOption
-          ? QuizChoice(QuizMove.discard, p.answer.tile)
+      // The same answer now, a kan offered wherever one could be declared,
+      // and a Hong Kong answer that holds however the guide plays.
+      expect(puzzleProblem(p), isNull, reason: p.id);
+      final cut = p.riichiOption || p.answer.move == QuizMove.kan
+          ? QuizChoice(
+              p.answer.move == QuizMove.kan ? QuizMove.kan : QuizMove.discard,
+              p.answer.tile)
           : p.answer;
       expect(p.choices.where((x) => x == cut), hasLength(1), reason: p.id);
-      c.dispose();
     }
+  });
+
+  group('kan', () {
+    Future<List<QuizPuzzle>> kanTables(Ruleset ruleset) async {
+      final generator = QuizGenerator(
+          seed: 4,
+          ruleset: ruleset,
+          kanShare: 1,
+          mortal: ruleset.isRiichi ? stand() : null);
+      return generator.generate(16, maxTries: 1500);
+    }
+
+    for (final ruleset in [Ruleset.riichi, Ruleset.hongKong]) {
+      test('is a choice whenever it could be declared (${ruleset.name})',
+          () async {
+        final puzzles = await kanTables(ruleset);
+        expect(puzzles.length, greaterThanOrEqualTo(8));
+        final discards = puzzles.where((p) => p.kind == QuizKind.discard);
+        final calls = puzzles.where((p) => p.kind == QuizKind.call);
+        expect(discards, isNotEmpty);
+        expect(calls, isNotEmpty);
+        for (final p in discards) {
+          final c = p.pose();
+          final kan = kanOnOffer(c);
+          expect(kan, isNotNull, reason: '${p.id} holds all four of a tile');
+          expect(p.choices, contains(kan), reason: p.id);
+          expect(p.choices.length, inInclusiveRange(3, 4), reason: p.id);
+          // Naming the tile it kans, it is not mistaken for the cut.
+          expect(p.choices.where((x) => x.move == QuizMove.kan), hasLength(1));
+          c.dispose();
+        }
+        for (final p in calls) {
+          // Three held and the fourth on offer: kan, pon or pass.
+          expect(p.choices, contains(const QuizChoice(QuizMove.kan)),
+              reason: p.id);
+          expect(p.choices, contains(const QuizChoice(QuizMove.pon)),
+              reason: p.id);
+        }
+        // The kan can be the right answer or a wrong one.
+        expect(puzzles.map((p) => p.answer.move), contains(QuizMove.kan));
+      });
+    }
+
+    test('a kan answer is stored, read back and explained', () async {
+      final p = (await kanTables(Ruleset.hongKong)).firstWhere(
+          (p) => p.answer.move == QuizMove.kan && p.kind == QuizKind.discard);
+      final again = QuizPuzzle.fromJson(
+          jsonDecode(jsonEncode(p.toJson())) as Map<String, Object?>);
+      expect(again.answer, p.answer);
+      expect(again.answer.tile, isNotNull, reason: 'which tile it kans');
+      expect(again.riichiOption, isFalse);
+      final c = p.pose();
+      final facts = quizFacts(c, p.answer);
+      expect(facts, isNotNull);
+      expect(facts!.reason, isNotEmpty);
+      c.dispose();
+    });
+
+    test('Mortal\'s kan reads as a kan on the tile it could kan', () {
+      final reply = MortalAdvice.fromReply({
+        'reaction': {
+          'type': 'ankan',
+          'consumed': ['5p', '5p', '5p', '5p']
+        }
+      }, call: false);
+      expect(
+          mortalChoice(reply, kind: QuizKind.discard, kanTile: TileType.pin5),
+          const QuizChoice(QuizMove.kan, TileType.pin5));
+      expect(mortalChoice(reply, kind: QuizKind.discard), isNull,
+          reason: 'with no kan on the table there is nothing to name');
+    });
+
+    test('a Mortal who will not kan disagrees with a guide who does', () async {
+      final stubborn = stand(
+          lie: (a) => a.move == QuizMove.kan
+              ? QuizChoice(QuizMove.discard, a.tile ?? TileType.ton)
+              : a);
+      final generator = QuizGenerator(seed: 4, mortal: stubborn, kanShare: 1);
+      final puzzles = await generator.generate(12, maxTries: 800);
+      expect(puzzles.where((p) => p.answer.move == QuizMove.kan), isEmpty);
+    });
+  });
+
+  group('Hong Kong styles', () {
+    test('the guide can be made to play aggressively or defensively', () async {
+      final p = (await QuizGenerator(seed: 3, ruleset: Ruleset.hongKong)
+              .generate(1, maxTries: 400))
+          .single;
+      final c = p.pose();
+      expect(c.playStyle, PlayStyle.balanced);
+      c.overrideStyle(PlayStyle.aggressive);
+      expect(c.playStyle, PlayStyle.aggressive);
+      c.overrideStyle(PlayStyle.defensive);
+      expect(c.playStyle, PlayStyle.defensive);
+      c.overrideStyle(null);
+      expect(c.playStyle, PlayStyle.balanced);
+      c.dispose();
+    });
+
+    test('every puzzle is answered the same by every style', () async {
+      final puzzles = await QuizGenerator(seed: 8, ruleset: Ruleset.hongKong)
+          .generate(20, maxTries: 1500);
+      expect(puzzles.length, greaterThanOrEqualTo(10));
+      for (final p in puzzles) {
+        final c = p.pose();
+        for (final style in PlayStyle.values) {
+          c.overrideStyle(style);
+          expect(tileSenseChoice(c), p.answer,
+              reason: '${p.id} under ${style.label}');
+        }
+        c.dispose();
+      }
+    });
+
+    test('a puzzle the styles would split is not a puzzle', () {
+      // An answer that held only for the default style is flagged.
+      final p = QuizPuzzle.fromJson(jsonDecode(
+              File('assets/quiz/daily.json').readAsStringSync())['puzzles'][300]
+          as Map<String, Object?>);
+      expect(puzzleProblem(p), isNull);
+      final wrong = QuizPuzzle(
+          id: p.id,
+          table: p.table,
+          choices: p.choices,
+          answer: p.choices.firstWhere((c) => c != p.answer));
+      expect(puzzleProblem(wrong), isNotNull);
+    });
   });
 
   group('Hong Kong', () {
@@ -283,7 +415,7 @@ void main() {
           Ruleset.riichi);
     });
 
-    test('the shipped file has a pool of each, and riichi\'s is first', () {
+    test('the shipped file has a pool of each', () {
       final puzzles = [
         for (final p
             in (jsonDecode(File('assets/quiz/daily.json').readAsStringSync())
@@ -292,13 +424,11 @@ void main() {
       ];
       final riichi = puzzles.where((p) => p.ruleset == Ruleset.riichi);
       final hk = puzzles.where((p) => p.ruleset == Ruleset.hongKong);
-      expect(riichi.length, greaterThanOrEqualTo(360));
-      expect(hk.length, greaterThanOrEqualTo(60));
+      // Five a day: a pool of this size is weeks of days before one repeats.
+      expect(riichi.length, greaterThanOrEqualTo(kQuizPerDay * 60));
+      expect(hk.length, greaterThanOrEqualTo(kQuizPerDay * 50));
       expect(riichi.every((p) => p.id.startsWith('q')), isTrue);
       expect(hk.every((p) => p.id.startsWith('hk')), isTrue);
-      expect(
-          puzzles.take(riichi.length).every((p) => p.ruleset.isRiichi), isTrue,
-          reason: 'riichi stays first so no day\'s riichi puzzle moves');
       expect(hk.where((p) => p.kind == QuizKind.call), isNotEmpty);
     });
 
@@ -311,12 +441,23 @@ void main() {
     });
   });
 
-  test('the daily puzzle follows the calendar date, round the pool', () {
-    expect(dailyIndex(DateTime(2026, 10, 20, 0, 5), 60),
-        dailyIndex(DateTime(2026, 10, 20, 23, 55), 60));
-    expect(dailyIndex(DateTime(2026, 10, 21), 60),
-        (dailyIndex(DateTime(2026, 10, 20), 60) + 1) % 60);
-    expect(dailyIndex(DateTime(2026, 1, 1), 1), 0);
+  test('a day has five different puzzles, round the pool', () {
+    final day = dailyIndexes(DateTime(2026, 10, 20), 60);
+    expect(day, hasLength(kQuizPerDay));
+    expect(day.toSet(), hasLength(kQuizPerDay));
+    expect(dailyIndexes(DateTime(2026, 10, 20, 0, 5), 60),
+        dailyIndexes(DateTime(2026, 10, 20, 23, 55), 60));
+    // The next day picks up where this one stopped, so nothing repeats until
+    // the whole pool has been played.
+    expect(dailyIndexes(DateTime(2026, 10, 21), 60).first, (day.last + 1) % 60);
+    final seen = <int>{};
+    for (var d = 0; d < 12; d++) {
+      seen.addAll(dailyIndexes(DateTime(2026, 10, 20 + d), 60));
+    }
+    expect(seen, hasLength(60));
+    // A pool too small for a day gives each puzzle once.
+    expect(dailyIndexes(DateTime(2026, 1, 1), 1), [0]);
+    expect(dailyIndexes(DateTime(2026, 1, 1), 3).toSet(), {0, 1, 2});
   });
 
   test('Mortal replies read as choices', () {

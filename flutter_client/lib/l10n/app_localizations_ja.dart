@@ -2666,6 +2666,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get quizMortalRankFirst => 'Mortalの第一候補です。';
 
   @override
+  String get quizMortalKan => 'Mortalもここでカンします。';
+
+  @override
+  String get quizMortalNoKan => 'Mortalはここではカンしません。';
+
+  @override
   String get quizMortalNote => 'Mortalは理由を説明しません。これは順位付けです。';
 
   @override
@@ -2673,6 +2679,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get quizDora => 'ドラ表示牌';
+
+  @override
+  String quizProgress(int number, int total) {
+    return '$number問目 / 全$total問';
+  }
+
+  @override
+  String get quizNext => '次の問題へ';
+
+  @override
+  String get quizSeeResults => '今日の結果を見る';
+
+  @override
+  String get quizResultsTitle => '今日のクイズは完了です';
+
+  @override
+  String quizResultsScore(int right, int total) {
+    return '$total問中$right問正解です。';
+  }
 
   @override
   String get quizDone => '明日また新しい問題に挑戦してください。';

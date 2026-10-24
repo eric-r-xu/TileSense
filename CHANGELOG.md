@@ -9,6 +9,28 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-24 — Five quiz questions a day, with kong
+
+- **The daily quiz is five questions a day**, for riichi and for Hong Kong. Each
+  day's five are different puzzles, taken in turn from the pool so none comes
+  round again until the whole pool has been played. The page says "Question 2 of
+  5", a pinned **Next question** button follows each answer, and a results page
+  gives the score. The streak extends when the fifth is answered, so a day left
+  half played is not done.
+- **Kan (kong in Hong Kong) is a choice whenever it could be declared.** On a cut
+  puzzle, holding all four of a tile adds a Kan/Kong button showing the four
+  tiles; on a call puzzle, three held and the fourth offered gives kan, pon or
+  pass. The guide's answer is the kan when it would declare one in a game, and
+  under riichi Mortal must kan too. Earlier puzzles where a kan was possible but
+  not offered were dropped from the pool.
+- **A Hong Kong puzzle needs the same answer however the guide plays.** With no
+  Mortal to agree with, the guide now has to answer a table the same aggressively,
+  defensively and by default (`ScenarioController.overrideStyle`) for it to
+  qualify. The pool was rebuilt to this bar: 431 riichi and 286 Hong Kong puzzles.
+- `tools/build_quiz.dart` re-checks the puzzles already in the file on every run
+  and drops any that no longer stand (`QUIZ_KEEP_STALE=1` keeps them), and
+  numbers new ones from the highest id, so dropped puzzles leave no clashes.
+
 ## 2026-10-21 — Builder Sichuan, quiz labelling and Back
 
 - **Sichuan in the Custom Hand & Context Builder.** Pick it in the Menu's Rules

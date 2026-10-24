@@ -1,13 +1,16 @@
 /// Makes daily-quiz puzzles out of random tables, keeping only the ones
 /// TileSense and Mortal answer the same way, with a clear margin. Under Hong
 /// Kong rules there is no Mortal to ask, so TileSense's clear margin is all
-/// that is asked of a table. Driven by
+/// that is asked of a table, plus that it answers the same whether it plays
+/// aggressively or defensively. A kan (kong) that could be declared is always
+/// one of the choices. Driven by
 /// `build_quiz.dart`; split out so tests can run it with a stand-in Mortal.
 library;
 
 import 'dart:math';
 
 import 'package:mahjong_core/mjai.dart';
+import 'package:mahjong_core/round.dart' show CallType;
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/game/mortal_advisor.dart' show MortalAdvice;
@@ -40,6 +43,10 @@ enum Reject {
 
   /// A call puzzle whose answer is pass, once passes are half the calls.
   tooManyPasses,
+
+  /// A Hong Kong table the guide answers differently when it plays
+  /// aggressively or defensively.
+  styleDisagrees,
 }
 
 class QuizGenerator {
@@ -48,6 +55,7 @@ class QuizGenerator {
     this.mortal,
     this.ruleset = Ruleset.riichi,
     this.minMargin = 0.10,
+    this.kanShare = 0.2,
   })  : assert(mortal != null || !ruleset.isRiichi, 'riichi needs Mortal'),
         _random = Random(seed);
 
@@ -60,6 +68,10 @@ class QuizGenerator {
   /// The least lead TileSense's pick must have over the next line, as a
   /// fraction of its expected value.
   final double minMargin;
+
+  /// The share of tables dealt with a kan on offer, which a random hand
+  /// seldom has.
+  final double kanShare;
   final Random _random;
 
   // Call puzzles made so far, by whether the answer is to let the tile go.
@@ -73,7 +85,8 @@ class QuizGenerator {
   /// Tries one random table of [kind]; null when it is not worth asking.
   Future<QuizPuzzle?> attempt(String id, QuizKind kind) async {
     final c = ScenarioController(askMortal: false);
-    final table = randomTable(_random, kind, ruleset: ruleset);
+    final table =
+        randomTable(_random, kind, ruleset: ruleset, kanShare: kanShare);
     c.edit(table.applyTo);
     QuizPuzzle? out;
     final why = await _judge(id, c, kind, (p) => out = p);
@@ -91,12 +104,15 @@ class QuizGenerator {
     final double margin;
     final List<QuizChoice> choices;
     var riichiOption = false;
+    final kan = kind == QuizKind.discard ? kanOnOffer(c) : null;
     if (kind == QuizKind.discard) {
       final lines = c.report.lines;
-      final best = lines.firstWhere((l) => l.recommended);
+      // The best cut, which is the answer unless a kan beats it.
+      final best =
+          lines.firstWhere((l) => l.recommended, orElse: () => lines.first);
       final rest = [
         for (final l in lines)
-          if (!l.recommended) l
+          if (l != best) l
       ]..sort((a, b) => b.expectedValue.compareTo(a.expectedValue));
       if (rest.length < 3) return Reject.fewChoices;
       final top = max(best.expectedValue.abs(), 1.0);
@@ -104,11 +120,21 @@ class QuizGenerator {
       // A cut that leaves a ready hand is a two-part question: which cut,
       // then riichi or dama. The stored choices are just the cuts; the page
       // asks riichi or dama once a cut that leaves you ready is picked.
-      riichiOption = ruleset.isRiichi && best.shanten == 0;
-      choices = [
-        QuizChoice(QuizMove.discard, answer.tile),
-        for (final l in rest) QuizChoice(QuizMove.discard, l.discard),
-      ].take(4).toList();
+      riichiOption =
+          ruleset.isRiichi && best.shanten == 0 && answer.move != QuizMove.kan;
+      final cuts = [
+        for (final l in [best, ...rest])
+          QuizChoice(QuizMove.discard, l.discard),
+      ];
+      // The answer first, then the next best; a kan on offer is always shown.
+      choices = answer.move == QuizMove.kan
+          ? [answer, ...cuts.take(3)]
+          : [...cuts.take(kan == null ? 4 : 3), if (kan != null) kan];
+      // A kan answer rests on the guide's rule for kans rather than on a lead
+      // in value, so only a cut answer needs a margin.
+      if (answer.move != QuizMove.kan && margin < minMargin) {
+        return Reject.tooClose;
+      }
     } else {
       final options = c.callAdvice!.options;
       choices = callChoices(c);
@@ -118,8 +144,26 @@ class QuizGenerator {
           : (options[0].expectedValue - options[1].expectedValue) /
               max(options[0].expectedValue.abs(), 1.0);
       if (!choices.contains(answer)) return Reject.noClearAnswer;
+      // The guide's pick must also lead on value, or there is no clear lead.
+      if (margin < minMargin) return Reject.tooClose;
+      // A kan that could be declared is among the choices.
+      if (c.humanCallOption!.types.contains(CallType.kan) &&
+          !choices.contains(const QuizChoice(QuizMove.kan))) {
+        return Reject.fewChoices;
+      }
     }
-    if (margin < minMargin) return Reject.tooClose;
+
+    // Hong Kong has no Mortal, so the stand-in for a second opinion is the
+    // guide's own in another mood: it must answer the same whether it plays
+    // aggressively or defensively.
+    if (ruleset.isHongKong) {
+      for (final style in kStylesToAgree) {
+        c.overrideStyle(style);
+        final other = c.blockedReason == null ? tileSenseChoice(c) : null;
+        c.overrideStyle(null);
+        if (other != answer) return Reject.styleDisagrees;
+      }
+    }
 
     final ask = mortal;
     final MortalAdvice? advice;
@@ -127,7 +171,9 @@ class QuizGenerator {
       advice = null;
     } else {
       advice = await ask(c.scenario, call: kind == QuizKind.call);
-      final theirs = advice == null ? null : mortalChoice(advice, kind: kind);
+      final theirs = advice == null
+          ? null
+          : mortalChoice(advice, kind: kind, kanTile: kan?.tile);
       if (theirs == null) return Reject.mortalSilent;
       if (theirs != answer) return Reject.disagree;
     }
@@ -176,8 +222,12 @@ class QuizGenerator {
 /// A random mid-game table. The hand is a finished hand with a few tiles
 /// swapped for others, so it sits one to four steps from ready rather than
 /// being the junk a plain deal usually is.
+///
+/// A [kanShare] of the tables hold all four of a tile, so a kan is there to be
+/// asked about: declare it, or cut. On a call table the fourth is the tile
+/// offered, so the question is whether to kan it, pon it or let it go.
 QuizTable randomTable(Random r, QuizKind kind,
-    {Ruleset ruleset = Ruleset.riichi}) {
+    {Ruleset ruleset = Ruleset.riichi, double kanShare = 0}) {
   final riichi = ruleset.isRiichi;
   // Copies of each playing tile still unplaced, indexed by type - 1.
   final left = List.filled(34, 4);
@@ -250,10 +300,37 @@ QuizTable randomTable(Random r, QuizKind kind,
     hand[k] = take(t);
   }
 
+  // Gather all four of one tile into the hand: the one already held most, so
+  // the rest of the hand is disturbed as little as can be.
+  TileType? kanTile;
+  if (r.nextDouble() < kanShare) {
+    final counts = <TileType, int>{};
+    for (final t in hand) {
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+    final most = counts.values.reduce(max);
+    final held = [
+      for (final e in counts.entries)
+        if (e.value == most) e.key
+    ];
+    kanTile = held[r.nextInt(held.length)];
+    while (hand.where((t) => t == kanTile).length < 4) {
+      final k = hand.indexWhere((t) => t != kanTile, r.nextInt(hand.length));
+      final other = k >= 0 ? k : hand.indexWhere((t) => t != kanTile);
+      left[hand[other].index - 1]++;
+      hand[other] = take(kanTile);
+    }
+  }
+
   hand.shuffle(r);
   TileType? offered;
   int offeredFrom = 1;
-  if (kind == QuizKind.call) {
+  if (kind == QuizKind.call && kanTile != null) {
+    // One of the four is on offer, and the other three are held.
+    hand.remove(kanTile);
+    offered = kanTile;
+    offeredFrom = 1 + r.nextInt(3);
+  } else if (kind == QuizKind.call) {
     // Put back one tile to make 13, and offer one that could be called.
     final back = hand.removeLast();
     left[back.index - 1]++;

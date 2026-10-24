@@ -1642,13 +1642,40 @@
   },
   "quizMortalPicked": "Mortal picked this too.",
   "quizMortalRankFirst": "Mortal's top pick.",
+  "quizMortalKan": "Mortal declares the kan here too.",
+  "quizMortalNoKan": "Mortal does not declare a kan here.",
   "quizMortalNote": "Mortal does not explain its choices; this is its ranking.",
   "quizSeat": "Seat",
   "quizDora": "Dora indicator",
-  "quizDone": "Come back tomorrow for a new puzzle.",
+  "quizProgress": "Question {number} of {total}",
+  "@quizProgress": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "quizNext": "Next question",
+  "quizSeeResults": "See today's results",
+  "quizResultsTitle": "Today's quiz is done",
+  "quizResultsScore": "You got {right} of {total} right.",
+  "@quizResultsScore": {
+    "placeholders": {
+      "right": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "quizDone": "Come back tomorrow for new puzzles.",
   "quizLoadFailed": "Today's puzzle could not be loaded.",
   "quizLink": "Daily quiz",
-  "quizCardToday": "Today's puzzle is ready",
+  "quizCardToday": "Today's puzzles are ready",
   "quizCardDone": "Done for today. Back tomorrow!",
   "quizStreak": "{days}-day streak",
   "@quizStreak": {
