@@ -11,8 +11,14 @@ droplet, 120 MB and ~100 ms). The service is stateless: each request carries the
 far, which is replayed into a fresh libriichi `Bot` allowed to act on the last
 event only.
 
-    POST /react  {"player_id": 0-3, "events": [{"type": "start_game"}, ...]}
+    POST /react  {"player_id": 0-3, "events": [{"type": "start_game"}, ...],
+                  "game_length": 4 | 8}
     ->           {"reaction": {...}, "riichi_discard": {...} | null}
+
+`game_length` is 4 for an East-only game and 8 (the default) for a hanchan:
+Mortal needs it to know which hand is the last. It is only handed to libriichi
+when it is 4, so a libriichi built before that option existed still serves
+hanchan.
 
 `reaction` is Mortal's mjai reply (or null: nothing to do), with
 `meta.q_values` / `meta.mask_bits` scoring every legal action. When it is a
@@ -77,8 +83,8 @@ class OnnxEngine:
 engine = OnnxEngine(args.model)
 
 
-def react(seat, events):
-    bot = Bot(engine, seat)
+def react(seat, events, game_length=8):
+    bot = Bot(engine, seat) if game_length == 8 else Bot(engine, seat, game_length=game_length)
     reaction = None
     for i, event in enumerate(events):
         reaction = bot.react(json.dumps(event), can_act=i == len(events) - 1)
@@ -117,7 +123,10 @@ class Handler(BaseHTTPRequestHandler):
             seat = req.get('player_id')
             if seat not in (0, 1, 2, 3) or not isinstance(events, list) or not events:
                 raise ValueError('expected player_id 0-3 and a non-empty events list')
-            self._send(200, react(seat, events))
+            game_length = req.get('game_length', 8)
+            if game_length not in (4, 8):
+                raise ValueError('expected game_length 4 or 8')
+            self._send(200, react(seat, events, game_length))
         except Exception as ex:
             self._send(400, {'error': str(ex)})
 

@@ -26,7 +26,8 @@ class _HeldMortal extends MortalAdvisor {
   final asks = <(List<MjaiEvent>, Completer<Map<String, Object?>>)>[];
 
   @override
-  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) {
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
+      {bool hanchan = true}) {
     final reply = Completer<Map<String, Object?>>();
     asks.add((events, reply));
     return reply.future;

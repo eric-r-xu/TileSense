@@ -119,12 +119,17 @@ class MortalAdvisor {
 
   /// Mortal's reply for [seat]. [events] is the hand with nothing hidden
   /// ([MjaiRecorder]); only [seat]'s own view of it ([mjaiView]) is sent.
-  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
+  /// [hanchan] false tells Mortal the game ends after East.
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
+      {bool hanchan = true}) async {
     final res = await http
         .post(_url,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(
-                {'player_id': seat, 'events': mjaiView(events, seat)}))
+            body: jsonEncode({
+              'player_id': seat,
+              'events': mjaiView(events, seat),
+              'game_length': hanchan ? 8 : 4,
+            }))
         .timeout(const Duration(seconds: 3));
     final body = jsonDecode(res.body) as Map<String, Object?>;
     if (res.statusCode != 200) throw StateError('Mortal: ${body['error']}');

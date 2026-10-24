@@ -39,7 +39,8 @@ class _NoSidecar extends MortalAdvisor {
   _NoSidecar() : super('http://unused');
 
   @override
-  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) =>
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
+      {bool hanchan = true}) =>
       Future.error(StateError('sidecar down'));
 }
 

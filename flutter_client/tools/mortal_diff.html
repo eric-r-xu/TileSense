@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide vs Mortal</title>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1f23; --muted: #6a6f78; --line: #dedbd2;
+  --guide: #c2570c; --mortal: #1f6fb5; --good: #2e7d32; --bad: #b3261e;
+  --tile: #fdfcf7; --tile-edge: #b9b4a6; --man: #b3261e; --pin: #1f6fb5; --sou: #2e7d32; --honor: #333;
+  --chip: #ece9df;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --panel: #1e2125; --ink: #e8e6e1; --muted: #9aa0a8; --line: #33373d;
+    --guide: #ff9a52; --mortal: #6cb4ff; --good: #7bc67e; --bad: #ff8a80;
+    --tile: #2a2d32; --tile-edge: #4a4f57; --man: #ff8a80; --pin: #6cb4ff; --sou: #7bc67e; --honor: #ddd;
+    --chip: #2b2f35;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --panel: #1e2125; --ink: #e8e6e1; --muted: #9aa0a8; --line: #33373d;
+  --guide: #ff9a52; --mortal: #6cb4ff; --good: #7bc67e; --bad: #ff8a80;
+  --tile: #2a2d32; --tile-edge: #4a4f57; --man: #ff8a80; --pin: #6cb4ff; --sou: #7bc67e; --honor: #ddd;
+  --chip: #2b2f35;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 14px 16px 0; }
+h1 { font-size: 20px; margin: 0 0 2px; }
+.sub { color: var(--muted); font-size: 13px; margin: 0 0 10px; max-width: 70ch; }
+nav { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+nav button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; font: inherit; color: var(--muted); cursor: pointer; }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+main { padding: 16px; max-width: 1280px; margin: 0 auto; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; overflow-x: auto; }
+.panel h2 { font-size: 15px; margin: 0 0 4px; }
+.panel p.note { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 600; }
+tr.pickG td { background: color-mix(in srgb, var(--guide) 16%, transparent); }
+tr.pickM td { box-shadow: inset 0 0 0 1px var(--mortal); }
+.bar { display: inline-block; height: 9px; border-radius: 3px; background: var(--mortal); vertical-align: middle; }
+.bar.g { background: var(--guide); }
+.pct { font-variant-numeric: tabular-nums; }
+.layout { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 14px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; font-size: 13px; }
+.filters label { display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
+select, input[type=search] { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
+#list { max-height: 78vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.row { padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.row[aria-current="true"] { background: color-mix(in srgb, var(--mortal) 14%, transparent); }
+.row .l1 { font-weight: 600; font-size: 13px; }
+.row .l2 { color: var(--muted); font-size: 12px; grid-column: 1 / -1; }
+.gapv { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; text-align: right; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.chip { background: var(--chip); border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+.chip.warn { background: color-mix(in srgb, var(--guide) 22%, var(--chip)); }
+.tiles { display: flex; flex-wrap: wrap; gap: 3px; align-items: flex-end; }
+.tile { width: 28px; height: 38px; border: 1px solid var(--tile-edge); border-radius: 4px; background: var(--tile); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; position: relative; font-weight: 700; }
+.tile small { font-size: 10px; font-weight: 600; margin-top: 2px; }
+.tile.m { color: var(--man); } .tile.p { color: var(--pin); } .tile.s { color: var(--sou); } .tile.z { color: var(--honor); }
+.tile.red::after { content: ""; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--man); }
+.tile.sm { width: 22px; height: 30px; font-size: 12px; } .tile.sm small { font-size: 8px; }
+.tile.g { outline: 3px solid var(--guide); outline-offset: 1px; }
+.tile.mo { box-shadow: 0 0 0 3px var(--mortal); }
+.tile.g.mo { outline: 3px solid var(--guide); box-shadow: 0 0 0 6px var(--mortal); }
+.tile.called { opacity: .4; }
+.tile.riichi { transform: rotate(90deg); margin: 0 6px; }
+.tile.drawn { margin-left: 12px; }
+.pond { display: grid; grid-template-columns: repeat(6, auto); gap: 2px; justify-content: start; }
+.seat { margin-bottom: 8px; }
+.seat h3 { font-size: 12px; color: var(--muted); margin: 0 0 3px; font-weight: 600; }
+.legend { font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+.hint { color: var(--muted); font-size: 12px; }
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+footer { color: var(--muted); font-size: 12px; padding: 0 16px 24px; max-width: 80ch; margin: 0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Guide vs Mortal</h1>
+  <p class="sub" id="sub"></p>
+</header>
+<nav role="tablist">
+  <button role="tab" id="tab-patterns" aria-selected="true">Patterns</button>
+  <button role="tab" id="tab-examples" aria-selected="false">Examples</button>
+</nav>
+<main>
+  <section id="patterns"></section>
+  <section id="examples" hidden>
+    <div class="layout">
+      <div>
+        <div class="filters">
+          <label>Kind<select id="f-diff"><option value="">any disagreement</option><option value="discard">discard</option><option value="riichi">riichi</option><option value="kan">kan</option><option value="call">call</option><option value="none">agreement</option></select></label>
+          <label>Shanten<select id="f-sh"><option value="">any</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4+</option></select></label>
+          <label>Turn<select id="f-jun"><option value="">any</option><option>1-3</option><option>4-6</option><option>7-9</option><option>10+</option></select></label>
+          <label>Threat<select id="f-thr"><option value="">any</option><option value="calm">no one in riichi</option><option value="threat">opponent in riichi</option></select></label>
+          <label>Chip<select id="f-chip"><option value="">any</option></select></label>
+          <label>Sort<select id="f-sort"><option value="gap">biggest Mortal q-gap</option><option value="ev">biggest guide EV deficit</option><option value="rand">shuffle</option></select></label>
+        </div>
+        <div class="hint" id="count"></div>
+        <div id="list" role="listbox" aria-label="Positions"></div>
+      </div>
+      <div id="detail"><div class="empty">Pick a position on the left.</div></div>
+    </div>
+  </section>
+</main>
+<footer>
+  Mortal's q-values are in its own units and only mean something inside one position. A disagreement is not a mistake on
+  either side: this page shows what differs. Which differences cost placement is measured by the hybrid arms of the simulation.
+</footer>
+
+<script>
+"use strict";
+const DATA = /*DATA*/null;
+const P = DATA.patterns, EX = DATA.examples;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const bare = t => t && t.endsWith("r") ? t.slice(0, -1) : t;
+const pct = (a, b) => b ? (100 * a / b).toFixed(1) + "%" : "–";
+const HON = { E: "東", S: "南", W: "西", N: "北", P: "白", F: "發", C: "中" };
+
+// ---- tiles ----------------------------------------------------------------
+function tile(t, cls = "") {
+  const raw = String(t).replace("^", "");
+  const red = raw.endsWith("r");
+  const b = bare(raw);
+  const hon = HON[b[0]];
+  const suit = hon ? "z" : b[1];
+  const face = hon || b[0];
+  return `<span class="tile ${suit} ${red ? "red" : ""} ${cls}" title="${esc(raw)}">${face}${hon ? "" : `<small>${suit === "m" ? "萬" : suit === "p" ? "筒" : "索"}</small>`}</span>`;
+}
+const tiles = (arr, cls) => `<div class="tiles">${arr.map(t => tile(t, cls)).join("")}</div>`;
+const label = t => t ? (HON[bare(t)[0]] || bare(t)) : "–";
+
+// ---- patterns tab ----------------------------------------------------------
+function rateTable(title, note, rows, cols) {
+  const keys = Object.keys(rows[0].data);
+  return `<div class="panel"><h2>${esc(title)}</h2><p class="note">${esc(note)}</p><table>
+    <tr><th></th>${keys.map(k => `<th>${esc(k)}</th>`).join("")}</tr>
+    ${rows.map(r => `<tr><td>${esc(r.name)}</td>${keys.map(k => { const [n, x] = r.data[k] || [0, 0]; return `<td class="pct">${pct(x, n)} <span class="hint">(${n})</span></td>`; }).join("")}</tr>`).join("")}
+  </table></div>`;
+}
+
+function renderPatterns() {
+  const k = P.kinds, kv = (a, b) => k[a + "|" + b] || 0;
+  const turns = ["none", "discard", "riichi", "kan"].reduce((s, d) => s + kv("turn", d), 0);
+  const calls = kv("call", "none") + kv("call", "call");
+  const el = $("#patterns");
+  let h = "";
+  h += `<div class="panel"><h2>What was compared</h2><p class="note">Every position where the guide (seat 0, Auto-Play) acted and Mortal was asked what it would do from the same position. Both-pass call offers are left out.</p>
+    <table><tr><th></th><th>positions</th><th>differ</th></tr>
+    <tr><td>Own turns (discard, riichi, kan)</td><td>${turns}</td><td class="pct">${pct(turns - kv("turn", "none"), turns)}</td></tr>
+    <tr><td>&nbsp;&nbsp;of which differ on the discard</td><td></td><td>${kv("turn", "discard")}</td></tr>
+    <tr><td>&nbsp;&nbsp;of which differ on riichi</td><td></td><td>${kv("turn", "riichi")}</td></tr>
+    <tr><td>&nbsp;&nbsp;of which differ on kan</td><td></td><td>${kv("turn", "kan")}</td></tr>
+    <tr><td>Call offers where either one called</td><td>${calls}</td><td class="pct">${pct(kv("call", "call"), calls)}</td></tr>
+    </table>
+    <p class="note" style="margin-top:8px">Mean Mortal q-gap between its best discard and the guide's: ${P.gap.mean.toFixed(2)} overall, ${P.gap.calm_mean.toFixed(2)} when no one else is in riichi.</p></div>`;
+  h += `<div class="grid2">`;
+  h += rateTable("Discard disagreement by shanten", "Share of the guide's discards that were not Mortal's tile, by the hand's shanten before the cut.", [{ name: "differ", data: P.disagree_by_shanten }]);
+  h += rateTable("Discard disagreement by turn", "Same, by how many discards the guide had made.", [{ name: "differ", data: P.disagree_by_junme }]);
+  h += rateTable("Stepping back to a worse shanten", "Share of discards that leave the hand further from tenpai than the best cut would. Mortal's row is its own tile, scored by the guide's shanten.", [{ name: "guide", data: P.steps_back_guide }, { name: "Mortal", data: P.steps_back_mortal }]);
+  h += rateTable("Top two EV lines tied", "The guide's two best lines have the same EV to 0.1: it is choosing by shape tie-breaks, not by value.", [{ name: "tied", data: P.ev_tie_top_two }]);
+  h += `</div>`;
+
+  const classes = ["honor", "terminal", "2/8", "3-7"];
+  const tc = P.tile_class;
+  h += `<div class="panel"><h2>Which tiles each one cuts</h2><p class="note">Only discards where they differ. Rows: the guide's tile; columns: Mortal's.</p><table>
+    <tr><th>guide ↓ / Mortal →</th>${classes.map(c => `<th>${c}</th>`).join("")}</tr>
+    ${classes.map(g => `<tr><td>${g}</td>${classes.map(m => `<td>${tc[g + "|" + m] || 0}</td>`).join("")}</tr>`).join("")}</table></div>`;
+  h += `<div class="panel"><h2>How the disagreements read</h2><p class="note">Chips attached to discard disagreements (a disagreement can carry several).</p><table>
+    ${Object.entries(P.chips).map(([c, n]) => `<tr><td>${esc(c)}</td><td>${n}</td><td class="pct">${pct(n, kv("turn", "discard"))}</td></tr>`).join("")}</table></div>`;
+  el.innerHTML = h;
+}
+
+// ---- examples tab ----------------------------------------------------------
+const sel = { id: -1 };
+const shBucket = s => s <= 3 ? String(s) : "4+";
+const junBucket = j => j <= 3 ? "1-3" : j <= 6 ? "4-6" : j <= 9 ? "7-9" : "10+";
+const curSh = r => (r.guide.trace || {}).shanten;
+const threat = r => r.state.riichiAt.slice(1).some(x => x >= 0);
+const gTile = r => r.guide.type === "reach" || r.guide.type === "dahai" ? r.guide.pai : null;
+const mTile = r => r.mortal.type === "reach" ? r.mortal.riichiPai : r.mortal.type === "dahai" ? r.mortal.pai : null;
+function lineOf(r, t) { return ((r.guide.trace || {}).lines || []).find(l => bare(l.d) === bare(t || "")); }
+function evDeficit(r) { const g = lineOf(r, gTile(r)), m = lineOf(r, mTile(r)); return g && m ? g.ev - m.ev : null; }
+
+function describe(r) {
+  const s = r.state;
+  if (r.kind === "call") {
+    const g = r.guide.type, m = r.mortal.type || "pass";
+    return `${s.bakaze}${s.kyoku} t${s.junme} · call: guide ${g === "dahai" ? "pass" : g}, Mortal ${m}`;
+  }
+  const g = gTile(r), m = mTile(r);
+  const act = x => x.type === "reach" ? "riichi " : x.type === "ankan" || x.type === "kakan" ? "kan " : "";
+  return `${s.bakaze}${s.kyoku} t${s.junme + 1} · guide ${act(r.guide)}${label(g)} · Mortal ${act(r.mortal)}${label(m)}`;
+}
+
+function filtered() {
+  const d = $("#f-diff").value, sh = $("#f-sh").value, ju = $("#f-jun").value, th = $("#f-thr").value, ch = $("#f-chip").value;
+  let rows = EX.map((r, i) => ({ r, i })).filter(({ r }) => {
+    if (d ? r.diff !== d : r.diff === "none") return false;
+    if (sh && (r.kind !== "turn" || curSh(r) === undefined || shBucket(curSh(r)) !== sh)) return false;
+    if (ju && junBucket(r.state.junme + 1) !== ju) return false;
+    if (th && (th === "threat") !== threat(r)) return false;
+    if (ch && !r.chips.some(c => c.startsWith(ch))) return false;
+    return true;
+  });
+  const how = $("#f-sort").value;
+  if (how === "gap") rows.sort((a, b) => (b.r.gap || 0) - (a.r.gap || 0));
+  else if (how === "ev") rows.sort((a, b) => (evDeficit(b.r) ?? -1e9) - (evDeficit(a.r) ?? -1e9));
+  else rows.sort(() => Math.random() - .5);
+  return rows;
+}
+
+function renderList() {
+  const rows = filtered();
+  $("#count").textContent = `${rows.length} of ${EX.length} embedded positions`;
+  $("#list").innerHTML = rows.length ? rows.slice(0, 400).map(({ r, i }) => `
+    <div class="row" role="option" data-i="${i}" aria-current="${i === sel.id}">
+      <div class="l1">${esc(describe(r))}</div><div class="gapv">${r.gap != null ? "Δq " + r.gap.toFixed(1) : ""}</div>
+      <div class="l2">${esc(r.chips.join(" · "))}</div></div>`).join("") : `<div class="empty">Nothing matches.</div>`;
+  for (const el of document.querySelectorAll(".row")) el.onclick = () => { sel.id = +el.dataset.i; renderList(); renderDetail(); };
+}
+
+function pondHtml(r, seat) {
+  const s = r.state, ra = s.riichiAt[seat];
+  return `<div class="pond">${s.discards[seat].map((t, k) =>
+    tile(t, "sm" + (t.endsWith("^") ? " called" : "") + (k === ra ? " riichi" : ""))).join("")}</div>`;
+}
+function meldsHtml(r, seat) {
+  const m = r.state.melds[seat];
+  return m.length ? `<div class="tiles" style="margin-bottom:3px">${m.map(x => `<span class="tiles" style="margin-right:8px">${x.tiles.map(t => tile(t, "sm")).join("")}</span>`).join("")}</div>` : "";
+}
+
+function boardHtml(r) {
+  const s = r.state, g = gTile(r), m = mTile(r);
+  const seatName = i => (["You (guide)", "Right", "Across", "Left"][((i) + 0) % 4]);
+  const wind = i => ["E", "S", "W", "N"][(i - s.oya + 4) % 4];
+  let hand = "";
+  const used = { g: false, m: false };
+  const hs = s.hand.slice();
+  const drawnIdx = s.drawn ? hs.lastIndexOf(s.drawn) : -1;
+  const body = hs.map((t, k) => {
+    let c = "";
+    if (r.kind === "turn") {
+      if (g && !used.g && t === g) { c += " g"; used.g = true; }
+      else if (g && !used.g && bare(t) === bare(g) && k === hs.findIndex(x => bare(x) === bare(g))) { c += " g"; used.g = true; }
+      if (m && !used.m && t === m) { c += " mo"; used.m = true; }
+      else if (m && !used.m && bare(t) === bare(m) && k === hs.findIndex(x => bare(x) === bare(m))) { c += " mo"; used.m = true; }
+    }
+    if (k === drawnIdx) c += " drawn";
+    return tile(t, c);
+  });
+  hand = `<div class="tiles">${body.join("")}</div>`;
+  const pending = r.kind === "call" ? lastDiscard(r) : null;
+  return `<div class="panel">
+    <h2>${esc(s.bakaze)}${s.kyoku} · honba ${s.honba} · kyotaku ${s.kyotaku} · turn ${s.junme + 1}</h2>
+    <div class="legend"><span><i style="background:var(--guide)"></i>guide's cut</span><span><i style="background:var(--mortal)"></i>Mortal's cut</span><span>dora indicator: ${s.dora.map(t => tile(t, "sm")).join("")}</span></div>
+    <div class="seat"><h3>${seatName(0)} · ${wind(0)} · ${s.scores[0].toLocaleString()}${s.riichiAt[0] >= 0 ? " · riichi" : ""}</h3>${meldsHtml(r, 0)}${hand}</div>
+    ${pending ? `<div class="seat"><h3>Offered: ${esc(pending.who)}'s discard</h3>${tile(pending.t)}</div>` : ""}
+    ${[1, 2, 3].map(i => `<div class="seat"><h3>${seatName(i)} · ${wind(i)} · ${s.scores[i].toLocaleString()}${s.riichiAt[i] >= 0 ? " · riichi" : ""}</h3>${meldsHtml(r, i)}${pondHtml(r, i)}</div>`).join("")}
+    <div class="seat"><h3>Your discards</h3>${pondHtml(r, 0)}</div>
+  </div>`;
+}
+function lastDiscard(r) {
+  // The offered tile is the last discard of whichever other seat discarded last.
+  const s = r.state; let best = null;
+  for (let i = 1; i < 4; i++) { const d = s.discards[i]; if (d.length && !d[d.length - 1].endsWith("^")) best = best || { who: ["", "right", "across", "left"][i], t: d[d.length - 1] }; }
+  return best;
+}
+
+function guideTable(r) {
+  const tr = r.guide.trace;
+  if (!tr) return `<div class="hint">No EV lines were recorded for this position.</div>`;
+  if (r.kind === "call") {
+    const opts = tr.options || [];
+    return `<table><tr><th>option</th><th>EV</th><th>shanten after</th><th>discard after</th><th>ok</th></tr>${opts.map(o =>
+      `<tr class="${o.action === tr.recommended ? "pickG" : ""}"><td>${esc(o.action)}</td><td>${o.ev}</td><td>${o.shantenAfter}</td><td>${o.discardAfter ? label(o.discardAfter) : "–"}</td><td>${o.eligible ? "" : "no"}</td></tr>`).join("")}</table>
+      <p class="hint">Guide recommended <b>${esc(tr.recommended)}</b>; ${r.guide.type === "dahai" ? "it passed" : "it played " + esc(r.guide.type)}.</p>`;
+  }
+  const g = bare(gTile(r) || ""), m = bare(mTile(r) || "");
+  return `<table><tr><th>cut</th><th>shanten</th><th>ukeire</th><th>win</th><th>avg pts</th><th>risk</th><th>EV</th></tr>${tr.lines.map(l =>
+    `<tr class="${bare(l.d) === g ? "pickG" : ""} ${bare(l.d) === m ? "pickM" : ""}"><td>${tile(l.d, "sm")}</td><td>${l.shanten}</td><td>${l.ukeire}</td><td>${(100 * l.winProb).toFixed(1)}%</td><td>${l.avgPoints}</td><td>${(l.dealInCost + l.commitCost).toFixed(0)}</td><td><b>${l.ev}</b></td></tr>`).join("")}</table>
+    <p class="hint">Showing ${tr.lines.length} of ${tr.lineCount} lines: its top three, its pick and Mortal's. Hand is at ${tr.shanten}-shanten before the cut; the guide's plan was “${esc((lineOf(r, gTile(r)) || {}).plan || "–")}”.</p>`;
+}
+
+function mortalBars(q, pickName) {
+  const entries = Object.entries(q || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return `<div class="hint">No q-values were returned.</div>`;
+  const hi = entries[0][1], lo = entries[entries.length - 1][1];
+  return `<table><tr><th>action</th><th></th><th>q</th><th>Δ best</th></tr>${entries.map(([k, v]) =>
+    `<tr class="${bare(k) === bare(pickName || "") ? "pickG" : ""}"><td>${/^[1-9][mps]|^[ESWNPFC]/.test(k) ? tile(k, "sm") : esc(k)}</td>
+     <td style="width:35%"><span class="bar" style="width:${hi === lo ? 100 : 8 + 92 * (v - lo) / (hi - lo)}%"></span></td><td>${v.toFixed(2)}</td><td>${(v - hi).toFixed(2)}</td></tr>`).join("")}</table>`;
+}
+
+function explain(r) {
+  const out = [];
+  if (r.kind === "turn" && r.diff === "discard") {
+    const tr = r.guide.trace || {}, g = lineOf(r, gTile(r)), m = lineOf(r, mTile(r));
+    if (g && m) {
+      out.push(`The guide cut <b>${label(gTile(r))}</b> (${g.shanten}-shanten after, ukeire ${g.ukeire}, win ${(100 * g.winProb).toFixed(0)}%, EV ${g.ev}); Mortal would cut <b>${label(mTile(r))}</b> (${m.shanten}-shanten, ukeire ${m.ukeire}, EV ${m.ev}).`);
+      if (g.shanten > m.shanten) out.push(`The guide gives up ${g.shanten - m.shanten} step${g.shanten - m.shanten > 1 ? "s" : ""} of shanten for ${g.ukeire - m.ukeire} more accepted tiles. A likely reason (from the engine's code, not checked for this position): its win-chance model caps a wide hand at “typical” for its shanten but penalises a narrow one, so a wide ${g.shanten}-shanten shape can outscore a narrow ${m.shanten}-shanten one.`);
+      else if (Math.abs(g.ev - m.ev) < 0.05) out.push(`The two cuts are tied on the guide's EV, so shape tie-breaks decided it.`);
+      else if (m.ev > g.ev) out.push(`Mortal's cut is even slightly better by the guide's own EV (${m.ev} vs ${g.ev}); the guide's ranking shows it second only through display rounding or tie-breaks.`);
+    } else if (g) out.push(`Mortal's cut ${label(mTile(r))} was not among the lines kept for this example.`);
+    if (threat(r)) out.push(`An opponent is in riichi, so safety counts: ${g && g.safety != null ? "the guide's tile has safety rating " + g.safety + "/15" : "see the risk column"}.`);
+  } else if (r.kind === "turn" && r.diff === "riichi") {
+    const tr = r.guide.trace || {};
+    out.push(r.mortal.type === "reach" ? `Mortal declares riichi where the guide ${tr.recommendRiichi ? "did not take it" : "stays damaten"}. Guide's riichi recommendation: ${tr.recommendRiichi ? "yes" : "no"}.` : `The guide declared riichi where Mortal does not.`);
+  } else if (r.kind === "turn" && r.diff === "kan") {
+    out.push(r.guide.type === "ankan" || r.guide.type === "kakan" ? `The guide called a kan (${r.guide.type}) that Mortal does not.` : `Mortal would kan here; the guide did not.`);
+  } else if (r.kind === "call") {
+    out.push(`The guide ${r.guide.type === "dahai" ? "passed" : "took " + r.guide.type}; Mortal ${r.mortal.type ? "would " + r.mortal.type : "passes"}.`);
+  }
+  if (r.gap != null) out.push(`Mortal rates the guide's cut ${r.gap.toFixed(2)} below its best (its own units).`);
+  return out.map(x => `<p style="margin:4px 0">${x}</p>`).join("");
+}
+
+function renderDetail() {
+  const r = EX[sel.id];
+  if (!r) return;
+  const mq = r.kind === "turn" && r.mortal.type === "reach" ? Object.assign({}, r.mortal.qRiichi, { reach: (r.mortal.q || {}).reach }) : r.mortal.q;
+  $("#detail").innerHTML = `
+    <div class="panel"><h2>${esc(describe(r))}</h2>
+      <div class="chips">${r.chips.map(c => `<span class="chip warn">${esc(c)}</span>`).join("")}</div>${explain(r)}</div>
+    ${boardHtml(r)}
+    <div class="cols">
+      <div class="panel"><h2 style="color:var(--guide)">TileSense guide</h2>${guideTable(r)}</div>
+      <div class="panel"><h2 style="color:var(--mortal)">Mortal</h2>${mortalBars(mq, gTile(r))}
+        <p class="hint">Bars span the worst to the best legal action. The guide's tile is shaded.</p></div>
+    </div>`;
+}
+
+// ---- wiring ----------------------------------------------------------------
+function tab(name) {
+  for (const t of ["patterns", "examples"]) {
+    $("#" + t).hidden = t !== name;
+    $("#tab-" + t).setAttribute("aria-selected", t === name);
+  }
+}
+$("#tab-patterns").onclick = () => tab("patterns");
+$("#tab-examples").onclick = () => tab("examples");
+const chipNames = [...new Set(EX.flatMap(r => r.chips).map(c => c.replace(/ ×\d+$/, "")))].sort();
+$("#f-chip").insertAdjacentHTML("beforeend", chipNames.map(c => `<option>${esc(c)}</option>`).join(""));
+for (const id of ["f-diff", "f-sh", "f-jun", "f-thr", "f-chip", "f-sort"]) $("#" + id).onchange = renderList;
+$("#sub").textContent = `${P.total.toLocaleString()} decisions from ${DATA.games} East-only games with the guide in seat 0 against three Saeko (Mortal) bots. Patterns use all of them; Examples embeds ${EX.length}.`;
+renderPatterns();
+renderList();
+</script>
+</body>
+</html>

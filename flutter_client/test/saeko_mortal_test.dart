@@ -16,10 +16,13 @@ class _FakeMortal extends MortalAdvisor {
   _FakeMortal([this.reply]) : super('http://unused');
   final Map<String, Object?>? reply;
   final asked = <int>{};
+  final hanchans = <bool>{};
 
   @override
-  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
+      {bool hanchan = true}) async {
     asked.add(seat);
+    hanchans.add(hanchan);
     return reply ?? (throw StateError('sidecar down'));
   }
 }
@@ -31,7 +34,8 @@ class _TsumogiriMortal extends MortalAdvisor {
   final asked = <int>{};
 
   @override
-  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events) async {
+  Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
+      {bool hanchan = true}) async {
     asked.add(seat);
     final last = events.last;
     if (last['type'] == 'tsumo' && last['actor'] == seat) {
@@ -181,6 +185,35 @@ void main() {
       }
     });
 
+    testWidgets('an East-only game tells Mortal it ends after East',
+        (tester) async {
+      Sfx.i.enabled = false;
+      final mortal = _FakeMortal();
+      final game = GameController(
+          seed: 7, seatCharacters: seats, mortal: mortal, hanchan: false);
+      try {
+        await playHands(tester, game);
+        expect(mortal.hanchans, {false});
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('a hanchan tells Mortal it is one', (tester) async {
+      Sfx.i.enabled = false;
+      final mortal = _FakeMortal();
+      final game =
+          GameController(seed: 7, seatCharacters: seats, mortal: mortal);
+      try {
+        await playHands(tester, game);
+        expect(mortal.hanchans, {true});
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
     testWidgets('an unplayable reply also falls back, without stalling',
         (tester) async {
       Sfx.i.enabled = false;
@@ -272,6 +305,35 @@ void main() {
             reason: 'the guide, not a tsumogiri bot, chose the discards');
       } finally {
         game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('mortalParts hands Mortal only the decisions it names',
+        (tester) async {
+      Sfx.i.enabled = false;
+      final mortal = _TsumogiriMortal();
+      final game = GameController(seed: 9, mortal: mortal)
+        ..mortalParts = {MortalPart.discard};
+      try {
+        final (mine, cutDrawn) = await playYourTurns(tester, game);
+        expect(mine, 8);
+        expect(cutDrawn, mine, reason: 'every discard was Mortal\'s');
+        expect(mortal.asked, contains(kHumanSeat));
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+
+      final callsOnly = GameController(seed: 9, mortal: _TsumogiriMortal())
+        ..mortalParts = {MortalPart.calls};
+      try {
+        final (mine, cutDrawn) = await playYourTurns(tester, callsOnly);
+        expect(mine, 8);
+        expect(cutDrawn, lessThan(mine),
+            reason: 'the guide, not Mortal, chose the discards');
+      } finally {
+        callsOnly.dispose();
         Sfx.i.enabled = true;
       }
     });
