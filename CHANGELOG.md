@@ -17,9 +17,17 @@ approximate wherever a batch of work spanned more than a day.
 - The reader shows a configured Hong Kong/Taiwanese minimum when opened from
   a table, keeps Back and the external reference available while scrolling, and
   bundles the summaries for offline reading.
-- This first pass has English rule text, with navigation and a language notice
-  in all four UI locales. Full scoring catalogues and translated summaries
-  remain follow-up work. See `docs/NATIVE_RULES_UI.md`.
+- Each summary ends with a catalogue of every pattern the scorer counts, with
+  its value and a short definition. These include every riichi yaku (closed and
+  open han), yakuman, fu and limit hands; every Hong Kong faan, Taiwanese tai
+  and Sichuan fan; and all 81 MCR fan with their exclusions. Searching keeps
+  only matching entries.
+- The summaries and catalogues are translated into Japanese, Simplified Chinese
+  and Traditional Chinese. MCR fan names are now translated on the score screen
+  too, which had shown most of them in English.
+- The Hong Kong and Taiwanese summaries said the last discard could not be
+  claimed; it can be claimed to win, as the engine allows.
+  See `docs/NATIVE_RULES_UI.md`.
 
 ## 2026-10-24 — Bigger teaching tiles on phones, and a table tour
 

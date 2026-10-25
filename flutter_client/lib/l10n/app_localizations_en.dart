@@ -3014,7 +3014,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesRead => 'Read rules';
 
   @override
-  String get rulesSearchHint => 'Search rules (English)';
+  String get rulesSearchHint => 'Search rules';
 
   @override
   String get rulesClearSearch => 'Clear search';
@@ -3024,9 +3024,257 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rulesSummaryNotice =>
-      'Quick guide to TileSense’s rules. English summaries are available in this first version; use the external reference for the full scoring details.';
+      'Quick guide to TileSense’s rules, with every scoring pattern the app counts. The external reference is the source these rules follow.';
 
   @override
   String get rulesReferenceFailed =>
       'Could not open the reference. Please try again.';
+
+  @override
+  String get mcrFanBigFourWinds => 'Big Four Winds';
+
+  @override
+  String get mcrFanBigThreeDragons => 'Big Three Dragons';
+
+  @override
+  String get mcrFanAllGreen => 'All Green';
+
+  @override
+  String get mcrFanNineGates => 'Nine Gates';
+
+  @override
+  String get mcrFanFourKongs => 'Four Kongs';
+
+  @override
+  String get mcrFanSevenShiftedPairs => 'Seven Shifted Pairs';
+
+  @override
+  String get mcrFanThirteenOrphans => 'Thirteen Orphans';
+
+  @override
+  String get mcrFanAllTerminals => 'All Terminals';
+
+  @override
+  String get mcrFanLittleFourWinds => 'Little Four Winds';
+
+  @override
+  String get mcrFanLittleThreeDragons => 'Little Three Dragons';
+
+  @override
+  String get mcrFanAllHonors => 'All Honors';
+
+  @override
+  String get mcrFanFourConcealedPungs => 'Four Concealed Pungs';
+
+  @override
+  String get mcrFanPureTerminalChows => 'Pure Terminal Chows';
+
+  @override
+  String get mcrFanQuadrupleChow => 'Quadruple Chow';
+
+  @override
+  String get mcrFanFourPureShiftedPungs => 'Four Pure Shifted Pungs';
+
+  @override
+  String get mcrFanFourShiftedChows => 'Four Shifted Chows';
+
+  @override
+  String get mcrFanThreeKongs => 'Three Kongs';
+
+  @override
+  String get mcrFanAllTerminalsAndHonors => 'All Terminals and Honors';
+
+  @override
+  String get mcrFanSevenPairs => 'Seven Pairs';
+
+  @override
+  String get mcrFanGreaterHonorsAndKnittedTiles =>
+      'Greater Honors and Knitted Tiles';
+
+  @override
+  String get mcrFanAllEvenPungs => 'All Even Pungs';
+
+  @override
+  String get mcrFanFullFlush => 'Full Flush';
+
+  @override
+  String get mcrFanPureTripleChow => 'Pure Triple Chow';
+
+  @override
+  String get mcrFanPureShiftedPungs => 'Pure Shifted Pungs';
+
+  @override
+  String get mcrFanUpperTiles => 'Upper Tiles';
+
+  @override
+  String get mcrFanMiddleTiles => 'Middle Tiles';
+
+  @override
+  String get mcrFanLowerTiles => 'Lower Tiles';
+
+  @override
+  String get mcrFanPureStraight => 'Pure Straight';
+
+  @override
+  String get mcrFanThreeSuitedTerminalChows => 'Three-Suited Terminal Chows';
+
+  @override
+  String get mcrFanPureShiftedChows => 'Pure Shifted Chows';
+
+  @override
+  String get mcrFanAllFives => 'All Fives';
+
+  @override
+  String get mcrFanTriplePung => 'Triple Pung';
+
+  @override
+  String get mcrFanThreeConcealedPungs => 'Three Concealed Pungs';
+
+  @override
+  String get mcrFanLesserHonorsAndKnittedTiles =>
+      'Lesser Honors and Knitted Tiles';
+
+  @override
+  String get mcrFanKnittedStraight => 'Knitted Straight';
+
+  @override
+  String get mcrFanUpperFour => 'Upper Four';
+
+  @override
+  String get mcrFanLowerFour => 'Lower Four';
+
+  @override
+  String get mcrFanBigThreeWinds => 'Big Three Winds';
+
+  @override
+  String get mcrFanMixedStraight => 'Mixed Straight';
+
+  @override
+  String get mcrFanReversibleTiles => 'Reversible Tiles';
+
+  @override
+  String get mcrFanMixedTripleChow => 'Mixed Triple Chow';
+
+  @override
+  String get mcrFanMixedShiftedPungs => 'Mixed Shifted Pungs';
+
+  @override
+  String get mcrFanChickenHand => 'Chicken Hand';
+
+  @override
+  String get mcrFanLastTileDraw => 'Last Tile Draw';
+
+  @override
+  String get mcrFanLastTileClaim => 'Last Tile Claim';
+
+  @override
+  String get mcrFanOutWithReplacementTile => 'Out with Replacement Tile';
+
+  @override
+  String get mcrFanRobbingTheKong => 'Robbing the Kong';
+
+  @override
+  String get mcrFanTwoConcealedKongs => 'Two Concealed Kongs';
+
+  @override
+  String get mcrFanAllPungs => 'All Pungs';
+
+  @override
+  String get mcrFanHalfFlush => 'Half Flush';
+
+  @override
+  String get mcrFanMixedShiftedChows => 'Mixed Shifted Chows';
+
+  @override
+  String get mcrFanAllTypes => 'All Types';
+
+  @override
+  String get mcrFanMeldedHand => 'Melded Hand';
+
+  @override
+  String get mcrFanTwoDragonPungs => 'Two Dragon Pungs';
+
+  @override
+  String get mcrFanOutsideHand => 'Outside Hand';
+
+  @override
+  String get mcrFanFullyConcealed => 'Fully Concealed';
+
+  @override
+  String get mcrFanTwoMeldedKongs => 'Two Melded Kongs';
+
+  @override
+  String get mcrFanLastTile => 'Last Tile';
+
+  @override
+  String get mcrFanDragonPung => 'Dragon Pung';
+
+  @override
+  String get mcrFanPrevalentWind => 'Prevalent Wind';
+
+  @override
+  String get mcrFanSeatWind => 'Seat Wind';
+
+  @override
+  String get mcrFanConcealedHand => 'Concealed Hand';
+
+  @override
+  String get mcrFanAllChows => 'All Chows';
+
+  @override
+  String get mcrFanTileHog => 'Tile Hog';
+
+  @override
+  String get mcrFanDoublePung => 'Double Pung';
+
+  @override
+  String get mcrFanTwoConcealedPungs => 'Two Concealed Pungs';
+
+  @override
+  String get mcrFanConcealedKong => 'Concealed Kong';
+
+  @override
+  String get mcrFanAllSimples => 'All Simples';
+
+  @override
+  String get mcrFanPureDoubleChow => 'Pure Double Chow';
+
+  @override
+  String get mcrFanMixedDoubleChow => 'Mixed Double Chow';
+
+  @override
+  String get mcrFanShortStraight => 'Short Straight';
+
+  @override
+  String get mcrFanTwoTerminalChows => 'Two Terminal Chows';
+
+  @override
+  String get mcrFanPungOfTerminalsOrHonors => 'Pung of Terminals or Honors';
+
+  @override
+  String get mcrFanMeldedKong => 'Melded Kong';
+
+  @override
+  String get mcrFanOneVoidedSuit => 'One Voided Suit';
+
+  @override
+  String get mcrFanNoHonors => 'No Honors';
+
+  @override
+  String get mcrFanEdgeWait => 'Edge Wait';
+
+  @override
+  String get mcrFanClosedWait => 'Closed Wait';
+
+  @override
+  String get mcrFanSingleWait => 'Single Wait';
+
+  @override
+  String get mcrFanSelfDrawn => 'Self-Drawn';
+
+  @override
+  String get mcrFanFlowerTiles => 'Flower Tiles';
+
+  @override
+  String get mcrFanMeldedAndConcealedKongs => 'Melded and Concealed Kongs';
 }

@@ -109,13 +109,15 @@ All six variants share the lesson, glossary, practice and table components.
 `lib/ui/glossary.dart` supplies searchable, localized terms for the selected
 variant; `lib/ui/learn_to_play_page.dart` supplies the introductory lesson.
 `lib/ui/rules_reader.dart` provides the native rules dialog, search and external
-reference action. Its English summaries live in `lib/ui/rules_content.dart`;
-controls and the language notice use the existing ARB translations. Callers pass
-configured minimums when opening it from a game or the builder.
+reference action. `lib/ui/rules_content.dart` holds the sections and the scoring
+catalogues' values; each language's prose and notes are in `lib/ui/rules_text_*.dart`.
+Controls and the notice use the ARB translations. Callers pass configured minimums
+when opening it from a game or the builder.
 
 Welcome-screen **Read rules** buttons sit beside the existing PDF/wiki links.
 Offline game, phone menu, lesson and builder Rules actions open the native reader.
 The external references still use `Ruleset.rulesUrl`; no PDFs are bundled.
 
 See [`NATIVE_RULES_UI.md`](../docs/NATIVE_RULES_UI.md) for coverage, limitations
-and tests. Keep the summaries and [`docs/`](../docs/) rule pages in step.
+and tests. Keep the summaries, all four languages and the [`docs/`](../docs/) rule
+pages in step.

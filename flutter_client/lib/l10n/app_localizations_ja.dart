@@ -2937,7 +2937,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rulesRead => 'ルールを読む';
 
   @override
-  String get rulesSearchHint => 'ルールを検索（英語）';
+  String get rulesSearchHint => 'ルールを検索';
 
   @override
   String get rulesClearSearch => '検索をクリア';
@@ -2947,8 +2947,254 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get rulesSummaryNotice =>
-      'TileSenseのルール概要です。初版の本文は英語です。詳しい得点ルールは外部資料をご覧ください。';
+      'TileSenseのルール概要と、アプリが数えるすべての役・得点パターンの一覧です。翻訳はTileSenseによるもので、典拠は外部資料（英語）です。';
 
   @override
   String get rulesReferenceFailed => '外部資料を開けませんでした。もう一度お試しください。';
+
+  @override
+  String get mcrFanBigFourWinds => '大四喜';
+
+  @override
+  String get mcrFanBigThreeDragons => '大三元';
+
+  @override
+  String get mcrFanAllGreen => '緑一色';
+
+  @override
+  String get mcrFanNineGates => '九蓮宝燈';
+
+  @override
+  String get mcrFanFourKongs => '四槓';
+
+  @override
+  String get mcrFanSevenShiftedPairs => '連七対';
+
+  @override
+  String get mcrFanThirteenOrphans => '十三幺';
+
+  @override
+  String get mcrFanAllTerminals => '清幺九';
+
+  @override
+  String get mcrFanLittleFourWinds => '小四喜';
+
+  @override
+  String get mcrFanLittleThreeDragons => '小三元';
+
+  @override
+  String get mcrFanAllHonors => '字一色';
+
+  @override
+  String get mcrFanFourConcealedPungs => '四暗刻';
+
+  @override
+  String get mcrFanPureTerminalChows => '一色双龍会';
+
+  @override
+  String get mcrFanQuadrupleChow => '一色四同順';
+
+  @override
+  String get mcrFanFourPureShiftedPungs => '一色四節高';
+
+  @override
+  String get mcrFanFourShiftedChows => '一色四歩高';
+
+  @override
+  String get mcrFanThreeKongs => '三槓';
+
+  @override
+  String get mcrFanAllTerminalsAndHonors => '混幺九';
+
+  @override
+  String get mcrFanSevenPairs => '七対';
+
+  @override
+  String get mcrFanGreaterHonorsAndKnittedTiles => '七星不靠';
+
+  @override
+  String get mcrFanAllEvenPungs => '全双刻';
+
+  @override
+  String get mcrFanFullFlush => '清一色';
+
+  @override
+  String get mcrFanPureTripleChow => '一色三同順';
+
+  @override
+  String get mcrFanPureShiftedPungs => '一色三節高';
+
+  @override
+  String get mcrFanUpperTiles => '全大';
+
+  @override
+  String get mcrFanMiddleTiles => '全中';
+
+  @override
+  String get mcrFanLowerTiles => '全小';
+
+  @override
+  String get mcrFanPureStraight => '清龍';
+
+  @override
+  String get mcrFanThreeSuitedTerminalChows => '三色双龍会';
+
+  @override
+  String get mcrFanPureShiftedChows => '一色三歩高';
+
+  @override
+  String get mcrFanAllFives => '全帯五';
+
+  @override
+  String get mcrFanTriplePung => '三同刻';
+
+  @override
+  String get mcrFanThreeConcealedPungs => '三暗刻';
+
+  @override
+  String get mcrFanLesserHonorsAndKnittedTiles => '全不靠';
+
+  @override
+  String get mcrFanKnittedStraight => '組合龍';
+
+  @override
+  String get mcrFanUpperFour => '大于五';
+
+  @override
+  String get mcrFanLowerFour => '小于五';
+
+  @override
+  String get mcrFanBigThreeWinds => '三風刻';
+
+  @override
+  String get mcrFanMixedStraight => '花龍';
+
+  @override
+  String get mcrFanReversibleTiles => '推不倒';
+
+  @override
+  String get mcrFanMixedTripleChow => '三色三同順';
+
+  @override
+  String get mcrFanMixedShiftedPungs => '三色三節高';
+
+  @override
+  String get mcrFanChickenHand => '無番和';
+
+  @override
+  String get mcrFanLastTileDraw => '妙手回春';
+
+  @override
+  String get mcrFanLastTileClaim => '海底撈月';
+
+  @override
+  String get mcrFanOutWithReplacementTile => '槓上開花';
+
+  @override
+  String get mcrFanRobbingTheKong => '搶槓和';
+
+  @override
+  String get mcrFanTwoConcealedKongs => '双暗槓';
+
+  @override
+  String get mcrFanAllPungs => '碰碰和';
+
+  @override
+  String get mcrFanHalfFlush => '混一色';
+
+  @override
+  String get mcrFanMixedShiftedChows => '三色三歩高';
+
+  @override
+  String get mcrFanAllTypes => '五門斉';
+
+  @override
+  String get mcrFanMeldedHand => '全求人';
+
+  @override
+  String get mcrFanTwoDragonPungs => '双箭刻';
+
+  @override
+  String get mcrFanOutsideHand => '全帯幺';
+
+  @override
+  String get mcrFanFullyConcealed => '不求人';
+
+  @override
+  String get mcrFanTwoMeldedKongs => '双明槓';
+
+  @override
+  String get mcrFanLastTile => '和絶張';
+
+  @override
+  String get mcrFanDragonPung => '箭刻';
+
+  @override
+  String get mcrFanPrevalentWind => '圏風刻';
+
+  @override
+  String get mcrFanSeatWind => '門風刻';
+
+  @override
+  String get mcrFanConcealedHand => '門前清';
+
+  @override
+  String get mcrFanAllChows => '平和';
+
+  @override
+  String get mcrFanTileHog => '四帰一';
+
+  @override
+  String get mcrFanDoublePung => '双同刻';
+
+  @override
+  String get mcrFanTwoConcealedPungs => '双暗刻';
+
+  @override
+  String get mcrFanConcealedKong => '暗槓';
+
+  @override
+  String get mcrFanAllSimples => '断幺';
+
+  @override
+  String get mcrFanPureDoubleChow => '一般高';
+
+  @override
+  String get mcrFanMixedDoubleChow => '喜相逢';
+
+  @override
+  String get mcrFanShortStraight => '連六';
+
+  @override
+  String get mcrFanTwoTerminalChows => '老少副';
+
+  @override
+  String get mcrFanPungOfTerminalsOrHonors => '幺九刻';
+
+  @override
+  String get mcrFanMeldedKong => '明槓';
+
+  @override
+  String get mcrFanOneVoidedSuit => '缺一門';
+
+  @override
+  String get mcrFanNoHonors => '無字';
+
+  @override
+  String get mcrFanEdgeWait => '辺張';
+
+  @override
+  String get mcrFanClosedWait => '嵌張';
+
+  @override
+  String get mcrFanSingleWait => '単釣将';
+
+  @override
+  String get mcrFanSelfDrawn => '自摸';
+
+  @override
+  String get mcrFanFlowerTiles => '花牌';
+
+  @override
+  String get mcrFanMeldedAndConcealedKongs => '明暗槓';
 }

@@ -54,10 +54,14 @@ extension MahjongTerms on AppLocalizations {
   /// What a chi / pon / kan / ron is called under [r]; empty for
   /// [CallType.none].
   String callLabel(CallType type, Ruleset r) => switch (type) {
-        CallType.chi => _pick(r, callChiRiichi, callChiHongKong, callChiTaiwanese),
-        CallType.pon => _pick(r, callPonRiichi, callPonHongKong, callPonTaiwanese),
-        CallType.kan => _pick(r, callKanRiichi, callKanHongKong, callKanTaiwanese),
-        CallType.ron => _pick(r, callRonRiichi, callRonHongKong, callRonTaiwanese),
+        CallType.chi =>
+          _pick(r, callChiRiichi, callChiHongKong, callChiTaiwanese),
+        CallType.pon =>
+          _pick(r, callPonRiichi, callPonHongKong, callPonTaiwanese),
+        CallType.kan =>
+          _pick(r, callKanRiichi, callKanHongKong, callKanTaiwanese),
+        CallType.ron =>
+          _pick(r, callRonRiichi, callRonHongKong, callRonTaiwanese),
         CallType.none => '',
       };
 
@@ -101,7 +105,8 @@ extension MahjongTerms on AppLocalizations {
       'TSUMO' => tsumoLabel(r),
       'RIICHI' => bubbleRiichi,
       'KITA' => bubbleKita,
-      'RINSHAN' => r.isChineseStyle ? bubbleRinshanChinese : bubbleRinshanRiichi,
+      'RINSHAN' =>
+        r.isChineseStyle ? bubbleRinshanChinese : bubbleRinshanRiichi,
       _ => token,
     };
   }
@@ -145,7 +150,7 @@ extension MahjongTerms on AppLocalizations {
       Ruleset.riichi || Ruleset.sanma => _riichiNames,
       Ruleset.hongKong => _hongKongNames,
       Ruleset.taiwanese => _taiwaneseNames,
-      Ruleset.mcr => _hongKongNames,
+      Ruleset.mcr => _mcrNames,
       Ruleset.sichuan => _sichuanNames,
     };
     if (table[name] case final known?) return known(this);
@@ -319,7 +324,8 @@ final Map<String, String Function(AppLocalizations)> _taiwaneseNames = {
 };
 
 final Map<String, String Function(AppLocalizations)> _resultNames = {
-  'Kyuushu Kyuuhai — nine terminals/honors': (l) => l.resultKyuushuKyuuhaiNineTerminalsHonors,
+  'Kyuushu Kyuuhai — nine terminals/honors': (l) =>
+      l.resultKyuushuKyuuhaiNineTerminalsHonors,
   'Exhaustive Draw': (l) => l.resultExhaustiveDraw,
   'Multiple Wins': (l) => l.resultMultipleWins,
   'Robbing a Kong': (l) => l.resultRobbingAKong,
@@ -344,6 +350,94 @@ final Map<String, String Function(AppLocalizations)> _sichuanNames = {
   'Robbing the Kong': (l) => l.scRobbingTheKong,
   'Shoot after Kong': (l) => l.scShootAfterKong,
   'Under the Sea': (l) => l.scUnderTheSea,
+};
+
+// MCR's 81 fan (Appendix 1 order), by mahjong_core's English identifier,
+// and the scorer's line for one melded plus one concealed kong.
+final Map<String, String Function(AppLocalizations)> _mcrNames = {
+  'Big Four Winds': (l) => l.mcrFanBigFourWinds,
+  'Big Three Dragons': (l) => l.mcrFanBigThreeDragons,
+  'All Green': (l) => l.mcrFanAllGreen,
+  'Nine Gates': (l) => l.mcrFanNineGates,
+  'Four Kongs': (l) => l.mcrFanFourKongs,
+  'Seven Shifted Pairs': (l) => l.mcrFanSevenShiftedPairs,
+  'Thirteen Orphans': (l) => l.mcrFanThirteenOrphans,
+  'All Terminals': (l) => l.mcrFanAllTerminals,
+  'Little Four Winds': (l) => l.mcrFanLittleFourWinds,
+  'Little Three Dragons': (l) => l.mcrFanLittleThreeDragons,
+  'All Honors': (l) => l.mcrFanAllHonors,
+  'Four Concealed Pungs': (l) => l.mcrFanFourConcealedPungs,
+  'Pure Terminal Chows': (l) => l.mcrFanPureTerminalChows,
+  'Quadruple Chow': (l) => l.mcrFanQuadrupleChow,
+  'Four Pure Shifted Pungs': (l) => l.mcrFanFourPureShiftedPungs,
+  'Four Shifted Chows': (l) => l.mcrFanFourShiftedChows,
+  'Three Kongs': (l) => l.mcrFanThreeKongs,
+  'All Terminals and Honors': (l) => l.mcrFanAllTerminalsAndHonors,
+  'Seven Pairs': (l) => l.mcrFanSevenPairs,
+  'Greater Honors and Knitted Tiles': (l) =>
+      l.mcrFanGreaterHonorsAndKnittedTiles,
+  'All Even Pungs': (l) => l.mcrFanAllEvenPungs,
+  'Full Flush': (l) => l.mcrFanFullFlush,
+  'Pure Triple Chow': (l) => l.mcrFanPureTripleChow,
+  'Pure Shifted Pungs': (l) => l.mcrFanPureShiftedPungs,
+  'Upper Tiles': (l) => l.mcrFanUpperTiles,
+  'Middle Tiles': (l) => l.mcrFanMiddleTiles,
+  'Lower Tiles': (l) => l.mcrFanLowerTiles,
+  'Pure Straight': (l) => l.mcrFanPureStraight,
+  'Three-Suited Terminal Chows': (l) => l.mcrFanThreeSuitedTerminalChows,
+  'Pure Shifted Chows': (l) => l.mcrFanPureShiftedChows,
+  'All Fives': (l) => l.mcrFanAllFives,
+  'Triple Pung': (l) => l.mcrFanTriplePung,
+  'Three Concealed Pungs': (l) => l.mcrFanThreeConcealedPungs,
+  'Lesser Honors and Knitted Tiles': (l) => l.mcrFanLesserHonorsAndKnittedTiles,
+  'Knitted Straight': (l) => l.mcrFanKnittedStraight,
+  'Upper Four': (l) => l.mcrFanUpperFour,
+  'Lower Four': (l) => l.mcrFanLowerFour,
+  'Big Three Winds': (l) => l.mcrFanBigThreeWinds,
+  'Mixed Straight': (l) => l.mcrFanMixedStraight,
+  'Reversible Tiles': (l) => l.mcrFanReversibleTiles,
+  'Mixed Triple Chow': (l) => l.mcrFanMixedTripleChow,
+  'Mixed Shifted Pungs': (l) => l.mcrFanMixedShiftedPungs,
+  'Chicken Hand': (l) => l.mcrFanChickenHand,
+  'Last Tile Draw': (l) => l.mcrFanLastTileDraw,
+  'Last Tile Claim': (l) => l.mcrFanLastTileClaim,
+  'Out with Replacement Tile': (l) => l.mcrFanOutWithReplacementTile,
+  'Robbing the Kong': (l) => l.mcrFanRobbingTheKong,
+  'Two Concealed Kongs': (l) => l.mcrFanTwoConcealedKongs,
+  'All Pungs': (l) => l.mcrFanAllPungs,
+  'Half Flush': (l) => l.mcrFanHalfFlush,
+  'Mixed Shifted Chows': (l) => l.mcrFanMixedShiftedChows,
+  'All Types': (l) => l.mcrFanAllTypes,
+  'Melded Hand': (l) => l.mcrFanMeldedHand,
+  'Two Dragon Pungs': (l) => l.mcrFanTwoDragonPungs,
+  'Outside Hand': (l) => l.mcrFanOutsideHand,
+  'Fully Concealed': (l) => l.mcrFanFullyConcealed,
+  'Two Melded Kongs': (l) => l.mcrFanTwoMeldedKongs,
+  'Last Tile': (l) => l.mcrFanLastTile,
+  'Dragon Pung': (l) => l.mcrFanDragonPung,
+  'Prevalent Wind': (l) => l.mcrFanPrevalentWind,
+  'Seat Wind': (l) => l.mcrFanSeatWind,
+  'Concealed Hand': (l) => l.mcrFanConcealedHand,
+  'All Chows': (l) => l.mcrFanAllChows,
+  'Tile Hog': (l) => l.mcrFanTileHog,
+  'Double Pung': (l) => l.mcrFanDoublePung,
+  'Two Concealed Pungs': (l) => l.mcrFanTwoConcealedPungs,
+  'Concealed Kong': (l) => l.mcrFanConcealedKong,
+  'All Simples': (l) => l.mcrFanAllSimples,
+  'Pure Double Chow': (l) => l.mcrFanPureDoubleChow,
+  'Mixed Double Chow': (l) => l.mcrFanMixedDoubleChow,
+  'Short Straight': (l) => l.mcrFanShortStraight,
+  'Two Terminal Chows': (l) => l.mcrFanTwoTerminalChows,
+  'Pung of Terminals or Honors': (l) => l.mcrFanPungOfTerminalsOrHonors,
+  'Melded Kong': (l) => l.mcrFanMeldedKong,
+  'One Voided Suit': (l) => l.mcrFanOneVoidedSuit,
+  'No Honors': (l) => l.mcrFanNoHonors,
+  'Edge Wait': (l) => l.mcrFanEdgeWait,
+  'Closed Wait': (l) => l.mcrFanClosedWait,
+  'Single Wait': (l) => l.mcrFanSingleWait,
+  'Self-Drawn': (l) => l.mcrFanSelfDrawn,
+  'Flower Tiles': (l) => l.mcrFanFlowerTiles,
+  'Melded and Concealed Kongs': (l) => l.mcrFanMeldedAndConcealedKongs,
 };
 
 final Map<String, String Function(AppLocalizations)> _limitNames = {

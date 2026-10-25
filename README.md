@@ -240,9 +240,9 @@ translations live in `flutter_client/lib/l10n/`.
 **Read rules** opens a searchable, scrollable native summary for each variant,
 with an external PDF/reference button always available. It is also reachable
 from the offline game, phone menu, lesson and builder, and shows the table's
-configured winning minimum. This first pass has English rule text with localized
-controls and a language notice; complete scoring catalogues and translations
-remain follow-up work. See [the native reader documentation](docs/NATIVE_RULES_UI.md).
+configured winning minimum. Each summary ends with a catalogue of every pattern
+the scorer counts (every yaku, faan, tai and fan, with MCR's exclusions), in all
+four UI languages. See [the native reader documentation](docs/NATIVE_RULES_UI.md).
 
 Five external references are PDFs; Sanma links to a wiki page. The six Markdown
 pages above describe the rules TileSense implements, including house rules and

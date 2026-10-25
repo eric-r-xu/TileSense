@@ -83,9 +83,11 @@ class _RulesReaderState extends State<RulesReader> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final sections = rulesSections(widget.ruleset,
+            l10n: l10n,
             minimumFaan: widget.minimumFaan,
             minimumPoints: widget.minimumPoints)
-        .where((section) => section.matches(_query))
+        .map((section) => section.filtered(_query))
+        .nonNulls
         .toList();
     return Material(
       key: const Key('rulesReader'),
@@ -177,12 +179,16 @@ class _RulesReaderState extends State<RulesReader> {
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold)),
                             ),
-                            const SizedBox(height: 6),
-                            SelectableText(section.body,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    height: 1.5)),
+                            if (section.body.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              SelectableText(section.body,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      height: 1.5)),
+                            ],
+                            for (final entry in section.entries)
+                              _RuleEntryRow(entry),
                           ],
                         ),
                       ),
@@ -206,4 +212,41 @@ class _RulesReaderState extends State<RulesReader> {
       ),
     );
   }
+}
+
+/// A catalogue line: the name and its value on one row, wrapping when the
+/// screen is narrow, with the note beneath.
+class _RuleEntryRow extends StatelessWidget {
+  const _RuleEntryRow(this.entry);
+
+  final RuleEntry entry;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                SelectableText(entry.name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
+                if (entry.value.isNotEmpty)
+                  SelectableText(entry.value,
+                      style: const TextStyle(
+                          color: AppColors.goldText, fontSize: 15)),
+              ],
+            ),
+            if (entry.note.isNotEmpty)
+              SelectableText(entry.note,
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: 15, height: 1.4)),
+          ],
+        ),
+      );
 }

@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mahjong_core/mcr/mcr_fan.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/l10n/app_language.dart';
+import 'package:tilesense/l10n/l10n.dart';
+import 'package:tilesense/l10n/mahjong_terms.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/rules_content.dart';
 import 'package:tilesense/ui/rules_reader.dart';
+import 'package:tilesense/ui/rules_text.dart';
 
 import 'helpers.dart';
 import 'l10n_helpers.dart';
@@ -22,11 +28,124 @@ void main() {
       expect(sections.map((s) => s.id),
           containsAll(['setup', 'calls', 'winning', 'game', 'source']));
       expect(sections.map((s) => s.id).toSet().length, sections.length);
-      expect(sections.every((s) => s.body.isNotEmpty), isTrue);
+      expect(sections.every((s) => s.body.isNotEmpty || s.entries.isNotEmpty),
+          isTrue);
     }
     expect(rulesSections(Ruleset.sanma).map((s) => s.id), contains('kita'));
     expect(rulesSections(Ruleset.riichi).map((s) => s.id),
         isNot(contains('kita')));
+  });
+
+  AppLocalizations l10nFor(AppLanguage language) =>
+      lookupAppLocalizations(language.locale);
+
+  test('every language has the same sections and a note for every entry', () {
+    final english = l10nFor(AppLanguage.english);
+    for (final r in Ruleset.values) {
+      final ids = rulesSections(r, l10n: english).map((s) => s.id).toList();
+      for (final language in AppLanguage.values) {
+        final l10n = l10nFor(language);
+        final sections = rulesSections(r, l10n: l10n);
+        final reason = '${language.name} ${r.name}';
+        expect(sections.map((s) => s.id), ids, reason: reason);
+        expect(sections.last.id, 'source', reason: reason);
+        for (final s in sections) {
+          expect(s.title, isNotEmpty, reason: '$reason ${s.id}');
+          expect(s.body.isNotEmpty || s.entries.isNotEmpty, isTrue,
+              reason: '$reason ${s.id}');
+          for (final e in s.entries) {
+            expect(e.note, isNotEmpty, reason: '$reason ${e.alias}');
+          }
+        }
+        // Every key a language's notes table has is one the catalogue uses;
+        // riichi and sanma share a table.
+        final keys = {
+          for (final v in r.isJapanese ? [Ruleset.riichi, Ruleset.sanma] : [r])
+            for (final g in scoringCatalogue(v)) ...g.patterns.map((p) => p.key)
+        };
+        expect(keys.containsAll(RulesText.of(l10n).notes(r).keys), isTrue,
+            reason: reason);
+        if (language != AppLanguage.english) {
+          // Names come translated: nothing falls back to the English key.
+          for (final e in sections.expand((s) => s.entries)) {
+            expect(e.name, isNot(matches(RegExp('[A-Za-z]{3}'))),
+                reason: '$reason ${e.name}');
+          }
+        }
+      }
+    }
+  });
+
+  test('catalogues list every pattern each scorer can report', () {
+    // Literal names in the scorers' add('…') and YakuResult('…') calls;
+    // names built from a tile's name are families the catalogue names
+    // itself (dragon pungs, seat flowers).
+    final literal = RegExp(r"(?:add|YakuResult)\(\s*'([^'$]+)'");
+    Set<String> reported(String file) => {
+          for (final m in literal.allMatches(
+              File('../packages/mahjong_core/lib/$file').readAsStringSync()))
+            if (!m[1]!.endsWith('(upgrade)')) m[1]!
+        };
+    Set<String> listed(Ruleset r) => {
+          for (final g in scoringCatalogue(r))
+            for (final p in g.patterns) p.key
+        };
+    expect(listed(Ruleset.riichi),
+        containsAll(reported('scoring.dart')..remove('Kita')));
+    expect(listed(Ruleset.sanma), contains('Kita'));
+    expect(listed(Ruleset.sanma), isNot(contains('Sanshoku Doujun')));
+    expect(listed(Ruleset.hongKong),
+        containsAll(reported('hong_kong/hong_kong_scoring.dart')));
+    expect(listed(Ruleset.taiwanese),
+        containsAll(reported('taiwanese/taiwanese_scoring.dart')));
+    expect(listed(Ruleset.sichuan),
+        containsAll(reported('sichuan/sichuan_scoring.dart')));
+    expect(listed(Ruleset.mcr),
+        containsAll([...mcrFans.map((f) => f.name), mcrMixedKongs]));
+    expect(listed(Ruleset.mcr).length, mcrFans.length + 1);
+  });
+
+  test('MCR entries carry their points and exclusions', () {
+    final english = rulesSections(Ruleset.mcr);
+    final top = english.firstWhere((s) => s.id == 'mcr88');
+    final bigWinds = top.entries.firstWhere((e) => e.alias == 'Big Four Winds');
+    expect(bigWinds.value, '88 fan');
+    expect(bigWinds.note,
+        allOf(contains('Not with: '), contains('Big Three Winds')));
+    expect(english.firstWhere((s) => s.id == 'mcr1').entries,
+        hasLength(mcrFans.where((f) => f.points == 1).length));
+    final chinese =
+        rulesSections(Ruleset.mcr, l10n: l10nFor(AppLanguage.simplifiedChinese))
+            .firstWhere((s) => s.id == 'mcr88')
+            .entries
+            .firstWhere((e) => e.alias == 'Big Four Winds');
+    expect(chinese.name, '大四喜');
+    expect(chinese.note, contains('三风刻'));
+  });
+
+  test('MCR fan names are translated on the score screen too', () {
+    final ja = l10nFor(AppLanguage.japanese);
+    expect(ja.scoringName('Nine Gates', Ruleset.mcr), '九蓮宝燈');
+    expect(ja.scoringName('Nine Gates', Ruleset.hongKong), isNot('九蓮宝燈'));
+    for (final f in mcrFans) {
+      expect(ja.scoringName(f.name, Ruleset.mcr), isNot(f.name));
+    }
+  });
+
+  test('a search inside a catalogue keeps only the matching entries', () {
+    final hits = rulesSections(Ruleset.riichi)
+        .map((s) => s.filtered('pinfu'))
+        .nonNulls
+        .toList();
+    final yaku = hits.firstWhere((s) => s.id == 'yaku');
+    expect(yaku.entries.map((e) => e.alias), ['Pinfu']);
+    // English names still find a pattern in another language.
+    final ja =
+        rulesSections(Ruleset.riichi, l10n: l10nFor(AppLanguage.japanese))
+            .map((s) => s.filtered('chiitoitsu'))
+            .nonNulls
+            .firstWhere((s) => s.id == 'yaku');
+    expect(ja.entries.single.name, '七対子');
   });
 
   test('configured minimums replace the pre-game default explanation', () {
@@ -135,9 +254,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull,
             reason: '${language.name} $size');
-        await tester.enterText(find.byKey(const Key('rulesSearch')), 'minimum');
+        final minimum =
+            RulesText.of(l10nFor(language)).taiwaneseTableMinimum(3);
+        await tester.enterText(find.byKey(const Key('rulesSearch')), minimum);
         await tester.pump();
-        expect(find.textContaining('This table’s minimum: 3 tai.'),
+        expect(
+            find.descendant(
+                of: find.byKey(const Key('rulesList')),
+                matching: find.textContaining(minimum)),
             findsOneWidget);
         await tester.tap(find.byKey(const Key('rulesReaderClose')));
         await tester.pumpAndSettle();
