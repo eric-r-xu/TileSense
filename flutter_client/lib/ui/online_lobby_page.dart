@@ -549,6 +549,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
         items: [
           for (final r in const [
             Ruleset.riichi,
+            Ruleset.sanma,
             Ruleset.hongKong,
             Ruleset.taiwanese,
             Ruleset.mcr,
@@ -631,7 +632,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           title: [
             game.ruleset.flagAsset == null
                 ? context.l10n.rulesetFlagLabel(game.ruleset)
-                : context.l10n.rulesetName(game.ruleset),
+                : context.l10n.rulesetTooltipName(game.ruleset),
             if (game.ruleset.isHongKong)
               context.l10n.roomFaanMin(game.minimumFaan),
             if (game.ruleset.isTaiwanese)
@@ -643,7 +644,8 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
           ].join(' · '),
           child: Column(
             children: [
-              for (final seat in game.lobbySeats) _seatRow(seat),
+              for (final seat in game.lobbySeats)
+                if (!seat.inactive) _seatRow(seat),
             ],
           ),
         ),

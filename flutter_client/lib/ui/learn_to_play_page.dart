@@ -135,25 +135,44 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
     }
   }
 
+  /// The card's tiles at the in-game hand's size, grown on a phone so a
+  /// newcomer can make them out. The tile tour (card 2) splits into two rows:
+  /// the three suits, then the honors and flowers.
   Widget _tileRow() {
     final isWin = _step == _steps - 1;
+    final groups = _tiles(_step);
+    final twoRows = _step == 1;
+    final rows = twoRows ? [groups.sublist(0, 3), groups.sublist(3)] : [groups];
+    // Two rows take a little off each tile, so the card's buttons still fit
+    // on a phone without scrolling.
+    final scale = teachingTileScale(context) * (twoRows ? 0.8 : 1);
+    Widget row(List<List<TileType>> groups) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (g, group) in groups.indexed) ...[
+              if (g > 0) const SizedBox(width: 22),
+              for (final t in group)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                  child: TileFace(
+                    type: t,
+                    size: TileSize.large,
+                    scale: scale,
+                    highlightColor: isWin ? const Color(0xff4caf50) : null,
+                  ),
+                ),
+            ],
+          ],
+        );
     return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Row(
+      child: Column(
         key: Key('learnTiles_$_step'),
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final (g, group) in _tiles(_step).indexed) ...[
-            if (g > 0) const SizedBox(width: 22),
-            for (final t in group)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                child: TileFace(
-                  type: t,
-                  size: TileSize.large,
-                  highlightColor: isWin ? const Color(0xff4caf50) : null,
-                ),
-              ),
+          for (final (i, r) in rows.indexed) ...[
+            if (i > 0) const SizedBox(height: 12),
+            row(r),
           ],
         ],
       ),
@@ -207,7 +226,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: 24,
                 height: 1.45,
               ),
             ),
@@ -217,7 +236,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
               key: const Key('learnRulesPdf'),
               onPressed: () => openRules(widget.ruleset),
               icon: const Icon(Icons.open_in_new, size: 14),
-              label: Text(l10n.rulesPdf(l10n.rulesetName(widget.ruleset))),
+              label: Text(l10n.rulesLinkLabel(widget.ruleset)),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.link,
                 textStyle: const TextStyle(

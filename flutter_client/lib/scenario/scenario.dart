@@ -5,12 +5,15 @@
 /// your concealed tiles and melds, every seat's discards and calls, the dora
 /// indicators, the wall counter, and who is in riichi — and nothing else.
 /// Under Hong Kong rules the dora and riichi give way to each seat's flowers.
+/// Under sanma the seat across stays empty, the 2-8 man are not in play, and
+/// each seat may have set Norths aside as kita.
 library;
 
 import '../game/game_controller.dart' show kHumanSeat;
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart';
 
@@ -29,6 +32,9 @@ class ScenarioSeat {
 
   /// Hong Kong: flowers and seasons this seat has exposed.
   final List<Tile> flowers = [];
+
+  /// Sanma: Norths this seat has set aside as kita.
+  final List<Tile> kita = [];
 
   bool riichi = false;
 
@@ -49,6 +55,7 @@ class ScenarioSeat {
     pond.clear();
     melds.clear();
     flowers.clear();
+    kita.clear();
     riichi = false;
     riichiPondIndex = -1;
     out = false;
@@ -86,8 +93,10 @@ class Scenario {
   List<int> points = List.filled(4, 25000);
 
   /// Whether any seat is ahead of another. An even table gives placement
-  /// nothing to weigh, so the guide keeps playing for points on one.
-  bool get hasScores => points.toSet().length > 1;
+  /// nothing to weigh, so the guide keeps playing for points on one. Sanma's
+  /// empty seat is not a seat to be ahead of.
+  bool get hasScores =>
+      {for (final i in ruleset.activeSeats) points[i]}.length > 1;
 
   /// Hands left in the game, counting this one, read off the round wind and
   /// [dealer] as a hanchan in which you dealt first (East 1): the dealer seat
@@ -124,8 +133,15 @@ class Scenario {
   /// — that you are the dealer, worth half again on a win and more to deal
   /// into. [Round.posed] derives every seat's wind from [dealer], so this is
   /// the same setting read from the other end.
-  Wind get seatWind => Wind.values[(4 - dealer) % 4];
-  set seatWind(Wind wind) => dealer = (4 - wind.index) % 4;
+  ///
+  /// Sanma has no North: asking for it leaves you West.
+  Wind get seatWind => ruleset.seatWind(kHumanSeat, dealer);
+  set seatWind(Wind wind) {
+    final seats = ruleset.activeSeats;
+    final want = wind.index.clamp(0, seats.length - 1);
+    dealer = seats.firstWhere(
+        (d) => ruleset.seatWind(kHumanSeat, d) == Wind.values[want]);
+  }
 
   bool get isDealer => dealer == kHumanSeat;
 
@@ -158,6 +174,9 @@ class Scenario {
           bump(t);
         }
       }
+      for (final t in s.kita) {
+        bump(t.type);
+      }
     }
     for (final t in dora) {
       bump(t);
@@ -174,8 +193,13 @@ class Scenario {
 
   /// How many more copies of [type] the table can still hold. Each flower and
   /// season exists once.
-  int remainingCopies(TileType type) =>
-      (type.isBonus ? 1 : kCopiesPerTile) - used(type);
+  int remainingCopies(TileType type) {
+    // Sanma has no 2-8 man.
+    if (ruleset.isSanma && type.isPlayingTile && !SanmaRules.inWall(type)) {
+      return 0;
+    }
+    return (type.isBonus ? 1 : kCopiesPerTile) - used(type);
+  }
 
   /// Red fives already placed in [type]'s suit — at most one exists per suit.
   bool akaUsed(TileType type) {
@@ -201,7 +225,7 @@ class Scenario {
   /// ordering the builder assumes: seats discard in turn order and nothing was
   /// called away. It is the same reading a player takes off a real table.
   int turnOf(int seat, int pondIndex) =>
-      pondIndex * 4 + ((seat - dealer + 4) % 4);
+      pondIndex * ruleset.playerCount + ruleset.seatDistance(dealer, seat);
 
   /// Other seats' discards that cleared the ron window after [seat] declared
   /// riichi — the second half of genbutsu, alongside the riichi seat's own
@@ -252,6 +276,22 @@ class Scenario {
       }
     }
 
+    if (ruleset.isSanma) {
+      final counts = visibleCounts34();
+      if ([for (var n = 2; n <= 8; n++) counts[n - 1]].any((c) => c > 0)) {
+        out.add('Sanma has no 2–8 man.');
+      }
+      final across = seats[SanmaRules.emptySeat];
+      if (across.pond.isNotEmpty ||
+          across.melds.isNotEmpty ||
+          across.kita.isNotEmpty ||
+          across.riichi) {
+        out.add('Nobody sits across in sanma: three play.');
+      }
+      if (seats.any((s) => s.kita.any((t) => t.type != SanmaRules.kita))) {
+        out.add('Only Norths can be set aside as kita.');
+      }
+    }
     if (ruleset.isSichuan) {
       if (hand.any((t) => !t.type.isSuit)) {
         out.add('Sichuan has no honors or flowers.');
@@ -280,11 +320,13 @@ class Scenario {
   /// The most tiles a live wall can hold once the hands are dealt: Sichuan's
   /// 108 tiles less the four 13-tile hands, Hong Kong's 144 and riichi's 136
   /// less the dead wall.
-  int get maxWall => ruleset.isSichuan
-      ? 56
-      : ruleset.isChineseStyle
-          ? 144
-          : 122;
+  int get maxWall => ruleset.isSanma
+      ? SanmaRules.wallSize - 14 - 39
+      : ruleset.isSichuan
+          ? 56
+          : ruleset.isChineseStyle
+              ? 144
+              : 122;
 
   /// True when the hand is full (a drawn tile in hand: 14, or 17 for
   /// Taiwanese) and the guide
@@ -299,7 +341,7 @@ class Scenario {
       s.clear();
     }
     dora.clear();
-    if (ruleset.isRiichi) dora.add(TileType.man1);
+    if (ruleset.isJapanese) dora.add(TileType.man1);
     offered = null;
     wallRemaining = ruleset.isSichuan
         ? 40
@@ -308,7 +350,12 @@ class Scenario {
             : 70;
     honba = 0;
     riichiSticks = 0;
-    points = List.filled(4, 25000);
+    points = [
+      for (var i = 0; i < 4; i++)
+        ruleset.seatIsActive(i) ? ruleset.startingPoints : 0
+    ];
+    // A dealer picked for four players carries over to three.
+    if (!ruleset.seatIsActive(dealer)) dealer = ruleset.nextSeat(dealer);
     // Round wind and seat wind are settings, not table state —
     // clearing the tiles leaves them where you put them.
   }

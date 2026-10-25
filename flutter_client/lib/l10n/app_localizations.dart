@@ -5074,6 +5074,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plenty of hands left: TileSense plays for points.'**
   String get quizFocusPoints;
+
+  /// No description provided for @rulesetSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'Sanma'**
+  String get rulesetSanma;
+
+  /// No description provided for @rulesetSanmaLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Sanma (3-player riichi mahjong)'**
+  String get rulesetSanmaLong;
+
+  /// No description provided for @rulesetSubtitleSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'3-player riichi: no chi, kita, no 2–8 man'**
+  String get rulesetSubtitleSanma;
+
+  /// No description provided for @sanmaTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 man are removed), no chi, and North tiles set aside as kita for an extra dora.'**
+  String get sanmaTooltip;
+
+  /// No description provided for @rulesWeb.
+  ///
+  /// In en, this message translates to:
+  /// **'{rules} rules (web)'**
+  String rulesWeb(String rules);
+
+  /// No description provided for @kitaCaps.
+  ///
+  /// In en, this message translates to:
+  /// **'KITA'**
+  String get kitaCaps;
+
+  /// No description provided for @bubbleKita.
+  ///
+  /// In en, this message translates to:
+  /// **'KITA'**
+  String get bubbleKita;
+
+  /// No description provided for @undoKita.
+  ///
+  /// In en, this message translates to:
+  /// **'Kita'**
+  String get undoKita;
+
+  /// No description provided for @yakuKita.
+  ///
+  /// In en, this message translates to:
+  /// **'Kita'**
+  String get yakuKita;
+
+  /// No description provided for @emptySeatSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'No player: sanma is played by three'**
+  String get emptySeatSanma;
+
+  /// No description provided for @hanchanOnTooltipSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'Hanchan — East and South (半庄) rounds of 3-player sanma, 6+ hands (3 a round, one per player).\n{caveat}\nTap for East only (东风战), 3+ hands.'**
+  String hanchanOnTooltipSanma(String caveat);
+
+  /// No description provided for @eastOnlyTooltipSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'East only (东风战/tonpuusen) — the East round of 3-player sanma, 3+ hands.\n{caveat}\nTap for hanchan (半庄): East and South, 6+ hands.'**
+  String eastOnlyTooltipSanma(String caveat);
+
+  /// No description provided for @glossaryTermSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'Sanma'**
+  String get glossaryTermSanma;
+
+  /// No description provided for @glossaryDefSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.'**
+  String get glossaryDefSanma;
+
+  /// No description provided for @glossaryTermKita.
+  ///
+  /// In en, this message translates to:
+  /// **'Kita (North set aside)'**
+  String get glossaryTermKita;
+
+  /// No description provided for @glossaryDefKita.
+  ///
+  /// In en, this message translates to:
+  /// **'In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.'**
+  String get glossaryDefKita;
+
+  /// No description provided for @quizNoneShort.
+  ///
+  /// In en, this message translates to:
+  /// **'No daily quiz for Sanma'**
+  String get quizNoneShort;
+
+  /// No description provided for @quizNoneSanma.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no daily quiz for Sanma yet. Switch to Riichi or Hong Kong to play it.'**
+  String get quizNoneSanma;
+
+  /// No description provided for @tourHandTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hand'**
+  String get tourHandTitle;
+
+  /// No description provided for @tourHandBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a tile to raise it, then tap it again to discard it. To rearrange your hand, press and hold a tile, then drag it to a new spot.'**
+  String get tourHandBody;
+
+  /// No description provided for @tourButtonsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The buttons beside your hand'**
+  String get tourButtonsTitle;
+
+  /// No description provided for @tourButtonsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Four switches for how your hand plays. Each is filled in when it is on.'**
+  String get tourButtonsBody;
+
+  /// No description provided for @tourLegendSortBody.
+  ///
+  /// In en, this message translates to:
+  /// **'keeps your tiles in order, or leaves them where you drag them.'**
+  String get tourLegendSortBody;
+
+  /// No description provided for @tourLegendDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'one tap to discard, or two (raise, then discard).'**
+  String get tourLegendDiscardBody;
+
+  /// No description provided for @tourLegendAutoWinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'declares a win for you the moment you can.'**
+  String get tourLegendAutoWinBody;
+
+  /// No description provided for @tourLegendAutoPassBody.
+  ///
+  /// In en, this message translates to:
+  /// **'skips calls on other players\' tiles, so you aren\'t asked.'**
+  String get tourLegendAutoPassBody;
+
+  /// No description provided for @tourGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TileSensor, your guide'**
+  String get tourGuideTitle;
+
+  /// No description provided for @tourGuideBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap TileSensor to show the guide. It ranks every discard, marks the best one in green and explains why. Tap again to hide it.'**
+  String get tourGuideBody;
+
+  /// No description provided for @tourMenuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings, rules and help'**
+  String get tourMenuTitle;
+
+  /// No description provided for @tourMenuBodyPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'The Menu button holds pause, sound, speed, Auto-Play, the rules and the glossary. You can replay this tour from there.'**
+  String get tourMenuBodyPhone;
+
+  /// No description provided for @tourMenuBodyDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings run along the top bar, with the rules and the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.'**
+  String get tourMenuBodyDesktop;
+
+  /// No description provided for @tourSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip tour'**
+  String get tourSkip;
+
+  /// No description provided for @tourNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tourNext;
+
+  /// No description provided for @tourDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Start playing'**
+  String get tourDone;
+
+  /// No description provided for @tableTourLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Table tour: how to play the table'**
+  String get tableTourLink;
+
+  /// No description provided for @tableTourMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'How the table works'**
+  String get tableTourMenu;
+
+  /// No description provided for @tourStepOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{step} of {total}'**
+  String tourStepOf(int step, int total);
 }
 
 class _AppLocalizationsDelegate

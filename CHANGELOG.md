@@ -9,6 +9,48 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-24 — Bigger teaching tiles on phones, and a table tour
+
+- **Tiles you can read on a phone.** The app is drawn at about half size on a
+  phone held sideways; text was already boosted there, but tiles were not.
+  Learn to Play, Practice and the daily quiz's choices now draw their tiles at the
+  in-game hand's size, grown by the same phone boost as text (about 40pt wide on an
+  iPhone 16). Learn to Play's tiles card splits into two rows (suits; honors and
+  flowers) and its text is a little larger.
+- **A clearer red index.** It no longer stops at 15px: it is about a quarter of
+  the tile's height, grows with the phone boost (capped at 30% of the tile), is
+  heavier, and has a cream edge so it reads over the artwork.
+- **The table tour.** A four-step spotlight over a newcomer's first hand: your
+  hand (tap to raise, tap again to discard; long-press and drag to rearrange), the
+  four buttons beside it named and explained (on a phone they are icons alone),
+  TileSensor and how it opens the guide, and where the menu and settings are.
+  The game waits while it is up. Replay it from **Learn > Table tour** or, on a
+  phone, **Menu > How the table works**. Code: `flutter_client/lib/ui/table_tour.dart`.
+
+## 2026-10-24 — Sanma (three-player riichi)
+
+- **A new ruleset, Sanma (三麻)**, after https://riichi.wiki/Sanma: three players
+  (East, South, West, nobody across), 108 tiles without the 2–8 man, no chi, one red
+  five in pin and sou, 35,000 points, 1m→9m dora, tsumo loss, and a 2,000 noten
+  payment. **Kita**: set a North aside as a dora and draw a replacement from the dead
+  wall (eight replacements, shared with kans); it can be ronned but is not chankan.
+  Rules summary: `docs/SANMA_RULES.md`.
+- **Flag**: Japan's with 三麻 in the disc (`flutter_client/assets/flags/sanma.png`).
+  The flag, the rules badge, the Rules list, the game-length toggle and the empty seat
+  across all say it is 3-player mahjong in their tooltips.
+- **Everywhere**: single player (a KITA button, bots and Auto-Play declare it), the
+  Custom Hand & Context Builder (per-seat kita, no 2–8 man, no seat across), online
+  rooms that seat three (`supportedRulesets` gains `sanma`; older clients are asked to
+  update), the guide (2–8 man out of play, kita as dora), the glossary (Sanma, Kita),
+  and seven practice drills restated without the 2–8 man.
+- `mahjong_core`: `Ruleset.sanma`, `isJapanese`, `activeSeats` / `nextSeat` /
+  `relativeSeat` for three-seat turn order and online seating, `SanmaWall`,
+  `Round.declareKita` / `canKita`, and `ScoreContext.kita` / `sanma`.
+- **No daily quiz under sanma.** Riichi's four-player puzzles are not posed in
+  its place: the Learn tile and popup say there is no quiz for Sanma yet.
+- Test helpers scroll a popup's option into view before tapping it: the Rules popup
+  now holds six rulesets and scrolls.
+
 ## 2026-10-24 — Five quiz questions a day, with kong
 
 - **The daily quiz is five questions a day**, for riichi and for Hong Kong. Each

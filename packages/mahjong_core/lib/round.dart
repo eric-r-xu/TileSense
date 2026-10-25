@@ -1,6 +1,10 @@
-/// A self-contained offline round of four-player mahjong under either
-/// [Ruleset]: draws, discards, chi / pon / closed kan / added kan (with
-/// chankan robbing), tsumo and ron.
+/// A self-contained offline round of mahjong under any [Ruleset]: draws,
+/// discards, chi / pon / closed kan / added kan (with chankan robbing), tsumo
+/// and ron.
+///
+/// Sanma plays three of the four seats (see [Ruleset.activeSeats]): the seat
+/// across stays empty, with no hand, no turn and no share of any payment.
+/// Sanma adds kita, setting a North aside as a dora — see [declareKita].
 ///
 /// Riichi adds riichi, furiten, dora, honba, riichi sticks and tenpai payments
 /// at an exhaustive draw. Hong Kong adds flowers and seasons (with the seventh
@@ -21,6 +25,8 @@ import 'mcr/mcr_hand_parse.dart';
 import 'mcr/mcr_scoring.dart';
 import 'meld.dart';
 import 'ruleset.dart';
+import 'sanma/sanma_rules.dart';
+import 'sanma/sanma_wall.dart';
 import 'scoring.dart';
 import 'sichuan/sichuan_hand_parse.dart';
 import 'sichuan/sichuan_ledger.dart';
@@ -72,6 +78,9 @@ class SeatState {
 
   /// Hong Kong: flowers and seasons this seat has exposed.
   List<Tile> flowers = [];
+
+  /// Sanma: Norths this seat has set aside as nukidora (kita).
+  List<Tile> kita = [];
 
   /// Hong Kong: the tile in hand came from a kong replacement draw.
   bool replacementDraw = false;
@@ -201,7 +210,9 @@ class Round {
     TileWall? wall,
     Random? shuffleRng,
   })  : wall = wall ??
-            (ruleset.isSichuan
+            (ruleset.isSanma
+                ? SanmaWall(seed, rng: shuffleRng)
+                : ruleset.isSichuan
                 ? SichuanWall(seed, rng: shuffleRng)
                 : ruleset.isTaiwanese
                     ? TaiwaneseWall(seed, rng: shuffleRng)
@@ -209,10 +220,7 @@ class Round {
                         ? HongKongWall(seed, rng: shuffleRng)
                         : Wall(seed, rng: shuffleRng)),
         startPoints = List.of(startingPoints) {
-    seats = List.generate(4, (i) {
-      final wind = Wind.values[(i - dealer + 4) % 4];
-      return SeatState(i, wind, i == dealer, startingPoints[i]);
-    });
+    seats = _seatsFor(startingPoints);
     final dealt = this.wall.deal();
     for (var i = 0; i < 4; i++) {
       seats[i].hand = sortByType(dealt[i]);
@@ -268,10 +276,7 @@ class Round {
     this.minimumFaan = HongKongRules.defaultMinimumFaan,
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
   }) : startPoints = List.of(startingPoints) {
-    seats = List.generate(4, (i) {
-      final wind = Wind.values[(i - dealer + 4) % 4];
-      return SeatState(i, wind, i == dealer, startingPoints[i]);
-    });
+    seats = _seatsFor(startingPoints);
     turn = 0;
     // A posed Chinese-style table is mid-hand, so no first-turn blessing
     // applies.
@@ -281,6 +286,20 @@ class Round {
 
   final TileWall wall;
   final Ruleset ruleset;
+
+  /// The four seats, each in its wind for this deal. Sanma's empty seat is
+  /// there too, so seat indices mean the same under every rule, but it never
+  /// plays: see [isActive].
+  List<SeatState> _seatsFor(List<int> startingPoints) => List.generate(4, (i) {
+        final wind = ruleset.seatWind(i, dealer);
+        return SeatState(i, wind, i == dealer, startingPoints[i]);
+      });
+
+  /// Whether [seat] is played: every seat but sanma's empty one.
+  bool isActive(int seat) => ruleset.seatIsActive(seat);
+
+  /// The seats that are played, in seat order.
+  Iterable<SeatState> get activeSeats => seats.where((s) => isActive(s.seat));
 
   /// Hong Kong only: the fewest faan a complete hand needs to be declared —
   /// one of [HongKongRules.minimumFaanChoices]. Ignored by the other rules.
@@ -337,7 +356,7 @@ class Round {
 
   /// Whether [s] is frozen by a riichi declaration. Never under Hong Kong
   /// rules, whatever the seat's riichi flag says.
-  bool _locked(SeatState s) => ruleset.isRiichi && s.riichi;
+  bool _locked(SeatState s) => ruleset.isJapanese && s.riichi;
 
   /// Wait/tenpai/agari for [hand]: Taiwanese's 5-meld, 17-tile shape (plus
   /// its seven-pairs-and-a-pung alternate), or the 4-meld, 14-tile shape
@@ -731,12 +750,18 @@ class Round {
   /// riichi replacement draw too only in Hong Kong, since riichi's kan draws
   /// come from a dead wall that [TileWall.canKan] has already vouched for.
   void _drawFor(SeatState seat,
-      {required bool replacement, required void Function(Tile) onTile}) {
+      {required bool replacement,
+      bool kita = false,
+      required void Function(Tile) onTile}) {
     if ((!replacement || ruleset.isChineseStyle) && wall.isEmpty) {
       _exhaustiveDraw();
       return;
     }
-    final tile = replacement ? wall.drawDeadWall() : wall.drawLive();
+    final tile = !replacement
+        ? wall.drawLive()
+        : kita
+            ? (wall as SanmaWall).drawKitaReplacement()
+            : wall.drawDeadWall();
     if (tile.type.isBonus) {
       if (ruleset.isMcr) seat.replacementDraw = false;
       _exposeFlower(
@@ -767,12 +792,15 @@ class Round {
         replacement: false, onTile: (tile) => _acceptDraw(seat, tile));
   }
 
-  /// After a kan, draw from the dead wall instead.
-  void _drawReplacement() {
+  /// After a kan (or sanma's kita), draw from the dead wall instead. Only a
+  /// kan's replacement turns a new dora indicator.
+  void _drawReplacement({bool kita = false}) {
     final seat = current;
     seat.replacementDraw = true;
     _drawFor(seat,
-        replacement: true, onTile: (tile) => _acceptDraw(seat, tile));
+        replacement: true,
+        kita: kita,
+        onTile: (tile) => _acceptDraw(seat, tile));
   }
 
   // --- queries -----------------------------------------------------------
@@ -861,7 +889,7 @@ class Round {
   /// any seat, not just the dealer. Riichi only; Hong Kong and Taiwanese have
   /// no such rule.
   bool canDeclareKyuushu(int seat) {
-    if (!ruleset.isRiichi) return false;
+    if (!ruleset.isJapanese) return false;
     if (phase != RoundPhase.discarding || turn != seat) return false;
     final s = seats[seat];
     if (!_firstGoAround || s.pond.isNotEmpty) return false;
@@ -899,10 +927,11 @@ class Round {
   /// Chi is open only to the seat immediately after the discarder — its
   /// kamicha — and only on a suit tile it can complete a run with.
   bool canChi(int seat, Tile discard) {
-    // Sichuan allows chows in the hand but never claims a discard for one.
-    if (ruleset.isSichuan) return false;
+    // Sichuan allows chows in the hand but never claims a discard for one;
+    // sanma has no chi at all.
+    if (ruleset.isSichuan || ruleset.isSanma) return false;
     if (seat == pendingDiscardSeat) return false;
-    if (seat != (pendingDiscardSeat + 1) % 4) return false;
+    if (seat != ruleset.nextSeat(pendingDiscardSeat)) return false;
     if (ruleset.isChineseStyle && wall.isEmpty) return false;
     if (_locked(seats[seat])) return false;
     return chiSequences(seat, discard).isNotEmpty;
@@ -1029,7 +1058,7 @@ class Round {
     }
     if (ruleset.isHongKong || ruleset.isMcr) return;
     for (var i = 0; i < 4; i++) {
-      if (i == discarder) continue;
+      if (i == discarder || !isActive(i)) continue;
       final s = seats[i];
       final waits = _waitTiles(s.hand, openMelds: s.melds.length);
       if (!waits.contains(discard.type)) continue;
@@ -1155,7 +1184,7 @@ class Round {
   List<CallOption> _collectCallOptions(Tile discard, int discarder) {
     final options = <CallOption>[];
     for (var i = 0; i < 4; i++) {
-      if (i == discarder) continue;
+      if (i == discarder || !isActive(i)) continue;
       if (ruleset.isSichuan && seats[i].out) continue;
       final types = <CallType>{};
       if (canRon(i, discard)) types.add(CallType.ron);
@@ -1182,6 +1211,24 @@ class Round {
     choice = Map.of(choice)
       ..removeWhere((seat, type) => !callOptions
           .any((option) => option.seat == seat && option.types.contains(type)));
+
+    if (_kitaPending) {
+      final ronners = choice.entries
+          .where((e) => e.value == CallType.ron)
+          .map((e) => e.key)
+          .toList();
+      _kitaPending = false;
+      if (ronners.isNotEmpty) {
+        // The North goes to the winner, so it is no longer set aside.
+        seats[pendingDiscardSeat].kita.remove(pendingDiscard);
+        _applyRon(ronners, pendingDiscard!, pendingDiscardSeat);
+        return;
+      }
+      _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
+      _registerPassedDiscard(pendingDiscard!, pendingDiscardSeat);
+      _completeKita();
+      return;
+    }
 
     if (_chankanPending) {
       final ronners = choice.entries
@@ -1358,7 +1405,7 @@ class Round {
     _chankanPending = true;
     final options = <CallOption>[
       for (var i = 0; i < 4; i++)
-        if (i != seat && canRon(i, added, chankan: true))
+        if (i != seat && isActive(i) && canRon(i, added, chankan: true))
           CallOption(i, {CallType.ron}),
     ];
     callOptions = options;
@@ -1387,6 +1434,79 @@ class Round {
     pendingDiscardSeat = -1;
     callOptions = const [];
     _drawReplacement();
+  }
+
+  // --- kita (sanma) -----------------------------------------------------
+
+  /// True while [callOptions] is the ron-only window on a North just set
+  /// aside as kita. A ron there is not chankan; if nobody takes it, the same
+  /// seat draws its replacement.
+  bool _kitaPending = false;
+  bool get kitaPending => _kitaPending;
+
+  /// Set by an online client rebuilding the table from the server's
+  /// snapshot, which says whether its call window is a kita one.
+  set kitaPending(bool value) => _kitaPending = value;
+
+  /// Whether [seat] may set a North aside as nukidora now: sanma, its own
+  /// turn, a North in hand, and a replacement left in the dead wall. A hand
+  /// in riichi may only set aside the North it has just drawn, which leaves
+  /// its wait as it was.
+  bool canKita(int seat) {
+    if (!ruleset.isSanma || finished) return false;
+    if (phase != RoundPhase.discarding || turn != seat) return false;
+    final w = wall;
+    if (w is! SanmaWall || !w.canKita) return false;
+    final s = seats[seat];
+    if (_locked(s)) return s.drawn?.type == SanmaRules.kita;
+    return s.hand.any((t) => t.type == SanmaRules.kita);
+  }
+
+  /// [seat] sets a North aside as nukidora (pei nuki). The other players may
+  /// ron it; otherwise [seat] draws a replacement from the dead wall, and a
+  /// win on that draw is rinshan. Like a kan it ends the first go-around
+  /// (double riichi, kyuushu and the first-turn wins) and every ippatsu.
+  void declareKita(int seat) {
+    if (!canKita(seat)) throw StateError('No kita to declare');
+    _firstGoAround = false;
+    final s = current;
+    final drawn = s.drawn;
+    final index = drawn != null && drawn.type == SanmaRules.kita
+        ? s.hand.indexOf(drawn)
+        : s.hand.indexWhere((t) => t.type == SanmaRules.kita);
+    final north = s.hand.removeAt(index);
+    s.hand = sortByType(s.hand);
+    s.kita.add(north);
+    s.drawn = null;
+
+    pendingDiscard = north;
+    pendingDiscardSeat = seat;
+    _kitaPending = true;
+    final options = <CallOption>[
+      for (var i = 0; i < 4; i++)
+        if (i != seat && isActive(i) && canRon(i, north))
+          CallOption(i, {CallType.ron}),
+    ];
+    callOptions = options;
+    if (options.isEmpty) {
+      _registerMissedRon(north, seat);
+      _registerPassedDiscard(north, seat);
+      _completeKita();
+    } else {
+      phase = RoundPhase.callOffer;
+    }
+  }
+
+  void _completeKita() {
+    _kitaPending = false;
+    // Not cleared in [declareKita]: a ron on the North can still be ippatsu.
+    for (final o in seats) {
+      o.ippatsu = false;
+    }
+    pendingDiscard = null;
+    pendingDiscardSeat = -1;
+    callOptions = const [];
+    _drawReplacement(kita: true);
   }
 
   // --- call application ---------------------------------------------------
@@ -1582,9 +1702,10 @@ class Round {
         : 0;
     final honbaPay = (ruleset.isTaiwanese || ruleset.isMcr) ? 0 : honba * 100;
 
-    // Tsumo only (ron goes through _applyRon).
+    // Tsumo only (ron goes through _applyRon). Sanma's empty seat pays
+    // nothing and nobody covers its share: tsumo loss.
     for (var i = 0; i < 4; i++) {
-      if (i == w) continue;
+      if (i == w || !isActive(i)) continue;
       final base = seats[w].isDealer
           ? score.nonDealerPays
           : (i == dealer ? score.dealerPays : score.nonDealerPays);
@@ -1622,6 +1743,7 @@ class Round {
     }
     final tenpai = <int>[];
     for (var i = 0; i < 4; i++) {
+      if (!isActive(i)) continue;
       if (_isTenpaiFor(seats[i].hand, openMelds: seats[i].melds.length)) {
         tenpai.add(i);
       }
@@ -1629,11 +1751,12 @@ class Round {
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     // Hong Kong pays nothing at a draw.
     final noten = [
-      if (ruleset.isRiichi)
-        for (var i = 0; i < 4; i++) i
+      if (ruleset.isJapanese)
+        for (var i = 0; i < 4; i++)
+          if (isActive(i)) i
     ].where((i) => !tenpai.contains(i)).toList();
     if (tenpai.isNotEmpty && noten.isNotEmpty) {
-      const pot = 3000;
+      final pot = ruleset.isSanma ? SanmaRules.notenPot : 3000;
       final gain = pot ~/ tenpai.length;
       final loss = pot ~/ noten.length;
       for (final i in tenpai) {
@@ -1671,10 +1794,10 @@ class Round {
     // still be set when the go-around comes back around to the declarer's
     // own draw below, so a tsumo right on that draw still counts.
     seats[turn].drawn = null;
-    turn = (turn + 1) % 4;
+    turn = ruleset.nextSeat(turn);
     // Seats that have declared Hu no longer play.
     while (ruleset.isSichuan && seats[turn].out) {
-      turn = (turn + 1) % 4;
+      turn = ruleset.nextSeat(turn);
     }
     _beginDraw();
   }
@@ -1783,6 +1906,8 @@ class Round {
       uraIndicators: wall.uraDoraIndicators(),
       akaCount: [...concealed, winTile].where((t) => t.aka).length +
           s.melds.expand((m) => m.tiles).where((t) => t.aka).length,
+      kita: s.kita.length,
+      sanma: ruleset.isSanma,
     );
     return scoreHand(concealed, winTile, s.melds, ctx, isDealer: s.isDealer);
   }

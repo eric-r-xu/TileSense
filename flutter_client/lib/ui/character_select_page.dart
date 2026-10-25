@@ -20,9 +20,19 @@ import 'screen_scaffold.dart';
 import 'theme.dart';
 
 /// The wind [seat] starts on when [startingDealer] deals first (and so is
-/// East); the other seats follow counter-clockwise, as in `Round`.
-Wind seatStartingWind(int seat, int startingDealer) =>
-    Wind.values[(seat - startingDealer + 4) % 4];
+/// East); the other seats follow counter-clockwise, as in `Round`. Under
+/// sanma a dealer picked for the empty seat passes to the next player, as
+/// `GameController` deals it.
+Wind seatStartingWind(int seat, int startingDealer,
+        {Ruleset ruleset = Ruleset.riichi}) =>
+    ruleset.seatWind(seat, effectiveDealer(startingDealer, ruleset));
+
+/// [startingDealer], or under sanma the next player if it names the empty
+/// seat across.
+int effectiveDealer(int startingDealer, Ruleset ruleset) =>
+    ruleset.seatIsActive(startingDealer)
+        ? startingDealer
+        : ruleset.nextSeat(startingDealer);
 
 /// Where [seat] sits relative to the human (You, Right, Across, Left by seat
 /// index), in the current language. With the human as East, "Across" is West.
@@ -113,9 +123,12 @@ class CharacterSelectPage extends StatelessWidget {
   final VoidCallback onBack;
   final String advanceLabel;
 
+  /// The rules the seats are laid out for: sanma seats three.
+  Ruleset get _rules => ruleset ?? Ruleset.riichi;
+
   Widget _seatCard(BuildContext context, int seat) {
     final character = seatCharacters[seat];
-    final wind = seatStartingWind(seat, startingDealer);
+    final wind = seatStartingWind(seat, startingDealer, ruleset: _rules);
     return Container(
       key: Key('seatCard_$seat'),
       // Eight choices per row keep the expanded roster in two rows.
@@ -210,20 +223,23 @@ class CharacterSelectPage extends StatelessWidget {
   /// "You start as: 東 East · 南 South · …" — picking one makes the seat that
   /// many places round from you the dealer, so you are not stuck on East.
   Widget _windChoice(BuildContext context) {
-    final mine = seatStartingWind(0, startingDealer);
+    final mine = seatStartingWind(0, startingDealer, ruleset: _rules);
+    // Sanma has no North seat.
+    final winds = Wind.values.take(_rules.playerCount);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(context.l10n.youStartAs,
             style: const TextStyle(color: Colors.white54, fontSize: 14)),
         const SizedBox(width: 10),
-        for (final w in Wind.values)
+        for (final w in winds)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: OutlinedButton(
               key: Key('startWind_${w.name}'),
-              // You are seat 0, and `wind = (seat - dealer) mod 4`.
-              onPressed: () => onStartingDealer((4 - w.index) % 4),
+              // You are seat 0: the dealer is the player w turns before you.
+              onPressed: () => onStartingDealer(_rules.activeSeats
+                  .firstWhere((d) => _rules.seatWind(0, d) == w)),
               style: OutlinedButton.styleFrom(
                 backgroundColor: w == mine ? const Color(0x33caa24e) : null,
                 foregroundColor:
@@ -419,11 +435,11 @@ class CharacterSelectPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            startingDealer == 0
+            effectiveDealer(startingDealer, _rules) == 0
                 ? context.l10n.dealerNoteYou
-                : context.l10n.dealerNoteOther(
-                    seatPositionName(context.l10n, startingDealer)
-                        .toLowerCase()),
+                : context.l10n.dealerNoteOther(seatPositionName(context.l10n,
+                        effectiveDealer(startingDealer, _rules))
+                    .toLowerCase()),
             key: const Key('dealerNote'),
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
@@ -469,7 +485,8 @@ class CharacterSelectPage extends StatelessWidget {
             runSpacing: 16,
             children: [
               for (var seat = 0; seat < seatCharacters.length; seat++)
-                _seatCard(context, seat),
+                // Sanma leaves the seat across empty.
+                if (_rules.seatIsActive(seat)) _seatCard(context, seat),
             ],
           ),
           const SizedBox(height: 14),

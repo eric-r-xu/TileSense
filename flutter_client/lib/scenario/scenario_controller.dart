@@ -15,6 +15,8 @@ import '../game/sfx.dart' show Character, kCharacterName;
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/sichuan_value.dart' show SichuanRival;
+import 'package:mahjong_core/sanma/sanma_rules.dart';
+import 'package:mahjong_core/sanma/sanma_wall.dart';
 import 'package:mahjong_core/sichuan/sichuan_wall.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
 import 'package:mahjong_core/meld.dart';
@@ -263,6 +265,8 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
         : scenario.passedAfterRiichi(riichiOpp.seat).toList();
     final oppMelds = riichiOpp?.melds ?? const <Meld>[];
     final visible = scenario.visibleCounts34();
+    // Sanma's 2-8 man are not in the wall: none are left to draw.
+    if (ruleset.isSanma) SanmaRules.countRemovedTiles(visible);
     final human = round.seats[kHumanSeat];
     final context = EfficiencyValueContext(
       melds: human.melds,
@@ -282,6 +286,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       handsRemaining: scenario.handsLeft,
       ruleset: ruleset,
       flowers: human.flowers.map((t) => t.type).toList(),
+      kita: human.kita.length,
       minimumFaan: scenario.minimumFaan,
       minimumPoints: scenario.minimumPoints,
       voidSuit: human.voidSuit,
@@ -375,7 +380,10 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
 
   /// Riichi needs a closed hand (concealed kans are fine) and a live wall.
   bool _canRiichi(SeatState s) =>
-      ruleset.isRiichi && !s.riichi && s.closed && scenario.wallRemaining >= 4;
+      ruleset.isJapanese &&
+      !s.riichi &&
+      s.closed &&
+      scenario.wallRemaining >= 4;
 
   ({TileType type, bool isAdded, ActionAdvice advice})? _kanAdvice(
     SeatState human,
@@ -426,7 +434,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       roundWind: scenario.roundWind,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
-      wall: ruleset.isSichuan
+      wall: ruleset.isSanma
+          ? SanmaWall.posed(
+              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
+              dora: scenario.dora,
+            )
+          : ruleset.isSichuan
           ? SichuanWall.posed(
               remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
           : ruleset.isChineseStyle
@@ -436,7 +449,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
                   remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
                   dora: scenario.dora,
                 ),
-      startingPoints: scenario.hasScores
+      startingPoints: scenario.hasScores || ruleset.isSanma
           ? List.of(scenario.points)
           : List.filled(4, ruleset.startingPoints),
       ruleset: ruleset,
@@ -450,6 +463,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       dst.allDiscards.addAll(src.pond);
       dst.melds = List.of(src.melds);
       dst.flowers = List.of(src.flowers);
+      dst.kita = List.of(src.kita);
       dst.riichi = src.riichi;
       dst.riichiPondIndex = src.riichiPondIndex;
       // A seat's void suit shows on the table once it is named; the guide
@@ -464,8 +478,10 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     // Opponents' concealed tiles are unknown to the guide; show face-down
     // backs at the right count so the table reads correctly.
     for (var i = 1; i < 4; i++) {
-      final concealed =
-          ruleset.concealedHandSize - scenario.seats[i].melds.length * 3;
+      // Sanma's empty seat across holds no hand.
+      final concealed = !ruleset.seatIsActive(i)
+          ? 0
+          : ruleset.concealedHandSize - scenario.seats[i].melds.length * 3;
       r.seats[i].hand = [
         for (var k = 0; k < concealed; k++)
           Tile(-1000 - i * 20 - k, TileType.blank),

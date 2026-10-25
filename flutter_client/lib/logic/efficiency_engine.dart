@@ -437,6 +437,7 @@ class EfficiencyValueContext {
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     this.voidSuit,
     this.sichuanRivals = const [],
+    this.kita = 0,
   });
 
   final List<Meld> melds;
@@ -449,6 +450,9 @@ class EfficiencyValueContext {
   /// suits have been revealed, what each has discarded. The guide prices a
   /// discard's danger from this; empty gives it no one to fear.
   final List<SichuanRival> sichuanRivals;
+
+  /// Sanma: Norths you have set aside as kita, each a dora on any win.
+  final int kita;
 
   /// Which game's scoring, safety and vocabulary apply.
   final Ruleset ruleset;
@@ -553,6 +557,7 @@ class EfficiencyValueContext {
         minimumPoints: minimumPoints,
         voidSuit: voidSuit,
         sichuanRivals: sichuanRivals,
+        kita: kita,
       );
 
   /// The same context with one or more of the three guide dials swapped —
@@ -586,6 +591,7 @@ class EfficiencyValueContext {
         minimumPoints: minimumPoints,
         voidSuit: voidSuit,
         sichuanRivals: sichuanRivals,
+        kita: kita,
       );
 }
 
@@ -989,7 +995,7 @@ class EfficiencyEngine {
     // A second riichi can be the dealer when the first is not, and it is their
     // price you pay if theirs is the hand you feed.
     final anyThreatIsDealer = threats.any((t) => t.isDealer);
-    final riichiDangerFactor = threats.isNotEmpty && ruleset.isRiichi
+    final riichiDangerFactor = threats.isNotEmpty && ruleset.isJapanese
         ? _riichiDangerFactor(
             threats: threats,
             remaining34: remaining34,
@@ -1194,7 +1200,7 @@ class EfficiencyEngine {
       final laterTurns = math.max(0.0, exposed - 1);
       final commitmentCost = dealInCost * laterTurns * _pushCommitment;
       final live = List<int>.of(remaining);
-      final yakuOddsOf = !ruleset.isRiichi || value.winProbability <= 0
+      final yakuOddsOf = !ruleset.isJapanese || value.winProbability <= 0
           ? null
           : switch (r.shanten) {
               0 => () => _yakuOdds(
@@ -1216,7 +1222,7 @@ class EfficiencyEngine {
                   context: valueContext),
               _ => null,
             };
-      final yakuOddsLaterOf = ruleset.isRiichi &&
+      final yakuOddsLaterOf = ruleset.isJapanese &&
               value.winProbability > 0 &&
               (r.shanten == 2 || r.shanten == 3)
           ? (Future<void> Function() pause) => _yakuOddsFar(
@@ -2525,7 +2531,7 @@ class EfficiencyEngine {
     }
 
     // Hong Kong needs no yaku: any complete hand wins.
-    if (context.ruleset.isRiichi) {
+    if (context.ruleset.isJapanese) {
       final yakuPath = context.closed || _hasOpenYakuPath(concealed, context);
       if (!yakuPath) return const _ValueAssessment(plan: 'YAKU NEEDED');
     }
@@ -2856,10 +2862,13 @@ class EfficiencyEngine {
       ...concealed,
       ...context.melds.expand((meld) => meld.tiles),
     ];
-    var count = tiles.where((tile) => tile.aka).length;
+    var count = tiles.where((tile) => tile.aka).length + context.kita;
+    final sanma = context.ruleset.isSanma;
     for (final indicator in context.doraIndicators) {
-      final target = indicator.doraTarget;
+      final target = sanma ? indicator.sanmaDoraTarget : indicator.doraTarget;
       count += tiles.where((tile) => tile.type == target).length;
+      // Each North set aside counts again for an indicator pointing to it.
+      if (target == TileType.pei) count += context.kita;
     }
     return count;
   }
@@ -3671,6 +3680,8 @@ class EfficiencyEngine {
       riichi: assumeRiichi,
       doraIndicators: context.doraIndicators,
       akaCount: akaCount,
+      kita: context.kita,
+      sanma: context.ruleset.isSanma,
     );
     return scoreHand(
       concealed,
@@ -3727,7 +3738,8 @@ class _YakuTally {
   void add(List<YakuResult> yaku, double weight) {
     _total += weight;
     for (final y in yaku) {
-      if (y.name.endsWith('Dora')) {
+      // Sanma's kita is dora too.
+      if (y.name.endsWith('Dora') || y.name == 'Kita') {
         _dora += weight * y.han;
       } else {
         _weight[y.name] = (_weight[y.name] ?? 0) + weight;

@@ -61,8 +61,8 @@ void main() {
         'd3': TileType.shaa,
       };
       for (final d in kPracticeDrills.where((d) => d.kind == DrillKind.discard)) {
-        expect(d.goodDiscards, [want[d.id]], reason: d.id);
-        expect(d.discardLeavesReady(want[d.id]!), isTrue, reason: d.id);
+        expect(d.goodDiscards, [want[d.explains]], reason: d.id);
+        expect(d.discardLeavesReady(want[d.explains]!), isTrue, reason: d.id);
       }
     });
   });
@@ -86,10 +86,39 @@ void main() {
   });
 
   group('rulesets', () {
-    test('every ruleset but Sichuan gets all of them', () {
-      for (final r in Ruleset.values.where((r) => !r.isSichuan)) {
-        expect(practiceDrillsFor(r), hasLength(kPracticeDrills.length),
-            reason: r.name);
+    test('every four-player ruleset but Sichuan gets all of theirs', () {
+      final fourPlayer = kPracticeDrills.where((d) => !d.sanmaOnly);
+      for (final r in Ruleset.values.where((r) => !r.isSichuan && !r.isSanma)) {
+        expect(practiceDrillsFor(r), fourPlayer.toList(), reason: r.name);
+      }
+    });
+
+    test('sanma gets its own, with no 2-8 man and no chi, each explained by '
+        'the lesson it restates', () {
+      final drills = practiceDrillsFor(Ruleset.sanma);
+      expect(drills.map((d) => d.id),
+          ['w1s', 'w3s', 'd1s', 'd2s', 'd3s', 'c1s', 'c4s']);
+      for (final d in drills) {
+        final tiles = [
+          ...d.hand,
+          ...d.optionTiles,
+          if (d.claimedTile != null) d.claimedTile!,
+        ];
+        expect(
+            tiles.where((t) => t.isMan && t.number > 1 && t.number < 9),
+            isEmpty,
+            reason: d.id);
+        final original = drill(d.explains);
+        expect(d.kind, original.kind);
+        if (d.kind == DrillKind.winningTile) {
+          expect(d.winningTiles, original.winningTiles, reason: d.id);
+        }
+        if (d.kind == DrillKind.discard) {
+          expect(d.goodDiscards, original.goodDiscards, reason: d.id);
+        }
+        if (d.kind == DrillKind.claim) {
+          expect(d.correctClaim, original.correctClaim, reason: d.id);
+        }
       }
     });
 

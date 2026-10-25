@@ -67,6 +67,7 @@ class LobbySeat {
     required this.isBot,
     required this.isHost,
     required this.connected,
+    this.inactive = false,
   });
 
   factory LobbySeat.fromJson(Map<String, dynamic> json) => LobbySeat(
@@ -76,6 +77,7 @@ class LobbySeat {
         isBot: json['isBot'] as bool? ?? false,
         isHost: json['isHost'] as bool? ?? false,
         connected: json['connected'] as bool? ?? false,
+        inactive: json['inactive'] as bool? ?? false,
       );
 
   final int seat;
@@ -88,7 +90,10 @@ class LobbySeat {
   final bool isHost;
   final bool connected;
 
-  bool get isOpen => name == null && !isBot;
+  /// Sanma's seat across: not a seat at all, since three play.
+  final bool inactive;
+
+  bool get isOpen => name == null && !isBot && !inactive;
 }
 
 Character? _parseCharacter(String? name) {
@@ -635,8 +640,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         // and everything read off `round`) is local — convert so callers
         // don't need their own special case for this one field.
         final serverSeat = msg['seat'] as int?;
-        lastBotTakeoverSeat =
-            serverSeat == null ? null : (serverSeat - (mySeat ?? 0) + 4) % 4;
+        lastBotTakeoverSeat = serverSeat == null
+            ? null
+            : ruleset.relativeSeat(serverSeat, mySeat ?? 0);
         notifyListeners();
       case 'player_disconnected':
       case 'player_reconnected':
@@ -720,7 +726,9 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     phase = GamePhase.values.byName(msg['gamePhase'] as String);
     if (phase == GamePhase.gameEnd) _identity.saveActiveRoom(null);
     _tablePoints = localTablePoints(
-        List<int>.from(msg['tablePoints'] as List), seat);
+        List<int>.from(msg['tablePoints'] as List), seat,
+        ruleset: Ruleset.values.byName(
+            (msg['round'] as Map<String, dynamic>)['ruleset'] as String));
     _handInWind = msg['handInWind'] as int;
     _discardSerial = msg['discardSerial'] as int;
     _lastDiscardSeat = msg['lastDiscardSeat'] as int?;
@@ -1015,6 +1023,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   }
 
   @override
+  bool get humanCanKita =>
+      _roundReady && round.turn == kHumanSeat && round.canKita(kHumanSeat);
+
+  @override
+  void humanKita() {
+    if (humanCanKita) _send({'type': 'action', 'kind': 'kita'});
+  }
+
+  @override
   void humanAddKan(TileType type) {
     if (_roundReady &&
         round.turn == kHumanSeat &&
@@ -1183,14 +1200,14 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   @override
   String seatLabel(int seat) =>
-      labelForLocalSeat(lobbySeats, mySeat ?? 0, seat);
+      labelForLocalSeat(lobbySeats, mySeat ?? 0, seat, ruleset: ruleset);
 
   /// Falls back to Hubert only for a not-yet-seated lobby slot (before the
   /// server has assigned anyone there) — every seat has a real assignment by
   /// the time a game is actually running.
   @override
   Character characterForSeat(int seat) =>
-      characterForLocalSeat(lobbySeats, mySeat ?? 0, seat);
+      characterForLocalSeat(lobbySeats, mySeat ?? 0, seat, ruleset: ruleset);
 
   /// [seat] here — like every seat number `TableView`/`HandView` ever pass to
   /// [characterForSeat] or [seatLabel] — is a *local* seat, the same rotated
@@ -1209,9 +1226,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// math directly, the same way [newMeldKind] and [playRoundEndVoice] are —
   /// `OnlineGameController` itself always opens a real `MpClient` in its
   /// constructor, so it can't be instantiated in a test.
+  ///
+  /// Under sanma the frame keeps turn order rather than simply rotating (see
+  /// [Ruleset.relativeSeat]), so the empty seat stays across from you.
   static LobbySeat? _lobbyEntryForLocalSeat(
-      List<LobbySeat> lobbySeats, int mySeat, int localSeat) {
-    final serverSeat = (localSeat + mySeat) % 4;
+      List<LobbySeat> lobbySeats, int mySeat, int localSeat,
+      {Ruleset ruleset = Ruleset.riichi}) {
+    final serverSeat = ruleset.absoluteSeat(localSeat, mySeat);
     final match = lobbySeats.where((s) => s.seat == serverSeat);
     return match.isEmpty ? null : match.first;
   }
@@ -1221,18 +1242,23 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// unrotated, the final standings paired every name but seat 0's with
   /// someone else's score.
   @visibleForTesting
-  static List<int> localTablePoints(List<int> serverPoints, int mySeat) => [
+  static List<int> localTablePoints(List<int> serverPoints, int mySeat,
+          {Ruleset ruleset = Ruleset.riichi}) =>
+      [
         for (var local = 0; local < serverPoints.length; local++)
-          serverPoints[(local + mySeat) % serverPoints.length]
+          serverPoints[ruleset.absoluteSeat(local, mySeat) % serverPoints.length]
       ];
 
   @visibleForTesting
   static String labelForLocalSeat(
-      List<LobbySeat> lobbySeats, int mySeat, int localSeat) {
-    final entry = _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat);
+      List<LobbySeat> lobbySeats, int mySeat, int localSeat,
+      {Ruleset ruleset = Ruleset.riichi}) {
+    final entry = _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat,
+        ruleset: ruleset);
     final name = entry?.name;
-    final serverSeat = (localSeat + mySeat) % 4;
+    final serverSeat = ruleset.absoluteSeat(localSeat, mySeat);
     final l10n = currentL10n;
+    if (!ruleset.seatIsActive(serverSeat)) return l10n.emptySeatSanma;
     final label = name == null || name.isEmpty
         ? (entry?.isBot ?? false ? l10n.seatBot : l10n.seatNumber(serverSeat + 1))
         : (entry!.isBot ? l10n.seatLabelBot(name) : name);
@@ -1241,8 +1267,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
 
   @visibleForTesting
   static Character characterForLocalSeat(
-      List<LobbySeat> lobbySeats, int mySeat, int localSeat) {
-    return _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat)?.character ??
+      List<LobbySeat> lobbySeats, int mySeat, int localSeat,
+      {Ruleset ruleset = Ruleset.riichi}) {
+    return _lobbyEntryForLocalSeat(lobbySeats, mySeat, localSeat,
+                ruleset: ruleset)
+            ?.character ??
         Character.hubert;
   }
 
@@ -1378,6 +1407,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         sichuanRivals: round.ruleset.isSichuan
             ? SichuanRival.of(round, kHumanSeat)
             : const [],
+        kita: seat.kita.length,
       );
 
   SeatState? _threatOpponent() {
@@ -1412,6 +1442,15 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     }
     for (final ind in round.wall.doraIndicators()) {
       counts[ind.index - 1]++;
+    }
+    // Sanma: as `GameController._visibleCounts` counts it.
+    if (ruleset.isSanma) {
+      for (final s in round.seats) {
+        for (final t in s.kita) {
+          counts[t.type.index - 1]++;
+        }
+      }
+      SanmaRules.countRemovedTiles(counts);
     }
     return counts;
   }

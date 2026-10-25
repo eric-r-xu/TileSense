@@ -200,12 +200,20 @@ class TableLoop {
   /// Postgres, on top of whatever room state it already drops by design.
   Future<void> flushTelemetry() => _tel?.flush() ?? Future.value();
 
-  Wind get _roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < 4 ? Wind.east : Wind.south);
+  /// Hands per round wind: one per player, so three in sanma.
+  int get _handsPerWind => ruleset.playerCount;
 
-  /// The hand's number shown to players: 1-4 within the round wind, except in
-  /// Sichuan, which has no round wind and simply counts its hands.
-  int get _handNumber =>
-      ruleset.isSichuan ? _roundNumber + 1 : (_roundNumber % 4) + 1;
+  Wind get _roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < _handsPerWind ? Wind.east : Wind.south);
+
+  /// The hand's number shown to players: 1-4 within the round wind (1-3 in
+  /// sanma), except in Sichuan, which has no round wind and simply counts its
+  /// hands.
+  int get _handNumber => ruleset.isSichuan
+      ? _roundNumber + 1
+      : (_roundNumber % _handsPerWind) + 1;
+
+  /// The seats being played: all four, or sanma's three.
+  Iterable<int> get _playedSeats => ruleset.activeSeats;
 
   /// Starts the game loop. Randomizes who sits where first (so join order
   /// doesn't decide who deals first), then fills any still-empty seat with a
@@ -213,12 +221,16 @@ class TableLoop {
   void start() {
     if (_started) return;
     _started = true;
-    _points = List.filled(4, ruleset.startingPoints);
+    // Sanma's empty seat holds no points, so it never ranks.
+    _points = [
+      for (var i = 0; i < 4; i++)
+        ruleset.seatIsActive(i) ? ruleset.startingPoints : 0
+    ];
     _shuffleSeats();
     // Under riichi the first bot is Saeko, who plays on Mortal, unless a
     // player already has her.
     var wantSaeko = ruleset.isRiichi;
-    for (var i = 0; i < 4; i++) {
+    for (final i in _playedSeats) {
       if (room.seats[i] == null) {
         final character =
             room.resolveCharacter(wantSaeko ? 'saeko' : null, _rng);
@@ -250,7 +262,7 @@ class TableLoop {
           for (final s in room.seats) (s == null || s.isBot) ? null : s.guestId
         ],
         participants: [
-          for (var i = 0; i < 4; i++)
+          for (final i in _playedSeats)
             if (!room.seats[i]!.isBot)
               {
                 'seat': '$i',
@@ -459,6 +471,9 @@ class TableLoop {
       round.declareTsumo(seat);
     } else if (decision.kyuushu) {
       round.declareKyuushu(seat); // Mortal aborts the hand rather than discard
+    } else if (decision.kita) {
+      round.declareKita(seat);
+      _justCalled = seat; // its KITA bubble, before the replacement's discard
     } else if (decision.closedKan != null) {
       round.closedKan(seat, decision.closedKan!);
       _justCalled = seat; // its KAN bubble, before the replacement's discard
@@ -558,6 +573,11 @@ class TableLoop {
       case 'kyuushu':
         if (!round.canDeclareKyuushu(seat)) return false;
         round.declareKyuushu(seat);
+        _broadcastState();
+        return true;
+      case 'kita':
+        if (!round.canKita(seat)) return false;
+        round.declareKita(seat);
         _broadcastState();
         return true;
       case 'closed_kan':
@@ -785,7 +805,7 @@ class TableLoop {
     _honba = rot.honba;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
-    final tobi = ruleset.isRiichi && _points.any((p) => p < 0);
+    final tobi = ruleset.isJapanese && _points.any((p) => p < 0);
     final gameOver = tobi ||
         (_roundNumber >= _handsPerGame && (!dealerKept || ruleset.isSichuan));
 
@@ -854,26 +874,27 @@ class TableLoop {
     required int honba,
     required Ruleset ruleset,
   }) {
+    final next = ruleset.nextDealer(dealer);
     if (ruleset.isMcr) {
-      return (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+      return (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
     if (ruleset.isTaiwanese) {
       final nextHonba = (dealerKept && !exhaustiveDraw) ? honba + 1 : 0;
       return dealerKept
           ? (dealer: dealer, roundNumber: roundNumber, honba: nextHonba)
-          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+          : (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
     if (ruleset.isHongKong) {
       return dealerKept || exhaustiveDraw
           ? (dealer: dealer, roundNumber: roundNumber, honba: 0)
-          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+          : (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
     final nextHonba = (exhaustiveDraw || dealerKept) ? honba + 1 : 0;
     if (dealerKept) {
       return (dealer: dealer, roundNumber: roundNumber, honba: nextHonba);
     }
     return (
-      dealer: (dealer + 1) % 4,
+      dealer: next,
       roundNumber: roundNumber + 1,
       honba: nextHonba,
     );
@@ -882,10 +903,17 @@ class TableLoop {
   /// 1..4 standing per seat by final points (ties share the higher place) —
   /// the multiplayer analogue of `GameController._humanPlace`, computed for
   /// every seat at once rather than just the one human seat single-player
-  /// has.
-  static List<int> _placesFromPoints(List<int> points) => [
+  /// has. Sanma's empty seat has no place: 0.
+  List<int> _placesFromPoints(List<int> points) => [
         for (var seat = 0; seat < points.length; seat++)
-          1 + points.where((p) => p > points[seat]).length,
+          if (!ruleset.seatIsActive(seat))
+            0
+          else
+            1 +
+                [
+                  for (final o in _playedSeats)
+                    if (points[o] > points[seat]) o
+                ].length,
       ];
 
   // --- network I/O ----------------------------------------------------------
@@ -964,15 +992,18 @@ class TableLoop {
     // With nobody left the bots play on, unwatched, for [_abandonGrace] so
     // whoever left by accident can still come back; after that the table
     // would only hold memory.
-    if (!_ended && _abandonTimer == null && room.seats.every((s) => s!.isBot)) {
+    if (!_ended && _abandonTimer == null && _allBots) {
       _abandonTimer = Timer(_abandonGrace, () {
         _abandonTimer = null;
-        if (!_ended && room.seats.every((s) => s!.isBot)) {
+        if (!_ended && _allBots) {
           _endMatch('abandoned');
         }
       });
     }
   }
+
+  /// Every played seat is a bot: nobody is left at the table.
+  bool get _allBots => _playedSeats.every((i) => room.seats[i]!.isBot);
 
   /// A human who was converted to a bot (see [_convertToBot]) came back:
   /// their seat is theirs again from the next decision on. The caller
@@ -1073,12 +1104,13 @@ class TableLoop {
   /// next seat still in the hand — or, for a kan nobody robbed, the kan's own
   /// seat.
   int get _nextToPlay {
-    if (round.chankanPending) return round.turn;
-    var next = (round.pendingDiscardSeat + 1) % 4;
+    // A kan nobody robs, or a kita nobody rons, goes on with the same seat.
+    if (round.chankanPending || round.kitaPending) return round.turn;
+    var next = ruleset.nextSeat(round.pendingDiscardSeat);
     // Sichuan: a seat that has gone out never plays again. The discarder is
     // still in, so this ends.
     while (ruleset.isSichuan && round.seats[next].out) {
-      next = (next + 1) % 4;
+      next = ruleset.nextSeat(next);
     }
     return next;
   }

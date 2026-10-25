@@ -20,6 +20,7 @@ import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_wall.dart';
 import 'meld.dart';
 import 'round.dart';
+import 'sanma/sanma_wall.dart';
 import 'ruleset.dart';
 import 'scoring.dart';
 import 'sichuan/sichuan_ledger.dart';
@@ -228,6 +229,12 @@ Map<String, dynamic> roundSnapshotToJson(
     'turn': round.turn,
     'phase': round.phase.name,
     'wallRemaining': round.wall.remaining,
+    if (round.wall case final SanmaWall w) ...{
+      'replacementsLeft': w.replacementsLeft,
+      'kansLeft': w.kansLeft,
+    },
+    // A ron-only window on a North set aside as kita, not a discard.
+    if (round.kitaPending) 'kitaPending': true,
     'doraIndicators': [
       for (final d in round.wall.doraIndicators()) d.name,
     ],
@@ -284,6 +291,7 @@ Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
               !revealed && round.isHiddenKong(m) ? _faceDownKong(m) : m)
       ],
       'flowers': tilesToJson(s.flowers),
+      if (round.ruleset.isSanma) 'kita': tilesToJson(s.kita),
       'riichi': s.riichi,
       'riichiPondIndex': s.riichiPondIndex,
       'doubleRiichi': s.doubleRiichi,
@@ -323,9 +331,9 @@ Meld _faceDownKong(Meld m) => Meld(
 /// at local seat 0 — the assumption every existing single-player UI widget
 /// makes (`round.seats[kHumanSeat]` for "you").
 Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
-  int localSeat(int serverSeat) => (serverSeat - mySeat + 4) % 4;
-
   final ruleset = Ruleset.values.byName(json['ruleset'] as String);
+  int localSeat(int serverSeat) => ruleset.relativeSeat(serverSeat, mySeat);
+
   final roundWind = Wind.values.byName(json['roundWind'] as String);
   final wallRemaining = json['wallRemaining'] as int;
   final dora = [
@@ -336,7 +344,14 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     for (final d in (json['uraDoraIndicators'] as List? ?? const []))
       TileType.values.byName(d as String)
   ];
-  final wall = ruleset.isSichuan
+  final TileWall wall = ruleset.isSanma
+      ? SanmaWall.posed(
+          remaining: wallRemaining,
+          dora: dora,
+          ura: ura,
+          replacementsLeft: json['replacementsLeft'] as int? ?? 8,
+          kansLeft: json['kansLeft'] as int? ?? 4)
+      : ruleset.isSichuan
       ? SichuanWall.posed(remaining: wallRemaining)
       : ruleset.isChineseStyle
           ? HongKongWall.posed(remaining: wallRemaining)
@@ -394,6 +409,7 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
         meldFromJson(m as Map<String, dynamic>)
     ];
     seat.flowers = tilesFromJson(sj['flowers'] as List);
+    seat.kita = tilesFromJson(sj['kita'] as List? ?? const []);
     seat.riichi = sj['riichi'] as bool;
     seat.riichiPondIndex = sj['riichiPondIndex'] as int? ?? -1;
     seat.doubleRiichi = sj['doubleRiichi'] as bool;
@@ -414,6 +430,7 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
   }
 
   round.turn = localSeat(json['turn'] as int);
+  round.kitaPending = json['kitaPending'] as bool? ?? false;
   round.phase = RoundPhase.values.byName(json['phase'] as String);
   final pendingDiscardJson = json['pendingDiscard'];
   round.pendingDiscard = pendingDiscardJson == null

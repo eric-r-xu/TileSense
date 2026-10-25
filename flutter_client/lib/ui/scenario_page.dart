@@ -16,6 +16,7 @@ import 'bar_back_button.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart';
 import '../scenario/scenario.dart';
@@ -34,7 +35,8 @@ import 'theme.dart';
 /// indicators in riichi and the selected seat's flowers in Hong Kong — the
 /// same corner of the table. [voidSuit] is Sichuan's give-up suit for the
 /// selected seat.
-enum _Slot { hand, pond, melds, dora, offer, voidSuit }
+/// [kita] is a sanma seat's Norths set aside.
+enum _Slot { hand, pond, melds, dora, offer, voidSuit, kita }
 
 /// What a palette tap builds when the melds slot is selected.
 enum _MeldKind { chi, pon, openKan, closedKan }
@@ -116,6 +118,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// Hong Kong, Taiwanese and MCR show each seat's flowers where riichi shows
   /// the dora; Sichuan has neither.
   bool get _flowers => _hk && !_sichuan;
+  bool get _sanma => s.ruleset.isSanma;
 
   void _edit(void Function(Scenario s) change) =>
       setState(() => _c.edit(change));
@@ -127,6 +130,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
   void _place(TileType type) {
     if (s.remainingCopies(type) <= 0) return;
     if (_slot == _Slot.voidSuit) return;
+    if (_slot == _Slot.kita) {
+      if (type == SanmaRules.kita) {
+        _edit((sc) => sc.seats[_slotSeat].kita.add(sc.mint(type)));
+      }
+      return;
+    }
     if (type.isBonus) {
       _edit((sc) => sc.seats[_slotSeat].flowers.add(sc.mint(type)));
       return;
@@ -145,7 +154,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           sc.offered = sc.mint(type, aka: aka);
         case _Slot.melds:
           _addMeld(sc, type);
-        case _Slot.voidSuit:
+        case _Slot.voidSuit || _Slot.kita:
           break;
       }
     });
@@ -200,11 +209,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
       sc.clear();
       final bag = <TileType>[
         for (var i = 0; i < (sc.ruleset.isSichuan ? 27 : 34); i++)
-          for (var c = 0; c < 4; c++) typeFrom34(i),
+          if (!sc.ruleset.isSanma || SanmaRules.inWall(typeFrom34(i)))
+            for (var c = 0; c < 4; c++) typeFrom34(i),
       ]..shuffle();
       TileType take() => bag.removeLast();
 
-      if (sc.ruleset.isRiichi) {
+      if (sc.ruleset.isJapanese) {
         sc.dora
           ..clear()
           ..add(take());
@@ -212,12 +222,13 @@ class _ScenarioPageState extends State<ScenarioPage> {
       // A riichi opponent with a pond, so the safety columns have something to
       // work with; the other two seats get shorter ponds.
       for (var seat = 1; seat < 4; seat++) {
+        if (!sc.ruleset.seatIsActive(seat)) continue;
         final n = seat == 1 ? 7 : 5;
         for (var i = 0; i < n; i++) {
           sc.seats[seat].pond.add(sc.mint(take()));
         }
       }
-      if (sc.ruleset.isRiichi) {
+      if (sc.ruleset.isJapanese) {
         sc.seats[1].riichi = true;
         sc.seats[1].riichiPondIndex = 4;
       }
@@ -265,6 +276,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           _Slot.pond => TableArea.pond,
           _Slot.melds => TableArea.melds,
           _Slot.dora => TableArea.dora,
+          _Slot.kita => TableArea.kita,
           _ => null,
         },
         seat: _slotSeat,
@@ -273,6 +285,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
             TableArea.pond => _Slot.pond,
             TableArea.melds => _Slot.melds,
             TableArea.dora => _Slot.dora,
+            TableArea.kita => _Slot.kita,
           };
           if (area != TableArea.dora) _slotSeat = seat;
         }),
@@ -753,7 +766,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 _slot == _Slot.dora,
                 () => setState(() => _slot = _Slot.dora)),
           const VerticalDivider(width: 14, color: Colors.white24),
-          for (var seat = 0; seat < 4; seat++) ...[
+          for (var seat = 0; seat < 4; seat++)
+            // Nobody sits across in sanma.
+            if (s.ruleset.seatIsActive(seat)) ...[
             chip(
                 '${seat == kHumanSeat ? "You" : _windOf(seat)} pond '
                 '(${s.seats[seat].pond.length})',
@@ -782,6 +797,14 @@ class _ScenarioPageState extends State<ScenarioPage> {
               if (seat != kHumanSeat) _outToggle(seat),
             ] else if (!_hk)
               _riichiToggle(seat),
+            if (_sanma)
+              chip('kita (${s.seats[seat].kita.length})',
+                  _slot == _Slot.kita && _slotSeat == seat, () {
+                setState(() {
+                  _slot = _Slot.kita;
+                  _slotSeat = seat;
+                });
+              }, key: Key('builderKita_$seat')),
             const VerticalDivider(width: 14, color: Colors.white24),
           ],
         ],
@@ -898,6 +921,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
       case _Slot.pond:
         return tiles(s.seats[_slotSeat].pond,
             (i) => _edit((sc) => sc.seats[_slotSeat].pond.removeAt(i)));
+      case _Slot.kita:
+        return tiles(s.seats[_slotSeat].kita,
+            (i) => _edit((sc) => sc.seats[_slotSeat].kita.removeAt(i)));
       case _Slot.dora when _hk:
         return tiles(s.seats[_slotSeat].flowers,
             (i) => _edit((sc) => sc.seats[_slotSeat].flowers.removeAt(i)));
@@ -1101,10 +1127,15 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   if (_flowers && _slot == _Slot.dora)
                     for (final t in TileType.values.where((t) => t.isBonus))
                       _paletteTile(t)
+                  // A sanma seat sets aside Norths only.
+                  else if (_slot == _Slot.kita)
+                    _paletteTile(SanmaRules.kita)
                   else
                     // Sichuan plays with the three suits only.
                     for (var i = 0; i < (_sichuan ? 27 : 34); i++)
-                      _paletteTile(typeFrom34(i)),
+                      // Sanma has no 2-8 man.
+                      if (!_sanma || SanmaRules.inWall(typeFrom34(i)))
+                        _paletteTile(typeFrom34(i)),
                 ],
               ),
             ),

@@ -74,8 +74,8 @@ class _PracticePageState extends State<PracticePage> {
 
   String _why(AppLocalizations l10n) {
     final call = l10n.callLabel(
-        _drill.id == 'c2' ? CallType.chi : CallType.pon, widget.ruleset);
-    return switch (_drill.id) {
+        _drill.explains == 'c2' ? CallType.chi : CallType.pon, widget.ruleset);
+    return switch (_drill.explains) {
       'w1' => l10n.practiceWhyW1,
       'w2' => l10n.practiceWhyW2,
       'w3' => l10n.practiceWhyW3,
@@ -116,12 +116,16 @@ class _PracticePageState extends State<PracticePage> {
                         child: TileFace(
                           type: t,
                           size: TileSize.large,
+                          scale: teachingTileScale(context),
                           highlightColor:
                               _mark(t, isRight: _drill.discardLeavesReady(t)),
                         ),
                       ),
                     )
-                  : TileFace(type: t, size: TileSize.large),
+                  : TileFace(
+                      type: t,
+                      size: TileSize.large,
+                      scale: teachingTileScale(context)),
             ),
         ],
       ),
@@ -142,6 +146,7 @@ class _PracticePageState extends State<PracticePage> {
                 child: TileFace(
                   type: t,
                   size: TileSize.large,
+                  scale: teachingTileScale(context),
                   highlightColor: _mark(t, isRight: _drill.isWinningTile(t)),
                 ),
               ),
@@ -278,7 +283,10 @@ class _PracticePageState extends State<PracticePage> {
                     style:
                         const TextStyle(color: Colors.white70, fontSize: 15)),
                 const SizedBox(height: 8),
-                TileFace(type: d.claimedTile, size: TileSize.large),
+                TileFace(
+                    type: d.claimedTile,
+                    size: TileSize.large,
+                    scale: teachingTileScale(context)),
                 const SizedBox(height: 18),
                 _claimChoices(l10n),
               ],

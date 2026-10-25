@@ -87,6 +87,15 @@ enum TileType {
     return -1;
   }
 
+  /// The tile a dora indicator of this type points to in sanma: as
+  /// [doraTarget], but the man suit is only 1m and 9m, so each points to the
+  /// other.
+  TileType get sanmaDoraTarget => this == TileType.man1
+      ? TileType.man9
+      : this == TileType.man9
+          ? TileType.man1
+          : doraTarget;
+
   /// The tile a dora indicator of this type points to, with terminal and honor
   /// wraparound.
   TileType get doraTarget {

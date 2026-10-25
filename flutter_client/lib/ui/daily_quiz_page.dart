@@ -113,6 +113,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
   /// put as other rules' pools grow. A file with none of them (a test's) is
   /// used whole.
   List<QuizPuzzle> _poolFor(List<QuizPuzzle> all) {
+    // Sanma has no quiz: riichi's four-player puzzles are not its tables.
+    if (!hasDailyQuiz(widget.ruleset)) return const [];
     final rules = quizRulesetFor(widget.ruleset);
     final pool = [
       for (final p in all)
@@ -159,7 +161,11 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
               children: [
                 Center(
                   child: snapshot.hasError || puzzles != null
-                      ? Text(context.l10n.quizLoadFailed,
+                      ? Text(
+                          hasDailyQuiz(widget.ruleset)
+                              ? context.l10n.quizLoadFailed
+                              : context.l10n.quizNoneSanma,
+                          key: const Key('quizUnavailable'),
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 18))
                       : const CircularProgressIndicator(),
@@ -358,10 +364,14 @@ class _DailyQuizPageState extends State<DailyQuizPage> {
                   for (final t in faces)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 1),
+                      // Grown on a phone, as the other teaching screens'
+                      // tiles are; the hand above is held to the panel's
+                      // width and cannot grow.
                       child: TileFace(
                         type: t,
                         size:
                             faces.length == 1 ? TileSize.large : TileSize.small,
+                        scale: phoneTileBoost(context),
                       ),
                     ),
                 ],

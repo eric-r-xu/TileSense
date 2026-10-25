@@ -2768,6 +2768,130 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get quizFocusPoints => '还有很多局：TileSense以点数为重。';
+
+  @override
+  String get rulesetSanma => '三人麻将';
+
+  @override
+  String get rulesetSanmaLong => '三麻（三人日本麻将）';
+
+  @override
+  String get rulesetSubtitleSanma => '三人立直麻将：不能吃、拔北、去掉二至八万';
+
+  @override
+  String get sanmaTooltip =>
+      '三麻是三人玩的日本立直麻将：三名玩家，108张牌（去掉二至八万），不能吃，北风牌可以拔出当作宝牌。';
+
+  @override
+  String rulesWeb(String rules) {
+    return '$rules规则（网页，英文）';
+  }
+
+  @override
+  String get kitaCaps => '拔北';
+
+  @override
+  String get bubbleKita => '拔北';
+
+  @override
+  String get undoKita => '拔北';
+
+  @override
+  String get yakuKita => '拔北宝牌';
+
+  @override
+  String get emptySeatSanma => '空位：三麻只有三名玩家';
+
+  @override
+  String hanchanOnTooltipSanma(String caveat) {
+    return '半庄——三人麻将的东风圈和南风圈，6局以上（每圈3局）。\n$caveat\n点按切换为东风战，3局以上。';
+  }
+
+  @override
+  String eastOnlyTooltipSanma(String caveat) {
+    return '东风战——三人麻将只打东风圈，3局以上。\n$caveat\n点按切换为半庄：东风圈和南风圈，6局以上。';
+  }
+
+  @override
+  String get glossaryTermSanma => '三麻';
+
+  @override
+  String get glossaryDefSanma =>
+      '三人玩的日本立直麻将。去掉二至八万，共108张牌；不能吃；座位为东、南、西；每人起始35,000点。自摸只由另外两人支付，所以比同一手牌荣和便宜。';
+
+  @override
+  String get glossaryTermKita => '拔北';
+
+  @override
+  String get glossaryDefKita =>
+      '三麻中可以把北风牌拔出来而不留在手里：它算作一张宝牌，并从王牌补摸一张。其他玩家可以荣和这张北。';
+
+  @override
+  String get quizNoneShort => '三人麻将没有每日一题';
+
+  @override
+  String get quizNoneSanma => '三人麻将还没有每日一题。切换到日本麻将或香港麻将即可挑战。';
+
+  @override
+  String get tourHandTitle => '你的手牌';
+
+  @override
+  String get tourHandBody => '点按一张牌把它抬起，再点一次就打出。想调整顺序，长按一张牌，然后拖到新的位置。';
+
+  @override
+  String get tourButtonsTitle => '手牌旁边的按钮';
+
+  @override
+  String get tourButtonsBody => '四个开关决定手牌怎么操作。打开时会填满颜色。';
+
+  @override
+  String get tourLegendSortBody => '让牌保持排序，或者留在你拖放的位置。';
+
+  @override
+  String get tourLegendDiscardBody => '点一次就打牌，或者点两次（先抬起再打出）。';
+
+  @override
+  String get tourLegendAutoWinBody => '一能和牌就自动替你宣告。';
+
+  @override
+  String get tourLegendAutoPassBody => '自动放弃其他玩家打出的牌的吃碰杠，不再询问。';
+
+  @override
+  String get tourGuideTitle => '你的向导 TileSensor';
+
+  @override
+  String get tourGuideBody =>
+      '点按 TileSensor 打开向导。它为每一张可打的牌排序，用绿色标出最佳选择并说明原因。再点一次即可隐藏。';
+
+  @override
+  String get tourMenuTitle => '设置、规则和帮助';
+
+  @override
+  String get tourMenuBodyPhone => '菜单按钮里有暂停、声音、速度、自动打牌、规则和术语表。也可以在那里重看这段导览。';
+
+  @override
+  String get tourMenuBodyDesktop =>
+      '设置排在顶部栏，规则和术语表在规则名称旁边。左上角的菜单返回主菜单，可在“学习”里重看这段导览。';
+
+  @override
+  String get tourSkip => '跳过导览';
+
+  @override
+  String get tourNext => '下一步';
+
+  @override
+  String get tourDone => '开始打牌';
+
+  @override
+  String get tableTourLink => '牌桌导览：怎样操作牌桌';
+
+  @override
+  String get tableTourMenu => '牌桌怎么用';
+
+  @override
+  String tourStepOf(int step, int total) {
+    return '第$step步，共$total步';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5534,4 +5658,128 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get quizFocusPoints => '還有很多局：TileSense以點數為重。';
+
+  @override
+  String get rulesetSanma => '三人麻將';
+
+  @override
+  String get rulesetSanmaLong => '三麻（三人日本麻將）';
+
+  @override
+  String get rulesetSubtitleSanma => '三人立直麻將：不能吃、拔北、去掉二至八萬';
+
+  @override
+  String get sanmaTooltip =>
+      '三麻是三人玩的日本立直麻將：三名玩家，108張牌（去掉二至八萬），不能吃，北風牌可以拔出當作寶牌。';
+
+  @override
+  String rulesWeb(String rules) {
+    return '$rules規則（網頁，英文）';
+  }
+
+  @override
+  String get kitaCaps => '拔北';
+
+  @override
+  String get bubbleKita => '拔北';
+
+  @override
+  String get undoKita => '拔北';
+
+  @override
+  String get yakuKita => '拔北寶牌';
+
+  @override
+  String get emptySeatSanma => '空位：三麻只有三名玩家';
+
+  @override
+  String hanchanOnTooltipSanma(String caveat) {
+    return '半莊——三人麻將的東風圈和南風圈，6局以上（每圈3局）。\n$caveat\n點按切換為東風戰，3局以上。';
+  }
+
+  @override
+  String eastOnlyTooltipSanma(String caveat) {
+    return '東風戰——三人麻將只打東風圈，3局以上。\n$caveat\n點按切換為半莊：東風圈和南風圈，6局以上。';
+  }
+
+  @override
+  String get glossaryTermSanma => '三麻';
+
+  @override
+  String get glossaryDefSanma =>
+      '三人玩的日本立直麻將。去掉二至八萬，共108張牌；不能吃；座位為東、南、西；每人起始35,000點。自摸只由另外兩人支付，所以比同一手牌榮和便宜。';
+
+  @override
+  String get glossaryTermKita => '拔北';
+
+  @override
+  String get glossaryDefKita =>
+      '三麻中可以把北風牌拔出來而不留在手裡：它算作一張寶牌，並從王牌補摸一張。其他玩家可以榮和這張北。';
+
+  @override
+  String get quizNoneShort => '三人麻將沒有每日一題';
+
+  @override
+  String get quizNoneSanma => '三人麻將還沒有每日一題。切換到日本麻將或香港麻將即可挑戰。';
+
+  @override
+  String get tourHandTitle => '你的手牌';
+
+  @override
+  String get tourHandBody => '點按一張牌把它抬起，再點一次就打出。想調整順序，長按一張牌，然後拖到新的位置。';
+
+  @override
+  String get tourButtonsTitle => '手牌旁邊的按鈕';
+
+  @override
+  String get tourButtonsBody => '四個開關決定手牌怎麼操作。打開時會填滿顏色。';
+
+  @override
+  String get tourLegendSortBody => '讓牌保持排序，或者留在你拖放的位置。';
+
+  @override
+  String get tourLegendDiscardBody => '點一次就打牌，或者點兩次（先抬起再打出）。';
+
+  @override
+  String get tourLegendAutoWinBody => '一能和牌就自動替你宣告。';
+
+  @override
+  String get tourLegendAutoPassBody => '自動放棄其他玩家打出的牌的吃碰槓，不再詢問。';
+
+  @override
+  String get tourGuideTitle => '你的嚮導 TileSensor';
+
+  @override
+  String get tourGuideBody =>
+      '點按 TileSensor 打開嚮導。它為每一張可打的牌排序，用綠色標出最佳選擇並說明原因。再點一次即可隱藏。';
+
+  @override
+  String get tourMenuTitle => '設定、規則和說明';
+
+  @override
+  String get tourMenuBodyPhone => '選單按鈕裡有暫停、聲音、速度、自動打牌、規則和術語表。也可以在那裡重看這段導覽。';
+
+  @override
+  String get tourMenuBodyDesktop =>
+      '設定排在頂部欄，規則和術語表在規則名稱旁邊。左上角的選單返回主選單，可在「學習」裡重看這段導覽。';
+
+  @override
+  String get tourSkip => '跳過導覽';
+
+  @override
+  String get tourNext => '下一步';
+
+  @override
+  String get tourDone => '開始打牌';
+
+  @override
+  String get tableTourLink => '牌桌導覽：怎樣操作牌桌';
+
+  @override
+  String get tableTourMenu => '牌桌怎麼用';
+
+  @override
+  String tourStepOf(int step, int total) {
+    return '第$step步，共$total步';
+  }
 }

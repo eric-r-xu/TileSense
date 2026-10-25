@@ -163,7 +163,8 @@ sometimes uneven scores. Only the tables both engines answer the same way are ke
 
 The quiz has riichi and Hong Kong puzzles, and today's is drawn from the pool for the
 rules chosen on the welcome screen (Taiwanese, MCR and Sichuan take riichi's until they
-have pools). Mortal does not play Hong Kong, so those puzzles need no sidecar: they
+have pools). Sanma has no quiz: riichi's puzzles are four-player tables, so the Learn tile
+says there is none rather than posing them. Mortal does not play Hong Kong, so those puzzles need no sidecar: they
 keep a table when TileSense's best line leads the next clearly **and** the guide gives
 the same answer playing aggressively, defensively and by default. To grow that pool:
 
@@ -182,7 +183,9 @@ From the start page, pose any table by hand and the same guide scores it:
 - the dora indicators, and who is in riichi (riichi only)
 - the wall count, and your seat wind (East deals)
 - for Sichuan, each seat's void suit and which opponents have already gone out
-  (it has no dora, flowers, riichi or chi).
+  (it has no dora, flowers, riichi or chi)
+- for sanma, each seat's kita (Norths set aside); the seat across stays empty and
+  the palette has no 2–8 man.
 
 It plays the dials a game's guide would at that point, reading the hand off the
 round and seat wind as a hanchan in which you dealt first; with no scores to
@@ -201,9 +204,16 @@ bar (which deals a new game) or the builder's chip row. Riichi is the default.
 | 🇭🇰 Hong Kong | 144 with flowers | **0 faan** by default; 1, 2 or 3 | [Hong Kong rules](docs/HONG_KONG_RULES.md) | [HK.pdf](https://app.ericrxu.com/static/HK.pdf) |
 | 🇹🇼 Taiwanese | 144 with flowers, 16-tile hands (5 melds and a pair) | **5 tai** by default; 1 or 3 | [Taiwanese rules](docs/TAIWANESE_RULES.md) | [Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf) |
 | 🇨🇳 MCR | 144 with flowers, 13-tile hands | **8 points**, flowers excluded | [MCR rules](docs/MCR_RULES.md) | [MCR.pdf](https://app.ericrxu.com/static/MCR.pdf) |
+| <img src="flutter_client/assets/flags/sanma.png" height="14" alt="Sanma"> Sanma (3-player) | 108, no 2–8 man, 13-tile hands | one yaku; no chi, kita, tsumo loss | [Sanma rules](docs/SANMA_RULES.md) | [riichi.wiki/Sanma](https://riichi.wiki/Sanma) (web) |
 | <img src="flutter_client/assets/flags/sichuan.png" height="14" alt="Sichuan"> Sichuan | 108, no honors or flowers, 13-tile hands | none; void suit, no chows, play on after a win | [Sichuan rules](docs/SICHUAN_RULES.md) | [Sichuan.pdf](https://app.ericrxu.com/static/Sichuan.pdf) |
 
 Taiwanese scores flat, additive points and adds a dealer win-streak bonus.
+
+Sanma (三麻) is riichi for three players: the seat across is empty, the 2–8 man are
+removed, there is no chi, Norths can be set aside as kita for dora, and a self-draw
+is paid by the two others only. Its flag is Japan's with 三麻 on it, and its tooltips
+say it is three-player. It plays offline, in the builder and online, where rooms seat
+three and bots fill the rest. Mortal plays four-player riichi only, so it sits sanma out.
 
 Sichuan is bloody-battle mahjong: each seat gives up a suit, and a win takes that seat out while the others play on. It can be played online too: the server runs the table, and a seat's void suit stays hidden from the others until its first discard.
 

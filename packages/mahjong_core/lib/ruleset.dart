@@ -1,5 +1,5 @@
-/// Which mahjong rules a table plays: Japanese riichi, Hong Kong, Taiwanese,
-/// MCR, or Sichuan.
+/// Which mahjong rules a table plays: Japanese riichi, its three-player
+/// variant sanma, Hong Kong, Taiwanese, MCR, or Sichuan.
 ///
 /// The round, guide, bots and UI are shared. Each asks the ruleset only where
 /// the games actually differ — how a hand scores, what the wall holds, which
@@ -13,7 +13,9 @@ library;
 
 import 'hong_kong/hong_kong_rules.dart';
 import 'scoring.dart';
+import 'sanma/sanma_rules.dart';
 import 'sichuan/sichuan_rules.dart';
+import 'tile.dart' show Wind;
 import 'taiwanese/taiwanese_rules.dart';
 
 enum Ruleset {
@@ -22,6 +24,15 @@ enum Ruleset {
     flag: '🇯🇵',
     unit: 'points',
     rulesUrl: 'https://app.ericrxu.com/static/Riichi.pdf',
+  ),
+  sanma(
+    label: 'Sanma',
+    // Drawn from [flagAsset]: the Japanese flag with 三麻 on it, so it can be
+    // told apart from four-player riichi at a glance.
+    flag: '🇯🇵',
+    flagAsset: 'assets/flags/sanma.png',
+    unit: 'points',
+    rulesUrl: 'https://riichi.wiki/Sanma',
   ),
   hongKong(
     label: 'Hong Kong',
@@ -84,6 +95,72 @@ enum Ruleset {
   bool get isRiichi => this == Ruleset.riichi;
   bool get isSichuan => this == Ruleset.sichuan;
 
+  /// Sanma: riichi for three players (see `sanma/sanma_rules.dart`).
+  bool get isSanma => this == Ruleset.sanma;
+
+  /// Japanese rules, four-player or three: riichi, furiten, dora, honba and
+  /// tenpai payments. Sanma changes the table around them, not the rules.
+  bool get isJapanese => isRiichi || isSanma;
+
+  /// How many players sit at the table: 3 for sanma, 4 otherwise.
+  int get playerCount => isSanma ? 3 : 4;
+
+  /// The seat indices that are played, in turn order. Seats are numbered from
+  /// your own (0) round to your left (3), so sanma leaves the seat across
+  /// (2) empty and plays 0, 1 and 3: your right-hand opponent is still seat
+  /// 1 and your left-hand one seat 3.
+  List<int> get activeSeats =>
+      isSanma ? const [0, 1, 3] : const [0, 1, 2, 3];
+
+  /// Whether [seat] is played under these rules.
+  bool seatIsActive(int seat) => !isSanma || seat != SanmaRules.emptySeat;
+
+  /// The seat after [seat] in turn order, skipping an empty one.
+  int nextSeat(int seat) {
+    final n = (seat + 1) % 4;
+    return seatIsActive(n) ? n : (n + 1) % 4;
+  }
+
+  /// How many turns after [from] the turn reaches [to]: 1 for the next seat
+  /// to play, up to [playerCount] - 1.
+  int seatDistance(int from, int to) {
+    var d = 0;
+    for (var s = from; s != to; s = nextSeat(s)) {
+      d++;
+      if (d > 4) break;
+    }
+    return d;
+  }
+
+  /// The wind [seat] sits in when [dealer] deals: East for the dealer, then
+  /// South and West (and North, with four) in turn order.
+  Wind seatWind(int seat, int dealer) =>
+      Wind.values[seatDistance(dealer, seat) % 4];
+
+  /// The seat that deals after [dealer].
+  int nextDealer(int dealer) => nextSeat(dealer);
+
+  /// [seat] as the player in seat [viewer] numbers the table, with themself
+  /// as 0: an online client always sits at its own seat 0. Turn order is
+  /// kept, so under sanma the player after you is 1 and the one before you
+  /// is 3, and the empty seat stays across, at 2.
+  int relativeSeat(int seat, int viewer) {
+    if (!isSanma) return (seat - viewer + 4) % 4;
+    if (!seatIsActive(seat)) return SanmaRules.emptySeat;
+    final seats = activeSeats;
+    final n = seats.length;
+    return seats[(seats.indexOf(seat) - seats.indexOf(viewer) + n) % n];
+  }
+
+  /// The inverse of [relativeSeat]: the seat that [viewer] calls [local].
+  int absoluteSeat(int local, int viewer) {
+    if (!isSanma) return (local + viewer) % 4;
+    if (!seatIsActive(local)) return SanmaRules.emptySeat;
+    final seats = activeSeats;
+    final n = seats.length;
+    return seats[(seats.indexOf(local) + seats.indexOf(viewer)) % n];
+  }
+
   /// Hong Kong and Taiwanese share the same table flow: flowers exposed and
   /// replaced from the wall, no riichi, no furiten, and nothing callable off
   /// the last discard. They differ only in scoring vocabulary and payment —
@@ -97,15 +174,18 @@ enum Ruleset {
   Ruleset get next => Ruleset.values[(index + 1) % Ruleset.values.length];
 
   /// Each seat's score at the start of a game.
-  int get startingPoints => isMcr ? 0 : isSichuan ? SichuanRules.startingPoints : isHongKong
+  int get startingPoints => isSanma ? SanmaRules.startingPoints : isMcr ? 0 : isSichuan ? SichuanRules.startingPoints : isHongKong
       ? HongKongRules.startingChips
       : isTaiwanese
           ? TaiwaneseRules.startingChips
           : 25000;
 
-  /// Scheduled hands in a game: East and South (hanchan) for every ruleset.
-  /// [fullGame] false is East only in every ruleset.
-  int handsPerGame({required bool fullGame}) => fullGame ? (isMcr ? 16 : 8) : 4;
+  /// Scheduled hands in a game: East and South (hanchan) for every ruleset
+  /// but MCR, which plays all four winds. [fullGame] false is East only in
+  /// every ruleset.
+  /// Sanma deals three hands a wind, one per player.
+  int handsPerGame({required bool fullGame}) =>
+      (fullGame ? (isMcr ? 4 : 2) : 1) * playerCount;
 
   /// Melds in a complete hand, beside its pair: 4 (a 14-tile hand) for riichi
   /// and Hong Kong, 5 (17 tiles) for Taiwanese.

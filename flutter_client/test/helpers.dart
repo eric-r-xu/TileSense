@@ -82,6 +82,9 @@ Future<void> pumpUntil(
 /// 'moreTile'), taps [target] in it, and lets the popup finish closing.
 Future<void> tapInPopup(WidgetTester tester, String tile, Finder target) async {
   await openPopup(tester, tile);
+  // The popup scrolls once its list outgrows it (six rulesets do).
+  await tester.ensureVisible(target);
+  await tester.pump();
   await tester.tap(target);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));

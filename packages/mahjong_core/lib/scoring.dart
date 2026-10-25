@@ -36,6 +36,8 @@ class ScoreContext {
     this.doubleKong = false,
     this.discardCount = 0,
     this.afterKong = false,
+    this.kita = 0,
+    this.sanma = false,
   });
 
   final Wind roundWind;
@@ -77,6 +79,14 @@ class ScoreContext {
   /// Sichuan only: a win on a discard thrown right after its discarder made a
   /// kong ("Shoot after Kong").
   final bool afterKong;
+
+  /// Sanma only: Norths the winner has set aside as nukidora. Each is a dora,
+  /// and counts again for any dora (or, after riichi, ura) indicator that
+  /// points to North.
+  final int kita;
+
+  /// Sanma: a 1m indicator points to 9m (see [TileType.sanmaDoraTarget]).
+  final bool sanma;
 }
 
 class YakuResult {
@@ -247,13 +257,20 @@ HandScore _scoreDecomp(
   if (!hasRealYaku) return HandScore.invalid();
 
   if (yakuman == 0) {
-    final dora = _countDora(allTypes, ctx.doraIndicators);
+    // Norths set aside as kita are counted by the indicators like any other
+    // tile, though they are not part of the hand's shape.
+    final doraTypes = [
+      ...allTypes,
+      for (var i = 0; i < ctx.kita; i++) TileType.pei,
+    ];
+    final dora = _countDora(doraTypes, ctx.doraIndicators, sanma: ctx.sanma);
     if (dora > 0) yaku.add(YakuResult('Dora', dora));
     if (ctx.riichi || ctx.doubleRiichi) {
-      final ura = _countDora(allTypes, ctx.uraIndicators);
+      final ura = _countDora(doraTypes, ctx.uraIndicators, sanma: ctx.sanma);
       if (ura > 0) yaku.add(YakuResult('Ura Dora', ura));
     }
     if (ctx.akaCount > 0) yaku.add(YakuResult('Aka Dora', ctx.akaCount));
+    if (ctx.kita > 0) yaku.add(YakuResult('Kita', ctx.kita));
   }
 
   final han = yaku.fold(0, (a, y) => a + y.han);
@@ -607,10 +624,11 @@ bool _allGroupsAndPair(
 bool _isYakuhaiPair(TileType pair, ScoreContext ctx) =>
     pair.isDragon || pair == ctx.roundWind.tile || pair == ctx.seatWind.tile;
 
-int _countDora(List<TileType> types, List<TileType> indicators) {
+int _countDora(List<TileType> types, List<TileType> indicators,
+    {bool sanma = false}) {
   var n = 0;
   for (final ind in indicators) {
-    final target = ind.doraTarget;
+    final target = sanma ? ind.sanmaDoraTarget : ind.doraTarget;
     n += types.where((t) => t == target).length;
   }
   return n;

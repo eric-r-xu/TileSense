@@ -112,6 +112,7 @@ void main() {
   taiwaneseRoomMain();
   mcrRoomMain();
   sichuanRoomMain();
+  sanmaRoomMain();
   test('two humans + two bots play a full hand with no hand leakage, then continue',
       () async {
     final manager = RoomManager();
@@ -1154,7 +1155,14 @@ void mcrRoomMain() {
   });
 }
 
-const _allRulesets = ['riichi', 'hongKong', 'taiwanese', 'mcr', 'sichuan'];
+const _allRulesets = [
+  'riichi',
+  'sanma',
+  'hongKong',
+  'taiwanese',
+  'mcr',
+  'sichuan',
+];
 
 /// A seat's Sichuan play for a test client: names the suit a bot would, then
 /// discards what is legal and takes every Hu. Without [takeHu] it passes them,
@@ -1604,3 +1612,153 @@ void sichuanRoomMain() {
   });
 }
 
+
+/// A sanma seat's play for a test client: sets every North aside as kita,
+/// takes every win, and otherwise discards what is legal.
+StreamSubscription<void> _sanmaAutoplay(TestClient client) {
+  return client._controller.stream.listen((msg) {
+    if (msg['type'] != 'state') return;
+    final round = buildRoundFromSnapshot(msg['round'] as Map<String, dynamic>,
+        mySeat: msg['yourSeat'] as int);
+    if (round.phase == RoundPhase.callOffer &&
+        round.callOptions.any((o) => o.seat == 0)) {
+      final ron = round.callOptions
+          .firstWhere((o) => o.seat == 0)
+          .types
+          .contains(CallType.ron);
+      client.send(ron
+          ? {'type': 'action', 'kind': 'call', 'callType': 'ron'}
+          : {'type': 'action', 'kind': 'pass_call'});
+      return;
+    }
+    if (round.turn != 0 || round.phase != RoundPhase.discarding) return;
+    if (round.canTsumo(0)) {
+      client.send({'type': 'action', 'kind': 'tsumo'});
+      return;
+    }
+    if (round.canKita(0)) {
+      client.send({'type': 'action', 'kind': 'kita'});
+      return;
+    }
+    client.send({
+      'type': 'action',
+      'kind': 'discard',
+      'tileId': round.legalDiscards(0).first.id,
+      'riichi': false,
+    });
+  });
+}
+
+/// Sanma (three-player riichi) rooms.
+void sanmaRoomMain() {
+  test('sanma rooms need a client that lists sanma support', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final old = await TestClient.connect(server.port);
+    addTearDown(old.close);
+    old.send({
+      'type': 'create_room',
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'ruleset': 'sanma',
+      'supportedRulesets': ['riichi', 'hongKong', 'taiwanese', 'mcr', 'sichuan'],
+    });
+    expect((await old.waitFor((m) => m['type'] == 'error'))['code'],
+        'update_required');
+    expect(manager.roomCount, 0);
+  });
+
+  test('three seats: the one across stays empty and a fourth player is turned '
+      'away', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final clients = [
+      for (var i = 0; i < 4; i++) await TestClient.connect(server.port),
+    ];
+    for (final c in clients) {
+      addTearDown(c.close);
+    }
+    clients[0].send({
+      'type': 'create_room',
+      'guestId': 'guest-0',
+      'name': 'Host',
+      'ruleset': 'sanma',
+      'supportedRulesets': _allRulesets,
+    });
+    final created = await clients[0].waitFor((m) => m['type'] == 'room_state');
+    expect(created['ruleset'], 'sanma');
+    final seats = (created['seats'] as List).cast<Map<String, dynamic>>();
+    expect(seats[2]['inactive'], isTrue);
+    expect(seats.where((s) => s['inactive'] == true), hasLength(1));
+    final code = created['code'] as String;
+    for (var i = 1; i < 3; i++) {
+      clients[i].send({
+        'type': 'join_room',
+        'roomCode': code,
+        'guestId': 'guest-$i',
+        'name': 'P$i',
+        'supportedRulesets': _allRulesets,
+      });
+      final joined = await clients[i].waitFor((m) => m['type'] == 'room_state');
+      expect(joined['yourSeat'], isNot(2));
+    }
+    clients[3].send({
+      'type': 'join_room',
+      'roomCode': code,
+      'guestId': 'guest-3',
+      'name': 'P3',
+      'supportedRulesets': _allRulesets,
+    });
+    expect((await clients[3].waitFor((m) => m['type'] == 'error'))['code'],
+        'room_full');
+    final room = manager.find(code)!;
+    expect(room.seats[2], isNull);
+    expect(room.isFull, isTrue);
+  });
+
+  test('a sanma hand plays to its result with bots, kita and all, and never '
+      'gives the empty seat a turn', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'sanma',
+      'hanchan': false,
+      'supportedRulesets': _allRulesets,
+    });
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+    final sub = _sanmaAutoplay(a);
+    addTearDown(sub.cancel);
+    final result = await a.waitFor((m) => m['type'] == 'round_result',
+        timeout: const Duration(seconds: 30));
+
+    final mySeat = result['yourSeat'] as int;
+    expect(mySeat, isNot(2));
+    final points = (result['tablePoints'] as List).cast<int>();
+    expect(points[2], 0, reason: 'the empty seat holds no points');
+    final res = (result['round'] as Map<String, dynamic>)['result']
+        as Map<String, dynamic>;
+    final deltas = (res['pointDeltas'] as Map)
+        .map((k, v) => MapEntry(int.parse(k as String), v as int));
+    expect(deltas[2] ?? 0, 0);
+    for (final m in a.log.where((m) => m['type'] == 'state')) {
+      final r = m['round'] as Map<String, dynamic>;
+      expect(r['ruleset'], 'sanma');
+      expect(r['turn'], isNot(2), reason: 'the empty seat never plays');
+      final seats = (r['seats'] as List).cast<Map<String, dynamic>>();
+      expect(seats[2]['handCount'], 0);
+      expect(seats.every((s) => s.containsKey('kita')), isTrue);
+      // Seen from any seat, the table is laid out with the empty one across.
+      final local = buildRoundFromSnapshot(r, mySeat: m['yourSeat'] as int);
+      expect(local.seats[2].hand, isEmpty);
+    }
+  });
+}

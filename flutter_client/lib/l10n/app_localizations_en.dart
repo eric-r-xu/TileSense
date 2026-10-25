@@ -2867,4 +2867,137 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get quizFocusPoints =>
       'Plenty of hands left: TileSense plays for points.';
+
+  @override
+  String get rulesetSanma => 'Sanma';
+
+  @override
+  String get rulesetSanmaLong => 'Sanma (3-player riichi mahjong)';
+
+  @override
+  String get rulesetSubtitleSanma =>
+      '3-player riichi: no chi, kita, no 2–8 man';
+
+  @override
+  String get sanmaTooltip =>
+      'Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 man are removed), no chi, and North tiles set aside as kita for an extra dora.';
+
+  @override
+  String rulesWeb(String rules) {
+    return '$rules rules (web)';
+  }
+
+  @override
+  String get kitaCaps => 'KITA';
+
+  @override
+  String get bubbleKita => 'KITA';
+
+  @override
+  String get undoKita => 'Kita';
+
+  @override
+  String get yakuKita => 'Kita';
+
+  @override
+  String get emptySeatSanma => 'No player: sanma is played by three';
+
+  @override
+  String hanchanOnTooltipSanma(String caveat) {
+    return 'Hanchan — East and South (半庄) rounds of 3-player sanma, 6+ hands (3 a round, one per player).\n$caveat\nTap for East only (东风战), 3+ hands.';
+  }
+
+  @override
+  String eastOnlyTooltipSanma(String caveat) {
+    return 'East only (东风战/tonpuusen) — the East round of 3-player sanma, 3+ hands.\n$caveat\nTap for hanchan (半庄): East and South, 6+ hands.';
+  }
+
+  @override
+  String get glossaryTermSanma => 'Sanma';
+
+  @override
+  String get glossaryDefSanma =>
+      'Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.';
+
+  @override
+  String get glossaryTermKita => 'Kita (North set aside)';
+
+  @override
+  String get glossaryDefKita =>
+      'In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.';
+
+  @override
+  String get quizNoneShort => 'No daily quiz for Sanma';
+
+  @override
+  String get quizNoneSanma =>
+      'There is no daily quiz for Sanma yet. Switch to Riichi or Hong Kong to play it.';
+
+  @override
+  String get tourHandTitle => 'Your hand';
+
+  @override
+  String get tourHandBody =>
+      'Tap a tile to raise it, then tap it again to discard it. To rearrange your hand, press and hold a tile, then drag it to a new spot.';
+
+  @override
+  String get tourButtonsTitle => 'The buttons beside your hand';
+
+  @override
+  String get tourButtonsBody =>
+      'Four switches for how your hand plays. Each is filled in when it is on.';
+
+  @override
+  String get tourLegendSortBody =>
+      'keeps your tiles in order, or leaves them where you drag them.';
+
+  @override
+  String get tourLegendDiscardBody =>
+      'one tap to discard, or two (raise, then discard).';
+
+  @override
+  String get tourLegendAutoWinBody =>
+      'declares a win for you the moment you can.';
+
+  @override
+  String get tourLegendAutoPassBody =>
+      'skips calls on other players\' tiles, so you aren\'t asked.';
+
+  @override
+  String get tourGuideTitle => 'TileSensor, your guide';
+
+  @override
+  String get tourGuideBody =>
+      'Tap TileSensor to show the guide. It ranks every discard, marks the best one in green and explains why. Tap again to hide it.';
+
+  @override
+  String get tourMenuTitle => 'Settings, rules and help';
+
+  @override
+  String get tourMenuBodyPhone =>
+      'The Menu button holds pause, sound, speed, Auto-Play, the rules and the glossary. You can replay this tour from there.';
+
+  @override
+  String get tourMenuBodyDesktop =>
+      'Settings run along the top bar, with the rules and the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.';
+
+  @override
+  String get tourSkip => 'Skip tour';
+
+  @override
+  String get tourNext => 'Next';
+
+  @override
+  String get tourDone => 'Start playing';
+
+  @override
+  String get tableTourLink => 'Table tour: how to play the table';
+
+  @override
+  String get tableTourMenu => 'How the table works';
+
+  @override
+  String tourStepOf(int step, int total) {
+    return '$step of $total';
+  }
 }

@@ -38,15 +38,22 @@ void main() {
       }
     });
 
-    test('Riichi alone has riichi, dora and furiten', () async {
+    test('Japanese rules alone have riichi, dora and furiten', () async {
       for (final r in Ruleset.values) {
         expect(await ids(r),
-            r.isRiichi
+            r.isJapanese
                 ? containsAll(['riichi', 'dora', 'furiten'])
                 : isNot(anyOf(contains('riichi'), contains('dora'),
                     contains('furiten'))),
             reason: r.name);
       }
+    });
+
+    test('sanma explains itself and kita, and has no chi', () async {
+      final sanma = await ids(Ruleset.sanma);
+      expect(sanma, containsAll(['sanma', 'kita']));
+      expect(sanma, isNot(contains('chi')));
+      expect(await ids(Ruleset.riichi), isNot(contains('kita')));
     });
 
     test('flowers are Chinese-style rules, bar Sichuan', () async {

@@ -580,7 +580,8 @@ class _ScoringViewState extends State<ScoringView> {
   Widget _transfers(Round round, RoundResult r) {
     return Column(
       children: [
-        for (var i = 0; i < 4; i++)
+        // Sanma's empty seat has nothing to show.
+        for (final i in round.ruleset.activeSeats)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Row(
@@ -651,7 +652,7 @@ class _ScoringViewState extends State<ScoringView> {
   /// score. Entries wrap onto a second line on a narrow panel rather than
   /// shrinking or being cut off.
   Widget _standings(TableGameHost game) {
-    final seats = [for (var i = 0; i < 4; i++) i]
+    final seats = [...game.round.ruleset.activeSeats]
       ..sort((a, b) => game.tablePoints[b].compareTo(game.tablePoints[a]));
     const style = TextStyle(color: Colors.white70);
     return Wrap(

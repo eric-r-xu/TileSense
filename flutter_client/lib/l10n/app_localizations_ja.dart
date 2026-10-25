@@ -2797,4 +2797,130 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get quizFocusPoints => 'まだ局数が多いため、TileSenseは点数を重視します。';
+
+  @override
+  String get rulesetSanma => '三麻';
+
+  @override
+  String get rulesetSanmaLong => '三麻（三人麻雀）';
+
+  @override
+  String get rulesetSubtitleSanma => '三人麻雀：チーなし・北抜き・二〜八萬なし';
+
+  @override
+  String get sanmaTooltip =>
+      '三麻は三人で打つリーチ麻雀です。牌は108枚（二〜八萬を抜く）、チーはなく、北は抜きドラとして抜けます。';
+
+  @override
+  String rulesWeb(String rules) {
+    return '$rulesルール（ウェブ・英語）';
+  }
+
+  @override
+  String get kitaCaps => '北抜き';
+
+  @override
+  String get bubbleKita => '北';
+
+  @override
+  String get undoKita => '北抜き';
+
+  @override
+  String get yakuKita => '抜きドラ';
+
+  @override
+  String get emptySeatSanma => '空席：三麻は三人で打ちます';
+
+  @override
+  String hanchanOnTooltipSanma(String caveat) {
+    return '半荘 — 三人麻雀の東場と南場、6局以上（各場3局）。\n$caveat\nタップで東風戦（3局以上）に。';
+  }
+
+  @override
+  String eastOnlyTooltipSanma(String caveat) {
+    return '東風戦 — 三人麻雀の東場のみ、3局以上。\n$caveat\nタップで半荘（東場と南場、6局以上）に。';
+  }
+
+  @override
+  String get glossaryTermSanma => '三麻';
+
+  @override
+  String get glossaryDefSanma =>
+      '三人で打つリーチ麻雀。二〜八萬を抜いた108枚で打ち、チーはありません。席は東・南・西、持ち点は35,000点。ツモ和了は残り二人だけが払うため、同じ手のロンより安くなります。';
+
+  @override
+  String get glossaryTermKita => '北抜き';
+
+  @override
+  String get glossaryDefKita =>
+      '三麻では北を手に残さず抜くことができます。抜いた北はドラとして数え、王牌から補充牌を引きます。他家はその北でロンできます。';
+
+  @override
+  String get quizNoneShort => '三麻のデイリークイズはありません';
+
+  @override
+  String get quizNoneSanma => '三麻のデイリークイズはまだありません。リーチ麻雀か香港麻雀に切り替えると遊べます。';
+
+  @override
+  String get tourHandTitle => 'あなたの手牌';
+
+  @override
+  String get tourHandBody =>
+      '牌をタップすると持ち上がり、もう一度タップすると捨てます。並べ替えるには、牌を長押しして好きな位置へドラッグします。';
+
+  @override
+  String get tourButtonsTitle => '手牌の横のボタン';
+
+  @override
+  String get tourButtonsBody => '手牌の扱い方を決める4つのスイッチです。オンのときは塗りつぶされます。';
+
+  @override
+  String get tourLegendSortBody => '牌を順番に並べるか、ドラッグした位置のままにします。';
+
+  @override
+  String get tourLegendDiscardBody => '1回のタップで捨てるか、2回（持ち上げてから捨てる）にします。';
+
+  @override
+  String get tourLegendAutoWinBody => '和了れる瞬間に自動で和了を宣言します。';
+
+  @override
+  String get tourLegendAutoPassBody => '他家の捨て牌への鳴きを自動で見送り、確認を省きます。';
+
+  @override
+  String get tourGuideTitle => 'ガイドのTileSensor';
+
+  @override
+  String get tourGuideBody =>
+      'TileSensorをタップするとガイドが開きます。すべての打牌を順位付けし、最善手を緑で示して理由を説明します。もう一度タップで閉じます。';
+
+  @override
+  String get tourMenuTitle => '設定・ルール・ヘルプ';
+
+  @override
+  String get tourMenuBodyPhone =>
+      'メニューボタンには一時停止、サウンド、速度、オートプレイ、ルール、用語集があります。このツアーもそこから再生できます。';
+
+  @override
+  String get tourMenuBodyDesktop =>
+      '設定は上部のバーに並び、ルールと用語集はルール名の横にあります。左上のメニューでメインメニューに戻り、「学ぶ」からこのツアーを再生できます。';
+
+  @override
+  String get tourSkip => 'ツアーをスキップ';
+
+  @override
+  String get tourNext => '次へ';
+
+  @override
+  String get tourDone => '対局を始める';
+
+  @override
+  String get tableTourLink => '卓のツアー：画面の使い方';
+
+  @override
+  String get tableTourMenu => '卓の使い方';
+
+  @override
+  String tourStepOf(int step, int total) {
+    return '$step / $total';
+  }
 }

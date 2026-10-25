@@ -33,9 +33,11 @@ class GlossaryEntry {
 List<GlossaryEntry> glossaryEntries(AppLocalizations l10n, Ruleset ruleset) {
   final r = ruleset;
   final sichuan = r.isSichuan;
+  // Sichuan claims no chows, and sanma has no chi at all.
+  final chi = !sichuan && !r.isSanma;
   final flowers = r.isChineseStyle && !sichuan;
   final scoreUnit = switch (r) {
-    Ruleset.riichi => l10n.glossaryUnitHan,
+    Ruleset.riichi || Ruleset.sanma => l10n.glossaryUnitHan,
     Ruleset.hongKong => l10n.glossaryUnitFaan,
     Ruleset.taiwanese => l10n.glossaryUnitTai,
     _ => l10n.glossaryUnitFan,
@@ -43,7 +45,7 @@ List<GlossaryEntry> glossaryEntries(AppLocalizations l10n, Ruleset ruleset) {
   return [
     GlossaryEntry('set', l10n.glossaryTermSet, l10n.glossaryDefSet),
     GlossaryEntry('pair', l10n.glossaryTermPair, l10n.glossaryDefPair),
-    if (!sichuan)
+    if (chi)
       GlossaryEntry('chi', l10n.callLabel(CallType.chi, r), l10n.glossaryDefChi),
     GlossaryEntry('pon', l10n.callLabel(CallType.pon, r), l10n.glossaryDefPon),
     GlossaryEntry('kan', l10n.callLabel(CallType.kan, r), l10n.glossaryDefKan),
@@ -62,11 +64,15 @@ List<GlossaryEntry> glossaryEntries(AppLocalizations l10n, Ruleset ruleset) {
     if (sichuan)
       GlossaryEntry('void', l10n.glossaryTermVoid, l10n.glossaryDefVoid),
     GlossaryEntry('score', scoreUnit, l10n.glossaryDefScore),
-    if (r.isRiichi) ...[
+    if (r.isJapanese) ...[
       GlossaryEntry('riichi', l10n.glossaryTermRiichi, l10n.glossaryDefRiichi),
       GlossaryEntry('dora', l10n.glossaryTermDora, l10n.glossaryDefDora),
       GlossaryEntry(
           'furiten', l10n.glossaryTermFuriten, l10n.glossaryDefFuriten),
+    ],
+    if (r.isSanma) ...[
+      GlossaryEntry('sanma', l10n.glossaryTermSanma, l10n.glossaryDefSanma),
+      GlossaryEntry('kita', l10n.glossaryTermKita, l10n.glossaryDefKita),
     ],
     GlossaryEntry('ready', l10n.glossaryTermReady, l10n.glossaryDefReady),
     GlossaryEntry('away', l10n.glossaryTermAway, l10n.glossaryDefAway),
