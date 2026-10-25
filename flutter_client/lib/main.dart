@@ -790,8 +790,8 @@ class _NudgeCard extends StatelessWidget {
   }
 }
 
-/// Full screen, as a labelled link or (on the title screen, under the name)
-/// an icon alone.
+/// Full screen, as a labelled link or (on the title screen, under the
+/// buttons) an icon alone.
 class _FullscreenButton extends StatefulWidget {
   const _FullscreenButton({this.compact = false});
 
@@ -938,9 +938,9 @@ class _UpdateButtonState extends State<_UpdateButton> {
         tooltip: context.l10n.updateTooltip,
         icon: _busy
             ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(strokeWidth: 3),
               )
             : const Icon(Icons.refresh),
         onPressed: _busy ? null : _onPressed,
@@ -2144,20 +2144,6 @@ class _WelcomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // What the More button used to hold, as icons under the
-                    // name: full screen, update, and the links out.
-                    const Padding(
-                      padding: EdgeInsets.only(top: 6),
-                      child: Row(
-                        key: Key('titleIcons'),
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _FullscreenButton(compact: true),
-                          _UpdateButton(compact: true),
-                          _Credits(),
-                        ],
-                      ),
-                    ),
                     const SizedBox(height: 12),
                     // Two balanced lines, broken by hand rather than by the
                     // wrapper. Left to itself at a snug width a line can land
@@ -2169,16 +2155,9 @@ class _WelcomeScreen extends StatelessWidget {
                     // the text changes.
                     SizedBox(
                       width: 840,
-                      child: Text(
-                        context.l10n
-                            .welcomeTagline(context.l10n.rulesetName(ruleset)),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 22.5,
-                          height: 1.4,
-                        ),
-                      ),
+                      child: _Tagline(
+                          ruleset: ruleset,
+                          onPressed: () => _showRules(context)),
                     ),
                     const SizedBox(height: 10),
                     _NudgeCard(
@@ -2188,108 +2167,91 @@ class _WelcomeScreen extends StatelessWidget {
                       onMinimumFaan: onMinimumFaan,
                     ),
                     const SizedBox(height: 18),
-                    // Play: three equal buttons, one tap from a game.
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _TitleButton(
-                          key: const Key('singlePlayer'),
-                          primary: true,
-                          onPressed: onStart,
-                          // The mascot that toggles the guide at the table,
-                          // as the button's icon: the guide comes with
-                          // offline play.
-                          icon: Image.asset(
-                            kTileSensorAsset,
-                            key: const Key('startGuideMascot'),
-                            height: 36,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
+                    // Four equal buttons, two by two: three that start
+                    // something, then Learn, which opens a popup.
+                    SizedBox(
+                      width: _TitleButton.gridWidth,
+                      child: Wrap(
+                        key: const Key('titleButtons'),
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _TitleButton(
+                            key: const Key('singlePlayer'),
+                            primary: true,
+                            onPressed: onStart,
+                            // The mascot that toggles the guide at the table,
+                            // as the button's icon: the guide comes with
+                            // offline play.
+                            icon: Image.asset(
+                              kTileSensorAsset,
+                              key: const Key('startGuideMascot'),
+                              height: 36,
+                              filterQuality: FilterQuality.high,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                            title: context.l10n.singlePlayer,
+                            subtitle: context.l10n.singlePlayerSubtitle,
                           ),
-                          title: context.l10n.singlePlayer,
-                          subtitle: context.l10n.singlePlayerSubtitle,
-                        ),
-                        _TitleButton(
-                          key: const Key('playOnline'),
-                          onPressed: onPlayOnline,
-                          // A globe: play with anyone, anywhere.
-                          icon: const Text('🌐',
-                              key: Key('playOnlineEmoji'),
-                              style: TextStyle(fontSize: 28)),
-                          title: context.l10n.playOnline,
-                          subtitle: context.l10n.playOnlineSubtitle,
-                        ),
-                        _TitleButton(
-                          key: const Key('openBuilder'),
-                          onPressed: onBuild,
-                          // Tools: you build the table yourself. An icon,
-                          // not the 🛠️ emoji: its U+FE0F has no Noto font,
-                          // so Flutter web logs a missing-font warning.
-                          icon: const Icon(Icons.handyman,
-                              key: Key('openBuilderEmoji'), size: 28),
-                          title: context.l10n.builder,
-                          subtitle: context.l10n.builderSubtitle,
-                        ),
-                      ],
+                          _TitleButton(
+                            key: const Key('playOnline'),
+                            onPressed: onPlayOnline,
+                            // A globe: play with anyone, anywhere.
+                            icon: const Text('🌐',
+                                key: Key('playOnlineEmoji'),
+                                style: TextStyle(fontSize: 28)),
+                            title: context.l10n.playOnline,
+                          ),
+                          _TitleButton(
+                            key: const Key('openBuilder'),
+                            onPressed: onBuild,
+                            // A red dragon tile: you set the tiles out yourself.
+                            icon: const Text('🀄',
+                                key: Key('openBuilderEmoji'),
+                                style: TextStyle(fontSize: 28)),
+                            title: context.l10n.builder,
+                            subtitle: context.l10n.builderSubtitle,
+                          ),
+                          // Learn carries the daily quiz: gold while today's
+                          // puzzle is waiting.
+                          ListenableBuilder(
+                            listenable: ProgressStore.instance,
+                            builder: (context, _) {
+                              final done = ProgressStore.instance.value
+                                  .quizAnsweredOn(DateTime.now());
+                              return _TitleButton(
+                                key: const Key('learnTile'),
+                                id: 'learnTile',
+                                accent: hasDailyQuiz(ruleset) && !done,
+                                onPressed: () => _showLearn(context),
+                                icon: const Icon(Icons.school_outlined, size: 28),
+                                title: context.l10n.learnTile,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    // Everything else, grouped: each opens a popup.
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        // Learn carries the daily quiz: gold while today's
-                        // puzzle is waiting, with the streak beneath.
-                        ListenableBuilder(
-                          listenable: ProgressStore.instance,
-                          builder: (context, _) {
-                            final l10n = context.l10n;
-                            final today = DateTime.now();
-                            final progress = ProgressStore.instance.value;
-                            final quiz = hasDailyQuiz(ruleset);
-                            final done = progress.quizAnsweredOn(today);
-                            final streak = progress.quizStreakOn(today);
-                            return _TitleButton(
-                              key: const Key('learnTile'),
-                              id: 'learnTile',
-                              accent: quiz && !done,
-                              onPressed: () => _showLearn(context),
-                              icon: const Icon(Icons.school_outlined, size: 28),
-                              title: l10n.learnTile,
-                              subtitle: quiz
-                                  ? [
-                                      done
-                                          ? l10n.quizCardDone
-                                          : l10n.quizCardToday,
-                                      if (streak > 0) l10n.quizStreak(streak),
-                                    ].join(' · ')
-                                  : l10n.quizNoneShort,
-                            );
-                          },
+                    // Under the buttons, as wide as their grid: full screen and
+                    // update spaced for a thumb, the links out at the far
+                    // right.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: SizedBox(
+                        width: _TitleButton.gridWidth,
+                        child: const Row(
+                          key: Key('titleIcons'),
+                          children: [
+                            _FullscreenButton(compact: true),
+                            SizedBox(width: 40),
+                            _UpdateButton(compact: true),
+                            Spacer(),
+                            _Credits(),
+                          ],
                         ),
-                        // Says it switches: which rules are in play, "tap to
-                        // switch", and a swap arrow at the end.
-                        Tooltip(
-                          message: context.l10n.rulesTileTooltip,
-                          child: _TitleButton(
-                            key: const Key('rulesTile'),
-                            id: 'rulesTile',
-                            onPressed: () => _showRules(context),
-                            icon: RulesetFlag(ruleset, size: 26, tooltip: false),
-                            title: context.l10n.rules,
-                            subtitle: context.l10n.rulesTileHint(
-                                context.l10n.rulesetName(ruleset)),
-                            trailing: const Icon(Icons.swap_horiz,
-                                key: Key('rulesTileSwitch'),
-                                size: 26,
-                                color: AppColors.goldText),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     if (rejoinCode case final code?) ...[
                       const SizedBox(height: 14),
@@ -2336,9 +2298,79 @@ class _WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// The source on GitHub and the "Built with Flutter" logo, among the icons
-/// under the title: links out of the app rather than controls of it, so they
-/// stay away from the table, where a phone's Menu button now sits.
+/// The welcome tagline, its rules' name a button that opens the rules popup:
+/// where the player switches rules, reads them, or opens the PDF.
+class _Tagline extends StatelessWidget {
+  const _Tagline({required this.ruleset, required this.onPressed});
+
+  final Ruleset ruleset;
+  final VoidCallback onPressed;
+
+  static const _style =
+      TextStyle(color: Colors.white70, fontSize: 22.5, height: 1.4);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    // The translation decides where the name sits, so split it there.
+    const mark = '\u0000';
+    final parts = l10n.welcomeTagline(mark).split(mark);
+    final name = l10n.rulesetName(ruleset);
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: parts.first),
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Tooltip(
+            message: l10n.rulesTileTooltip,
+            child: e2eId(
+              'rulesTile',
+              Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  key: const Key('rulesTile'),
+                  onTap: onPressed,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0x22caa24e),
+                      border: Border.all(color: AppColors.gold, width: 1.5),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RulesetFlag(ruleset, size: 22, tooltip: false),
+                        const SizedBox(width: 8),
+                        Text(name,
+                            style: _style.copyWith(
+                                color: AppColors.goldText,
+                                fontWeight: FontWeight.bold)),
+                        const Icon(Icons.arrow_drop_down,
+                            key: Key('rulesTileSwitch'),
+                            size: 30,
+                            color: AppColors.goldText),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        for (final rest in parts.skip(1)) TextSpan(text: rest),
+      ]),
+      textAlign: TextAlign.center,
+      style: _style,
+    );
+  }
+}
+
+/// The source on GitHub and the "Built with Flutter" logo, at the right end of
+/// the icons under the buttons: links out of the app rather than controls of
+/// it, so they stay away from the table, where a phone's Menu button now sits.
 class _Credits extends StatelessWidget {
   const _Credits();
 
@@ -2380,8 +2412,9 @@ class _Credits extends StatelessWidget {
       );
 }
 
-/// One of the small icons under the title (full screen, update): its name is
-/// in the tooltip.
+/// One of the icons under the buttons (full screen, update): its name is in
+/// the tooltip. Big enough, with room around it, to tap on a phone, where the
+/// canvas is scaled down.
 class _TitleIconButton extends StatelessWidget {
   const _TitleIconButton({
     required this.id,
@@ -2401,9 +2434,9 @@ class _TitleIconButton extends StatelessWidget {
         IconButton(
           key: Key(id),
           tooltip: tooltip,
-          iconSize: 22,
-          visualDensity: VisualDensity.compact,
-          color: Colors.white38,
+          iconSize: 44,
+          padding: const EdgeInsets.all(16),
+          color: Colors.white54,
           icon: icon,
           onPressed: onPressed,
         ),
@@ -2422,11 +2455,13 @@ class _TitleButton extends StatelessWidget {
     this.primary = false,
     this.accent = false,
     this.id,
-    this.trailing,
   });
 
   static const double width = 330;
   static const double height = 108;
+
+  /// Two buttons and the gap between them: the title screen's 2x2 grid.
+  static const double gridWidth = 2 * width + 12;
 
   final VoidCallback onPressed;
   final Widget icon;
@@ -2439,9 +2474,6 @@ class _TitleButton extends StatelessWidget {
 
   /// The Playwright handle, when the e2e suite drives this button.
   final String? id;
-
-  /// Shown at the button's far end: what pressing it does (Rules' swap).
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -2471,7 +2503,6 @@ class _TitleButton extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing case final t?) ...[const SizedBox(width: 10), t],
       ],
     );
     const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);

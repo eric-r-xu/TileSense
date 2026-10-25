@@ -94,15 +94,17 @@ void main() {
       .join('|');
 
   testWidgets(
-      'the Learn tile says the puzzle is waiting, and its popup opens the '
-      'quiz and Back returns', (tester) async {
+      'the Learn tile is its name alone, and its popup says the puzzle is '
+      'waiting, opens the quiz and Back returns', (tester) async {
     await pumpMenu(tester);
-    expect(tileText(tester), contains("Today's puzzles are ready"));
+    expect(tileText(tester), 'Learn / Train');
     expect(find.byKey(const Key('dailyQuizCard')), findsNothing,
         reason: 'the quiz is in the Learn popup, not a card of its own');
     expect(find.byKey(const Key('dailyQuizMascot')), findsNothing);
 
     await openPopup(tester, 'learnTile');
+    expect(tester.widget<Text>(find.byKey(const Key('dailyQuizStatus'))).data,
+        "Today's puzzles are ready");
     expect(find.byKey(const Key('dailyQuizStreak')), findsNothing);
     await tester.tap(find.byKey(const Key('dailyQuizCard')));
     await tester.pump();
@@ -182,7 +184,7 @@ void main() {
     expect(find.text('Single Player'), findsOneWidget);
   });
 
-  testWidgets('answering marks today done and starts the streak on the tile',
+  testWidgets('answering marks today done and starts the streak',
       (tester) async {
     await pumpMenu(tester);
     await openQuiz(tester);
@@ -202,9 +204,13 @@ void main() {
     await answer();
     await tester.tap(find.byKey(const Key('quizBack')));
     await tester.pump();
-    expect(tileText(tester), isNot(contains('Done for today')),
+    await openPopup(tester, 'learnTile');
+    expect(tester.widget<Text>(find.byKey(const Key('dailyQuizStatus'))).data,
+        isNot(contains('Done for today')),
         reason: 'a day half played is not done');
-    await openQuiz(tester);
+    await tester.tap(find.byKey(const Key('dailyQuizCard')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await settle(tester);
 
     for (var q = 1; q <= kQuizPerDay; q++) {
@@ -217,8 +223,6 @@ void main() {
     await tester.tap(find.byKey(const Key('quizBack')));
     await tester.pump();
 
-    expect(tileText(tester),
-        contains('Done for today. Back tomorrow! · 1-day streak'));
     await openPopup(tester, 'learnTile');
     expect(tester.widget<Text>(find.byKey(const Key('dailyQuizStatus'))).data,
         'Done for today. Back tomorrow!');

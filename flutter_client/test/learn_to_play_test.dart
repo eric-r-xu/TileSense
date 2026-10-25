@@ -25,6 +25,14 @@ void main() {
   });
   tearDown(() => LearnToPlay.autoShow = false);
 
+  test('each sentence of a lesson gets its own line, a blank line between',
+      () {
+    expect(sentenceLines('Draw a tile. Discard one! Done? Yes.'),
+        'Draw a tile.\n\nDiscard one!\n\nDone?\n\nYes.');
+    expect(sentenceLines('牌を引きます。捨てます。'), '牌を引きます。\n\n捨てます。');
+    expect(sentenceLines('1 to 9 (a, b).'), '1 to 9 (a, b).');
+  });
+
   testWidgets('the first Start opens the lesson, then character select',
       (tester) async {
     await boot(tester);
@@ -33,6 +41,8 @@ void main() {
 
     expect(find.byKey(const Key('learnTitle')), findsOneWidget);
     expect(text(tester, 'learnStep'), '1 of 4');
+    expect(text(tester, 'learnBody'), startsWith('Build a hand of 14 tiles '
+        'made of four sets plus one pair.\n\nEach turn'));
     expect(find.byKey(const Key('charactersContinue')), findsNothing);
 
     for (final step in ['2', '3', '4']) {

@@ -62,7 +62,7 @@ void main() {
   testWidgets('Hong Kong is the default from the welcome screen',
       (tester) async {
     await boot(tester);
-    expect(find.textContaining('Sharpen your Hong Kong Mahjong decisions'),
+    expect(taglineRules('Hong Kong'),
         findsOneWidget);
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -87,7 +87,7 @@ void main() {
     await boot(tester);
     await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_riichi')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Sharpen your Riichi Mahjong decisions'),
+    expect(taglineRules('Riichi'),
         findsOneWidget);
     await tester.tap(find.text('Single Player'));
     await tester.pump();
@@ -112,7 +112,7 @@ void main() {
     await boot(tester);
     await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_hongKong')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Sharpen your Hong Kong Mahjong decisions'),
+    expect(taglineRules('Hong Kong'),
         findsOneWidget);
     await openPopup(tester, 'rulesTile');
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);
@@ -279,7 +279,7 @@ void main() {
     // Taiwanese as the current choice.
     await tester.tap(find.byKey(const Key('backToMenu')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Sharpen your Taiwanese Mahjong decisions'),
+    expect(taglineRules('Taiwanese'),
         findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
@@ -334,7 +334,7 @@ void main() {
     await boot(tester);
     await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_taiwanese')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Sharpen your Taiwanese Mahjong decisions'),
+    expect(taglineRules('Taiwanese'),
         findsOneWidget);
     await openPopup(tester, 'rulesTile');
     expect(find.text('🇯🇵 Riichi'), findsOneWidget);

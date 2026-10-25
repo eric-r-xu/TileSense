@@ -262,18 +262,13 @@ void main() {
       expect(find.byKey(const Key('quizQuestion')), findsNothing);
     });
 
-    testWidgets('the Learn tile and popup say there is no quiz for sanma',
+    testWidgets('the Learn popup says there is no quiz for sanma',
         (tester) async {
       await tester.binding.setSurfaceSize(kDesignSize);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
       await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_sanma')));
-      expect(
-          find.descendant(
-              of: find.byKey(const Key('learnTile')),
-              matching: find.text('No daily quiz for Sanma')),
-          findsOneWidget);
       await openPopup(tester, 'learnTile');
       expect(find.byKey(const Key('dailyQuizUnavailable')), findsOneWidget);
       expect(find.byKey(const Key('dailyQuizCard')), findsNothing);
