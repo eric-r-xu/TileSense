@@ -336,19 +336,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get singlePlayer => 'ひとりで遊ぶ';
 
   @override
-  String get singlePlayerSubtitle => 'ガイド付き';
+  String get singlePlayerSubtitle => 'TileSense ガイド付き';
 
   @override
   String get playOnline => 'オンライン対戦';
 
   @override
-  String get playOnlineSubtitle => '空席はボットが埋めます、ガイドなし';
-
-  @override
   String get builder => '手牌ビルダー';
 
   @override
-  String get builderSubtitle => '好きな卓を作って TileSense に評価させる';
+  String get builderSubtitle => 'TileSense ガイドに評価させる';
 
   @override
   String rejoinOnline(String code) {
@@ -2856,9 +2853,6 @@ class AppLocalizationsJa extends AppLocalizations {
       '三麻では北を手に残さず抜くことができます。抜いた北はドラとして数え、王牌から補充牌を引きます。他家はその北でロンできます。';
 
   @override
-  String get quizNoneShort => '三麻のデイリークイズはありません';
-
-  @override
   String get quizNoneSanma => '三麻のデイリークイズはまだありません。リーチ麻雀か香港麻雀に切り替えると遊べます。';
 
   @override
@@ -2923,11 +2917,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String tourStepOf(int step, int total) {
     return '$step / $total';
-  }
-
-  @override
-  String rulesTileHint(String rules) {
-    return '$rulesで対局中・タップで変更';
   }
 
   @override

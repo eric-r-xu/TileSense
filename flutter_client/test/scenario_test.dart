@@ -297,6 +297,27 @@ void main() {
       expect(c.scenario.minimumPoints, 1);
     });
 
+    testWidgets('the Menu offers sanma, which seats three and sets kita aside',
+        (tester) async {
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const Key('openBuilder')));
+      await pumpLoadedPage(tester);
+      ScenarioController builder() =>
+          tester.widget<TableView>(find.byType(TableView)).game
+              as ScenarioController;
+
+      await tapBuilderMenu(tester, 'builderMenuRuleset_sanma');
+      expect(builder().scenario.ruleset, Ruleset.sanma);
+      expect(find.byKey(const Key('builderKita_0')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
     testWidgets('the Menu offers each rule\'s own minimum', (tester) async {
       await tester.binding.setSurfaceSize(kDesignSize);
       addTearDown(() => tester.binding.setSurfaceSize(null));
