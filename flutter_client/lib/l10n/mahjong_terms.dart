@@ -15,11 +15,22 @@ import 'app_localizations.dart';
 extension MahjongTerms on AppLocalizations {
   String rulesetName(Ruleset r) => switch (r) {
         Ruleset.riichi => rulesetRiichi,
+        Ruleset.sanma => rulesetSanma,
         Ruleset.hongKong => rulesetHongKong,
         Ruleset.taiwanese => rulesetTaiwanese,
         Ruleset.mcr => rulesetMcr,
         Ruleset.sichuan => rulesetSichuan,
       };
+
+  /// [rulesetName] for a tooltip, where there is room to say what the rules
+  /// are: sanma says it is three-player.
+  String rulesetTooltipName(Ruleset r) =>
+      r.isSanma ? rulesetSanmaLong : rulesetName(r);
+
+  /// The label on a link to [r]'s rules: a PDF, or (sanma) a web page.
+  String rulesLinkLabel(Ruleset r) => r.rulesUrl.endsWith('.pdf')
+      ? rulesPdf(rulesetName(r))
+      : rulesWeb(rulesetName(r));
 
   /// [rulesetName] with the ruleset's flag in front, for toggles and badges.
   /// Plain text: a ruleset with a flag image (see [Ruleset.flagAsset]) shows
@@ -57,7 +68,7 @@ extension MahjongTerms on AppLocalizations {
       {required int minimumFaan, required int minimumPoints}) {
     if (s == MinimumShortfall.none) return '';
     final label = switch (r) {
-      Ruleset.riichi => noYaku,
+      Ruleset.riichi || Ruleset.sanma => noYaku,
       Ruleset.hongKong => underFaan(minimumFaan),
       Ruleset.taiwanese => underTai(minimumPoints),
       Ruleset.mcr => underFan(McrRules.minimumPoints),
@@ -89,6 +100,7 @@ extension MahjongTerms on AppLocalizations {
       'RON' => callLabel(CallType.ron, r),
       'TSUMO' => tsumoLabel(r),
       'RIICHI' => bubbleRiichi,
+      'KITA' => bubbleKita,
       'RINSHAN' => r.isChineseStyle ? bubbleRinshanChinese : bubbleRinshanRiichi,
       _ => token,
     };
@@ -130,7 +142,7 @@ extension MahjongTerms on AppLocalizations {
   /// English rather than blank.
   String scoringName(String name, Ruleset r) {
     final table = switch (r) {
-      Ruleset.riichi => _riichiNames,
+      Ruleset.riichi || Ruleset.sanma => _riichiNames,
       Ruleset.hongKong => _hongKongNames,
       Ruleset.taiwanese => _taiwaneseNames,
       Ruleset.mcr => _hongKongNames,
@@ -175,7 +187,7 @@ extension MahjongTerms on AppLocalizations {
   static String _pick(
           Ruleset r, String riichi, String hongKong, String taiwanese) =>
       switch (r) {
-        Ruleset.riichi => riichi,
+        Ruleset.riichi || Ruleset.sanma => riichi,
         Ruleset.hongKong => hongKong,
         Ruleset.taiwanese => taiwanese,
         Ruleset.mcr => taiwanese,
@@ -194,6 +206,7 @@ final Map<String, String Function(AppLocalizations)> _riichiNames = {
   'Houtei Raoyui': (l) => l.yakuHouteiRaoyui,
   'Rinshan Kaihou': (l) => l.yakuRinshanKaihou,
   'Chankan': (l) => l.yakuChankan,
+  'Kita': (l) => l.yakuKita,
   'Tanyao': (l) => l.yakuTanyao,
   'Round Wind': (l) => l.yakuRoundWind,
   'Seat Wind': (l) => l.yakuSeatWind,

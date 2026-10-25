@@ -17,8 +17,9 @@ void main() {
       try {
         // A new game's first hand plays for points: Aggressive under riichi;
         // Hong Kong and Taiwanese pin Balanced.
+        // Sanma plays riichi's early dials throughout.
         expect(game.playStyle,
-            initial.isRiichi ? PlayStyle.aggressive : PlayStyle.balanced);
+            initial.isJapanese ? PlayStyle.aggressive : PlayStyle.balanced);
         // Taiwanese starts at 5 tai, where Balanced focus measured ahead.
         expect(game.handFocus,
             initial.isTaiwanese ? HandFocus.balanced : HandFocus.speed);

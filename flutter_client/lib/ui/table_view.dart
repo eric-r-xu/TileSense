@@ -12,6 +12,7 @@ import '../l10n/mahjong_terms.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart' show Ruleset;
 import 'meld_row.dart';
+import 'ruleset_flag.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
 import 'theme.dart';
@@ -27,7 +28,8 @@ const kMinimumShortfallColor = Color(0xffef6c00);
 /// The round/wall status sits on one line dead centre, between the ponds —
 /// see [TableStatusLine].
 /// Which part of the table the scenario builder is currently pointing at.
-enum TableArea { pond, melds, dora }
+/// [kita] is a sanma seat's Norths set aside.
+enum TableArea { pond, melds, dora, kita }
 
 /// In-place editing hooks. Null in the live game — the table there is a
 /// read-out, never an editor — and supplied only by the scenario builder, which
@@ -178,7 +180,11 @@ class TableView extends StatelessWidget {
         children: [
           Column(
             children: [
-              if (acrossInBar)
+              if (acrossInBar && round.ruleset.isSanma)
+                // Sanma: nobody sits across. The row keeps its height so the
+                // ponds sit where they always do.
+                const SizedBox(height: _acrossHandRowHeight)
+              else if (acrossInBar)
                 // The across seat's face-down hand, straight under their
                 // portrait in the app bar.
                 SizedBox(
@@ -190,6 +196,11 @@ class TableView extends StatelessWidget {
                           _OpponentHand(game: game, seat: 2, vertical: false),
                     ),
                   ),
+                )
+              else if (round.ruleset.isSanma)
+                SizedBox(
+                  height: _acrossHandRowHeight,
+                  child: Center(child: EmptySeatNote(ruleset: round.ruleset)),
                 )
               else
                 _opponentRow(round, 2),
@@ -276,7 +287,7 @@ class TableView extends StatelessWidget {
           const SizedBox(width: 8),
         ],
         _placard(round, kHumanSeat),
-        if (round.ruleset.isChineseStyle) ...[
+        if (_hasTray(round.ruleset)) ...[
           const SizedBox(width: 8),
           _seatFlowers(round, kHumanSeat),
         ],
@@ -383,6 +394,11 @@ class TableView extends StatelessWidget {
     );
   }
 
+  /// Whether each seat has a tray of set-aside tiles beside its placard:
+  /// flowers (Hong Kong, Taiwanese, MCR) or sanma's kita Norths.
+  static bool _hasTray(Ruleset r) =>
+      (r.isChineseStyle && !r.isSichuan) || r.isSanma;
+
   /// 40% bigger than the plain `TileSize.tiny` step — flowers were still
   /// hard to make out at that size, and this is the only place they render.
   static const double _flowerScale = 1.4;
@@ -394,12 +410,15 @@ class TableView extends StatelessWidget {
   /// in the live game; the builder keeps a small tappable placeholder so
   /// there's always something on the table to select into flower-editing
   /// mode.
+  ///
+  /// Sanma's Norths set aside as kita sit in the same tray: tiles out of the
+  /// hand that count for it.
   Widget _seatFlowers(Round round, int seat) {
     // Sichuan is Chinese-style but has no flowers to show or edit.
-    if (!round.ruleset.isChineseStyle || round.ruleset.isSichuan) {
-      return const SizedBox.shrink();
-    }
-    final flowers = round.seats[seat].flowers;
+    if (!_hasTray(round.ruleset)) return const SizedBox.shrink();
+    final flowers = round.ruleset.isSanma
+        ? round.seats[seat].kita
+        : round.seats[seat].flowers;
     if (edits == null && flowers.isEmpty) return const SizedBox.shrink();
     final tray = flowers.isEmpty
         ? const SizedBox(width: 21, height: 29)
@@ -414,7 +433,8 @@ class TableView extends StatelessWidget {
                 ),
             ],
           );
-    return _selectable(TableArea.dora, seat, tray);
+    return _selectable(
+        round.ruleset.isSanma ? TableArea.kita : TableArea.dora, seat, tray);
   }
 
   /// The 14-tile dead wall: seven columns, two rows. The upper row shows the
@@ -809,7 +829,7 @@ class TableView extends StatelessWidget {
           quarterTurns: isLeft ? 3 : 1,
           child: _placard(round, seat),
         ),
-        if (round.ruleset.isChineseStyle) ...[
+        if (_hasTray(round.ruleset)) ...[
           const SizedBox(height: 4),
           _seatFlowers(round, seat),
         ],
@@ -1568,6 +1588,8 @@ class TableBarTitle extends StatelessWidget {
         acrossInBar: true,
         ownPortrait: ownPortrait);
     const seat = 2;
+    // Sanma: nobody sits across, so the bar says so in their place.
+    final sanma = round.ruleset.isSanma;
     return SizedBox(
       height: height,
       child: CustomMultiChildLayout(
@@ -1578,7 +1600,11 @@ class TableBarTitle extends StatelessWidget {
           LayoutId(id: _BarPart.leading, child: leading),
           LayoutId(
             id: _BarPart.seat,
-            child: FittedBox(
+            child: sanma
+                ? FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: EmptySeatNote(ruleset: round.ruleset))
+                : FittedBox(
               key: const Key('acrossSeat'),
               fit: BoxFit.scaleDown,
               child: Row(
@@ -1652,4 +1678,38 @@ class _BarTitleLayout extends MultiChildLayoutDelegate {
   @override
   bool shouldRelayout(_BarTitleLayout oldDelegate) =>
       oldDelegate.centreX != centreX;
+}
+
+/// Where sanma's empty seat across would be: a dim note that only three
+/// play, which explains itself on hover.
+class EmptySeatNote extends StatelessWidget {
+  const EmptySeatNote({super.key, required this.ruleset});
+
+  final Ruleset ruleset;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Tooltip(
+      message: l10n.sanmaTooltip,
+      child: Container(
+        key: const Key('emptyAcrossSeat'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0x22000000),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RulesetFlag(ruleset, size: 16, tooltip: false),
+            const SizedBox(width: 8),
+            Text(l10n.emptySeatSanma,
+                style: const TextStyle(color: Colors.white54, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
 }

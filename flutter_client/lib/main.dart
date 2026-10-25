@@ -32,6 +32,7 @@ import 'ui/beginner_guide.dart' show BeginnerGuide;
 import 'ui/character_select_page.dart';
 import 'ui/daily_quiz_page.dart' deferred as quiz;
 import 'ui/e2e_id.dart';
+import 'ui/table_tour.dart';
 import 'ui/efficiency_overlay.dart';
 import 'ui/hand_view.dart';
 import 'ui/glossary.dart';
@@ -788,8 +789,13 @@ class _NudgeCard extends StatelessWidget {
   }
 }
 
+/// Full screen, as a labelled link or (on the title screen, under the name)
+/// an icon alone.
 class _FullscreenButton extends StatefulWidget {
-  const _FullscreenButton();
+  const _FullscreenButton({this.compact = false});
+
+  /// Icon only, its name in the tooltip.
+  final bool compact;
 
   @override
   State<_FullscreenButton> createState() => _FullscreenButtonState();
@@ -832,6 +838,16 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
   Widget build(BuildContext context) {
     if (!fs.fullscreenButtonVisible) return const SizedBox.shrink();
     final full = fs.isFullscreen;
+    final onPressed = fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp;
+    if (widget.compact) {
+      return _TitleIconButton(
+        id: 'fullscreen',
+        tooltip:
+            full ? context.l10n.fullscreenExit : context.l10n.fullscreenTooltip,
+        icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen),
+        onPressed: onPressed,
+      );
+    }
     return Tooltip(
       message:
           full ? context.l10n.fullscreenExit : context.l10n.fullscreenTooltip,
@@ -853,7 +869,10 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
 /// server which build it has, then reloads with every cache dropped. Only on
 /// the welcome screen, so a reload never lands mid-match.
 class _UpdateButton extends StatefulWidget {
-  const _UpdateButton();
+  const _UpdateButton({this.compact = false});
+
+  /// Icon only, its name in the tooltip.
+  final bool compact;
 
   @override
   State<_UpdateButton> createState() => _UpdateButtonState();
@@ -912,6 +931,20 @@ class _UpdateButtonState extends State<_UpdateButton> {
   @override
   Widget build(BuildContext context) {
     if (!upd.updateButtonVisible) return const SizedBox.shrink();
+    if (widget.compact) {
+      return _TitleIconButton(
+        id: 'updateApp',
+        tooltip: context.l10n.updateTooltip,
+        icon: _busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.refresh),
+        onPressed: _busy ? null : _onPressed,
+      );
+    }
     return Tooltip(
       message: context.l10n.updateTooltip,
       child: TextButton.icon(
@@ -1069,6 +1102,13 @@ class _GamePageState extends State<GamePage> {
   // Off by default so a new player sees the plain table first; the TileSensor
   // button beside the hand turns it on.
   bool _showGuide = false;
+  // The table tour is up, over the first hand (or on request).
+  bool _touring = false;
+  // The Learn popup's Table tour asked for the tour with the next game.
+  bool _tourRequested = false;
+  // The tour paused the game itself, so it resumes it when done.
+  bool _tourPaused = false;
+  final _tourTargets = TableTourTargets();
   // Shown once per app load, ahead of the table; the Start button hides it
   // for the rest of the session.
   bool _showWelcome = true;
@@ -1288,6 +1328,10 @@ class _GamePageState extends State<GamePage> {
         _choosingCharacters = false;
         _showWelcome = false;
       });
+      // A newcomer's first hand, or a replay asked for from the Learn popup,
+      // opens with the table tour.
+      if (_tourRequested || TableTour.shouldAutoShow) _startTour();
+      _tourRequested = false;
     } catch (_) {
       setState(() => _startFailed = true);
     }
@@ -1415,6 +1459,12 @@ class _GamePageState extends State<GamePage> {
         }),
         onPractice: () => setState(() => _practicing = true),
         onDailyQuiz: () => setState(() => _dailyQuiz = true),
+        // The tour runs over a real table: start a game, as Start does.
+        onTableTour: () => setState(() {
+          _tourRequested = true;
+          _rerollCharacters();
+          _choosingCharacters = true;
+        }),
         minimumFaan: _minimumFaan,
         onMinimumFaan: (n) => setState(() => _minimumFaan = n),
         onBuild: () => setState(() {
@@ -1434,6 +1484,34 @@ class _GamePageState extends State<GamePage> {
     // keeps only its information and the controls move to one Menu button
     // under the right thumb, beside your hand, which opens them at full size.
     final phone = isPhoneLayout(context);
+    // The table tour, when it is up, covers the whole screen, bar included.
+    return Stack(children: [
+      _gameScaffold(context, phone),
+      if (_touring)
+        Positioned.fill(
+          child: TableTourOverlay(
+            targets: _tourTargets,
+            phone: phone,
+            onDone: _endTour,
+          ),
+        ),
+    ]);
+  }
+
+  /// Opens the table tour, holding the game still while it is up.
+  void _startTour() {
+    _tourPaused = !_game.paused;
+    if (_tourPaused) _game.togglePause();
+    setState(() => _touring = true);
+  }
+
+  void _endTour() {
+    if (_tourPaused && _game.paused) _game.togglePause();
+    _tourPaused = false;
+    setState(() => _touring = false);
+  }
+
+  Widget _gameScaffold(BuildContext context, bool phone) {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 50,
@@ -1441,11 +1519,15 @@ class _GamePageState extends State<GamePage> {
         leadingWidth: BarBackButton.leadingWidth,
         leading: phone
             ? null
-            : BarBackButton(
-                buttonKey: const Key('backToMenu'),
-                label: context.l10n.menu,
-                tooltip: context.l10n.menuTooltip,
-                onPressed: _backToMenu,
+            : KeyedSubtree(
+                // The tour's last step points here on a larger screen.
+                key: _tourTargets.menu,
+                child: BarBackButton(
+                  buttonKey: const Key('backToMenu'),
+                  label: context.l10n.menu,
+                  tooltip: context.l10n.menuTooltip,
+                  onPressed: _backToMenu,
+                ),
               ),
         // The bar's own controls on the left, then the across seat — up here
         // rather than on the felt, so the ponds get that row's height.
@@ -1472,7 +1554,7 @@ class _GamePageState extends State<GamePage> {
                         animation: _game,
                         builder: (context, _) => Tooltip(
                           message: context.l10n.playingRulesTooltip(
-                              context.l10n.rulesetName(_game.ruleset),
+                              context.l10n.rulesetTooltipName(_game.ruleset),
                               _minimumSentence()),
                           child: Padding(
                             key: const Key('ruleset'),
@@ -1480,6 +1562,7 @@ class _GamePageState extends State<GamePage> {
                                 horizontal: 8, vertical: 6),
                             child: RulesetFlagLabel(
                               _game.ruleset,
+                              tooltip: false,
                               suffix: _minimumTag(),
                               style: const TextStyle(
                                 color: AppColors.goldBright,
@@ -1495,8 +1578,8 @@ class _GamePageState extends State<GamePage> {
                         animation: _game,
                         builder: (context, _) => IconButton(
                           key: const Key('rulesPdf'),
-                          tooltip: context.l10n.rulesPdf(
-                              context.l10n.rulesetName(_game.ruleset)),
+                          tooltip:
+                              context.l10n.rulesLinkLabel(_game.ruleset),
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
                           color: Colors.white54,
@@ -1529,7 +1612,11 @@ class _GamePageState extends State<GamePage> {
                               ? l10n.hanchanCaveatChinese
                               : l10n.hanchanCaveatRiichi;
                           return Tooltip(
-                            message: _game.hanchan
+                            message: _game.ruleset.isSanma
+                                ? (_game.hanchan
+                                    ? l10n.hanchanOnTooltipSanma(caveat)
+                                    : l10n.eastOnlyTooltipSanma(caveat))
+                                : _game.hanchan
                                 ? l10n.hanchanOnTooltip(caveat)
                                 : (_game.ruleset.isChineseStyle
                                     ? l10n.eastOnlyTooltipChinese(caveat)
@@ -1758,11 +1845,13 @@ class _GamePageState extends State<GamePage> {
                       game: _game,
                       showGuide: _showGuide,
                       onToggleGuide: _toggleGuide,
+                      tourTargets: _tourTargets,
                       onMenu: phone
                           ? () => showPhoneMenu(context, _game,
                               onMainMenu: _backToMenu,
                               onNewGame: _confirmNewGame,
-                              onToggleLength: _confirmToggleLength)
+                              onToggleLength: _confirmToggleLength,
+                              onTableTour: _startTour)
                           : null,
                     ),
                   ],
@@ -1792,7 +1881,9 @@ class _GamePageState extends State<GamePage> {
                       ),
                     ),
                   ),
-                if (_game.paused)
+                // The tour holds the game still without the pause cover, so
+                // the table it points at stays in view.
+                if (_game.paused && !_touring)
                   Positioned.fill(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
@@ -1838,6 +1929,7 @@ class _WelcomeScreen extends StatelessWidget {
     required this.onLearn,
     required this.onPractice,
     required this.onDailyQuiz,
+    required this.onTableTour,
     required this.minimumFaan,
     required this.onMinimumFaan,
     required this.onBuild,
@@ -1860,6 +1952,9 @@ class _WelcomeScreen extends StatelessWidget {
 
   /// Opens today's daily quiz puzzle.
   final VoidCallback onDailyQuiz;
+
+  /// Starts a game with the table tour over its first hand.
+  final VoidCallback onTableTour;
 
   /// Hong Kong's minimum faan for the next game, and how to change it.
   final int minimumFaan;
@@ -1922,7 +2017,7 @@ class _WelcomeScreen extends StatelessWidget {
             key: Key('rulesPdf_${value.name}'),
             onPressed: () => openRules(value),
             icon: const Icon(Icons.open_in_new, size: 14),
-            label: Text(context.l10n.rulesPdf(context.l10n.rulesetName(value))),
+            label: Text(context.l10n.rulesLinkLabel(value)),
             style: TextButton.styleFrom(
               foregroundColor: AppColors.link,
               visualDensity: VisualDensity.compact,
@@ -1954,6 +2049,12 @@ class _WelcomeScreen extends StatelessWidget {
             onPressed: onPractice,
           ),
           _PopupAction(
+            id: 'tableTourLink',
+            icon: Icons.tour_outlined,
+            label: context.l10n.tableTourLink,
+            onPressed: onTableTour,
+          ),
+          _PopupAction(
             id: 'glossaryLink',
             icon: Icons.help_outline,
             label: context.l10n.glossaryTitle,
@@ -1970,6 +2071,8 @@ class _WelcomeScreen extends StatelessWidget {
           _rulesetOption(
               context, Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
           _rulesetOption(
+              context, Ruleset.sanma, context.l10n.rulesetSubtitleSanma),
+          _rulesetOption(
               context, Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
           _rulesetOption(context, Ruleset.taiwanese,
               context.l10n.rulesetSubtitleTaiwanese),
@@ -1979,17 +2082,6 @@ class _WelcomeScreen extends StatelessWidget {
         ],
       );
 
-  void _showMore(BuildContext context) => _showTitlePopup(
-        context,
-        key: const Key('morePopup'),
-        title: context.l10n.moreTile,
-        children: const [
-          _FullscreenButton(),
-          _UpdateButton(),
-          SizedBox(height: 8),
-          _Credits(),
-        ],
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -2043,7 +2135,21 @@ class _WelcomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    // What the More button used to hold, as icons under the
+                    // name: full screen, update, and the links out.
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Row(
+                        key: Key('titleIcons'),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _FullscreenButton(compact: true),
+                          _UpdateButton(compact: true),
+                          _Credits(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     // Two balanced lines, broken by hand rather than by the
                     // wrapper. Left to itself at a snug width a line can land
                     // within a pixel of the limit, so any browser whose default
@@ -2135,36 +2241,44 @@ class _WelcomeScreen extends StatelessWidget {
                             final l10n = context.l10n;
                             final today = DateTime.now();
                             final progress = ProgressStore.instance.value;
+                            final quiz = hasDailyQuiz(ruleset);
                             final done = progress.quizAnsweredOn(today);
                             final streak = progress.quizStreakOn(today);
                             return _TitleButton(
                               key: const Key('learnTile'),
                               id: 'learnTile',
-                              accent: !done,
+                              accent: quiz && !done,
                               onPressed: () => _showLearn(context),
                               icon: const Icon(Icons.school_outlined, size: 28),
                               title: l10n.learnTile,
-                              subtitle: [
-                                done ? l10n.quizCardDone : l10n.quizCardToday,
-                                if (streak > 0) l10n.quizStreak(streak),
-                              ].join(' · '),
+                              subtitle: quiz
+                                  ? [
+                                      done
+                                          ? l10n.quizCardDone
+                                          : l10n.quizCardToday,
+                                      if (streak > 0) l10n.quizStreak(streak),
+                                    ].join(' · ')
+                                  : l10n.quizNoneShort,
                             );
                           },
                         ),
-                        _TitleButton(
-                          key: const Key('rulesTile'),
-                          id: 'rulesTile',
-                          onPressed: () => _showRules(context),
-                          icon: RulesetFlag(ruleset, size: 26),
-                          title: context.l10n.rules,
-                          subtitle: context.l10n.rulesetName(ruleset),
-                        ),
-                        _TitleButton(
-                          key: const Key('moreTile'),
-                          id: 'moreTile',
-                          onPressed: () => _showMore(context),
-                          icon: const Icon(Icons.more_horiz, size: 28),
-                          title: context.l10n.moreTile,
+                        // Says it switches: which rules are in play, "tap to
+                        // switch", and a swap arrow at the end.
+                        Tooltip(
+                          message: context.l10n.rulesTileTooltip,
+                          child: _TitleButton(
+                            key: const Key('rulesTile'),
+                            id: 'rulesTile',
+                            onPressed: () => _showRules(context),
+                            icon: RulesetFlag(ruleset, size: 26, tooltip: false),
+                            title: context.l10n.rules,
+                            subtitle: context.l10n.rulesTileHint(
+                                context.l10n.rulesetName(ruleset)),
+                            trailing: const Icon(Icons.swap_horiz,
+                                key: Key('rulesTileSwitch'),
+                                size: 26,
+                                color: AppColors.goldText),
+                          ),
                         ),
                       ],
                     ),
@@ -2213,8 +2327,8 @@ class _WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// The source on GitHub and the "Built with Flutter" logo, in the title
-/// screen's corner: links out of the app rather than controls of it, so they
+/// The source on GitHub and the "Built with Flutter" logo, among the icons
+/// under the title: links out of the app rather than controls of it, so they
 /// stay away from the table, where a phone's Menu button now sits.
 class _Credits extends StatelessWidget {
   const _Credits();
@@ -2257,6 +2371,36 @@ class _Credits extends StatelessWidget {
       );
 }
 
+/// One of the small icons under the title (full screen, update): its name is
+/// in the tooltip.
+class _TitleIconButton extends StatelessWidget {
+  const _TitleIconButton({
+    required this.id,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String id;
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => e2eId(
+        id,
+        IconButton(
+          key: Key(id),
+          tooltip: tooltip,
+          iconSize: 22,
+          visualDensity: VisualDensity.compact,
+          color: Colors.white38,
+          icon: icon,
+          onPressed: onPressed,
+        ),
+      );
+}
+
 /// A title-screen button: every one is the same size, whether it starts a game
 /// or opens a popup. [primary] fills it in gold.
 class _TitleButton extends StatelessWidget {
@@ -2269,6 +2413,7 @@ class _TitleButton extends StatelessWidget {
     this.primary = false,
     this.accent = false,
     this.id,
+    this.trailing,
   });
 
   static const double width = 330;
@@ -2285,6 +2430,9 @@ class _TitleButton extends StatelessWidget {
 
   /// The Playwright handle, when the e2e suite drives this button.
   final String? id;
+
+  /// Shown at the button's far end: what pressing it does (Rules' swap).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -2314,6 +2462,7 @@ class _TitleButton extends StatelessWidget {
             ],
           ),
         ),
+        if (trailing case final t?) ...[const SizedBox(width: 10), t],
       ],
     );
     const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
@@ -2403,9 +2552,46 @@ Future<void> _showTitlePopup(
     );
 
 /// The Learn popup's first row: today's quiz, whether its puzzle is waiting or
-/// done, the streak, and the rules the puzzle is posed in.
+/// done, the streak, and the rules the puzzle is posed in. Under rules with no
+/// quiz (sanma) it says so instead, and opens nothing.
 class _DailyQuizAction extends StatelessWidget {
   const _DailyQuizAction({required this.ruleset, required this.onPressed});
+
+  Widget _unavailable(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Container(
+          key: const Key('dailyQuizUnavailable'),
+          constraints: const BoxConstraints(minHeight: 76),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white24),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.quiz_outlined, size: 28, color: Colors.white38),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(context.l10n.quizTitle,
+                        style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text(context.l10n.quizNoneSanma,
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
   /// The rules selected on the welcome screen; the puzzle is posed in these
   /// where the quiz has them, and in [kQuizFallback]'s where it does not.
@@ -2413,7 +2599,9 @@ class _DailyQuizAction extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
+  Widget build(BuildContext context) => !hasDailyQuiz(ruleset)
+      ? _unavailable(context)
+      : ListenableBuilder(
         listenable: ProgressStore.instance,
         builder: (context, _) {
           final l10n = context.l10n;

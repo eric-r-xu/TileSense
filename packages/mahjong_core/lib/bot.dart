@@ -27,7 +27,8 @@ class BotTurn {
       this.addedKan,
       this.discard,
       this.riichi = false,
-      this.kyuushu = false});
+      this.kyuushu = false,
+      this.kita = false});
   final bool tsumo;
   final TileType? closedKan;
   final TileType? addedKan;
@@ -37,6 +38,9 @@ class BotTurn {
   /// Abort the hand on kyuushu kyuuhai. SimpleBot never does; Saeko on
   /// Mortal may.
   final bool kyuushu;
+
+  /// Sanma: set a North aside as nukidora (see [Round.declareKita]).
+  final bool kita;
 }
 
 class SimpleBot {
@@ -49,6 +53,10 @@ class SimpleBot {
     final s = round.seats[seat];
 
     if (round.canTsumo(seat)) return BotTurn(tsumo: true);
+
+    // A North set aside is a free dora and a fresh draw, and a North kept in
+    // hand is only a guest wind, so a sanma bot always takes it.
+    if (round.canKita(seat)) return BotTurn(kita: true);
 
     if (round.canRiichi(seat)) {
       final tenpaiTiles = _tenpaiKeepingDiscards(round, seat);

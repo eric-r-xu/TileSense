@@ -184,8 +184,10 @@ class Room {
     return null;
   }
 
+  /// The first seat nobody has taken. Sanma's empty seat across is never
+  /// open: three play.
   int? firstOpenSeat() {
-    for (var i = 0; i < 4; i++) {
+    for (final i in ruleset.activeSeats) {
       if (seats[i] == null) return i;
     }
     return null;
@@ -226,6 +228,8 @@ class Room {
               'isBot': seats[i]?.isBot ?? false,
               'isHost': i == hostSeat,
               'connected': seats[i]?.connected ?? false,
+              // Sanma plays three: the seat across is not a seat at all.
+              if (!ruleset.seatIsActive(i)) 'inactive': true,
             }
         ],
       };

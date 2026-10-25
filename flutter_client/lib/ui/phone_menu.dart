@@ -24,6 +24,7 @@ Future<void> showPhoneMenu(
   required VoidCallback onMainMenu,
   required VoidCallback onNewGame,
   required VoidCallback onToggleLength,
+  VoidCallback? onTableTour,
 }) =>
     showModalBottomSheet<void>(
       context: context,
@@ -104,6 +105,15 @@ Future<void> showPhoneMenu(
                               label: context.l10n.glossaryTitle,
                               onTap: () => showGlossary(context, game.ruleset),
                             ),
+                            // The table tour again, for anyone who skipped
+                            // it or wants a reminder.
+                            if (onTableTour != null)
+                              phoneMenuAction(
+                                key: const Key('phoneMenuTableTour'),
+                                icon: Icons.tour_outlined,
+                                label: context.l10n.tableTourMenu,
+                                onTap: closeThen(onTableTour),
+                              ),
                           ],
                           [
                             phoneMenuAction(

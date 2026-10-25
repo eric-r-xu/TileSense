@@ -143,6 +143,11 @@ abstract class TableGameHost implements GuideHost {
   void humanPassFlowerWin();
   void humanDeclareKyuushu();
 
+  /// Sanma: whether you may set a North aside as nukidora now, and doing so
+  /// (see [Round.declareKita]). Never true outside sanma.
+  bool get humanCanKita;
+  void humanKita();
+
   /// Sichuan: whether the table is waiting for you to name your void suit,
   /// and naming it (0 man, 1 pin, 2 sou). Never true outside Sichuan.
   bool get awaitingHumanVoidSuit;

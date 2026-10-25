@@ -5,6 +5,7 @@
 library;
 
 import 'package:mahjong_core/hand_parse.dart' show waitTiles;
+import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 
@@ -28,10 +29,19 @@ enum DiscardFrom { left, across, right }
 
 class PracticeDrill {
   const PracticeDrill._(this.id, this.kind, this._hand,
-      {this.options = const [], this.claimed, this.from});
+      {this.options = const [], this.claimed, this.from, String? explains})
+      : _explains = explains;
 
-  /// Names the drill's explanation string, and its keys in tests.
+  /// The drill's keys in tests and telemetry.
   final String id;
+
+  /// Names the drill's explanation string: its own [id], or for a sanma
+  /// drill the drill it restates without the 2-8 man.
+  String get explains => _explains ?? id;
+  final String? _explains;
+
+  /// Played only under sanma, which has none of the 2-8 man the others use.
+  bool get sanmaOnly => _explains != null;
   final DrillKind kind;
   final String _hand;
 
@@ -63,9 +73,17 @@ class PracticeDrill {
   bool get involvesChow =>
       kind == DrillKind.claim && _runsWith(hand, claimedTile!).isNotEmpty;
 
-  /// Whether [ruleset] has everything this drill teaches.
-  bool suits(Ruleset ruleset) =>
-      !ruleset.isSichuan || !(usesHonors || involvesChow);
+  /// Whether [ruleset] has everything this drill teaches. Sanma has no chi
+  /// and no 2-8 man.
+  bool suits(Ruleset ruleset) {
+    if (ruleset.isSanma) {
+      return !involvesChow &&
+          ![...hand, ...optionTiles, if (claimedTile case final c?) c]
+              .any((t) => !SanmaRules.inWall(t));
+    }
+    if (sanmaOnly) return false;
+    return !ruleset.isSichuan || !(usesHonors || involvesChow);
+  }
 
   // --- answers, worked out from the tiles --------------------------------
 
@@ -178,6 +196,22 @@ const List<PracticeDrill> kPracticeDrills = [
       claimed: '5p', from: DiscardFrom.right),
   PracticeDrill._('c4', DrillKind.claim, '147m 258s 369m 24s 13p',
       claimed: 'E', from: DiscardFrom.left),
+  // Sanma's: the same lessons with the 2-8 man swapped out, keeping every
+  // tile the explanation names.
+  PracticeDrill._('w1s', DrillKind.winningTile, '123s 456s 789s 55s 13p',
+      options: ['5s', '4p', '1p', '2p'], explains: 'w1'),
+  PracticeDrill._('w3s', DrillKind.winningTile, '123p 456p 789p 999m 5s',
+      options: ['4s', '6s', '5s', '1p'], explains: 'w3'),
+  PracticeDrill._('d1s', DrillKind.discard, '111m 999m 123s 66p 34p 9s',
+      explains: 'd1'),
+  PracticeDrill._('d2s', DrillKind.discard, '234p 567p 789p 55s 12s E',
+      explains: 'd2'),
+  PracticeDrill._('d3s', DrillKind.discard, '234p 567p 456s 55p 78s W',
+      explains: 'd3'),
+  PracticeDrill._('c1s', DrillKind.claim, '55p 19m 258s 369s 14s E',
+      claimed: '5p', from: DiscardFrom.across, explains: 'c1'),
+  PracticeDrill._('c4s', DrillKind.claim, '19m 258s 369s 147p 13p',
+      claimed: 'E', from: DiscardFrom.left, explains: 'c4'),
 ];
 
 /// The drills to show under [ruleset], in order.

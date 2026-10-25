@@ -161,6 +161,7 @@ class MpClient {
           if (const ['create_room', 'join_room', 'reconnect'].contains(message['type']))
             'supportedRulesets': [
               'riichi',
+              'sanma',
               'hongKong',
               'taiwanese',
               'mcr',

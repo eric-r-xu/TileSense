@@ -1497,7 +1497,7 @@
   "glossaryDefAway": "How many more tiles your hand needs before it can win. One tile away means ready. The guide's meter and its Away or Shanten column show it.",
   "glossaryTermHelpful": "Helpful tiles",
   "glossaryDefHelpful": "Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.",
-  "learnTile": "Learn",
+  "learnTile": "Learn / Train",
   "moreTile": "More",
   "practiceTitle": "Practice",
   "practiceLink": "Practice hands",
@@ -1764,5 +1764,82 @@
   },
   "quizNoThreat": "Nobody else is in riichi.",
   "quizFocusPlacement": "Final hands: TileSense weighs how each option moves your finishing place, not just your points.",
-  "quizFocusPoints": "Plenty of hands left: TileSense plays for points."
+  "quizFocusPoints": "Plenty of hands left: TileSense plays for points.",
+  "rulesetSanma": "Sanma",
+  "rulesetSanmaLong": "Sanma (3-player riichi mahjong)",
+  "rulesetSubtitleSanma": "3-player riichi: no chi, kita, no 2–8 man",
+  "sanmaTooltip": "Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 man are removed), no chi, and North tiles set aside as kita for an extra dora.",
+  "rulesWeb": "{rules} rules (web)",
+  "@rulesWeb": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "kitaCaps": "KITA",
+  "bubbleKita": "KITA",
+  "undoKita": "Kita",
+  "yakuKita": "Kita",
+  "emptySeatSanma": "No player: sanma is played by three",
+  "hanchanOnTooltipSanma": "Hanchan — East and South (半庄) rounds of 3-player sanma, 6+ hands (3 a round, one per player).\n{caveat}\nTap for East only (东风战), 3+ hands.",
+  "@hanchanOnTooltipSanma": {
+    "placeholders": {
+      "caveat": {
+        "type": "String"
+      }
+    }
+  },
+  "eastOnlyTooltipSanma": "East only (东风战/tonpuusen) — the East round of 3-player sanma, 3+ hands.\n{caveat}\nTap for hanchan (半庄): East and South, 6+ hands.",
+  "@eastOnlyTooltipSanma": {
+    "placeholders": {
+      "caveat": {
+        "type": "String"
+      }
+    }
+  },
+  "glossaryTermSanma": "Sanma",
+  "glossaryDefSanma": "Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.",
+  "glossaryTermKita": "Kita (North set aside)",
+  "glossaryDefKita": "In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.",
+  "quizNoneShort": "No daily quiz for Sanma",
+  "quizNoneSanma": "There is no daily quiz for Sanma yet. Switch to Riichi or Hong Kong to play it.",
+  "tourHandTitle": "Your hand",
+  "tourHandBody": "Tap a tile to raise it, then tap it again to discard it. To rearrange your hand, press and hold a tile, then drag it to a new spot.",
+  "tourButtonsTitle": "The buttons beside your hand",
+  "tourButtonsBody": "Four switches for how your hand plays. Each is filled in when it is on.",
+  "tourLegendSortBody": "taps through three modes. Hand keeps your tiles in order with the drawn tile set apart on the right; Hand+draw sorts the drawn tile straight in; Off leaves every tile where you drag it.",
+  "tourLegendDiscardBody": "one tap to discard, or two (raise, then discard).",
+  "tourLegendAutoWinBody": "declares a win for you the moment you can.",
+  "tourLegendAutoPassBody": "skips calls on other players' tiles, so you aren't asked.",
+  "tourGuideTitle": "TileSensor, your guide",
+  "tourGuideBody": "Tap TileSensor to show the guide. It ranks every discard, marks the best one in green and explains why. Tap again to hide it.",
+  "tourMenuTitle": "Settings, rules and help",
+  "tourMenuBodyPhone": "The Menu button holds pause, sound, speed, Auto-Play, the rules and the glossary. You can replay this tour from there.",
+  "tourMenuBodyDesktop": "Settings run along the top bar, with the rules and the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.",
+  "tourSkip": "Skip tour",
+  "tourNext": "Next",
+  "tourDone": "Start playing",
+  "tableTourLink": "Table tour: how to play the table",
+  "tableTourMenu": "How the table works",
+  "tourStepOf": "{step} of {total}",
+  "@tourStepOf": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "rulesTileHint": "Playing {rules} · tap to switch",
+  "@rulesTileHint": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "rulesTileTooltip": "Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan."
 }

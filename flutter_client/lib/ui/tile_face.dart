@@ -1,6 +1,20 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:mahjong_core/tile.dart';
+
+/// How much bigger teaching screens draw their tiles on a phone, where the
+/// whole canvas is shrunk to about half size: the same factor the canvas grows
+/// its text by (1.0 on a desktop, up to 1.35 on a phone), so tiles and the
+/// words about them grow together. Read inside the scaled canvas.
+double phoneTileBoost(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.35).toDouble();
+
+/// The scale Learn to Play, Practice and the quiz draw [TileSize.large] at:
+/// the in-game hand's size, grown for a phone.
+double teachingTileScale(BuildContext context) =>
+    1.65 * phoneTileBoost(context);
 
 /// A single mahjong tile face: the tile artwork on a cream tile, with a small
 /// red index in the top-right corner (number for suits, letter for honours).
@@ -215,10 +229,18 @@ class TileFace extends StatelessWidget {
                   t.redIndex,
                   textScaler: TextScaler.noScaling,
                   style: TextStyle(
-                    fontSize: (dims.$2 * 0.30).clamp(6.5, 15.0 * scale),
+                    fontSize: _indexSize(context, dims.$2),
                     height: 1.0,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: const Color(0xffd90000),
+                    // A cream edge keeps the index legible where it crosses
+                    // the artwork.
+                    shadows: const [
+                      Shadow(color: Color(0xfff4f1e6), offset: Offset(1, 0)),
+                      Shadow(color: Color(0xfff4f1e6), offset: Offset(-1, 0)),
+                      Shadow(color: Color(0xfff4f1e6), offset: Offset(0, 1)),
+                      Shadow(color: Color(0xfff4f1e6), offset: Offset(0, -1)),
+                    ],
                   ),
                 ),
               ),
@@ -262,6 +284,15 @@ class TileFace extends StatelessWidget {
       for (final (name, c) in _tileAccents) (name, c, null),
     ];
   }
+
+  /// The red index's size on a tile [height] tall: about a quarter of the
+  /// tile, grown with the phone's text boost (it opts out of the text scaler
+  /// itself, so it is applied here) but kept within 30% of the tile so it
+  /// stays mostly clear of the artwork. Tiny tiles keep a readable floor.
+  static double _indexSize(BuildContext context, double height) =>
+      (height * 0.27 * phoneTileBoost(context))
+          .clamp(6.5, math.max(6.5, height * 0.30))
+          .toDouble();
 
   (double, double, double) _dims(TileSize s) {
     final (double w, double h, double f) = switch (s) {

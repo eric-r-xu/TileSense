@@ -41,14 +41,14 @@ class RulesetBadge extends StatelessWidget {
     final l10n = context.l10n;
     final minimum = _minimum(l10n);
     return Tooltip(
-      message: l10n.badgeTooltip(l10n.rulesetName(ruleset),
+      message: l10n.badgeTooltip(l10n.rulesetTooltipName(ruleset),
           minimum == null ? '' : l10n.badgeMinimum(minimum)),
       child: ruleset.flagAsset != null
           ? Row(
               key: const Key('rulesetBadge'),
               mainAxisSize: MainAxisSize.min,
               children: [
-                RulesetFlag(ruleset, size: fontSize),
+                RulesetFlag(ruleset, size: fontSize, tooltip: false),
                 if (minimum != null)
                   Text(' $minimum',
                       style: TextStyle(

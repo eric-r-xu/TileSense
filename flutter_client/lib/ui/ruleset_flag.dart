@@ -10,7 +10,8 @@ import '../l10n/mahjong_terms.dart';
 
 /// The flag alone, sized to sit in a line of text at [size].
 class RulesetFlag extends StatelessWidget {
-  const RulesetFlag(this.ruleset, {super.key, this.size = 20, this.style});
+  const RulesetFlag(this.ruleset,
+      {super.key, this.size = 20, this.style, this.tooltip = true});
 
   final Ruleset ruleset;
 
@@ -21,14 +22,18 @@ class RulesetFlag extends StatelessWidget {
   /// The style an emoji flag takes; its size is overridden by [size].
   final TextStyle? style;
 
+  /// Whether sanma's flag explains itself on hover: three-player riichi. Off
+  /// where the flag already sits inside a tooltip of its own, which says so.
+  final bool tooltip;
+
   @override
   Widget build(BuildContext context) {
     final asset = ruleset.flagAsset;
     if (asset == null) {
       return Text(ruleset.flag, style: (style ?? const TextStyle()).copyWith(fontSize: size));
     }
-    return Semantics(
-      label: context.l10n.rulesetName(ruleset),
+    final flag = Semantics(
+      label: context.l10n.rulesetTooltipName(ruleset),
       image: true,
       child: ExcludeSemantics(
         child: ClipRRect(
@@ -47,6 +52,12 @@ class RulesetFlag extends StatelessWidget {
         ),
       ),
     );
+    if (!ruleset.isSanma || !tooltip) return flag;
+    return Tooltip(
+      key: const Key('sanmaFlagTooltip'),
+      message: context.l10n.sanmaTooltip,
+      child: flag,
+    );
   }
 }
 
@@ -55,9 +66,16 @@ class RulesetFlag extends StatelessWidget {
 /// ruleset with an emoji flag stays a single [Text], exactly as before.
 class RulesetFlagLabel extends StatelessWidget {
   const RulesetFlagLabel(this.ruleset,
-      {super.key, this.style, this.suffix, this.textKey});
+      {super.key,
+      this.style,
+      this.suffix,
+      this.textKey,
+      this.tooltip = true});
 
   final Ruleset ruleset;
+
+  /// See [RulesetFlag.tooltip].
+  final bool tooltip;
   final TextStyle? style;
   final String? suffix;
 
@@ -76,7 +94,7 @@ class RulesetFlagLabel extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        RulesetFlag(ruleset, size: base.fontSize ?? 14),
+        RulesetFlag(ruleset, size: base.fontSize ?? 14, tooltip: tooltip),
         const SizedBox(width: 6),
         Flexible(
           child: Text('${l10n.rulesetName(ruleset)}$tail',

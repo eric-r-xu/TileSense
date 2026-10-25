@@ -15,6 +15,7 @@ import 'beginner_guide.dart';
 import 'meld_row.dart';
 import 'phone_menu.dart' show PhoneMenuButton;
 import 'table_view.dart' show CountdownBadge, kMinimumShortfallColor;
+import 'table_tour.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
 import 'theme.dart';
@@ -42,8 +43,19 @@ class HandView extends StatefulWidget {
     this.onToggleGuide,
     this.showGuide = true,
     this.onMenu,
+    this.tourTargets,
   });
   final TableGameHost game;
+
+  /// Where the table tour finds the hand, its buttons, TileSensor and (on a
+  /// phone) the Menu button. Null where there is no tour (online play).
+  final TableTourTargets? tourTargets;
+
+  /// [child] keyed for the tour as [key] picks, or unchanged with no tour.
+  Widget _tourTarget(GlobalKey Function(TableTourTargets) key, Widget child) {
+    final t = tourTargets;
+    return t == null ? child : KeyedSubtree(key: key(t), child: child);
+  }
 
   /// Set on a phone only: shows the Menu button at the right end of the tile
   /// row, which holds the controls the phone's top bar is too small for.
@@ -444,7 +456,7 @@ class _HandViewState extends State<HandView> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (widget.onToggleGuide != null) ...[
-                _guideButton(),
+                widget._tourTarget((t) => t.guide, _guideButton()),
                 const SizedBox(width: 10),
               ],
               // The tile strip has a fixed width (always sized for 14 tiles), so
@@ -459,29 +471,38 @@ class _HandViewState extends State<HandView> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Sort and the discard mode as a pair, like the
-                          // call toggles beside them.
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _sortToggle(),
-                              const SizedBox(height: 10),
-                              _discardModeToggle(),
-                            ],
-                          ),
-                          const SizedBox(width: 10),
-                          // The two call toggles as a pair, a second column
-                          // rather than a third row: the pair fits the tile
-                          // row's height, so the hand bar never grows.
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _autoWinToggle(),
-                              // Apart, so a thumb on a phone lands on the one
-                              // it meant.
-                              const SizedBox(height: 10),
-                              _autoPassToggle(),
-                            ],
+                          widget._tourTarget(
+                            (t) => t.toggles,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Sort and the discard mode as a pair, like
+                                // the call toggles beside them.
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _sortToggle(),
+                                    const SizedBox(height: 10),
+                                    _discardModeToggle(),
+                                  ],
+                                ),
+                                const SizedBox(width: 10),
+                                // The two call toggles as a pair, a second
+                                // column rather than a third row: the pair
+                                // fits the tile row's height, so the hand bar
+                                // never grows.
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _autoWinToggle(),
+                                    // Apart, so a thumb on a phone lands on
+                                    // the one it meant.
+                                    const SizedBox(height: 10),
+                                    _autoPassToggle(),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 14),
                           // A *minimum*, not a fixed width: short hands still
@@ -491,13 +512,16 @@ class _HandViewState extends State<HandView> {
                           // grows the Row past it instead of overflowing;
                           // the SingleChildScrollView above already scrolls
                           // for exactly that case.
-                          ConstrainedBox(
-                            constraints:
-                                BoxConstraints(minWidth: _handStripWidth),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              key: _stripKey,
-                              children: tiles,
+                          widget._tourTarget(
+                            (t) => t.hand,
+                            ConstrainedBox(
+                              constraints:
+                                  BoxConstraints(minWidth: _handStripWidth),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                key: _stripKey,
+                                children: tiles,
+                              ),
                             ),
                           ),
                         ],
@@ -520,8 +544,10 @@ class _HandViewState extends State<HandView> {
                 ),
               if (widget.onMenu != null) ...[
                 const SizedBox(width: 14),
-                PhoneMenuButton(
-                    onTap: widget.onMenu!, paused: widget.game.paused),
+                widget._tourTarget(
+                    (t) => t.menu,
+                    PhoneMenuButton(
+                        onTap: widget.onMenu!, paused: widget.game.paused)),
                 // Kept off the screen's right edge, which a raised phone
                 // case can cover.
                 const SizedBox(width: 26),
@@ -1021,6 +1047,11 @@ class _HandViewState extends State<HandView> {
         buttons.add(_btn(context.l10n.tsumoLabel(ruleset).toUpperCase(),
             const Color(0xff2e7d32), game.humanTsumo));
       }
+      // Sanma: set a North aside as a dora and draw again.
+      if (game.humanCanKita) {
+        buttons.add(_btn(context.l10n.kitaCaps, const Color(0xff00695c),
+            game.humanKita));
+      }
       for (final t in game.humanClosedKanTypes) {
         buttons.add(_btn(
             '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${t.code}',
@@ -1068,6 +1099,7 @@ class _HandViewState extends State<HandView> {
       game.isHumanTurn,
       game.humanCanDeclareKyuushu,
       game.humanCanTsumo,
+      game.humanCanKita,
       game.humanClosedKanTypes,
       game.humanAddedKanTypes,
       game.humanCanRiichi,

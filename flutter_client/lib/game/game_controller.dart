@@ -21,6 +21,7 @@ import '../logic/sichuan_value.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/safety.dart';
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/tile.dart';
 import '../telemetry/telemetry.dart';
 import 'call_callout.dart';
@@ -640,13 +641,18 @@ class GameController extends ChangeNotifier implements TableGameHost {
   int get riichiSticks => _riichiSticks;
 
   /// East for hands 1-4, South for 5-8 — hanchan, same for both rulesets.
-  Wind get roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < 4 ? Wind.east : Wind.south);
+  /// Sanma has three hands a wind, one per player.
+  Wind get roundWind => ruleset.isMcr
+      ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)]
+      : (_roundNumber < ruleset.playerCount ? Wind.east : Wind.south);
 
-  /// 1-4 within the current round wind.
+  /// 1-4 within the current round wind (1-3 in sanma).
   @override
   int get handInWind =>
       // Sichuan has no round wind: this is simply the hand's number.
-      ruleset.isSichuan ? _roundNumber + 1 : (_roundNumber % 4) + 1;
+      ruleset.isSichuan
+          ? _roundNumber + 1
+          : (_roundNumber % ruleset.playerCount) + 1;
   @override
   List<int> get tablePoints => _points;
 
@@ -715,7 +721,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
   int startingDealer;
 
   /// Which wind the human seat begins on.
-  Wind get humanStartingWind => Wind.values[(4 - startingDealer) % 4];
+  Wind get humanStartingWind =>
+      ruleset.seatWind(kHumanSeat, _firstDealer);
+
+  /// [startingDealer], or under sanma the next played seat if it names the
+  /// empty one: a dealer picked for four players carries over.
+  int get _firstDealer => ruleset.seatIsActive(startingDealer)
+      ? startingDealer
+      : ruleset.nextSeat(startingDealer);
 
   /// Picks which seat deals first. Like switching rules, this abandons the
   /// game in progress for a fresh one, since the deal is what it changes.
@@ -727,9 +740,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   void _startGame() {
     _autoplayThisHand = false;
-    _points = List.filled(4, ruleset.startingPoints);
+    // Sanma's empty seat holds no points, so it never ranks.
+    _points = [
+      for (var i = 0; i < 4; i++)
+        ruleset.seatIsActive(i) ? ruleset.startingPoints : 0
+    ];
     _dealSerial = 0;
-    _dealer = startingDealer;
+    _dealer = _firstDealer;
     _roundNumber = 0;
     _honba = 0;
     _dealerRepeat = 0;
@@ -769,7 +786,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   /// 1..4 — the human seat's current standing by points (ties share the higher
   /// place).
-  int _humanPlace() => 1 + _points.where((p) => p > _points[kHumanSeat]).length;
+  int _humanPlace() =>
+      1 +
+      [
+        for (final s in ruleset.activeSeats)
+          if (_points[s] > _points[kHumanSeat]) s
+      ].length;
 
   void _startRound() {
     final serial = _dealSerial++;
@@ -846,8 +868,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
     required int honba,
     Ruleset ruleset = Ruleset.riichi,
   }) {
+    final next = ruleset.nextDealer(dealer);
     if (ruleset.isMcr) {
-      return (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+      return (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
     if (ruleset.isTaiwanese) {
       // Taiwanese's honba isn't a payment multiplier (see Round._applyRon) —
@@ -857,19 +880,19 @@ class GameController extends ChangeNotifier implements TableGameHost {
       final nextHonba = (dealerKept && !exhaustiveDraw) ? honba + 1 : 0;
       return dealerKept
           ? (dealer: dealer, roundNumber: roundNumber, honba: nextHonba)
-          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+          : (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
     if (ruleset.isHongKong) {
       return dealerKept || exhaustiveDraw
           ? (dealer: dealer, roundNumber: roundNumber, honba: 0)
-          : (dealer: (dealer + 1) % 4, roundNumber: roundNumber + 1, honba: 0);
+          : (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
     final nextHonba = (exhaustiveDraw || dealerKept) ? honba + 1 : 0;
     if (dealerKept) {
       return (dealer: dealer, roundNumber: roundNumber, honba: nextHonba);
     }
     return (
-      dealer: (dealer + 1) % 4,
+      dealer: next,
       roundNumber: roundNumber + 1,
       honba: nextHonba,
     );
@@ -940,7 +963,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
     // Riichi ends the game when anyone goes below zero; Hong Kong plays on.
-    final tobi = ruleset.isRiichi && _points.any((p) => p < 0);
+    final tobi = ruleset.isJapanese && _points.any((p) => p < 0);
     if (tobi ||
         (_roundNumber >= _handsPerGame &&
             (!dealerKept || ruleset.isSichuan))) {
@@ -1117,6 +1140,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
       _apply(_Kyuushu(seat));
     } else if (decision.tsumo) {
       _apply(_Tsumo(seat));
+    } else if (decision.kita) {
+      _announceKita(seat);
+      _apply(_Kita(seat));
     } else if (decision.closedKan != null) {
       Sfx.i.play(SfxKind.kan);
       Sfx.i.voice(VoiceKind.kan, character: _characterForSeat(seat));
@@ -1284,6 +1310,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
     // A win is always taken.
     if (round.canTsumo(kHumanSeat)) return BotTurn(tsumo: true);
+
+    // A North set aside is a free dora and a fresh draw; kept, it is only a
+    // guest wind. The guide always takes it.
+    if (round.canKita(kHumanSeat)) return BotTurn(kita: true);
 
     // Riichi freezes the hand: the drawn tile is the only legal discard.
     if (seat.riichi) return BotTurn(discard: seat.drawn);
@@ -1506,6 +1536,29 @@ class GameController extends ChangeNotifier implements TableGameHost {
       notifyListeners();
       _scheduleLoop();
     }
+  }
+
+  @override
+  bool get humanCanKita =>
+      round.turn == kHumanSeat && round.canKita(kHumanSeat);
+
+  @override
+  void humanKita() {
+    if (!humanCanKita) return;
+    _announceKita(kHumanSeat);
+    _markUndoPoint((l) => l.undoKita);
+    _apply(const _Kita(kHumanSeat));
+    // An opponent who can ron the North is asked by the loop; otherwise the
+    // replacement draw is already in your hand.
+    _refreshReport();
+    notifyListeners();
+    _scheduleLoop();
+  }
+
+  /// The KITA bubble and the tile's clink. There is no voice line for it.
+  void _announceKita(int seat) {
+    Sfx.i.play(SfxKind.discard);
+    CallCallout.i.show(seat, 'KITA');
   }
 
   @override
@@ -1864,6 +1917,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         sichuanRivals: round.ruleset.isSichuan
             ? SichuanRival.of(round, kHumanSeat)
             : const [],
+        kita: seat.kita.length,
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong
@@ -1926,6 +1980,16 @@ class GameController extends ChangeNotifier implements TableGameHost {
     }
     for (final ind in round.wall.doraIndicators()) {
       counts[ind.index - 1]++;
+    }
+    // Sanma: Norths set aside are in plain view, and the 2-8 man are not in
+    // the wall at all.
+    if (ruleset.isSanma) {
+      for (final s in round.seats) {
+        for (final t in s.kita) {
+          counts[t.type.index - 1]++;
+        }
+      }
+      SanmaRules.countRemovedTiles(counts);
     }
     return counts;
   }
@@ -2103,6 +2167,14 @@ final class _AddKan extends _Move {
 
   @override
   void applyTo(Round round) => round.addKan(seat, type);
+}
+
+final class _Kita extends _Move {
+  const _Kita(this.seat);
+  final int seat;
+
+  @override
+  void applyTo(Round round) => round.declareKita(seat);
 }
 
 final class _PassFlowerWin extends _Move {

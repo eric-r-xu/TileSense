@@ -212,8 +212,8 @@ void main() {
       expect(File('pubspec.yaml').readAsStringSync(),
           contains('assets/flags/'));
       expect(Ruleset.sichuan.flagAsset, 'assets/flags/sichuan.png');
-      expect(
-          Ruleset.values.where((r) => r.flagAsset != null), [Ruleset.sichuan]);
+      expect(Ruleset.values.where((r) => r.flagAsset != null).toSet(),
+          {Ruleset.sanma, Ruleset.sichuan});
     });
 
     testWidgets('Sichuan draws its flag image; riichi keeps its emoji',
@@ -290,6 +290,8 @@ void main() {
       await openPopup(tester, 'rulesTile');
       expect(find.byKey(const Key('ruleset_sichuan')), findsOneWidget);
       expect(find.byKey(const Key('rulesetFlag_sichuan')), findsWidgets);
+      await tester.ensureVisible(find.byKey(const Key('ruleset_sichuan')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('ruleset_sichuan')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));

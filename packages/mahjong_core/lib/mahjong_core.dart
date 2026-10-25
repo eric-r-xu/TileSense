@@ -19,6 +19,8 @@ export 'mortal_move.dart';
 export 'protocol.dart';
 export 'round.dart';
 export 'ruleset.dart';
+export 'sanma/sanma_rules.dart';
+export 'sanma/sanma_wall.dart';
 export 'safety.dart';
 export 'scoring.dart';
 export 'sichuan/sichuan_efficiency.dart';

@@ -45,6 +45,17 @@ typedef AutoDials = ({PlayStyle style, HandFocus focus, Strategy strategy});
 ///   Hong Kong keeps Speed: no minimum separates the two (|z| ≤ 2.0).
 AutoDials autoDials(Ruleset ruleset,
     {required int minimumPoints, required int handsLeft}) {
+  // Sanma plays riichi's early dials throughout. Hands are bigger and
+  // faster, and the wiki's advice is to keep playing to win rather than
+  // fold early. The placement model is built for four seats, so it is not
+  // used here.
+  if (ruleset.isSanma) {
+    return (
+      style: PlayStyle.aggressive,
+      focus: HandFocus.speed,
+      strategy: Strategy.points,
+    );
+  }
   if (ruleset.isRiichi) {
     final end = handsLeft <= kPlacementHands;
     return (

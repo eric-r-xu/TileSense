@@ -16,7 +16,8 @@ void main() {
       expect(r.handsPerGame(fullGame: false), 4);
       expect(r.ronLabel, 'Hu');
       expect(r.totalMelds, 4);
-      for (final other in Ruleset.values.where((x) => x != r)) {
+      for (final other
+          in Ruleset.values.where((x) => x != r && x != Ruleset.sanma)) {
         expect(other.flagAsset, isNull);
       }
     });
