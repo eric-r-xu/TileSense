@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../l10n/mahjong_terms.dart';
-import '../main.dart' show isPhoneLayout, openRules;
+import '../main.dart' show isPhoneLayout;
 import 'bar_back_button.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
@@ -26,6 +26,7 @@ import 'language_button.dart';
 import '../l10n/l10n.dart';
 import 'phone_menu.dart';
 import 'ruleset_flag.dart';
+import 'rules_reader.dart';
 import 'table_view.dart';
 import 'tile_face.dart';
 import 'tilesensor.dart';
@@ -496,7 +497,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               key: const Key('builderMenuRules'),
                               icon: Icons.menu_book,
                               label: 'Rules',
-                              onTap: () => openRules(s.ruleset),
+                              onTap: () => showRulesReader(context, s.ruleset,
+                                  minimumFaan: s.minimumFaan,
+                                  minimumPoints: s.minimumPoints),
                             ),
                           ],
                           [

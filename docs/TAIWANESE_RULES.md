@@ -1,7 +1,7 @@
 # 🇹🇼 Taiwanese rules
 
-Chosen with the ruleset toggle (welcome screen, game app bar, online lobby,
-or builder chip row); Riichi remains the default. One-page reference:
+Chosen before play on the welcome or character screen, in the online lobby,
+or through the builder’s Rules dial. The welcome screen starts on Hong Kong. One-page reference:
 [Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf).
 
 The scoring source is the San Diego Mahjong Club's **Taiwanese Mahjong**

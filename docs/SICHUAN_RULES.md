@@ -1,7 +1,7 @@
 # <img src="../flutter_client/assets/flags/sichuan.png" height="22" alt="Sichuan"> Sichuan rules
 
-Chosen with the ruleset toggle on the welcome and character screens; Riichi
-remains the default. It is also offered in the online lobby (see
+Chosen on the welcome and character screens; the welcome screen starts on
+Hong Kong. It is also offered in the online lobby (see
 [Online](#online)). Rules reference:
 [Sichuan.pdf](https://app.ericrxu.com/static/Sichuan.pdf).
 

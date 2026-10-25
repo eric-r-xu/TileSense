@@ -2901,6 +2901,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rulesTileTooltip => '选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。';
+
+  @override
+  String get rulesRead => '阅读规则';
+
+  @override
+  String get rulesSearchHint => '搜索规则（英文）';
+
+  @override
+  String get rulesClearSearch => '清除搜索';
+
+  @override
+  String get rulesNoMatch => '没有匹配的规则，请尝试其他词语。';
+
+  @override
+  String get rulesSummaryNotice => 'TileSense 规则简介。首版正文为英文；完整计分细节请查看外部参考资料。';
+
+  @override
+  String get rulesReferenceFailed => '无法打开参考资料，请重试。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5800,4 +5818,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get rulesTileTooltip => '選擇要玩的麻將規則：日本麻將、三人麻將、香港、台灣、國標或四川。';
+
+  @override
+  String get rulesRead => '閱讀規則';
+
+  @override
+  String get rulesSearchHint => '搜尋規則（英文）';
+
+  @override
+  String get rulesClearSearch => '清除搜尋';
+
+  @override
+  String get rulesNoMatch => '沒有符合的規則，請嘗試其他詞語。';
+
+  @override
+  String get rulesSummaryNotice => 'TileSense 規則簡介。首版正文為英文；完整計分細節請查看外部參考資料。';
+
+  @override
+  String get rulesReferenceFailed => '無法開啟參考資料，請重試。';
 }

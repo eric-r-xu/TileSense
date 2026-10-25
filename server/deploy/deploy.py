@@ -279,7 +279,9 @@ def download_geoip(work):
     archive = work / 'geoip.csv.gz'
     for month in (today.strftime('%Y-%m'), previous.strftime('%Y-%m')):
         try:
-            with urllib.request.urlopen('https://download.db-ip.com/free/dbip-city-lite-' + month + '.csv.gz', timeout=60) as response, archive.open('wb') as target:
+            # DB-IP rejects the default Python-urllib user agent with 403.
+            request = urllib.request.Request('https://download.db-ip.com/free/dbip-city-lite-' + month + '.csv.gz', headers={'User-Agent': 'TileSense-deploy/1.0'})
+            with urllib.request.urlopen(request, timeout=60) as response, archive.open('wb') as target:
                 shutil.copyfileobj(response, target)
             with gzip.open(archive, 'rb') as source:
                 rows = sum(1 for _ in source)
@@ -354,7 +356,8 @@ def deploy(target, host, droplet, rollback=None):
         uri = None
         migrations = None
         if target == 'migrate' or needs_ingest or needs_geoip:
-            uri = output(['doctl', 'databases', 'connection', required('DB_ID'), '--format', 'URI', '--no-header'])
+            # doctl 2.x masks the password unless --show is passed.
+            uri = output(['doctl', 'databases', 'connection', required('DB_ID'), '--format', 'URI', '--no-header', '--show'])
             migrations = [{'name': p.name, 'sql': p.read_text()} for p in sorted((REPO / 'server/migrations').glob('*.sql'))]
             if not migrations:
                 raise ValueError('No migrations found')

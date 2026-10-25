@@ -7,6 +7,14 @@ Based on `flutter_client/lib/logic/efficiency_engine.dart`,
 `packages/mahjong_core/lib/scoring.dart` (hand value). The opponents
 use none of this — see [`BOT_STRATEGY.md`](BOT_STRATEGY.md).
 
+This document primarily explains the four-player riichi pipeline and its Hong
+Kong/Taiwanese adaptations. MCR uses its own shape calculator and scorer (see
+[the MCR rules](../docs/MCR_RULES.md) and [MCR tuning results](BOT_STRATEGY.md#mcr--from-last-place-to-just-ahead-of-the-bots)).
+Sichuan uses the separate pipeline described below. Sanma removes unavailable
+tiles from the guide, counts kita as dora and stays on Aggressive / Speed /
+Points; four-player calibration and placement results do not establish Sanma
+performance. See [Sanma rules](../docs/SANMA_RULES.md).
+
 ## The short version
 
 - **Expected Value (EV) = how likely this hand is to finish × what it pays,
@@ -398,7 +406,7 @@ The third, independent dial (`Strategy`): not how much danger costs (Style) or w
 chase (Focus), but what "worth" means in the first place — the points a line
 pays, or how it moves final placement. **Riichi only.** The math behind it
 isn't riichi-specific, but it hasn't been wired up for Hong Kong yet, so the
-dial is hidden and pinned to Points under both Chinese-style rulesets — the
+dial is hidden and pinned to Points under all four Chinese-style rulesets — the
 same treatment Style gets, for a different reason (see
 [`BOT_STRATEGY.md`](BOT_STRATEGY.md#style-does-nothing-under-hong-kong)).
 

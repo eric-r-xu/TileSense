@@ -1841,5 +1841,11 @@
       }
     }
   },
-  "rulesTileTooltip": "Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan."
+  "rulesTileTooltip": "Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.",
+  "rulesRead": "Read rules",
+  "rulesSearchHint": "Search rules (English)",
+  "rulesClearSearch": "Clear search",
+  "rulesNoMatch": "No rules match your search. Try another word.",
+  "rulesSummaryNotice": "Quick guide to TileSense’s rules. English summaries are available in this first version; use the external reference for the full scoring details.",
+  "rulesReferenceFailed": "Could not open the reference. Please try again."
 }

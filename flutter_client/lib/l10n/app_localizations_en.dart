@@ -3009,4 +3009,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get rulesTileTooltip =>
       'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.';
+
+  @override
+  String get rulesRead => 'Read rules';
+
+  @override
+  String get rulesSearchHint => 'Search rules (English)';
+
+  @override
+  String get rulesClearSearch => 'Clear search';
+
+  @override
+  String get rulesNoMatch => 'No rules match your search. Try another word.';
+
+  @override
+  String get rulesSummaryNotice =>
+      'Quick guide to TileSense’s rules. English summaries are available in this first version; use the external reference for the full scoring details.';
+
+  @override
+  String get rulesReferenceFailed =>
+      'Could not open the reference. Please try again.';
 }

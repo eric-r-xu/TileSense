@@ -5308,6 +5308,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.'**
   String get rulesTileTooltip;
+
+  /// No description provided for @rulesRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read rules'**
+  String get rulesRead;
+
+  /// No description provided for @rulesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search rules (English)'**
+  String get rulesSearchHint;
+
+  /// No description provided for @rulesClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get rulesClearSearch;
+
+  /// No description provided for @rulesNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No rules match your search. Try another word.'**
+  String get rulesNoMatch;
+
+  /// No description provided for @rulesSummaryNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick guide to TileSense’s rules. English summaries are available in this first version; use the external reference for the full scoring details.'**
+  String get rulesSummaryNotice;
+
+  /// No description provided for @rulesReferenceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the reference. Please try again.'**
+  String get rulesReferenceFailed;
 }
 
 class _AppLocalizationsDelegate

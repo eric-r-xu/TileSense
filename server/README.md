@@ -9,6 +9,18 @@ Two Dart services live here:
   redeployed too. Its runbook is
   [`DEPLOYMENT.md`](DEPLOYMENT.md) §3.
 
+## Multiplayer variants
+
+The shared core supports riichi, Sanma, Hong Kong, Taiwanese, MCR and Sichuan.
+Rooms seat four, or three for Sanma; bots fill empty seats. Clients advertise
+`supportedRulesets` on create/join/reconnect so unsupported variants can request
+an update. Sichuan tables continue after individual wins; Sanma skips the empty
+seat in turn order and client seat mapping.
+
+Online players have no guide or Auto-Play. A Saeko bot in four-player riichi can
+use Mortal when the server has `MORTAL_URL` configured, falling back to
+`SimpleBot` if a decision fails. Other variants use `SimpleBot`.
+
 ## Telemetry ingest
 
 The ingest service is **entirely additive** infrastructure — it does not touch

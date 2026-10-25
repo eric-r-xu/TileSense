@@ -13,9 +13,10 @@ import 'package:flutter/material.dart';
 import '../game/game_controller.dart';
 import '../game/guide_host.dart' show AutoplayBrain;
 import '../l10n/l10n.dart';
-import '../main.dart' show brainColor, openRules;
+import '../main.dart' show brainColor;
 import 'glossary.dart';
 import 'language_button.dart';
+import 'rules_reader.dart';
 import 'theme.dart';
 
 Future<void> showPhoneMenu(
@@ -95,7 +96,9 @@ Future<void> showPhoneMenu(
                               key: const Key('phoneMenuRules'),
                               icon: Icons.menu_book,
                               label: context.l10n.rules,
-                              onTap: () => openRules(game.ruleset),
+                              onTap: () => showRulesReader(context, game.ruleset,
+                                  minimumFaan: game.minimumFaan,
+                                  minimumPoints: game.minimumPoints),
                             ),
                           ],
                           [

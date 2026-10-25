@@ -6,9 +6,10 @@
 
 **[Play in your browser](https://app.ericrxu.com/tilesense/)**
 
-TileSense is a mahjong game and trainer for 🇯🇵 Japanese riichi, 🇭🇰 Hong Kong and
-🇹🇼 Taiwanese rules. Play against bots or friends, or pose any hand yourself. In
-single player, a live guide grades every decision as you make it: how fast each
+TileSense is a mahjong game and trainer for six variants: 🇯🇵 Japanese riichi,
+Sanma (three-player riichi), 🇭🇰 Hong Kong, 🇹🇼 Taiwanese, 🇨🇳 Mahjong Competition
+Rules (MCR), and Sichuan bloody-battle mahjong. Play against bots or friends, or
+pose any hand yourself. In single player, a live guide grades every decision as you make it: how fast each
 discard gets you ready, what it is worth, and what it risks.
 
 This repo holds the cross-platform **Flutter** app (`flutter_client/`) for web,
@@ -21,12 +22,13 @@ multiplayer server (`server/mp/`) and the telemetry ingest (`server/`).
 
 ### Play
 
-- **Single player** against three bots: a full game with draws, discards,
-  **chi**, **pon** and **kan**, riichi, tsumo, ron and exhaustive draws with
-  tenpai payments. A hanchan (East and South) by default, or East only.
+- **Single player** against three bots (two in Sanma), with each variant’s
+  legal calls, wins and draw settlements. Full games cover East and South,
+  except MCR, which plays all four winds; East-only games are also available.
   Seat **Saeko** and, under riichi, she plays Mortal's moves (see below);
   every other bot plays the same simple rulebook.
-- **Play Online**: a private room for up to four people, with bots filling any
+- **Play Online**: all six variants in private rooms for up to four people
+  (three in Sanma), with bots filling any
   empty seat. There is no guide or Auto-Play online, by design: nobody gets help
   the others don't.
 - **Hand-bar toggles** beside your tiles: **Sort** your hand, **Auto-Win** (declare
@@ -35,11 +37,12 @@ multiplayer server (`server/mp/`) and the telemetry ingest (`server/`).
   fits.
 - **Undo** a move in single player to try a different line, and a **Bot Speed**
   switch for normal or double pace.
-- **End-of-round scoring**: yaku, han/fu, dora/ura/aka, limit hands and yakuman,
-  and the point transfers. The score screen continues on its own after 20 seconds;
+- **End-of-round scoring** uses the selected variant: riichi/Sanma yaku and
+  han/fu, Hong Kong faan, Taiwanese additive points, MCR fan, or Sichuan fan
+  and settlements, with the resulting transfers. The score screen continues on its own after 20 seconds;
   **Pause** holds it.
 
-Scoring covers the common yaku, the standard fu table and the full yakuman set;
+Riichi scoring covers the common yaku, the standard fu table and the full yakuman set;
 rare fu edge cases and some double-yakuman rules are approximated. No replays yet.
 
 ### The guide
@@ -80,6 +83,9 @@ the recommended discard or call.
   |---|---|---|---|---|
   | Riichi | all but the last two | Aggressive | Speed | Points |
   | Riichi | the last two | Balanced | Speed | Placement |
+  | Sanma | all | Aggressive | Speed | Points |
+  | MCR | all | Balanced | Speed | Points |
+  | Sichuan | all | Balanced | Speed | Points |
   | Hong Kong | all | Balanced | Speed | Points |
   | Taiwanese | all | Balanced | Speed (Balanced at the 5-tai minimum) | Points |
 
@@ -92,7 +98,7 @@ How the guide measures up against the bots, and how the bots play, is in
 
 ### Mortal (optional)
 
-In single-player riichi, the **Saeko** bot plays
+In four-player riichi, the **Saeko** bot plays
 [Mortal](https://github.com/Equim-chan/Mortal)'s moves, seeing only what her
 seat can see; if Mortal can't answer a decision, she plays it like the other
 bots.
@@ -111,9 +117,10 @@ AUTO-PLAY chips in the guide panel, or the phone menu):
   preference. Any decision Mortal can't answer (the sidecar is down or slow, or
   it names a move the table doesn't offer) is played by the guide instead.
 
-All of it is off unless the app is built with `--dart-define=MORTAL_URL=<address>`. Mortal
+The client integration is off unless the app is built with `--dart-define=MORTAL_URL=<address>`. Mortal
 runs on ONNX Runtime in a small sidecar (`mortal_sidecar/server.py`, setup steps in
-its header).
+its header). Online Saeko bots can also use Mortal when the multiplayer server
+is configured with `MORTAL_URL`; players still receive no online guide.
 
 ### Daily quiz: "What would TileSensor do?"
 
@@ -195,16 +202,18 @@ weigh, Strategy stays Points.
 
 ## Rulesets
 
-Choose the rules on the welcome screen, or switch at any time from the game's app
-bar (which deals a new game) or the builder's chip row. Riichi is the default.
+Choose the rules from **Rules** on the welcome screen or on the character
+selection screen before starting. The game’s rules label is informational; return
+to setup to change variants. The builder has a Rules dial, and online rooms choose
+their variant when created. The welcome screen starts on Hong Kong.
 
-| Rules | Tiles | Minimum to win | Rules page | One-page PDF |
+| Rules | Tiles | Minimum to win | Rules page | External reference |
 |---|---|---|---|---|
 | 🇯🇵 Riichi | 136, 13-tile hands | one yaku | [Riichi rules](docs/JAPANESE_RIICHI_RULES.md) | [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf) |
 | 🇭🇰 Hong Kong | 144 with flowers | **0 faan** by default; 1, 2 or 3 | [Hong Kong rules](docs/HONG_KONG_RULES.md) | [HK.pdf](https://app.ericrxu.com/static/HK.pdf) |
 | 🇹🇼 Taiwanese | 144 with flowers, 16-tile hands (5 melds and a pair) | **5 tai** by default; 1 or 3 | [Taiwanese rules](docs/TAIWANESE_RULES.md) | [Taiwanese.pdf](https://app.ericrxu.com/static/Taiwanese.pdf) |
 | 🇨🇳 MCR | 144 with flowers, 13-tile hands | **8 points**, flowers excluded | [MCR rules](docs/MCR_RULES.md) | [MCR.pdf](https://app.ericrxu.com/static/MCR.pdf) |
-| <img src="flutter_client/assets/flags/sanma.png" height="14" alt="Sanma"> Sanma (3-player) | 108, no 2–8 man, 13-tile hands | one yaku; no chi, kita, tsumo loss | [Sanma rules](docs/SANMA_RULES.md) | [riichi.wiki/Sanma](https://riichi.wiki/Sanma) (web) |
+| <img src="flutter_client/assets/flags/sanma.png" height="14" alt="Sanma"> Sanma (3-player) | 108, no 2–8 man, 13-tile hands | one yaku; kita allowed, no chi, tsumo loss | [Sanma rules](docs/SANMA_RULES.md) | [riichi.wiki/Sanma](https://riichi.wiki/Sanma) (web) |
 | <img src="flutter_client/assets/flags/sichuan.png" height="14" alt="Sichuan"> Sichuan | 108, no honors or flowers, 13-tile hands | none; void suit, no chows, play on after a win | [Sichuan rules](docs/SICHUAN_RULES.md) | [Sichuan.pdf](https://app.ericrxu.com/static/Sichuan.pdf) |
 
 Taiwanese scores flat, additive points and adds a dealer win-streak bonus.
@@ -217,11 +226,27 @@ three and bots fill the rest. Mortal plays four-player riichi only, so it sits s
 
 Sichuan is bloody-battle mahjong: each seat gives up a suit, and a win takes that seat out while the others play on. It can be played online too: the server runs the table, and a seat's void suit stays hidden from the others until its first discard.
 
-All three share one engine: `packages/mahjong_core/lib/ruleset.dart` defines
-`Ruleset.riichi`, `Ruleset.hongKong` and `Ruleset.taiwanese`, and the round, guide,
-bots, builder and UI branch on it only where the games differ. Hong Kong and
-Taiwanese logic lives in `packages/mahjong_core/lib/hong_kong/` and
-`packages/mahjong_core/lib/taiwanese/`.
+All six share one engine. `packages/mahjong_core/lib/ruleset.dart` defines
+`riichi`, `sanma`, `hongKong`, `taiwanese`, `mcr` and `sichuan`. Variant-specific
+code lives in the corresponding `sanma/`, `hong_kong/`, `taiwanese/`, `mcr/` and
+`sichuan/` directories; riichi uses the core's top-level modules.
+
+### Learning and rules references
+
+**Learn / Train** offers Learn to Play, Practice, the daily quiz, a searchable
+variant-aware glossary, and the table tour. English, Chinese and Japanese UI
+translations live in `flutter_client/lib/l10n/`.
+
+**Read rules** opens a searchable, scrollable native summary for each variant,
+with an external PDF/reference button always available. It is also reachable
+from the offline game, phone menu, lesson and builder, and shows the table's
+configured winning minimum. This first pass has English rule text with localized
+controls and a language notice; complete scoring catalogues and translations
+remain follow-up work. See [the native reader documentation](docs/NATIVE_RULES_UI.md).
+
+Five external references are PDFs; Sanma links to a wiki page. The six Markdown
+pages above describe the rules TileSense implements, including house rules and
+limitations.
 
 ---
 
@@ -257,12 +282,15 @@ target attached.
 ## Testing
 
 ```sh
-cd flutter_client && flutter analyze && flutter test
-cd packages/mahjong_core && dart analyze && dart test     # likewise server/ and server/mp/
+(cd flutter_client && flutter analyze --no-fatal-infos && flutter test --dart-define=MP_ENDPOINT=ws://127.0.0.1:9)
+(cd packages/mahjong_core && dart analyze && dart test)
+(cd server && dart analyze && dart test)
+(cd server/mp && dart analyze && dart test)
 python3 -B -m unittest discover -s server/deploy -p 'test_*.py'
 ```
 
-CI (`.github/workflows/ci.yml`) runs all of these, plus a release build, on every
+CI (`.github/workflows/ci.yml`) runs these checks, a release web build and
+Playwright browser tests, on every
 pull request. A pull request into `ericrxu_dev` can only be merged once they pass.
 
 ---
@@ -346,8 +374,8 @@ flutter build apk --release --split-per-abi  # -> per-ABI APKs for sideloading
 **Not set up yet.** A release build needs a keystore referenced from
 `android/key.properties` and a `signingConfigs.release` block in
 `android/app/build.gradle.kts`; neither exists, and the release build type still
-uses the debug signing config. The app requests no permissions and collects no
-data.
+uses the debug signing config. Release web builds send gameplay telemetry by default; see
+[the telemetry documentation](server/README.md#telemetry-ingest).
 
 ### iOS
 

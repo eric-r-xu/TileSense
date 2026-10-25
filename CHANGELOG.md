@@ -9,6 +9,18 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-25 — Native rules summaries
+
+- **Read rules** opens a searchable, scrollable summary for each of the six
+  variants. It is available beside the welcome screen's PDF/wiki links and from
+  the offline game toolbar, phone menu, lesson and hand builder.
+- The reader shows a configured Hong Kong/Taiwanese minimum when opened from
+  a table, keeps Back and the external reference available while scrolling, and
+  bundles the summaries for offline reading.
+- This first pass has English rule text, with navigation and a language notice
+  in all four UI locales. Full scoring catalogues and translated summaries
+  remain follow-up work. See `docs/NATIVE_RULES_UI.md`.
+
 ## 2026-10-24 — Bigger teaching tiles on phones, and a table tour
 
 - **Tiles you can read on a phone.** The app is drawn at about half size on a

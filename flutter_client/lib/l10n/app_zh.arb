@@ -867,5 +867,11 @@
   "tableTourMenu": "牌桌怎么用",
   "tourStepOf": "第{step}步，共{total}步",
   "rulesTileHint": "当前：{rules} · 点按切换",
-  "rulesTileTooltip": "选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。"
+  "rulesTileTooltip": "选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。",
+  "rulesRead": "阅读规则",
+  "rulesSearchHint": "搜索规则（英文）",
+  "rulesClearSearch": "清除搜索",
+  "rulesNoMatch": "没有匹配的规则，请尝试其他词语。",
+  "rulesSummaryNotice": "TileSense 规则简介。首版正文为英文；完整计分细节请查看外部参考资料。",
+  "rulesReferenceFailed": "无法打开参考资料，请重试。"
 }

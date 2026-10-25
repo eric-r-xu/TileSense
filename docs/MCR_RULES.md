@@ -1,7 +1,7 @@
 # 🇨🇳 MCR rules
 
-Chosen with the ruleset toggle (welcome screen, game app bar, online lobby,
-or builder chip row); Riichi remains the default. Rules reference:
+Chosen before play on the welcome or character screen, in the online lobby,
+or through the builder’s Rules dial. The welcome screen starts on Hong Kong. Rules reference:
 [MCR.pdf](https://app.ericrxu.com/static/MCR.pdf).
 
 The source is the World Mahjong Organization's **Mahjong Competition Rules**

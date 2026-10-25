@@ -2932,4 +2932,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get rulesTileTooltip => '遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。';
+
+  @override
+  String get rulesRead => 'ルールを読む';
+
+  @override
+  String get rulesSearchHint => 'ルールを検索（英語）';
+
+  @override
+  String get rulesClearSearch => '検索をクリア';
+
+  @override
+  String get rulesNoMatch => '該当するルールがありません。別の語句をお試しください。';
+
+  @override
+  String get rulesSummaryNotice =>
+      'TileSenseのルール概要です。初版の本文は英語です。詳しい得点ルールは外部資料をご覧ください。';
+
+  @override
+  String get rulesReferenceFailed => '外部資料を開けませんでした。もう一度お試しください。';
 }

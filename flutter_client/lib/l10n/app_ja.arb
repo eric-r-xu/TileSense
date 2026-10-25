@@ -867,5 +867,11 @@
   "tableTourMenu": "卓の使い方",
   "tourStepOf": "{step} / {total}",
   "rulesTileHint": "{rules}で対局中・タップで変更",
-  "rulesTileTooltip": "遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。"
+  "rulesTileTooltip": "遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。",
+  "rulesRead": "ルールを読む",
+  "rulesSearchHint": "ルールを検索（英語）",
+  "rulesClearSearch": "検索をクリア",
+  "rulesNoMatch": "該当するルールがありません。別の語句をお試しください。",
+  "rulesSummaryNotice": "TileSenseのルール概要です。初版の本文は英語です。詳しい得点ルールは外部資料をご覧ください。",
+  "rulesReferenceFailed": "外部資料を開けませんでした。もう一度お試しください。"
 }

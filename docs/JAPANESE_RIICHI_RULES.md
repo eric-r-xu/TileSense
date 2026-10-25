@@ -1,7 +1,7 @@
 # 🇯🇵 Japanese riichi rules
 
-The default ruleset; switch with the ruleset toggle (welcome screen, game app
-bar, or builder chip row). One-page reference:
+Choose riichi before play on the welcome or character screen,
+in the online lobby, or through the builder’s Rules dial. One-page reference:
 [Riichi.pdf](https://app.ericrxu.com/static/Riichi.pdf).
 
 The engine is adapted from [OpenRiichi](https://github.com/FluffyStuff/OpenRiichi)
