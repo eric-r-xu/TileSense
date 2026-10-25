@@ -200,9 +200,13 @@ Service rollbacks reinstall the binary (and, for mp, the unit) that an earlier
 must be one printed by a deploy that included that service. They do not touch
 the database.
 
-Releases are immutable. The script never prunes the legacy snapshot, old
-releases, or backend backups. Monitor disk usage and retain versions needed by
-open tabs; deleting their assets can break deferred loading. A rollback to a
+Releases are immutable. After each committed deployment the worker prunes
+`/srv/tilesense/releases/` and `/srv/tilesense/.staging/`, keeping the five
+newest releases, `current`, the five newest stages per service (the IDs
+`rollback-ingest`/`rollback-mp` can use), and anything under seven days old so
+open tabs can still load deferred parts (`KEEP_*` in `server/deploy/remote.py`).
+A failed prune is reported but leaves the deployment in place. It never touches
+the legacy snapshot, Mortal releases, or other backend backups. A rollback to a
 versioned release runs the same health checks as a deployment. The initial
 legacy snapshot is reserved for automatic first-deployment rollback.
 

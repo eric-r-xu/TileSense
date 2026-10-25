@@ -4,6 +4,7 @@
 Never logs credentials. All artifacts are staged under a unique release ID.
 No runtime dependency beyond Python, flock (via fcntl), psql and systemd.
 """
+import datetime
 import fcntl
 import hashlib
 import json
@@ -27,6 +28,11 @@ NGINX_LIMITS = Path('/etc/nginx/conf.d/tilesense-mortal-limits.conf')
 MORTAL_UNIT = 'tilesense-mortal.service'
 MORTAL_MARKER = '# TileSense Mortal'
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,99}\Z')
+# Pruning keeps the newest releases and service rollbacks, and everything
+# younger than the window so open tabs can still load deferred parts.
+KEEP_RELEASES = 5
+KEEP_SERVICE_ROLLBACKS = 5
+KEEP_WINDOW = datetime.timedelta(days=7)
 
 
 def run(args, **kwargs):
@@ -48,6 +54,35 @@ def switch(target):
     temporary.unlink(missing_ok=True)
     temporary.symlink_to(target)
     os.replace(temporary, current)
+
+
+def recent(rid, now):
+    try:
+        born = datetime.datetime.strptime(rid[:16], '%Y%m%dT%H%M%SZ').replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return True  # not a deploy.py release ID: never prune it
+    return now - born < KEEP_WINDOW
+
+
+def prune():
+    now = datetime.datetime.now(datetime.timezone.utc)
+    current = (ROOT / 'current').resolve()
+    def dirs(parent):
+        return sorted(p for p in parent.iterdir() if p.is_dir() and not p.is_symlink()) if parent.is_dir() else []
+    releases = dirs(ROOT / 'releases')
+    stages = dirs(ROOT / '.staging')
+    keep_releases = {p.name for p in releases[-KEEP_RELEASES:]} | {current.name}
+    keep_stages = set(keep_releases)
+    # rollback-ingest/rollback-mp reinstall the binary a deploy left in its stage.
+    for name in ('tilesense-ingest', 'tilesense-mp'):
+        keep_stages.update([p.name for p in stages if (p / name).is_file()][-KEEP_SERVICE_ROLLBACKS:])
+    removed = {'releases': 0, 'stages': 0}
+    for kind, paths, keep in (('releases', releases, keep_releases), ('stages', stages, keep_stages)):
+        for path in paths:
+            if path.name not in keep and path != current and not recent(path.name, now):
+                shutil.rmtree(path)
+                removed[kind] += 1
+    return removed
 
 
 def validate_build(path):
@@ -487,6 +522,8 @@ def handle(message):
         if not (ROOT / 'current').is_symlink():
             raise ValueError('Missing current release symlink')
         return {}
+    if action == 'prune':
+        return prune()
     rid = release_id(message['id'])
     stage = ROOT / '.staging' / rid
     if action == 'geoip':
