@@ -1,3 +1,4 @@
+import 'helpers.dart';
 import 'loading_helpers.dart';
 import 'dart:math';
 
@@ -58,22 +59,44 @@ void main() {
         lessThanOrEqualTo(tester.getRect(find.text('Single Player')).left));
   });
 
-  testWidgets('Rules says which rules are in play and that a tap switches them',
+  testWidgets('the tagline names the rules in play, and tapping them switches',
       (tester) async {
     await _boot(tester);
     final rules = find.byKey(const Key('rulesTile'));
-    expect(find.descendant(of: rules, matching: find.textContaining('tap to switch')),
+    expect(find.descendant(of: rules, matching: find.text('Hong Kong')),
         findsOneWidget);
     expect(find.descendant(
             of: rules, matching: find.byKey(const Key('rulesTileSwitch'))),
         findsOneWidget);
-    expect(find.descendant(of: find.byKey(const Key('learnTile')),
-            matching: find.text('Learn / Train')),
+    // In the tagline, above the buttons.
+    expect(tester.getRect(rules).bottom,
+        lessThan(tester.getRect(find.text('Single Player')).top));
+    await tapInPopup(tester, 'rulesTile', find.byKey(const Key('ruleset_mcr')));
+    expect(find.descendant(of: rules, matching: find.text('MCR')),
         findsOneWidget);
   });
 
-  testWidgets('the GitHub and Flutter links sit under the title, with no More '
-      'button', (tester) async {
+  testWidgets('the four buttons share one row, with no subtitle on Play Online '
+      'or Learn', (tester) async {
+    await _boot(tester);
+    final tops = {
+      for (final key in ['singlePlayer', 'playOnline', 'openBuilder', 'learnTile'])
+        tester.getRect(find.byKey(Key(key))).top
+    };
+    expect(tops, hasLength(1));
+    for (final key in ['playOnline', 'learnTile']) {
+      expect(
+          find.descendant(of: find.byKey(Key(key)), matching: find.byType(Text)),
+          findsNWidgets(key == 'playOnline' ? 2 : 1),
+          reason: '$key shows its name (and Play Online its globe) only');
+    }
+    expect(find.text('Includes the TileSense guide'), findsOneWidget);
+    expect(find.text('Have the TileSense guide score it'), findsOneWidget);
+    expect(find.text('🀄'), findsOneWidget);
+  });
+
+  testWidgets('the GitHub and Flutter links sit under the buttons, at the '
+      'right, with no More button', (tester) async {
     await _boot(tester);
     expect(find.byKey(const Key('moreTile')), findsNothing);
     final icons = find.byKey(const Key('titleIcons'));
@@ -82,11 +105,11 @@ void main() {
           findsOneWidget,
           reason: key);
     }
-    // Under the name, above the buttons.
-    expect(tester.getRect(icons).top,
-        greaterThan(tester.getRect(find.byKey(const Key('welcomeLockup'))).top));
-    expect(tester.getRect(icons).bottom,
-        lessThan(tester.getRect(find.text('Single Player')).top));
+    // Under the buttons, the links out at the right end of their row.
+    final buttons = tester.getRect(find.byKey(const Key('titleButtons')));
+    expect(tester.getRect(icons).top, greaterThanOrEqualTo(buttons.bottom));
+    expect(tester.getRect(find.byKey(const Key('flutterLink'))).right,
+        closeTo(buttons.right, 8));
     // And no longer at the table.
     await tester.tap(find.text('Single Player'));
     await tester.pump();

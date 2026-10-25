@@ -692,7 +692,7 @@ abstract class AppLocalizations {
   /// No description provided for @singlePlayerSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Includes the guide'**
+  /// **'Includes the TileSense guide'**
   String get singlePlayerSubtitle;
 
   /// No description provided for @playOnline.
@@ -700,12 +700,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play Online'**
   String get playOnline;
-
-  /// No description provided for @playOnlineSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Bots fill empty seats, no guide'**
-  String get playOnlineSubtitle;
 
   /// No description provided for @builder.
   ///
@@ -716,7 +710,7 @@ abstract class AppLocalizations {
   /// No description provided for @builderSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Pose any table and have TileSense score it'**
+  /// **'Have the TileSense guide score it'**
   String get builderSubtitle;
 
   /// No description provided for @rejoinOnline.
@@ -5171,12 +5165,6 @@ abstract class AppLocalizations {
   /// **'In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.'**
   String get glossaryDefKita;
 
-  /// No description provided for @quizNoneShort.
-  ///
-  /// In en, this message translates to:
-  /// **'No daily quiz for Sanma'**
-  String get quizNoneShort;
-
   /// No description provided for @quizNoneSanma.
   ///
   /// In en, this message translates to:
@@ -5296,12 +5284,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{step} of {total}'**
   String tourStepOf(int step, int total);
-
-  /// No description provided for @rulesTileHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Playing {rules} · tap to switch'**
-  String rulesTileHint(String rules);
 
   /// No description provided for @rulesTileTooltip.
   ///

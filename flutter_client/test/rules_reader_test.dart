@@ -353,7 +353,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const Key('rulesPdf_sanma')), findsOneWidget);
     await closePopup(tester);
-    expect(find.textContaining('Sharpen your Hong Kong Mahjong decisions'),
+    expect(taglineRules('Hong Kong'),
         findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });

@@ -265,7 +265,7 @@ void main() {
 
       await tester.tap(find.byKey(const Key('nudgeAction')));
       await tester.pump();
-      expect(find.textContaining('Sharpen your Taiwanese Mahjong decisions'),
+      expect(taglineRules('Taiwanese'),
           findsOneWidget);
     });
 

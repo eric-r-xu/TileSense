@@ -78,6 +78,10 @@ Future<void> pumpUntil(
   fail('timed out after ${step * tries} waiting for the game to catch up');
 }
 
+/// The welcome tagline's rules button, naming [rules]: the rules in play.
+Finder taglineRules(String rules) => find.descendant(
+    of: find.byKey(const Key('rulesTile')), matching: find.text(rules));
+
 /// Opens the title-screen popup behind [tile] ('learnTile' or 'rulesTile'), taps [target] in it, and lets the popup finish closing.
 Future<void> tapInPopup(WidgetTester tester, String tile, Finder target) async {
   await openPopup(tester, tile);

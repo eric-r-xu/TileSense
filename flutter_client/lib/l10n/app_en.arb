@@ -191,11 +191,10 @@
     }
   },
   "singlePlayer": "Single Player",
-  "singlePlayerSubtitle": "Includes the guide",
+  "singlePlayerSubtitle": "Includes the TileSense guide",
   "playOnline": "Play Online",
-  "playOnlineSubtitle": "Bots fill empty seats, no guide",
   "builder": "Hand Builder",
-  "builderSubtitle": "Pose any table and have TileSense score it",
+  "builderSubtitle": "Have the TileSense guide score it",
   "rejoinOnline": "Rejoin your online game · Room {code}",
   "@rejoinOnline": {
     "placeholders": {
@@ -1802,7 +1801,6 @@
   "glossaryDefSanma": "Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.",
   "glossaryTermKita": "Kita (North set aside)",
   "glossaryDefKita": "In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.",
-  "quizNoneShort": "No daily quiz for Sanma",
   "quizNoneSanma": "There is no daily quiz for Sanma yet. Switch to Riichi or Hong Kong to play it.",
   "tourHandTitle": "Your hand",
   "tourHandBody": "Tap a tile to raise it, then tap it again to discard it. To rearrange your hand, press and hold a tile, then drag it to a new spot.",
@@ -1830,14 +1828,6 @@
       },
       "total": {
         "type": "int"
-      }
-    }
-  },
-  "rulesTileHint": "Playing {rules} · tap to switch",
-  "@rulesTileHint": {
-    "placeholders": {
-      "rules": {
-        "type": "String"
       }
     }
   },

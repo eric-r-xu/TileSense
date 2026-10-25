@@ -536,13 +536,19 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 Ruleset.taiwanese,
                                 Ruleset.mcr,
                                 Ruleset.sichuan,
-                                Ruleset.riichi
+                                Ruleset.riichi,
+                                Ruleset.sanma
                               ],
                               current: s.ruleset,
                               // Flags only, so none is cut off; the
                               // tooltip names the rules. Sichuan has no
-                              // emoji, so it gets its province's character.
-                              label: (r) => r.flag.isEmpty ? '川' : r.flag,
+                              // emoji, so it gets its province's character;
+                              // Sanma shares riichi's flag, so it gets 三.
+                              label: (r) => r == Ruleset.sanma
+                                  ? '三'
+                                  : r.flag.isEmpty
+                                      ? '川'
+                                      : r.flag,
                               tooltip: (r) => context.l10n.rulesetName(r),
                               colour: (_) => AppColors.goldText,
                               onPick: _setRuleset,

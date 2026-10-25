@@ -332,19 +332,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get singlePlayer => '单人游戏';
 
   @override
-  String get singlePlayerSubtitle => '含指南';
+  String get singlePlayerSubtitle => '含 TileSense 指南';
 
   @override
   String get playOnline => '联机对战';
 
   @override
-  String get playOnlineSubtitle => '空位由电脑补上，无指南';
-
-  @override
   String get builder => '手牌构建器';
 
   @override
-  String get builderSubtitle => '摆出任意牌局，让 TileSense 评分';
+  String get builderSubtitle => '让 TileSense 指南评分';
 
   @override
   String rejoinOnline(String code) {
@@ -2827,9 +2824,6 @@ class AppLocalizationsZh extends AppLocalizations {
       '三麻中可以把北风牌拔出来而不留在手里：它算作一张宝牌，并从王牌补摸一张。其他玩家可以荣和这张北。';
 
   @override
-  String get quizNoneShort => '三人麻将没有每日一题';
-
-  @override
   String get quizNoneSanma => '三人麻将还没有每日一题。切换到日本麻将或香港麻将即可挑战。';
 
   @override
@@ -2892,11 +2886,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String tourStepOf(int step, int total) {
     return '第$step步，共$total步';
-  }
-
-  @override
-  String rulesTileHint(String rules) {
-    return '当前：$rules · 点按切换';
   }
 
   @override
@@ -3496,19 +3485,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get singlePlayer => '單人遊戲';
 
   @override
-  String get singlePlayerSubtitle => '含指南';
+  String get singlePlayerSubtitle => '含 TileSense 指南';
 
   @override
   String get playOnline => '連線對戰';
 
   @override
-  String get playOnlineSubtitle => '空位由電腦補上，無指南';
-
-  @override
   String get builder => '手牌建構器';
 
   @override
-  String get builderSubtitle => '擺出任意牌局，讓 TileSense 評分';
+  String get builderSubtitle => '讓 TileSense 指南評分';
 
   @override
   String rejoinOnline(String code) {
@@ -5991,9 +5977,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       '三麻中可以把北風牌拔出來而不留在手裡：它算作一張寶牌，並從王牌補摸一張。其他玩家可以榮和這張北。';
 
   @override
-  String get quizNoneShort => '三人麻將沒有每日一題';
-
-  @override
   String get quizNoneSanma => '三人麻將還沒有每日一題。切換到日本麻將或香港麻將即可挑戰。';
 
   @override
@@ -6056,11 +6039,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String tourStepOf(int step, int total) {
     return '第$step步，共$total步';
-  }
-
-  @override
-  String rulesTileHint(String rules) {
-    return '目前：$rules · 點按切換';
   }
 
   @override

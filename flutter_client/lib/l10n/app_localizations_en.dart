@@ -340,19 +340,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get singlePlayer => 'Single Player';
 
   @override
-  String get singlePlayerSubtitle => 'Includes the guide';
+  String get singlePlayerSubtitle => 'Includes the TileSense guide';
 
   @override
   String get playOnline => 'Play Online';
 
   @override
-  String get playOnlineSubtitle => 'Bots fill empty seats, no guide';
-
-  @override
   String get builder => 'Hand Builder';
 
   @override
-  String get builderSubtitle => 'Pose any table and have TileSense score it';
+  String get builderSubtitle => 'Have the TileSense guide score it';
 
   @override
   String rejoinOnline(String code) {
@@ -2927,9 +2924,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.';
 
   @override
-  String get quizNoneShort => 'No daily quiz for Sanma';
-
-  @override
   String get quizNoneSanma =>
       'There is no daily quiz for Sanma yet. Switch to Riichi or Hong Kong to play it.';
 
@@ -2999,11 +2993,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String tourStepOf(int step, int total) {
     return '$step of $total';
-  }
-
-  @override
-  String rulesTileHint(String rules) {
-    return 'Playing $rules · tap to switch';
   }
 
   @override
