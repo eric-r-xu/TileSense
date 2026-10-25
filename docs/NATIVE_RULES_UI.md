@@ -8,8 +8,14 @@ All six variants have a native, scrollable summary covering setup, calls,
 winning requirements, scoring, payments and game length. Sanma includes kita;
 Sichuan includes the void suit and continued play after a win.
 
-Each summary is followed by a catalogue of every pattern its scorer counts,
-with its value and a one-line definition:
+Each section is a list of short points, shown as bullets when there is more
+than one. Lines that several variants share (drawing and discarding, claim
+priority, the last discard) are written once per language.
+
+Each summary is followed by a catalogue of every pattern its scorer counts, as
+a table of the pattern's name and one-line definition, its value, and a tile
+example. Patterns about when or how a hand wins (Riichi, Self-Pick, robbing a
+kong) have no tiles to show and read "—".
 
 - **Riichi and Sanma:** every yaku with closed and open han, the yakuman, dora
   (and kita), the fu table and the limit hands. Sanma omits Sanshoku Doujun.
@@ -44,7 +50,9 @@ players can read a variant from the welcome screen before joining.
 ## Content and implementation
 
 `flutter_client/lib/ui/rules_content.dart` holds the section model and the
-catalogues' values, once for every language. MCR's names, points and exclusions
+catalogues' values and tile examples, once for every language. Examples use a
+compact notation (`123m 0p EEE F1`, documented on `exampleSet`), and hands that
+several variants share are written once. MCR's names, points and exclusions
 come straight from `mcrFans`. Pattern names use the score screen's translations
 (`MahjongTerms.scoringName`), so the reader and the result screen always agree.
 MCR now has its own name table there, which also translates MCR fan on the score
@@ -70,7 +78,8 @@ notice says the translations are TileSense's own and that the external reference
 The summaries describe what TileSense implements, including its house rules and
 simplifications. The catalogue notes are short definitions, not the full wording
 of each source. The Japanese and Chinese texts have not yet been reviewed by
-native-speaking players. Tile illustrations in the catalogue remain follow-up work.
+native-speaking players. Tile examples show the defining sets, not always a
+whole hand, and are not checked by the scorer.
 The summaries retain source attribution.
 
 PDFs continue to open externally. Displaying a PDF beside the native text within

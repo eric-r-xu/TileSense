@@ -12,6 +12,7 @@ import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/rules_content.dart';
 import 'package:tilesense/ui/rules_reader.dart';
 import 'package:tilesense/ui/rules_text.dart';
+import 'package:tilesense/ui/tile_face.dart';
 
 import 'helpers.dart';
 import 'l10n_helpers.dart';
@@ -74,6 +75,70 @@ void main() {
         }
       }
     }
+  });
+
+  test('each point is one sentence, so several read as bullets', () {
+    // A sentence ending before the point does: "word. Next" or "。次", but
+    // not an initial ("J. Reynolds").
+    final inner = RegExp(r'[a-z\d)’]\.\s+\S|。.');
+    for (final language in AppLanguage.values) {
+      for (final r in Ruleset.values) {
+        for (final s in rulesSections(r,
+            l10n: l10nFor(language), minimumFaan: 3, minimumPoints: 5)) {
+          for (final point in s.points) {
+            expect(point, isNot(contains(inner)),
+                reason: '${language.name} ${r.name} ${s.id}');
+          }
+        }
+        for (final s in rulesSections(r, l10n: l10nFor(language))
+            .where((s) => s.id == 'winning')) {
+          expect(s.points.first, isNot(contains(inner)),
+              reason: '${language.name} ${r.name} default minimum');
+        }
+      }
+    }
+  });
+
+  test('every example parses, with at most four of any tile', () {
+    for (final r in Ruleset.values) {
+      for (final e in rulesSections(r).expand((s) => s.entries)) {
+        final tiles = [
+          for (final set in e.example.split(' '))
+            if (set.isNotEmpty && set != '→') ...exampleSet(set)
+        ];
+        for (final type in tiles.map((t) => t.type).toSet()) {
+          expect(
+              tiles.where((t) => t.type == type).length, lessThanOrEqualTo(4),
+              reason: '${r.name} ${e.alias} ${type.code}');
+        }
+      }
+    }
+    expect(exampleSet('0m').single.aka, isTrue);
+    expect(exampleSet('S12').map((t) => t.type.code), ['S1', 'S2']);
+    expect(exampleSet('SS').map((t) => t.type.code), ['S', 'S']);
+  });
+
+  testWidgets('catalogues are tables with tile examples; prose has bullets',
+      (tester) async {
+    await pumpLocalized(
+        tester,
+        Scaffold(
+            body: RulesReader(
+          ruleset: Ruleset.riichi,
+          onClose: () {},
+        )),
+        size: const Size(390, 700));
+    expect(find.text('•  '), findsWidgets);
+    await tester.enterText(find.byKey(const Key('rulesSearch')), 'chiitoitsu');
+    await tester.pump();
+    final yaku = find.byKey(const Key('rule_yaku'));
+    expect(find.descendant(of: yaku, matching: find.byType(Table)),
+        findsOneWidget);
+    expect(find.descendant(of: yaku, matching: find.text('Example')),
+        findsOneWidget);
+    expect(find.descendant(of: yaku, matching: find.byType(TileFace)),
+        findsNWidgets(14));
+    expect(tester.takeException(), isNull);
   });
 
   test('catalogues list every pattern each scorer can report', () {
@@ -184,6 +249,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('rule_setup')), findsOneWidget);
     await tester.scrollUntilVisible(find.byKey(const Key('rule_source')), 300,
+        maxScrolls: 200,
         scrollable: find
             .descendant(
                 of: find.byKey(const Key('rulesList')),

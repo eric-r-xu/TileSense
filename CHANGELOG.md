@@ -27,6 +27,8 @@ approximate wherever a batch of work spanned more than a day.
   too, which had shown most of them in English.
 - The Hong Kong and Taiwanese summaries said the last discard could not be
   claimed; it can be claimed to win, as the engine allows.
+- Summary sections are shorter and list one point per bullet. Catalogues are
+  tables of name (with its definition), value and a tile example.
   See `docs/NATIVE_RULES_UI.md`.
 
 ## 2026-10-24 — Bigger teaching tiles on phones, and a table tour

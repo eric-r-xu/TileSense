@@ -41,7 +41,12 @@ abstract class RulesText {
   /// A catalogue group's heading and introduction; MCR's groups are `mcr88`,
   /// `mcr64` and so on, one per point value.
   String groupTitle(String id);
-  String groupIntro(String id);
+  List<String> groupIntro(String id);
+
+  /// The catalogue table's column headings.
+  String get nameHeading;
+  String get valueHeading;
+  String get exampleHeading;
 
   /// [p]'s value in [unit]. A zero fu value is a rule with no fixed amount
   /// (kans, rounding) and reads as nothing.
