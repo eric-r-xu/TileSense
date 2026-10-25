@@ -789,8 +789,13 @@ class _NudgeCard extends StatelessWidget {
   }
 }
 
+/// Full screen, as a labelled link or (on the title screen, under the name)
+/// an icon alone.
 class _FullscreenButton extends StatefulWidget {
-  const _FullscreenButton();
+  const _FullscreenButton({this.compact = false});
+
+  /// Icon only, its name in the tooltip.
+  final bool compact;
 
   @override
   State<_FullscreenButton> createState() => _FullscreenButtonState();
@@ -833,6 +838,16 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
   Widget build(BuildContext context) {
     if (!fs.fullscreenButtonVisible) return const SizedBox.shrink();
     final full = fs.isFullscreen;
+    final onPressed = fs.canFullscreen ? fs.toggleFullscreen : _showInstallHelp;
+    if (widget.compact) {
+      return _TitleIconButton(
+        id: 'fullscreen',
+        tooltip:
+            full ? context.l10n.fullscreenExit : context.l10n.fullscreenTooltip,
+        icon: Icon(full ? Icons.fullscreen_exit : Icons.fullscreen),
+        onPressed: onPressed,
+      );
+    }
     return Tooltip(
       message:
           full ? context.l10n.fullscreenExit : context.l10n.fullscreenTooltip,
@@ -854,7 +869,10 @@ class _FullscreenButtonState extends State<_FullscreenButton> {
 /// server which build it has, then reloads with every cache dropped. Only on
 /// the welcome screen, so a reload never lands mid-match.
 class _UpdateButton extends StatefulWidget {
-  const _UpdateButton();
+  const _UpdateButton({this.compact = false});
+
+  /// Icon only, its name in the tooltip.
+  final bool compact;
 
   @override
   State<_UpdateButton> createState() => _UpdateButtonState();
@@ -913,6 +931,20 @@ class _UpdateButtonState extends State<_UpdateButton> {
   @override
   Widget build(BuildContext context) {
     if (!upd.updateButtonVisible) return const SizedBox.shrink();
+    if (widget.compact) {
+      return _TitleIconButton(
+        id: 'updateApp',
+        tooltip: context.l10n.updateTooltip,
+        icon: _busy
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.refresh),
+        onPressed: _busy ? null : _onPressed,
+      );
+    }
     return Tooltip(
       message: context.l10n.updateTooltip,
       child: TextButton.icon(
@@ -2050,17 +2082,6 @@ class _WelcomeScreen extends StatelessWidget {
         ],
       );
 
-  void _showMore(BuildContext context) => _showTitlePopup(
-        context,
-        key: const Key('morePopup'),
-        title: context.l10n.moreTile,
-        children: const [
-          _FullscreenButton(),
-          _UpdateButton(),
-          SizedBox(height: 8),
-          _Credits(),
-        ],
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -2114,7 +2135,21 @@ class _WelcomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    // What the More button used to hold, as icons under the
+                    // name: full screen, update, and the links out.
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Row(
+                        key: Key('titleIcons'),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _FullscreenButton(compact: true),
+                          _UpdateButton(compact: true),
+                          _Credits(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     // Two balanced lines, broken by hand rather than by the
                     // wrapper. Left to itself at a snug width a line can land
                     // within a pixel of the limit, so any browser whose default
@@ -2227,20 +2262,23 @@ class _WelcomeScreen extends StatelessWidget {
                             );
                           },
                         ),
-                        _TitleButton(
-                          key: const Key('rulesTile'),
-                          id: 'rulesTile',
-                          onPressed: () => _showRules(context),
-                          icon: RulesetFlag(ruleset, size: 26),
-                          title: context.l10n.rules,
-                          subtitle: context.l10n.rulesetName(ruleset),
-                        ),
-                        _TitleButton(
-                          key: const Key('moreTile'),
-                          id: 'moreTile',
-                          onPressed: () => _showMore(context),
-                          icon: const Icon(Icons.more_horiz, size: 28),
-                          title: context.l10n.moreTile,
+                        // Says it switches: which rules are in play, "tap to
+                        // switch", and a swap arrow at the end.
+                        Tooltip(
+                          message: context.l10n.rulesTileTooltip,
+                          child: _TitleButton(
+                            key: const Key('rulesTile'),
+                            id: 'rulesTile',
+                            onPressed: () => _showRules(context),
+                            icon: RulesetFlag(ruleset, size: 26, tooltip: false),
+                            title: context.l10n.rules,
+                            subtitle: context.l10n.rulesTileHint(
+                                context.l10n.rulesetName(ruleset)),
+                            trailing: const Icon(Icons.swap_horiz,
+                                key: Key('rulesTileSwitch'),
+                                size: 26,
+                                color: AppColors.goldText),
+                          ),
                         ),
                       ],
                     ),
@@ -2289,8 +2327,8 @@ class _WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// The source on GitHub and the "Built with Flutter" logo, in the title
-/// screen's corner: links out of the app rather than controls of it, so they
+/// The source on GitHub and the "Built with Flutter" logo, among the icons
+/// under the title: links out of the app rather than controls of it, so they
 /// stay away from the table, where a phone's Menu button now sits.
 class _Credits extends StatelessWidget {
   const _Credits();
@@ -2333,6 +2371,36 @@ class _Credits extends StatelessWidget {
       );
 }
 
+/// One of the small icons under the title (full screen, update): its name is
+/// in the tooltip.
+class _TitleIconButton extends StatelessWidget {
+  const _TitleIconButton({
+    required this.id,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String id;
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => e2eId(
+        id,
+        IconButton(
+          key: Key(id),
+          tooltip: tooltip,
+          iconSize: 22,
+          visualDensity: VisualDensity.compact,
+          color: Colors.white38,
+          icon: icon,
+          onPressed: onPressed,
+        ),
+      );
+}
+
 /// A title-screen button: every one is the same size, whether it starts a game
 /// or opens a popup. [primary] fills it in gold.
 class _TitleButton extends StatelessWidget {
@@ -2345,6 +2413,7 @@ class _TitleButton extends StatelessWidget {
     this.primary = false,
     this.accent = false,
     this.id,
+    this.trailing,
   });
 
   static const double width = 330;
@@ -2361,6 +2430,9 @@ class _TitleButton extends StatelessWidget {
 
   /// The Playwright handle, when the e2e suite drives this button.
   final String? id;
+
+  /// Shown at the button's far end: what pressing it does (Rules' swap).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -2390,6 +2462,7 @@ class _TitleButton extends StatelessWidget {
             ],
           ),
         ),
+        if (trailing case final t?) ...[const SizedBox(width: 10), t],
       ],
     );
     const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);

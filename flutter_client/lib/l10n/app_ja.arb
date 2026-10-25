@@ -737,7 +737,7 @@
   "glossaryDefAway": "手牌があがるまでに、あと何枚必要かです。あと1枚ならテンパイです。ガイドのメーターや「Away」「Shanten」の列に表示されます。",
   "glossaryTermHelpful": "有効牌",
   "glossaryDefHelpful": "引くとあがりに近づく牌です。ガイドは、まだ見えていない残り枚数を数えます。",
-  "learnTile": "学ぶ",
+  "learnTile": "学ぶ・練習",
   "moreTile": "その他",
   "practiceTitle": "練習問題",
   "practiceLink": "練習問題",
@@ -851,7 +851,7 @@
   "tourHandBody": "牌をタップすると持ち上がり、もう一度タップすると捨てます。並べ替えるには、牌を長押しして好きな位置へドラッグします。",
   "tourButtonsTitle": "手牌の横のボタン",
   "tourButtonsBody": "手牌の扱い方を決める4つのスイッチです。オンのときは塗りつぶされます。",
-  "tourLegendSortBody": "牌を順番に並べるか、ドラッグした位置のままにします。",
+  "tourLegendSortBody": "タップで3つのモードを切り替えます。「手牌」は牌を順に並べ、ツモ牌を右に離して置きます。「手牌＋ツモ」はツモ牌も並びに入れます。「オフ」はドラッグした位置のままにします。",
   "tourLegendDiscardBody": "1回のタップで捨てるか、2回（持ち上げてから捨てる）にします。",
   "tourLegendAutoWinBody": "和了れる瞬間に自動で和了を宣言します。",
   "tourLegendAutoPassBody": "他家の捨て牌への鳴きを自動で見送り、確認を省きます。",
@@ -865,5 +865,7 @@
   "tourDone": "対局を始める",
   "tableTourLink": "卓のツアー：画面の使い方",
   "tableTourMenu": "卓の使い方",
-  "tourStepOf": "{step} / {total}"
+  "tourStepOf": "{step} / {total}",
+  "rulesTileHint": "{rules}で対局中・タップで変更",
+  "rulesTileTooltip": "遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。"
 }

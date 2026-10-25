@@ -2525,7 +2525,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.';
 
   @override
-  String get learnTile => 'Learn';
+  String get learnTile => 'Learn / Train';
 
   @override
   String get moreTile => 'More';
@@ -2949,7 +2949,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tourLegendSortBody =>
-      'keeps your tiles in order, or leaves them where you drag them.';
+      'taps through three modes. Hand keeps your tiles in order with the drawn tile set apart on the right; Hand+draw sorts the drawn tile straight in; Off leaves every tile where you drag it.';
 
   @override
   String get tourLegendDiscardBody =>
@@ -3000,4 +3000,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String tourStepOf(int step, int total) {
     return '$step of $total';
   }
+
+  @override
+  String rulesTileHint(String rules) {
+    return 'Playing $rules · tap to switch';
+  }
+
+  @override
+  String get rulesTileTooltip =>
+      'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.';
 }

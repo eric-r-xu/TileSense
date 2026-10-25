@@ -2447,7 +2447,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glossaryDefHelpful => '摸到后能让手牌更接近胡牌的牌。提示会统计还有多少张没出现。';
 
   @override
-  String get learnTile => '学习';
+  String get learnTile => '学习／训练';
 
   @override
   String get moreTile => '更多';
@@ -2845,7 +2845,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tourButtonsBody => '四个开关决定手牌怎么操作。打开时会填满颜色。';
 
   @override
-  String get tourLegendSortBody => '让牌保持排序，或者留在你拖放的位置。';
+  String get tourLegendSortBody =>
+      '点按在三种模式间切换。“手牌”让牌保持排序，摸到的牌放在右边；“手牌+摸牌”把摸到的牌直接排进去；“关”让每张牌留在你拖放的位置。';
 
   @override
   String get tourLegendDiscardBody => '点一次就打牌，或者点两次（先抬起再打出）。';
@@ -2892,6 +2893,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String tourStepOf(int step, int total) {
     return '第$step步，共$total步';
   }
+
+  @override
+  String rulesTileHint(String rules) {
+    return '当前：$rules · 点按切换';
+  }
+
+  @override
+  String get rulesTileTooltip => '选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5337,7 +5346,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get glossaryDefHelpful => '摸到後能讓手牌更接近食糊的牌。提示會統計還有多少張沒出現。';
 
   @override
-  String get learnTile => '學習';
+  String get learnTile => '學習／訓練';
 
   @override
   String get moreTile => '更多';
@@ -5735,7 +5744,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get tourButtonsBody => '四個開關決定手牌怎麼操作。打開時會填滿顏色。';
 
   @override
-  String get tourLegendSortBody => '讓牌保持排序，或者留在你拖放的位置。';
+  String get tourLegendSortBody =>
+      '點按在三種模式間切換。「手牌」讓牌保持排序，摸到的牌放在右邊；「手牌+摸牌」把摸到的牌直接排進去；「關」讓每張牌留在你拖放的位置。';
 
   @override
   String get tourLegendDiscardBody => '點一次就打牌，或者點兩次（先抬起再打出）。';
@@ -5782,4 +5792,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String tourStepOf(int step, int total) {
     return '第$step步，共$total步';
   }
+
+  @override
+  String rulesTileHint(String rules) {
+    return '目前：$rules · 點按切換';
+  }
+
+  @override
+  String get rulesTileTooltip => '選擇要玩的麻將規則：日本麻將、三人麻將、香港、台灣、國標或四川。';
 }

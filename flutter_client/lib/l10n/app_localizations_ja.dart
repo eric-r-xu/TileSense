@@ -2470,7 +2470,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryDefHelpful => '引くとあがりに近づく牌です。ガイドは、まだ見えていない残り枚数を数えます。';
 
   @override
-  String get learnTile => '学ぶ';
+  String get learnTile => '学ぶ・練習';
 
   @override
   String get moreTile => 'その他';
@@ -2875,7 +2875,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tourButtonsBody => '手牌の扱い方を決める4つのスイッチです。オンのときは塗りつぶされます。';
 
   @override
-  String get tourLegendSortBody => '牌を順番に並べるか、ドラッグした位置のままにします。';
+  String get tourLegendSortBody =>
+      'タップで3つのモードを切り替えます。「手牌」は牌を順に並べ、ツモ牌を右に離して置きます。「手牌＋ツモ」はツモ牌も並びに入れます。「オフ」はドラッグした位置のままにします。';
 
   @override
   String get tourLegendDiscardBody => '1回のタップで捨てるか、2回（持ち上げてから捨てる）にします。';
@@ -2923,4 +2924,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String tourStepOf(int step, int total) {
     return '$step / $total';
   }
+
+  @override
+  String rulesTileHint(String rules) {
+    return '$rulesで対局中・タップで変更';
+  }
+
+  @override
+  String get rulesTileTooltip => '遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。';
 }

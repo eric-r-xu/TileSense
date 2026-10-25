@@ -78,8 +78,7 @@ Future<void> pumpUntil(
   fail('timed out after ${step * tries} waiting for the game to catch up');
 }
 
-/// Opens the title-screen popup behind [tile] ('learnTile', 'rulesTile' or
-/// 'moreTile'), taps [target] in it, and lets the popup finish closing.
+/// Opens the title-screen popup behind [tile] ('learnTile' or 'rulesTile'), taps [target] in it, and lets the popup finish closing.
 Future<void> tapInPopup(WidgetTester tester, String tile, Finder target) async {
   await openPopup(tester, tile);
   // The popup scrolls once its list outgrows it (six rulesets do).

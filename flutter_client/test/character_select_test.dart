@@ -58,19 +58,35 @@ void main() {
         lessThanOrEqualTo(tester.getRect(find.text('Single Player')).left));
   });
 
-  testWidgets('the GitHub and Flutter links sit in the More popup',
+  testWidgets('Rules says which rules are in play and that a tap switches them',
       (tester) async {
     await _boot(tester);
-    expect(find.byKey(const Key('githubLink')), findsNothing);
-    await tester.tap(find.byKey(const Key('moreTile')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    final rules = find.byKey(const Key('rulesTile'));
+    expect(find.descendant(of: rules, matching: find.textContaining('tap to switch')),
+        findsOneWidget);
+    expect(find.descendant(
+            of: rules, matching: find.byKey(const Key('rulesTileSwitch'))),
+        findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('learnTile')),
+            matching: find.text('Learn / Train')),
+        findsOneWidget);
+  });
+
+  testWidgets('the GitHub and Flutter links sit under the title, with no More '
+      'button', (tester) async {
+    await _boot(tester);
+    expect(find.byKey(const Key('moreTile')), findsNothing);
+    final icons = find.byKey(const Key('titleIcons'));
     for (final key in ['githubLink', 'flutterLink']) {
-      expect(find.byKey(Key(key)), findsOneWidget, reason: key);
+      expect(find.descendant(of: icons, matching: find.byKey(Key(key))),
+          findsOneWidget,
+          reason: key);
     }
-    await tester.tap(find.byKey(const Key('titlePopupClose')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    // Under the name, above the buttons.
+    expect(tester.getRect(icons).top,
+        greaterThan(tester.getRect(find.byKey(const Key('welcomeLockup'))).top));
+    expect(tester.getRect(icons).bottom,
+        lessThan(tester.getRect(find.text('Single Player')).top));
     // And no longer at the table.
     await tester.tap(find.text('Single Player'));
     await tester.pump();

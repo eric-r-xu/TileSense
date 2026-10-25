@@ -737,7 +737,7 @@
   "glossaryDefAway": "手牌还需要几张才能胡牌。还差一张就是听牌。提示的进度条和“Away”或“Shanten”一列会显示。",
   "glossaryTermHelpful": "有用的牌",
   "glossaryDefHelpful": "摸到后能让手牌更接近胡牌的牌。提示会统计还有多少张没出现。",
-  "learnTile": "学习",
+  "learnTile": "学习／训练",
   "moreTile": "更多",
   "practiceTitle": "练习题",
   "practiceLink": "练习题",
@@ -851,7 +851,7 @@
   "tourHandBody": "点按一张牌把它抬起，再点一次就打出。想调整顺序，长按一张牌，然后拖到新的位置。",
   "tourButtonsTitle": "手牌旁边的按钮",
   "tourButtonsBody": "四个开关决定手牌怎么操作。打开时会填满颜色。",
-  "tourLegendSortBody": "让牌保持排序，或者留在你拖放的位置。",
+  "tourLegendSortBody": "点按在三种模式间切换。“手牌”让牌保持排序，摸到的牌放在右边；“手牌+摸牌”把摸到的牌直接排进去；“关”让每张牌留在你拖放的位置。",
   "tourLegendDiscardBody": "点一次就打牌，或者点两次（先抬起再打出）。",
   "tourLegendAutoWinBody": "一能和牌就自动替你宣告。",
   "tourLegendAutoPassBody": "自动放弃其他玩家打出的牌的吃碰杠，不再询问。",
@@ -865,5 +865,7 @@
   "tourDone": "开始打牌",
   "tableTourLink": "牌桌导览：怎样操作牌桌",
   "tableTourMenu": "牌桌怎么用",
-  "tourStepOf": "第{step}步，共{total}步"
+  "tourStepOf": "第{step}步，共{total}步",
+  "rulesTileHint": "当前：{rules} · 点按切换",
+  "rulesTileTooltip": "选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。"
 }

@@ -1497,7 +1497,7 @@
   "glossaryDefAway": "How many more tiles your hand needs before it can win. One tile away means ready. The guide's meter and its Away or Shanten column show it.",
   "glossaryTermHelpful": "Helpful tiles",
   "glossaryDefHelpful": "Tiles you could draw that move your hand closer to winning. The guide counts how many are still unseen.",
-  "learnTile": "Learn",
+  "learnTile": "Learn / Train",
   "moreTile": "More",
   "practiceTitle": "Practice",
   "practiceLink": "Practice hands",
@@ -1808,7 +1808,7 @@
   "tourHandBody": "Tap a tile to raise it, then tap it again to discard it. To rearrange your hand, press and hold a tile, then drag it to a new spot.",
   "tourButtonsTitle": "The buttons beside your hand",
   "tourButtonsBody": "Four switches for how your hand plays. Each is filled in when it is on.",
-  "tourLegendSortBody": "keeps your tiles in order, or leaves them where you drag them.",
+  "tourLegendSortBody": "taps through three modes. Hand keeps your tiles in order with the drawn tile set apart on the right; Hand+draw sorts the drawn tile straight in; Off leaves every tile where you drag it.",
   "tourLegendDiscardBody": "one tap to discard, or two (raise, then discard).",
   "tourLegendAutoWinBody": "declares a win for you the moment you can.",
   "tourLegendAutoPassBody": "skips calls on other players' tiles, so you aren't asked.",
@@ -1832,5 +1832,14 @@
         "type": "int"
       }
     }
-  }
+  },
+  "rulesTileHint": "Playing {rules} · tap to switch",
+  "@rulesTileHint": {
+    "placeholders": {
+      "rules": {
+        "type": "String"
+      }
+    }
+  },
+  "rulesTileTooltip": "Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan."
 }

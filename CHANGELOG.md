@@ -24,8 +24,13 @@ approximate wherever a batch of work spanned more than a day.
   hand (tap to raise, tap again to discard; long-press and drag to rearrange), the
   four buttons beside it named and explained (on a phone they are icons alone),
   TileSensor and how it opens the guide, and where the menu and settings are.
-  The game waits while it is up. Replay it from **Learn > Table tour** or, on a
+  The game waits while it is up. Replay it from **Learn / Train > Table tour** or, on a
   phone, **Menu > How the table works**. Code: `flutter_client/lib/ui/table_tour.dart`.
+  The tour explains all three Sort modes (Hand, Hand+draw, Off).
+- **Title screen.** The More button is gone: full screen, update, GitHub and Flutter
+  are small icons under the TileSense name. Learn is now **Learn / Train**, and
+  **Rules** reads "Playing … · tap to switch" with a swap arrow and a tooltip
+  listing the rulesets, so it is clear it changes the rules.
 
 ## 2026-10-24 — Sanma (three-player riichi)
 

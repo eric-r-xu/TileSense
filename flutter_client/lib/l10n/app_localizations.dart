@@ -4526,7 +4526,7 @@ abstract class AppLocalizations {
   /// No description provided for @learnTile.
   ///
   /// In en, this message translates to:
-  /// **'Learn'**
+  /// **'Learn / Train'**
   String get learnTile;
 
   /// No description provided for @moreTile.
@@ -5210,7 +5210,7 @@ abstract class AppLocalizations {
   /// No description provided for @tourLegendSortBody.
   ///
   /// In en, this message translates to:
-  /// **'keeps your tiles in order, or leaves them where you drag them.'**
+  /// **'taps through three modes. Hand keeps your tiles in order with the drawn tile set apart on the right; Hand+draw sorts the drawn tile straight in; Off leaves every tile where you drag it.'**
   String get tourLegendSortBody;
 
   /// No description provided for @tourLegendDiscardBody.
@@ -5296,6 +5296,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{step} of {total}'**
   String tourStepOf(int step, int total);
+
+  /// No description provided for @rulesTileHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing {rules} · tap to switch'**
+  String rulesTileHint(String rules);
+
+  /// No description provided for @rulesTileTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.'**
+  String get rulesTileTooltip;
 }
 
 class _AppLocalizationsDelegate
