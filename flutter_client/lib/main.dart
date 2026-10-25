@@ -46,6 +46,7 @@ import 'ui/feature_loader.dart';
 import 'ui/scenario_page.dart' deferred as scenario;
 import 'ui/scoring_view.dart';
 import 'ui/ruleset_flag.dart';
+import 'ui/rules_reader.dart';
 import 'ui/small_window_hint.dart';
 import 'ui/table_view.dart';
 import 'ui/tilesensor.dart';
@@ -1573,18 +1574,19 @@ class _GamePageState extends State<GamePage> {
                           ),
                         ),
                       ),
-                      // The current ruleset's one-page rules reference.
+                      // The current table’s native rules summary and external reference.
                       AnimatedBuilder(
                         animation: _game,
                         builder: (context, _) => IconButton(
                           key: const Key('rulesPdf'),
-                          tooltip:
-                              context.l10n.rulesLinkLabel(_game.ruleset),
+                          tooltip: context.l10n.rulesRead,
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
                           color: Colors.white54,
                           icon: const Icon(Icons.menu_book),
-                          onPressed: () => openRules(_game.ruleset),
+                          onPressed: () => showRulesReader(context, _game.ruleset,
+                              minimumFaan: _game.minimumFaan,
+                              minimumPoints: _game.minimumPoints),
                         ),
                       ),
                       // The terms a new player meets, in this game's rules.
@@ -1973,7 +1975,7 @@ class _WelcomeScreen extends StatelessWidget {
   final ValueChanged<String> onRejoin;
 
   /// One ruleset in the Rules popup: pick it (which closes the popup), or open
-  /// its rules PDF beneath.
+  /// its native summary or external reference beneath.
   Widget _rulesetOption(BuildContext context, Ruleset value, String subtitle) {
     final selected = ruleset == value;
     return Padding(
@@ -2012,6 +2014,13 @@ class _WelcomeScreen extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+          TextButton.icon(
+            key: Key('rulesRead_${value.name}'),
+            onPressed: () => showRulesReader(context, value),
+            icon: const Icon(Icons.menu_book, size: 18),
+            label: Text(context.l10n.rulesRead),
+            style: TextButton.styleFrom(foregroundColor: AppColors.link),
           ),
           TextButton.icon(
             key: Key('rulesPdf_${value.name}'),

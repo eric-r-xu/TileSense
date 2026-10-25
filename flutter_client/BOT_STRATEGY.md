@@ -18,53 +18,36 @@ how that compares to how your own seat plays. Based on
   [Mortal](https://github.com/Equim-chan/Mortal), a deep-learning mahjong AI,
   seeing only what her seat can see. Any decision Mortal can't answer (the
   sidecar is down or slow, or it names a move the table doesn't offer) falls
-  back to `SimpleBot`. Every other character, Saeko under Hong Kong or
-  Taiwanese rules, and every online bot stay on `SimpleBot`.
+  back to `SimpleBot`. Every other character and Saeko under the other five
+  variants stay on `SimpleBot`. Online Saeko can also use Mortal when the multiplayer server
+  has `MORTAL_URL` configured.
 - **Your seat is played by the guide, never by that rulebook.** Whether you're
   tapping tiles yourself or you've flipped Autoplay on, your seat's decisions
   come from the efficiency / expected-value / safety analysis. The opponents
   never get any of it.
-- **The opponents can't count points and can't play defense.** They have no
-  idea what a hand is worth, they can't see dora, and they discard exactly the
-  same way whether the table is calm or a riichi is bearing down on them.
+- **The basic bot prioritizes hand shape over defense.** MCR and Sichuan
+  have their own decision paths: MCR considers scoring potential and the
+  8-point minimum, while Sichuan accounts for its void-suit rules. The
+  descriptions of the original riichi heuristic below are not universal
+  descriptions of all six variants.
 
-- **Autoplay starts on Speed** in all three rulesets, and on Aggressive under
-  riichi — chosen from measured sweeps (see
-  [How the guide measures up](#how-the-guide-measures-up)). The guide beats
-  the bots at a statistically significant level in all three rulesets. Under
-  MCR it was well behind them until 2026-10-02 and now edges ahead (see
-  [MCR](#mcr--from-last-place-to-just-ahead-of-the-bots)).
-
-- **Style is a riichi-only dial.** Hong Kong has no riichi or damaten for it
-  to weigh, and a full sweep found no placement effect from it either, so the
-  toggle is hidden and pinned to Balanced under Hong Kong rules.
-- **Strategy is a riichi-only dial too, for a different reason.** Points or
-  Placement (see
-  [EXPECTED_VALUE.md](EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only))
-  changes what a line is optimised for rather than how danger is priced, and
-  the model behind it isn't specific to riichi mechanics — unlike Style, it
-  is dead code under Hong Kong by product decision, not because there is
-  nothing left for it to weigh. It starts on **Points**; Placement is opt-in
-  and has not been through a measured sweep against the bots the way Style
-  and Focus's defaults have.
-
-The validated starting presets are:
-
-| Rules | Style | Focus | Strategy |
-|---|---|---|---|
-| Riichi | Aggressive | Speed | Points |
-| Hong Kong | Balanced (pinned) | Speed | Points (pinned) |
-| Taiwanese | Balanced (pinned) | Speed | Points (pinned) |
-| MCR | Balanced (pinned) | Speed | Points (pinned) |
-
-Taiwanese uses its own call-aware win model; its held-out measurement below
-validates that model with these dials. These are evidence-backed defaults,
-not a claim that every alternative has been beaten. Switching into riichi
-restores the player's previous dials, or its default preset if none existed.
+- **The guide chooses its dials automatically.** Four-player riichi uses
+  Aggressive / Speed / Points until the final two scheduled hands, then
+  Balanced / Speed / Placement. Sanma stays Aggressive / Speed / Points;
+  its placement model has not been adapted to three seats. Chinese variants
+  use Balanced / Points, with Speed focus except Taiwanese at the 5-tai
+  minimum, which uses Balanced focus. See `lib/logic/auto_dials.dart`.
+- The measured results below support the guide against the bots for riichi,
+  Hong Kong and Taiwanese, with a smaller advantage under MCR. Sichuan ties
+  the bots. These measurements do not establish a Sanma advantage.
+- Chinese variants pin Style to Balanced and Strategy to Points. The
+  four-player placement model and its measurements are described in
+  [EXPECTED_VALUE.md](EXPECTED_VALUE.md#strategy--points-or-placement-riichi-only).
 
 ## Same brain, any costume
 
-Every bot seat is built from one piece of code, whichever character it shows,
+Apart from the Saeko/Mortal integration described above, bot seats use the same
+factory, whichever character they show,
 with only the random-number seed differing so their tie-breaking coin flips
 don't all land the same way:
 

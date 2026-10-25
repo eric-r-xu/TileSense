@@ -5308,6 +5308,534 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.'**
   String get rulesTileTooltip;
+
+  /// No description provided for @rulesRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read rules'**
+  String get rulesRead;
+
+  /// No description provided for @rulesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search rules'**
+  String get rulesSearchHint;
+
+  /// No description provided for @rulesClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get rulesClearSearch;
+
+  /// No description provided for @rulesNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No rules match your search. Try another word.'**
+  String get rulesNoMatch;
+
+  /// No description provided for @rulesSummaryNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick guide to TileSense’s rules, with every scoring pattern the app counts. The external reference is the source these rules follow.'**
+  String get rulesSummaryNotice;
+
+  /// No description provided for @rulesReferenceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the reference. Please try again.'**
+  String get rulesReferenceFailed;
+
+  /// MCR fan 1 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Big Four Winds'**
+  String get mcrFanBigFourWinds;
+
+  /// MCR fan 2 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Big Three Dragons'**
+  String get mcrFanBigThreeDragons;
+
+  /// MCR fan 3 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Green'**
+  String get mcrFanAllGreen;
+
+  /// MCR fan 4 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Nine Gates'**
+  String get mcrFanNineGates;
+
+  /// MCR fan 5 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Four Kongs'**
+  String get mcrFanFourKongs;
+
+  /// MCR fan 6 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Seven Shifted Pairs'**
+  String get mcrFanSevenShiftedPairs;
+
+  /// MCR fan 7 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Thirteen Orphans'**
+  String get mcrFanThirteenOrphans;
+
+  /// MCR fan 8 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Terminals'**
+  String get mcrFanAllTerminals;
+
+  /// MCR fan 9 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Little Four Winds'**
+  String get mcrFanLittleFourWinds;
+
+  /// MCR fan 10 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Little Three Dragons'**
+  String get mcrFanLittleThreeDragons;
+
+  /// MCR fan 11 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Honors'**
+  String get mcrFanAllHonors;
+
+  /// MCR fan 12 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Four Concealed Pungs'**
+  String get mcrFanFourConcealedPungs;
+
+  /// MCR fan 13 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pure Terminal Chows'**
+  String get mcrFanPureTerminalChows;
+
+  /// MCR fan 14 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruple Chow'**
+  String get mcrFanQuadrupleChow;
+
+  /// MCR fan 15 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Four Pure Shifted Pungs'**
+  String get mcrFanFourPureShiftedPungs;
+
+  /// MCR fan 16 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Four Shifted Chows'**
+  String get mcrFanFourShiftedChows;
+
+  /// MCR fan 17 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Three Kongs'**
+  String get mcrFanThreeKongs;
+
+  /// MCR fan 18 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Terminals and Honors'**
+  String get mcrFanAllTerminalsAndHonors;
+
+  /// MCR fan 19 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Seven Pairs'**
+  String get mcrFanSevenPairs;
+
+  /// MCR fan 20 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Greater Honors and Knitted Tiles'**
+  String get mcrFanGreaterHonorsAndKnittedTiles;
+
+  /// MCR fan 21 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Even Pungs'**
+  String get mcrFanAllEvenPungs;
+
+  /// MCR fan 22 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Full Flush'**
+  String get mcrFanFullFlush;
+
+  /// MCR fan 23 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pure Triple Chow'**
+  String get mcrFanPureTripleChow;
+
+  /// MCR fan 24 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pure Shifted Pungs'**
+  String get mcrFanPureShiftedPungs;
+
+  /// MCR fan 25 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Upper Tiles'**
+  String get mcrFanUpperTiles;
+
+  /// MCR fan 26 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Middle Tiles'**
+  String get mcrFanMiddleTiles;
+
+  /// MCR fan 27 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Lower Tiles'**
+  String get mcrFanLowerTiles;
+
+  /// MCR fan 28 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pure Straight'**
+  String get mcrFanPureStraight;
+
+  /// MCR fan 29 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Three-Suited Terminal Chows'**
+  String get mcrFanThreeSuitedTerminalChows;
+
+  /// MCR fan 30 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pure Shifted Chows'**
+  String get mcrFanPureShiftedChows;
+
+  /// MCR fan 31 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Fives'**
+  String get mcrFanAllFives;
+
+  /// MCR fan 32 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Triple Pung'**
+  String get mcrFanTriplePung;
+
+  /// MCR fan 33 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Three Concealed Pungs'**
+  String get mcrFanThreeConcealedPungs;
+
+  /// MCR fan 34 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Lesser Honors and Knitted Tiles'**
+  String get mcrFanLesserHonorsAndKnittedTiles;
+
+  /// MCR fan 35 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Knitted Straight'**
+  String get mcrFanKnittedStraight;
+
+  /// MCR fan 36 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Upper Four'**
+  String get mcrFanUpperFour;
+
+  /// MCR fan 37 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Lower Four'**
+  String get mcrFanLowerFour;
+
+  /// MCR fan 38 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Big Three Winds'**
+  String get mcrFanBigThreeWinds;
+
+  /// MCR fan 39 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed Straight'**
+  String get mcrFanMixedStraight;
+
+  /// MCR fan 40 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Reversible Tiles'**
+  String get mcrFanReversibleTiles;
+
+  /// MCR fan 41 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed Triple Chow'**
+  String get mcrFanMixedTripleChow;
+
+  /// MCR fan 42 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed Shifted Pungs'**
+  String get mcrFanMixedShiftedPungs;
+
+  /// MCR fan 43 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Chicken Hand'**
+  String get mcrFanChickenHand;
+
+  /// MCR fan 44 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Last Tile Draw'**
+  String get mcrFanLastTileDraw;
+
+  /// MCR fan 45 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Last Tile Claim'**
+  String get mcrFanLastTileClaim;
+
+  /// MCR fan 46 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Out with Replacement Tile'**
+  String get mcrFanOutWithReplacementTile;
+
+  /// MCR fan 47 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Robbing the Kong'**
+  String get mcrFanRobbingTheKong;
+
+  /// MCR fan 48 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Two Concealed Kongs'**
+  String get mcrFanTwoConcealedKongs;
+
+  /// MCR fan 49 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Pungs'**
+  String get mcrFanAllPungs;
+
+  /// MCR fan 50 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Half Flush'**
+  String get mcrFanHalfFlush;
+
+  /// MCR fan 51 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed Shifted Chows'**
+  String get mcrFanMixedShiftedChows;
+
+  /// MCR fan 52 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Types'**
+  String get mcrFanAllTypes;
+
+  /// MCR fan 53 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Melded Hand'**
+  String get mcrFanMeldedHand;
+
+  /// MCR fan 54 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Two Dragon Pungs'**
+  String get mcrFanTwoDragonPungs;
+
+  /// MCR fan 55 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Outside Hand'**
+  String get mcrFanOutsideHand;
+
+  /// MCR fan 56 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Fully Concealed'**
+  String get mcrFanFullyConcealed;
+
+  /// MCR fan 57 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Two Melded Kongs'**
+  String get mcrFanTwoMeldedKongs;
+
+  /// MCR fan 58 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Last Tile'**
+  String get mcrFanLastTile;
+
+  /// MCR fan 59 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Dragon Pung'**
+  String get mcrFanDragonPung;
+
+  /// MCR fan 60 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Prevalent Wind'**
+  String get mcrFanPrevalentWind;
+
+  /// MCR fan 61 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Seat Wind'**
+  String get mcrFanSeatWind;
+
+  /// MCR fan 62 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Concealed Hand'**
+  String get mcrFanConcealedHand;
+
+  /// MCR fan 63 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Chows'**
+  String get mcrFanAllChows;
+
+  /// MCR fan 64 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Tile Hog'**
+  String get mcrFanTileHog;
+
+  /// MCR fan 65 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Double Pung'**
+  String get mcrFanDoublePung;
+
+  /// MCR fan 66 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Two Concealed Pungs'**
+  String get mcrFanTwoConcealedPungs;
+
+  /// MCR fan 67 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Concealed Kong'**
+  String get mcrFanConcealedKong;
+
+  /// MCR fan 68 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'All Simples'**
+  String get mcrFanAllSimples;
+
+  /// MCR fan 69 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pure Double Chow'**
+  String get mcrFanPureDoubleChow;
+
+  /// MCR fan 70 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed Double Chow'**
+  String get mcrFanMixedDoubleChow;
+
+  /// MCR fan 71 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Short Straight'**
+  String get mcrFanShortStraight;
+
+  /// MCR fan 72 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Two Terminal Chows'**
+  String get mcrFanTwoTerminalChows;
+
+  /// MCR fan 73 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Pung of Terminals or Honors'**
+  String get mcrFanPungOfTerminalsOrHonors;
+
+  /// MCR fan 74 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Melded Kong'**
+  String get mcrFanMeldedKong;
+
+  /// MCR fan 75 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'One Voided Suit'**
+  String get mcrFanOneVoidedSuit;
+
+  /// MCR fan 76 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'No Honors'**
+  String get mcrFanNoHonors;
+
+  /// MCR fan 77 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Edge Wait'**
+  String get mcrFanEdgeWait;
+
+  /// MCR fan 78 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Closed Wait'**
+  String get mcrFanClosedWait;
+
+  /// MCR fan 79 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Single Wait'**
+  String get mcrFanSingleWait;
+
+  /// MCR fan 80 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Self-Drawn'**
+  String get mcrFanSelfDrawn;
+
+  /// MCR fan 81 (Appendix 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Flower Tiles'**
+  String get mcrFanFlowerTiles;
+
+  /// MCR: one melded and one concealed kong, scored together (fan 57).
+  ///
+  /// In en, this message translates to:
+  /// **'Melded and Concealed Kongs'**
+  String get mcrFanMeldedAndConcealedKongs;
 }
 
 class _AppLocalizationsDelegate

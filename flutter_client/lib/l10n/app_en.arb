@@ -1841,5 +1841,339 @@
       }
     }
   },
-  "rulesTileTooltip": "Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan."
+  "rulesTileTooltip": "Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.",
+  "rulesRead": "Read rules",
+  "rulesSearchHint": "Search rules",
+  "rulesClearSearch": "Clear search",
+  "rulesNoMatch": "No rules match your search. Try another word.",
+  "rulesSummaryNotice": "Quick guide to TileSense’s rules, with every scoring pattern the app counts. The external reference is the source these rules follow.",
+  "rulesReferenceFailed": "Could not open the reference. Please try again.",
+  "mcrFanBigFourWinds": "Big Four Winds",
+  "@mcrFanBigFourWinds": {
+    "description": "MCR fan 1 (Appendix 1)."
+  },
+  "mcrFanBigThreeDragons": "Big Three Dragons",
+  "@mcrFanBigThreeDragons": {
+    "description": "MCR fan 2 (Appendix 1)."
+  },
+  "mcrFanAllGreen": "All Green",
+  "@mcrFanAllGreen": {
+    "description": "MCR fan 3 (Appendix 1)."
+  },
+  "mcrFanNineGates": "Nine Gates",
+  "@mcrFanNineGates": {
+    "description": "MCR fan 4 (Appendix 1)."
+  },
+  "mcrFanFourKongs": "Four Kongs",
+  "@mcrFanFourKongs": {
+    "description": "MCR fan 5 (Appendix 1)."
+  },
+  "mcrFanSevenShiftedPairs": "Seven Shifted Pairs",
+  "@mcrFanSevenShiftedPairs": {
+    "description": "MCR fan 6 (Appendix 1)."
+  },
+  "mcrFanThirteenOrphans": "Thirteen Orphans",
+  "@mcrFanThirteenOrphans": {
+    "description": "MCR fan 7 (Appendix 1)."
+  },
+  "mcrFanAllTerminals": "All Terminals",
+  "@mcrFanAllTerminals": {
+    "description": "MCR fan 8 (Appendix 1)."
+  },
+  "mcrFanLittleFourWinds": "Little Four Winds",
+  "@mcrFanLittleFourWinds": {
+    "description": "MCR fan 9 (Appendix 1)."
+  },
+  "mcrFanLittleThreeDragons": "Little Three Dragons",
+  "@mcrFanLittleThreeDragons": {
+    "description": "MCR fan 10 (Appendix 1)."
+  },
+  "mcrFanAllHonors": "All Honors",
+  "@mcrFanAllHonors": {
+    "description": "MCR fan 11 (Appendix 1)."
+  },
+  "mcrFanFourConcealedPungs": "Four Concealed Pungs",
+  "@mcrFanFourConcealedPungs": {
+    "description": "MCR fan 12 (Appendix 1)."
+  },
+  "mcrFanPureTerminalChows": "Pure Terminal Chows",
+  "@mcrFanPureTerminalChows": {
+    "description": "MCR fan 13 (Appendix 1)."
+  },
+  "mcrFanQuadrupleChow": "Quadruple Chow",
+  "@mcrFanQuadrupleChow": {
+    "description": "MCR fan 14 (Appendix 1)."
+  },
+  "mcrFanFourPureShiftedPungs": "Four Pure Shifted Pungs",
+  "@mcrFanFourPureShiftedPungs": {
+    "description": "MCR fan 15 (Appendix 1)."
+  },
+  "mcrFanFourShiftedChows": "Four Shifted Chows",
+  "@mcrFanFourShiftedChows": {
+    "description": "MCR fan 16 (Appendix 1)."
+  },
+  "mcrFanThreeKongs": "Three Kongs",
+  "@mcrFanThreeKongs": {
+    "description": "MCR fan 17 (Appendix 1)."
+  },
+  "mcrFanAllTerminalsAndHonors": "All Terminals and Honors",
+  "@mcrFanAllTerminalsAndHonors": {
+    "description": "MCR fan 18 (Appendix 1)."
+  },
+  "mcrFanSevenPairs": "Seven Pairs",
+  "@mcrFanSevenPairs": {
+    "description": "MCR fan 19 (Appendix 1)."
+  },
+  "mcrFanGreaterHonorsAndKnittedTiles": "Greater Honors and Knitted Tiles",
+  "@mcrFanGreaterHonorsAndKnittedTiles": {
+    "description": "MCR fan 20 (Appendix 1)."
+  },
+  "mcrFanAllEvenPungs": "All Even Pungs",
+  "@mcrFanAllEvenPungs": {
+    "description": "MCR fan 21 (Appendix 1)."
+  },
+  "mcrFanFullFlush": "Full Flush",
+  "@mcrFanFullFlush": {
+    "description": "MCR fan 22 (Appendix 1)."
+  },
+  "mcrFanPureTripleChow": "Pure Triple Chow",
+  "@mcrFanPureTripleChow": {
+    "description": "MCR fan 23 (Appendix 1)."
+  },
+  "mcrFanPureShiftedPungs": "Pure Shifted Pungs",
+  "@mcrFanPureShiftedPungs": {
+    "description": "MCR fan 24 (Appendix 1)."
+  },
+  "mcrFanUpperTiles": "Upper Tiles",
+  "@mcrFanUpperTiles": {
+    "description": "MCR fan 25 (Appendix 1)."
+  },
+  "mcrFanMiddleTiles": "Middle Tiles",
+  "@mcrFanMiddleTiles": {
+    "description": "MCR fan 26 (Appendix 1)."
+  },
+  "mcrFanLowerTiles": "Lower Tiles",
+  "@mcrFanLowerTiles": {
+    "description": "MCR fan 27 (Appendix 1)."
+  },
+  "mcrFanPureStraight": "Pure Straight",
+  "@mcrFanPureStraight": {
+    "description": "MCR fan 28 (Appendix 1)."
+  },
+  "mcrFanThreeSuitedTerminalChows": "Three-Suited Terminal Chows",
+  "@mcrFanThreeSuitedTerminalChows": {
+    "description": "MCR fan 29 (Appendix 1)."
+  },
+  "mcrFanPureShiftedChows": "Pure Shifted Chows",
+  "@mcrFanPureShiftedChows": {
+    "description": "MCR fan 30 (Appendix 1)."
+  },
+  "mcrFanAllFives": "All Fives",
+  "@mcrFanAllFives": {
+    "description": "MCR fan 31 (Appendix 1)."
+  },
+  "mcrFanTriplePung": "Triple Pung",
+  "@mcrFanTriplePung": {
+    "description": "MCR fan 32 (Appendix 1)."
+  },
+  "mcrFanThreeConcealedPungs": "Three Concealed Pungs",
+  "@mcrFanThreeConcealedPungs": {
+    "description": "MCR fan 33 (Appendix 1)."
+  },
+  "mcrFanLesserHonorsAndKnittedTiles": "Lesser Honors and Knitted Tiles",
+  "@mcrFanLesserHonorsAndKnittedTiles": {
+    "description": "MCR fan 34 (Appendix 1)."
+  },
+  "mcrFanKnittedStraight": "Knitted Straight",
+  "@mcrFanKnittedStraight": {
+    "description": "MCR fan 35 (Appendix 1)."
+  },
+  "mcrFanUpperFour": "Upper Four",
+  "@mcrFanUpperFour": {
+    "description": "MCR fan 36 (Appendix 1)."
+  },
+  "mcrFanLowerFour": "Lower Four",
+  "@mcrFanLowerFour": {
+    "description": "MCR fan 37 (Appendix 1)."
+  },
+  "mcrFanBigThreeWinds": "Big Three Winds",
+  "@mcrFanBigThreeWinds": {
+    "description": "MCR fan 38 (Appendix 1)."
+  },
+  "mcrFanMixedStraight": "Mixed Straight",
+  "@mcrFanMixedStraight": {
+    "description": "MCR fan 39 (Appendix 1)."
+  },
+  "mcrFanReversibleTiles": "Reversible Tiles",
+  "@mcrFanReversibleTiles": {
+    "description": "MCR fan 40 (Appendix 1)."
+  },
+  "mcrFanMixedTripleChow": "Mixed Triple Chow",
+  "@mcrFanMixedTripleChow": {
+    "description": "MCR fan 41 (Appendix 1)."
+  },
+  "mcrFanMixedShiftedPungs": "Mixed Shifted Pungs",
+  "@mcrFanMixedShiftedPungs": {
+    "description": "MCR fan 42 (Appendix 1)."
+  },
+  "mcrFanChickenHand": "Chicken Hand",
+  "@mcrFanChickenHand": {
+    "description": "MCR fan 43 (Appendix 1)."
+  },
+  "mcrFanLastTileDraw": "Last Tile Draw",
+  "@mcrFanLastTileDraw": {
+    "description": "MCR fan 44 (Appendix 1)."
+  },
+  "mcrFanLastTileClaim": "Last Tile Claim",
+  "@mcrFanLastTileClaim": {
+    "description": "MCR fan 45 (Appendix 1)."
+  },
+  "mcrFanOutWithReplacementTile": "Out with Replacement Tile",
+  "@mcrFanOutWithReplacementTile": {
+    "description": "MCR fan 46 (Appendix 1)."
+  },
+  "mcrFanRobbingTheKong": "Robbing the Kong",
+  "@mcrFanRobbingTheKong": {
+    "description": "MCR fan 47 (Appendix 1)."
+  },
+  "mcrFanTwoConcealedKongs": "Two Concealed Kongs",
+  "@mcrFanTwoConcealedKongs": {
+    "description": "MCR fan 48 (Appendix 1)."
+  },
+  "mcrFanAllPungs": "All Pungs",
+  "@mcrFanAllPungs": {
+    "description": "MCR fan 49 (Appendix 1)."
+  },
+  "mcrFanHalfFlush": "Half Flush",
+  "@mcrFanHalfFlush": {
+    "description": "MCR fan 50 (Appendix 1)."
+  },
+  "mcrFanMixedShiftedChows": "Mixed Shifted Chows",
+  "@mcrFanMixedShiftedChows": {
+    "description": "MCR fan 51 (Appendix 1)."
+  },
+  "mcrFanAllTypes": "All Types",
+  "@mcrFanAllTypes": {
+    "description": "MCR fan 52 (Appendix 1)."
+  },
+  "mcrFanMeldedHand": "Melded Hand",
+  "@mcrFanMeldedHand": {
+    "description": "MCR fan 53 (Appendix 1)."
+  },
+  "mcrFanTwoDragonPungs": "Two Dragon Pungs",
+  "@mcrFanTwoDragonPungs": {
+    "description": "MCR fan 54 (Appendix 1)."
+  },
+  "mcrFanOutsideHand": "Outside Hand",
+  "@mcrFanOutsideHand": {
+    "description": "MCR fan 55 (Appendix 1)."
+  },
+  "mcrFanFullyConcealed": "Fully Concealed",
+  "@mcrFanFullyConcealed": {
+    "description": "MCR fan 56 (Appendix 1)."
+  },
+  "mcrFanTwoMeldedKongs": "Two Melded Kongs",
+  "@mcrFanTwoMeldedKongs": {
+    "description": "MCR fan 57 (Appendix 1)."
+  },
+  "mcrFanLastTile": "Last Tile",
+  "@mcrFanLastTile": {
+    "description": "MCR fan 58 (Appendix 1)."
+  },
+  "mcrFanDragonPung": "Dragon Pung",
+  "@mcrFanDragonPung": {
+    "description": "MCR fan 59 (Appendix 1)."
+  },
+  "mcrFanPrevalentWind": "Prevalent Wind",
+  "@mcrFanPrevalentWind": {
+    "description": "MCR fan 60 (Appendix 1)."
+  },
+  "mcrFanSeatWind": "Seat Wind",
+  "@mcrFanSeatWind": {
+    "description": "MCR fan 61 (Appendix 1)."
+  },
+  "mcrFanConcealedHand": "Concealed Hand",
+  "@mcrFanConcealedHand": {
+    "description": "MCR fan 62 (Appendix 1)."
+  },
+  "mcrFanAllChows": "All Chows",
+  "@mcrFanAllChows": {
+    "description": "MCR fan 63 (Appendix 1)."
+  },
+  "mcrFanTileHog": "Tile Hog",
+  "@mcrFanTileHog": {
+    "description": "MCR fan 64 (Appendix 1)."
+  },
+  "mcrFanDoublePung": "Double Pung",
+  "@mcrFanDoublePung": {
+    "description": "MCR fan 65 (Appendix 1)."
+  },
+  "mcrFanTwoConcealedPungs": "Two Concealed Pungs",
+  "@mcrFanTwoConcealedPungs": {
+    "description": "MCR fan 66 (Appendix 1)."
+  },
+  "mcrFanConcealedKong": "Concealed Kong",
+  "@mcrFanConcealedKong": {
+    "description": "MCR fan 67 (Appendix 1)."
+  },
+  "mcrFanAllSimples": "All Simples",
+  "@mcrFanAllSimples": {
+    "description": "MCR fan 68 (Appendix 1)."
+  },
+  "mcrFanPureDoubleChow": "Pure Double Chow",
+  "@mcrFanPureDoubleChow": {
+    "description": "MCR fan 69 (Appendix 1)."
+  },
+  "mcrFanMixedDoubleChow": "Mixed Double Chow",
+  "@mcrFanMixedDoubleChow": {
+    "description": "MCR fan 70 (Appendix 1)."
+  },
+  "mcrFanShortStraight": "Short Straight",
+  "@mcrFanShortStraight": {
+    "description": "MCR fan 71 (Appendix 1)."
+  },
+  "mcrFanTwoTerminalChows": "Two Terminal Chows",
+  "@mcrFanTwoTerminalChows": {
+    "description": "MCR fan 72 (Appendix 1)."
+  },
+  "mcrFanPungOfTerminalsOrHonors": "Pung of Terminals or Honors",
+  "@mcrFanPungOfTerminalsOrHonors": {
+    "description": "MCR fan 73 (Appendix 1)."
+  },
+  "mcrFanMeldedKong": "Melded Kong",
+  "@mcrFanMeldedKong": {
+    "description": "MCR fan 74 (Appendix 1)."
+  },
+  "mcrFanOneVoidedSuit": "One Voided Suit",
+  "@mcrFanOneVoidedSuit": {
+    "description": "MCR fan 75 (Appendix 1)."
+  },
+  "mcrFanNoHonors": "No Honors",
+  "@mcrFanNoHonors": {
+    "description": "MCR fan 76 (Appendix 1)."
+  },
+  "mcrFanEdgeWait": "Edge Wait",
+  "@mcrFanEdgeWait": {
+    "description": "MCR fan 77 (Appendix 1)."
+  },
+  "mcrFanClosedWait": "Closed Wait",
+  "@mcrFanClosedWait": {
+    "description": "MCR fan 78 (Appendix 1)."
+  },
+  "mcrFanSingleWait": "Single Wait",
+  "@mcrFanSingleWait": {
+    "description": "MCR fan 79 (Appendix 1)."
+  },
+  "mcrFanSelfDrawn": "Self-Drawn",
+  "@mcrFanSelfDrawn": {
+    "description": "MCR fan 80 (Appendix 1)."
+  },
+  "mcrFanFlowerTiles": "Flower Tiles",
+  "@mcrFanFlowerTiles": {
+    "description": "MCR fan 81 (Appendix 1)."
+  },
+  "mcrFanMeldedAndConcealedKongs": "Melded and Concealed Kongs",
+  "@mcrFanMeldedAndConcealedKongs": {
+    "description": "MCR: one melded and one concealed kong, scored together (fan 57)."
+  }
 }

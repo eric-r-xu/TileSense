@@ -9,9 +9,9 @@ import 'package:mahjong_core/tile.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
-import '../main.dart' show openRules;
 import '../telemetry/src/platform_web.dart'
     if (dart.library.io) '../telemetry/src/platform_stub.dart' as platform;
+import 'rules_reader.dart';
 import 'screen_scaffold.dart';
 import 'tile_face.dart';
 import 'theme.dart';
@@ -234,9 +234,9 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
           if (last)
             TextButton.icon(
               key: const Key('learnRulesPdf'),
-              onPressed: () => openRules(widget.ruleset),
-              icon: const Icon(Icons.open_in_new, size: 14),
-              label: Text(l10n.rulesLinkLabel(widget.ruleset)),
+              onPressed: () => showRulesReader(context, widget.ruleset),
+              icon: const Icon(Icons.menu_book, size: 14),
+              label: Text(l10n.rulesRead),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.link,
                 textStyle: const TextStyle(

@@ -1,7 +1,7 @@
 # 🇭🇰 Hong Kong rules
 
-Chosen with the ruleset toggle (welcome screen, game app bar, or builder chip
-row); Riichi remains the default. One-page reference:
+Chosen before play on the welcome or character screen, in the online lobby,
+or through the builder’s Rules dial. The welcome screen starts on Hong Kong. One-page reference:
 [HK.pdf](https://app.ericrxu.com/static/HK.pdf).
 
 The scoring source is **HKMJ Cheat Sheet 1.0.pdf**, "Hong Kong Mahjong Rule Sheet / 香港麻雀正統牌型," version 1.0, April 3, 2025, by /u/danma. Its **New Style, discarder-pays-all** payment table replaces the original Japanese scoring system.

@@ -21,12 +21,14 @@ re-run `flutter create .` here if they are ever missing.
 ## Test / analyze
 
 ```sh
-flutter analyze
-flutter test
+flutter analyze --no-fatal-infos
+flutter test --dart-define=MP_ENDPOINT=ws://127.0.0.1:9
 ```
 
-Riichi tests sit in `test/`, Hong Kong's in `test/hong_kong/`, and the shared
-core has its own suite in `packages/mahjong_core/test/`. Several simulation
+Client tests for riichi, Sanma, Taiwanese, MCR and Sichuan sit in `test/`;
+Hong Kong tests are grouped in `test/hong_kong/`. The shared core has its own
+suite in `packages/mahjong_core/test/`, including MCR, Sanma and Sichuan
+subdirectories. The closed local multiplayer endpoint avoids production connections. Several simulation
 harnesses are opt-in and skipped unless an environment variable is set — see
 [`BOT_STRATEGY.md`](BOT_STRATEGY.md#how-the-guide-measures-up) for the commands.
 
@@ -55,7 +57,7 @@ which also means every device-specific concern is settled in `_FixedCanvas`.
 ## Layout of this package
 
 The pure-Dart core the app shares with the multiplayer server lives outside it,
-in `packages/mahjong_core/` — see the [root README](../README.md#three-rulesets-one-engine).
+in `packages/mahjong_core/` — see the [root README](../README.md#rulesets).
 
 ```
 flutter_client/
@@ -100,3 +102,22 @@ npx playwright install chromium
 npm run build   # flutter build web, no service worker, offline MP endpoint
 npm test        # or: npm run test:ui
 ```
+
+## Rules and learning UI
+
+All six variants share the lesson, glossary, practice and table components.
+`lib/ui/glossary.dart` supplies searchable, localized terms for the selected
+variant; `lib/ui/learn_to_play_page.dart` supplies the introductory lesson.
+`lib/ui/rules_reader.dart` provides the native rules dialog, search and external
+reference action. `lib/ui/rules_content.dart` holds the sections and the scoring
+catalogues' values; each language's prose and notes are in `lib/ui/rules_text_*.dart`.
+Controls and the notice use the ARB translations. Callers pass configured minimums
+when opening it from a game or the builder.
+
+Welcome-screen **Read rules** buttons sit beside the existing PDF/wiki links.
+Offline game, phone menu, lesson and builder Rules actions open the native reader.
+The external references still use `Ruleset.rulesUrl`; no PDFs are bundled.
+
+See [`NATIVE_RULES_UI.md`](../docs/NATIVE_RULES_UI.md) for coverage, limitations
+and tests. Keep the summaries, all four languages and the [`docs/`](../docs/) rule
+pages in step.
