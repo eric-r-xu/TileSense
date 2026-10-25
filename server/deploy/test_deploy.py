@@ -1,5 +1,6 @@
 """Offline regression tests. No SSH, production DB, or service restarts."""
 import contextlib
+import datetime
 import hashlib
 import importlib.util
 import io
@@ -59,6 +60,25 @@ class RemoteTests(unittest.TestCase):
         remote.handle({'action': 'restore', 'id': 'test-release', 'previous': old})
         self.assertTrue((self.root / 'releases/test-release/main.dart.js').exists())
         self.assertTrue((self.root / 'legacy/main.dart.js').exists())
+
+    def test_prune_keeps_current_newest_recent_and_service_rollbacks(self):
+        old = ['202601%02dT000000Z-%08d' % (day, day) for day in range(1, 11)]
+        for rid in old:
+            (self.root / 'releases' / rid).mkdir(parents=True)
+            (self.root / '.staging' / rid).mkdir(parents=True)
+        (self.root / 'legacy').mkdir()
+        remote.switch(self.root / 'releases' / old[0])
+        (self.root / '.staging' / old[1] / 'tilesense-mp').touch()
+        new = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-new')
+        (self.root / 'releases' / new).mkdir()
+        (self.root / '.staging/hand-made').mkdir()
+        removed = remote.handle({'action': 'prune'})
+        releases = sorted(p.name for p in (self.root / 'releases').iterdir())
+        stages = sorted(p.name for p in (self.root / '.staging').iterdir())
+        self.assertEqual(releases, [old[0], *old[6:], new])  # current, newest five
+        self.assertEqual(stages, [old[0], old[1], *old[6:], 'hand-made'])
+        self.assertEqual(removed, {'releases': 5, 'stages': 4})
+        self.assertTrue((self.root / 'legacy').is_dir())
 
     def test_immutable_release_cannot_be_overwritten(self):
         artifact(self.root / '.staging/test-release/web')
@@ -444,7 +464,7 @@ class DriverTests(unittest.TestCase):
         worker = MagicMock()
         def call(action, **kwargs):
             events.append(action)
-            return {'path': '/stage', 'previous': '/legacy'}
+            return {'releases': 0, 'stages': 0} if action == 'prune' else {'path': '/stage', 'previous': '/legacy'}
         worker.call.side_effect = call
         def connect(*args):
             events.append('connect')
@@ -464,7 +484,20 @@ class DriverTests(unittest.TestCase):
         self.assertLess(events.index('build-service'), events.index('connect'))
         self.assertLess(events.index('migrate'), events.index('service'))
         self.assertLess(max(i for i, e in enumerate(events) if e == 'service'), events.index('activate'))
-        self.assertEqual(events[-1], 'commit')
+        self.assertEqual(events[-2:], ['commit', 'prune'])
+
+    def test_failed_prune_leaves_verified_deployment(self):
+        worker = MagicMock()
+        def call(action, **kwargs):
+            if action == 'prune': raise RuntimeError('PermissionError')
+            return {'path': '/stage', 'previous': '/legacy'}
+        worker.call.side_effect = call
+        with patch.object(deploy, 'source_state', return_value=('abc', False)), \
+             patch.object(deploy, 'build_client'), patch.object(deploy, 'Remote', return_value=worker), \
+             patch.object(deploy, 'check_release'), contextlib.redirect_stderr(io.StringIO()) as err:
+            deploy.deploy('client', 'host', 'ip')
+        self.assertIn('the deployment stands', err.getvalue())
+        self.assertEqual([c.args[0] for c in worker.call.call_args_list][-2:], ['commit', 'prune'])
 
 
 if __name__ == '__main__':

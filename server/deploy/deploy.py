@@ -402,6 +402,13 @@ def deploy(target, host, droplet, rollback=None):
                 check_release(host, rid)
             remote.call('commit')
             print('Deployment verified: ' + rid)
+            # After the commit, so a failed prune never undoes a verified deployment.
+            try:
+                pruned = remote.call('prune')
+                if any(pruned.values()):
+                    print('Pruned {releases} old releases and {stages} old stages.'.format(**pruned))
+            except RuntimeError as error:
+                print('Pruning failed; the deployment stands: ' + str(error), file=sys.stderr)
         except BaseException:
             print('Deployment failed; closing SSH triggers restoration of uncommitted client/service changes. '
                   'Successful additive migrations remain applied.', file=sys.stderr)
