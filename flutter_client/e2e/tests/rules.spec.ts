@@ -52,6 +52,12 @@ test.describe('in Japanese', () => {
     await byId(page, 'rulesTile').click();
     await page.getByRole('button', { name: 'ルールを読む', exact: true }).first().click();
     await expect(page.getByText('牌と目標', { exact: true })).toBeAttached();
+    // The list builds lazily, so search to bring the catalogue in; the
+    // English name still finds the pattern.
+    await byId(page, 'rulesSearch').click();
+    const input = page.locator('input[data-semantics-role="text-field"]');
+    await expect(input).toHaveAttribute('autocorrect', 'on');
+    await input.fill('pinfu');
     await expect(page.getByText('役一覧', { exact: true })).toBeAttached();
     await page.screenshot({ path: testInfo.outputPath('rules-ja.png') });
   });

@@ -148,6 +148,9 @@ class _RulesReaderState extends State<RulesReader> {
             ),
             const SizedBox(height: 8),
             Expanded(
+              // Plain Text, each its own semantics node: on the web a
+              // SelectableText (or a SelectionArea) is an empty text field to
+              // accessibility, and plain Texts merge into one long label.
               child: Scrollbar(
                 controller: _scroll,
                 thumbVisibility: true,
@@ -174,6 +177,7 @@ class _RulesReaderState extends State<RulesReader> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Semantics(
+                              container: true,
                               header: true,
                               child: Text(section.title,
                                   style: const TextStyle(
@@ -224,7 +228,8 @@ class _Points extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (points.length == 1) {
-      return SelectableText(points.single, style: _bodyStyle);
+      return Semantics(
+          container: true, child: Text(points.single, style: _bodyStyle));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,13 +237,17 @@ class _Points extends StatelessWidget {
         for (final point in points)
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('•  ',
-                    style: TextStyle(color: AppColors.goldText, fontSize: 16)),
-                Expanded(child: SelectableText(point, style: _bodyStyle)),
-              ],
+            child: Semantics(
+              container: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('•  ',
+                      style:
+                          TextStyle(color: AppColors.goldText, fontSize: 16)),
+                  Expanded(child: Text(point, style: _bodyStyle)),
+                ],
+              ),
             ),
           ),
       ],
@@ -286,20 +295,20 @@ class _CatalogueTable extends StatelessWidget {
                     cell(Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SelectableText(entry.name,
+                        Text(entry.name,
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold)),
                         if (entry.note.isNotEmpty)
-                          SelectableText(entry.note,
+                          Text(entry.note,
                               style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 14,
                                   height: 1.4)),
                       ],
                     )),
-                    cell(SelectableText(entry.value.isEmpty ? '—' : entry.value,
+                    cell(Text(entry.value.isEmpty ? '—' : entry.value,
                         style: const TextStyle(
                             color: AppColors.goldText, fontSize: 15))),
                     cell(_Example(entry.example, size: tiles)),
