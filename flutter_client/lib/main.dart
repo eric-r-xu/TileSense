@@ -2167,77 +2167,80 @@ class _WelcomeScreen extends StatelessWidget {
                       onMinimumFaan: onMinimumFaan,
                     ),
                     const SizedBox(height: 18),
-                    // Four equal buttons in a row: three that start something,
-                    // then Learn, which opens a popup.
-                    Wrap(
-                      key: const Key('titleButtons'),
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _TitleButton(
-                          key: const Key('singlePlayer'),
-                          primary: true,
-                          onPressed: onStart,
-                          // The mascot that toggles the guide at the table,
-                          // as the button's icon: the guide comes with
-                          // offline play.
-                          icon: Image.asset(
-                            kTileSensorAsset,
-                            key: const Key('startGuideMascot'),
-                            height: 36,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
+                    // Four equal buttons, two by two: three that start
+                    // something, then Learn, which opens a popup.
+                    SizedBox(
+                      width: _TitleButton.gridWidth,
+                      child: Wrap(
+                        key: const Key('titleButtons'),
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _TitleButton(
+                            key: const Key('singlePlayer'),
+                            primary: true,
+                            onPressed: onStart,
+                            // The mascot that toggles the guide at the table,
+                            // as the button's icon: the guide comes with
+                            // offline play.
+                            icon: Image.asset(
+                              kTileSensorAsset,
+                              key: const Key('startGuideMascot'),
+                              height: 36,
+                              filterQuality: FilterQuality.high,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                            title: context.l10n.singlePlayer,
+                            subtitle: context.l10n.singlePlayerSubtitle,
                           ),
-                          title: context.l10n.singlePlayer,
-                          subtitle: context.l10n.singlePlayerSubtitle,
-                        ),
-                        _TitleButton(
-                          key: const Key('playOnline'),
-                          onPressed: onPlayOnline,
-                          // A globe: play with anyone, anywhere.
-                          icon: const Text('🌐',
-                              key: Key('playOnlineEmoji'),
-                              style: TextStyle(fontSize: 28)),
-                          title: context.l10n.playOnline,
-                        ),
-                        _TitleButton(
-                          key: const Key('openBuilder'),
-                          onPressed: onBuild,
-                          // A red dragon tile: you set the tiles out yourself.
-                          icon: const Text('🀄',
-                              key: Key('openBuilderEmoji'),
-                              style: TextStyle(fontSize: 28)),
-                          title: context.l10n.builder,
-                          subtitle: context.l10n.builderSubtitle,
-                        ),
-                        // Learn carries the daily quiz: gold while today's
-                        // puzzle is waiting.
-                        ListenableBuilder(
-                          listenable: ProgressStore.instance,
-                          builder: (context, _) {
-                            final done = ProgressStore.instance.value
-                                .quizAnsweredOn(DateTime.now());
-                            return _TitleButton(
-                              key: const Key('learnTile'),
-                              id: 'learnTile',
-                              accent: hasDailyQuiz(ruleset) && !done,
-                              onPressed: () => _showLearn(context),
-                              icon: const Icon(Icons.school_outlined, size: 28),
-                              title: context.l10n.learnTile,
-                            );
-                          },
-                        ),
-                      ],
+                          _TitleButton(
+                            key: const Key('playOnline'),
+                            onPressed: onPlayOnline,
+                            // A globe: play with anyone, anywhere.
+                            icon: const Text('🌐',
+                                key: Key('playOnlineEmoji'),
+                                style: TextStyle(fontSize: 28)),
+                            title: context.l10n.playOnline,
+                          ),
+                          _TitleButton(
+                            key: const Key('openBuilder'),
+                            onPressed: onBuild,
+                            // A red dragon tile: you set the tiles out yourself.
+                            icon: const Text('🀄',
+                                key: Key('openBuilderEmoji'),
+                                style: TextStyle(fontSize: 28)),
+                            title: context.l10n.builder,
+                            subtitle: context.l10n.builderSubtitle,
+                          ),
+                          // Learn carries the daily quiz: gold while today's
+                          // puzzle is waiting.
+                          ListenableBuilder(
+                            listenable: ProgressStore.instance,
+                            builder: (context, _) {
+                              final done = ProgressStore.instance.value
+                                  .quizAnsweredOn(DateTime.now());
+                              return _TitleButton(
+                                key: const Key('learnTile'),
+                                id: 'learnTile',
+                                accent: hasDailyQuiz(ruleset) && !done,
+                                onPressed: () => _showLearn(context),
+                                icon: const Icon(Icons.school_outlined, size: 28),
+                                title: context.l10n.learnTile,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    // Under the buttons, as wide as their row: full screen and
+                    // Under the buttons, as wide as their grid: full screen and
                     // update spaced for a thumb, the links out at the far
                     // right.
                     Padding(
                       padding: const EdgeInsets.only(top: 14),
                       child: SizedBox(
-                        width: 4 * _TitleButton.width + 3 * 12,
+                        width: _TitleButton.gridWidth,
                         child: const Row(
                           key: Key('titleIcons'),
                           children: [
@@ -2456,6 +2459,9 @@ class _TitleButton extends StatelessWidget {
 
   static const double width = 330;
   static const double height = 108;
+
+  /// Two buttons and the gap between them: the title screen's 2x2 grid.
+  static const double gridWidth = 2 * width + 12;
 
   final VoidCallback onPressed;
   final Widget icon;

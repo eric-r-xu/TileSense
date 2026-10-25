@@ -9,6 +9,20 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-10-25 — Welcome screen rules switch
+
+- The welcome tagline names the rules in play as a button ("Sharpen your
+  🇭🇰 Hong Kong ▾ Mahjong decisions"), which opens the rules picker; the Rules
+  box and its swap arrow are gone, leaving four boxes two by two.
+- Full screen and Update sit under the boxes, larger and further apart for
+  tapping on a phone, with the GitHub and Flutter links at the row's right end.
+- Shorter box text: Single Player includes the TileSense guide, Hand Builder
+  (now a 🀄 tile) has the guide score it, and Play Online and Learn / Train
+  show their names only.
+- The hand builder's Rules dial offers Sanma.
+- Learn to play puts each sentence of a lesson on its own line, with a blank
+  line between.
+
 ## 2026-10-25 — Native rules summaries
 
 - **Read rules** opens a searchable, scrollable summary for each of the six

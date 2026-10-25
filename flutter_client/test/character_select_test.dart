@@ -76,14 +76,15 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('the four buttons share one row, with no subtitle on Play Online '
-      'or Learn', (tester) async {
+  testWidgets('the four buttons sit two by two, with no subtitle on Play '
+      'Online or Learn', (tester) async {
     await _boot(tester);
-    final tops = {
-      for (final key in ['singlePlayer', 'playOnline', 'openBuilder', 'learnTile'])
-        tester.getRect(find.byKey(Key(key))).top
-    };
-    expect(tops, hasLength(1));
+    Rect at(String key) => tester.getRect(find.byKey(Key(key)));
+    expect(at('playOnline').top, at('singlePlayer').top);
+    expect(at('learnTile').top, at('openBuilder').top);
+    expect(at('openBuilder').top, greaterThan(at('singlePlayer').bottom));
+    expect(at('openBuilder').left, at('singlePlayer').left);
+    expect(at('learnTile').left, at('playOnline').left);
     for (final key in ['playOnline', 'learnTile']) {
       expect(
           find.descendant(of: find.byKey(Key(key)), matching: find.byType(Text)),

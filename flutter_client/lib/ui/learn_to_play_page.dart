@@ -44,6 +44,13 @@ abstract final class LearnToPlay {
 
 /// The lesson's four cards, one at a time. [onFinish] runs on the last card's
 /// button and on Skip; [onBack] on Back from the first card.
+/// [text] with each sentence on a line of its own and a blank line between,
+/// so a lesson reads a step at a time. Splits after . ! ? followed by a space,
+/// and after 。！？ (which need none).
+String sentenceLines(String text) => text
+    .replaceAll(RegExp(r'(?<=[.!?])\s+'), '\n\n')
+    .replaceAll(RegExp(r'(?<=[。！？])(?=.)'), '\n\n');
+
 class LearnToPlayPage extends StatefulWidget {
   const LearnToPlayPage({
     super.key,
@@ -221,7 +228,7 @@ class _LearnToPlayPageState extends State<LearnToPlayPage> {
           SizedBox(
             width: 760,
             child: Text(
-              body,
+              sentenceLines(body),
               key: const Key('learnBody'),
               textAlign: TextAlign.center,
               style: const TextStyle(
