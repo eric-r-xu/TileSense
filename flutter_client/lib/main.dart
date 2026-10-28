@@ -2023,12 +2023,15 @@ class _WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          TextButton.icon(
-            key: Key('rulesRead_${value.name}'),
-            onPressed: () => showRulesReader(context, value),
-            icon: const Icon(Icons.menu_book, size: 18),
-            label: Text(context.l10n.rulesRead),
-            style: TextButton.styleFrom(foregroundColor: AppColors.link),
+          e2eId(
+            'rulesRead_${value.name}',
+            TextButton.icon(
+              key: Key('rulesRead_${value.name}'),
+              onPressed: () => showRulesReader(context, value),
+              icon: const Icon(Icons.menu_book, size: 18),
+              label: Text(context.l10n.rulesRead),
+              style: TextButton.styleFrom(foregroundColor: AppColors.link),
+            ),
           ),
           TextButton.icon(
             key: Key('rulesPdf_${value.name}'),
@@ -2265,12 +2268,16 @@ class _WelcomeScreen extends StatelessWidget {
                             const SizedBox(width: 40),
                             // Named rather than an icon alone: the rulebook
                             // for the variant picked above, one tap away.
-                            TextButton.icon(
-                              key: const Key('titleRulebook'),
-                              onPressed: () => showRulesReader(context, ruleset),
-                              icon: const Icon(Icons.menu_book, size: 28),
-                              label: Text(context.l10n.rulesRead),
-                              style: AppButtons.link(fontSize: 18),
+                            e2eId(
+                              'titleRulebook',
+                              TextButton.icon(
+                                key: const Key('titleRulebook'),
+                                onPressed: () =>
+                                    showRulesReader(context, ruleset),
+                                icon: const Icon(Icons.menu_book, size: 28),
+                                label: Text(context.l10n.rulesRead),
+                                style: AppButtons.link(fontSize: 18),
+                              ),
                             ),
                             const Spacer(),
                             const _Credits(),

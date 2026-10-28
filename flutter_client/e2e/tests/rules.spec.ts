@@ -6,7 +6,7 @@ for (const viewport of [{ width: 1600, height: 820 }, { width: 844, height: 390 
     await page.setViewportSize(viewport);
     await openApp(page);
     await byId(page, 'rulesTile').click();
-    await page.getByRole('button', { name: 'Read rules', exact: true }).first().click();
+    await byId(page, 'rulesRead_riichi').click();
     await expect(byId(page, 'rulesSearch')).toBeAttached();
     await expect(page.getByText('Tiles and the goal', { exact: true })).toBeAttached();
     await page.screenshot({ path: testInfo.outputPath('rules-reader.png') });
@@ -19,7 +19,7 @@ for (const viewport of [{ width: 1600, height: 820 }, { width: 844, height: 390 
     await input.fill('furiten');
     await expect(input).toHaveValue('furiten');
     await page.screenshot({ path: testInfo.outputPath('rules-search.png') });
-    await expect(page.getByText('Winning: yaku and furiten', { exact: true })).toBeAttached();
+    await expect(page.getByText('Furiten: when you cannot ron', { exact: true })).toBeAttached();
     await expect(page.getByText('Tiles and the goal', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Clear search', exact: true }).click();
     await expect(page.getByText('Tiles and the goal', { exact: true })).toBeAttached();
@@ -29,10 +29,23 @@ for (const viewport of [{ width: 1600, height: 820 }, { width: 844, height: 390 
   });
 }
 
+test('the title screen opens the rulebook without a popup', async ({ page }) => {
+  await openApp(page);
+  await byId(page, 'titleRulebook').click();
+  await expect(byId(page, 'rulesSearch')).toBeAttached();
+  await expect(page.getByText('Tiles and the goal', { exact: true })).toBeAttached();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(byId(page, 'rulesSearch')).toHaveCount(0);
+  // Learn / Train leads with the same rulebook.
+  await byId(page, 'learnTile').click();
+  await byId(page, 'rulebookLink').click();
+  await expect(byId(page, 'rulesSearch')).toBeAttached();
+});
+
 test('rules catalogue lists a yaku with its value', async ({ page }, testInfo) => {
   await openApp(page);
   await byId(page, 'rulesTile').click();
-  await page.getByRole('button', { name: 'Read rules', exact: true }).first().click();
+  await byId(page, 'rulesRead_riichi').click();
   await byId(page, 'rulesSearch').click();
   const input = page.locator('input[data-semantics-role="text-field"]');
   await expect(input).toHaveAttribute('autocorrect', 'on');
@@ -50,7 +63,7 @@ test.describe('in Japanese', () => {
     await page.setViewportSize({ width: 844, height: 390 });
     await openApp(page);
     await byId(page, 'rulesTile').click();
-    await page.getByRole('button', { name: 'ルールを読む', exact: true }).first().click();
+    await byId(page, 'rulesRead_riichi').click();
     await expect(page.getByText('牌と目標', { exact: true })).toBeAttached();
     // The list builds lazily, so search to bring the catalogue in; the
     // English name still finds the pattern.
