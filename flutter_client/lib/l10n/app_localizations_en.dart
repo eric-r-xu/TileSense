@@ -2965,15 +2965,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap TileSensor to show the guide. It ranks every discard, marks the best one in green and explains why. Tap again to hide it.';
 
   @override
-  String get tourMenuTitle => 'Settings, rules and help';
+  String get tourRulesTitle => 'The rulebook';
+
+  @override
+  String get tourRulesBodyDesktop =>
+      'The book icon in the top bar opens the rulebook for this game: every scoring pattern with tile examples, plus how to win, minimums and payments. Search it any time.';
+
+  @override
+  String get tourRulesBodyPhone =>
+      'Open Menu, then Rules, for the rulebook for this game: every scoring pattern with tile examples, plus how to win, minimums and payments. Search it any time.';
+
+  @override
+  String get tourRulesOpen => 'Open the rulebook';
+
+  @override
+  String get tourMenuTitle => 'Settings and help';
 
   @override
   String get tourMenuBodyPhone =>
-      'The Menu button holds pause, sound, speed, Auto-Play, the rules and the glossary. You can replay this tour from there.';
+      'The Menu button holds pause, sound, speed, Auto-Play and the glossary. You can replay this tour from there.';
 
   @override
   String get tourMenuBodyDesktop =>
-      'Settings run along the top bar, with the rules and the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.';
+      'Settings run along the top bar, with the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.';
 
   @override
   String get tourSkip => 'Skip tour';

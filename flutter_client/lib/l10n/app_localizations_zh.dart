@@ -2859,14 +2859,28 @@ class AppLocalizationsZh extends AppLocalizations {
       '点按 TileSensor 打开向导。它为每一张可打的牌排序，用绿色标出最佳选择并说明原因。再点一次即可隐藏。';
 
   @override
-  String get tourMenuTitle => '设置、规则和帮助';
+  String get tourRulesTitle => '规则手册';
 
   @override
-  String get tourMenuBodyPhone => '菜单按钮里有暂停、声音、速度、自动打牌、规则和术语表。也可以在那里重看这段导览。';
+  String get tourRulesBodyDesktop =>
+      '顶部栏的书本图标可打开本局的规则手册：每个计分牌型都有牌例，还有和牌条件、起和要求与支付，随时可以搜索。';
+
+  @override
+  String get tourRulesBodyPhone =>
+      '打开菜单，再点“规则”，即可阅读本局的规则手册：每个计分牌型都有牌例，还有和牌条件、起和要求与支付，随时可以搜索。';
+
+  @override
+  String get tourRulesOpen => '打开规则手册';
+
+  @override
+  String get tourMenuTitle => '设置和帮助';
+
+  @override
+  String get tourMenuBodyPhone => '菜单按钮里有暂停、声音、速度、自动打牌和术语表。也可以在那里重看这段导览。';
 
   @override
   String get tourMenuBodyDesktop =>
-      '设置排在顶部栏，规则和术语表在规则名称旁边。左上角的菜单返回主菜单，可在“学习”里重看这段导览。';
+      '设置排在顶部栏，术语表在规则名称旁边。左上角的菜单返回主菜单，可在“学习”里重看这段导览。';
 
   @override
   String get tourSkip => '跳过导览';
@@ -6012,14 +6026,28 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       '點按 TileSensor 打開嚮導。它為每一張可打的牌排序，用綠色標出最佳選擇並說明原因。再點一次即可隱藏。';
 
   @override
-  String get tourMenuTitle => '設定、規則和說明';
+  String get tourRulesTitle => '規則手冊';
 
   @override
-  String get tourMenuBodyPhone => '選單按鈕裡有暫停、聲音、速度、自動打牌、規則和術語表。也可以在那裡重看這段導覽。';
+  String get tourRulesBodyDesktop =>
+      '頂部欄的書本圖示可開啟本局的規則手冊：每個計分牌型都有牌例，還有和牌條件、起和要求與支付，隨時可以搜尋。';
+
+  @override
+  String get tourRulesBodyPhone =>
+      '開啟選單，再點「規則」，即可閱讀本局的規則手冊：每個計分牌型都有牌例，還有和牌條件、起和要求與支付，隨時可以搜尋。';
+
+  @override
+  String get tourRulesOpen => '開啟規則手冊';
+
+  @override
+  String get tourMenuTitle => '設定和說明';
+
+  @override
+  String get tourMenuBodyPhone => '選單按鈕裡有暫停、聲音、速度、自動打牌和術語表。也可以在那裡重看這段導覽。';
 
   @override
   String get tourMenuBodyDesktop =>
-      '設定排在頂部欄，規則和術語表在規則名稱旁邊。左上角的選單返回主選單，可在「學習」裡重看這段導覽。';
+      '設定排在頂部欄，術語表在規則名稱旁邊。左上角的選單返回主選單，可在「學習」裡重看這段導覽。';
 
   @override
   String get tourSkip => '跳過導覽';

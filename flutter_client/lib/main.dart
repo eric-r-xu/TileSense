@@ -1494,6 +1494,9 @@ class _GamePageState extends State<GamePage> {
             targets: _tourTargets,
             phone: phone,
             onDone: _endTour,
+            onOpenRules: () => showRulesReader(context, _game.ruleset,
+                minimumFaan: _game.minimumFaan,
+                minimumPoints: _game.minimumPoints),
           ),
         ),
     ]);
@@ -1577,16 +1580,21 @@ class _GamePageState extends State<GamePage> {
                       // The current table’s native rules summary and external reference.
                       AnimatedBuilder(
                         animation: _game,
-                        builder: (context, _) => IconButton(
-                          key: const Key('rulesPdf'),
-                          tooltip: context.l10n.rulesRead,
-                          iconSize: 18,
-                          visualDensity: VisualDensity.compact,
-                          color: Colors.white54,
-                          icon: const Icon(Icons.menu_book),
-                          onPressed: () => showRulesReader(context, _game.ruleset,
-                              minimumFaan: _game.minimumFaan,
-                              minimumPoints: _game.minimumPoints),
+                        builder: (context, _) => KeyedSubtree(
+                          // The tour's rulebook step points here.
+                          key: _tourTargets.rules,
+                          child: IconButton(
+                            key: const Key('rulesPdf'),
+                            tooltip: context.l10n.rulesRead,
+                            iconSize: 18,
+                            visualDensity: VisualDensity.compact,
+                            color: Colors.white54,
+                            icon: const Icon(Icons.menu_book),
+                            onPressed: () => showRulesReader(
+                                context, _game.ruleset,
+                                minimumFaan: _game.minimumFaan,
+                                minimumPoints: _game.minimumPoints),
+                          ),
                         ),
                       ),
                       // The terms a new player meets, in this game's rules.
@@ -2044,6 +2052,13 @@ class _WelcomeScreen extends StatelessWidget {
         key: const Key('learnPopup'),
         title: context.l10n.learnTile,
         children: [
+          // First, beside the glossary: where a learner looks for the rules.
+          _PopupAction(
+            id: 'rulebookLink',
+            icon: Icons.menu_book,
+            label: context.l10n.rulesRead,
+            onPressed: () => showRulesReader(context, ruleset),
+          ),
           _DailyQuizAction(ruleset: ruleset, onPressed: onDailyQuiz),
           _PopupAction(
             id: 'learnToPlay',
@@ -2241,14 +2256,24 @@ class _WelcomeScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 14),
                       child: SizedBox(
                         width: _TitleButton.gridWidth,
-                        child: const Row(
-                          key: Key('titleIcons'),
+                        child: Row(
+                          key: const Key('titleIcons'),
                           children: [
-                            _FullscreenButton(compact: true),
-                            SizedBox(width: 40),
-                            _UpdateButton(compact: true),
-                            Spacer(),
-                            _Credits(),
+                            const _FullscreenButton(compact: true),
+                            const SizedBox(width: 40),
+                            const _UpdateButton(compact: true),
+                            const SizedBox(width: 40),
+                            // Named rather than an icon alone: the rulebook
+                            // for the variant picked above, one tap away.
+                            TextButton.icon(
+                              key: const Key('titleRulebook'),
+                              onPressed: () => showRulesReader(context, ruleset),
+                              icon: const Icon(Icons.menu_book, size: 28),
+                              label: Text(context.l10n.rulesRead),
+                              style: AppButtons.link(fontSize: 18),
+                            ),
+                            const Spacer(),
+                            const _Credits(),
                           ],
                         ),
                       ),

@@ -213,6 +213,92 @@ void main() {
     expect(ja.entries.single.name, '七対子');
   });
 
+  test('Riichi and Sanma explain all three furiten with examples', () {
+    for (final r in [Ruleset.riichi, Ruleset.sanma]) {
+      final furiten = rulesSections(r).firstWhere((s) => s.id == 'furiten');
+      expect(furiten.entries.map((e) => e.alias),
+          ['Discard furiten', 'Temporary furiten', 'Riichi furiten']);
+      for (final e in furiten.entries) {
+        expect(e.example, contains('→'), reason: e.alias);
+        expect(e.note, contains('Avoid it'), reason: e.alias);
+      }
+      // It replaces the winning section's old furiten bullets.
+      expect(rulesSections(r).firstWhere((s) => s.id == 'winning').body,
+          isNot(contains('Furiten')));
+    }
+    for (final r in [
+      Ruleset.hongKong,
+      Ruleset.taiwanese,
+      Ruleset.mcr,
+      Ruleset.sichuan
+    ]) {
+      expect(rulesSections(r).map((s) => s.id), isNot(contains('furiten')));
+    }
+  });
+
+  test('every style says what the minimum is and how to choose it', () {
+    List<RuleSection> sections(Ruleset r) => rulesSections(r);
+    expect(
+        sections(Ruleset.hongKong)
+            .firstWhere((s) => s.id == 'minimum')
+            .entries
+            .map((e) => e.name),
+        ['0 faan', '1 faan', '2 faan', '3 faan']);
+    expect(
+        sections(Ruleset.taiwanese)
+            .firstWhere((s) => s.id == 'minimum')
+            .entries
+            .map((e) => e.name),
+        ['1 tai', '3 tai', '5 tai']);
+    // Riichi, MCR and Sichuan have a fixed minimum: guidance sits in the
+    // winning section.
+    expect(sections(Ruleset.riichi).firstWhere((s) => s.id == 'winning').body,
+        contains('1,000 points'));
+    expect(sections(Ruleset.mcr).firstWhere((s) => s.id == 'winning').body,
+        contains('add up to 8'));
+    expect(sections(Ruleset.sichuan).firstWhere((s) => s.id == 'winning').body,
+        contains('1 point'));
+  });
+
+  testWidgets(
+      'furiten and minimum tables use their own headings; minimums '
+      'have no tile column', (tester) async {
+    Future<void> open(Ruleset r) async {
+      await pumpLocalized(
+          tester, Scaffold(body: RulesReader(ruleset: r, onClose: () {})),
+          size: const Size(390, 700));
+      await tester.pump();
+    }
+
+    Future<void> search(String query) async {
+      await tester.enterText(find.byKey(const Key('rulesSearch')), query);
+      await tester.pump();
+    }
+
+    await open(Ruleset.riichi);
+    await search('furiten');
+    final furiten = find.byKey(const Key('rule_furiten'));
+    expect(find.descendant(of: furiten, matching: find.text('Type')),
+        findsOneWidget);
+    expect(find.descendant(of: furiten, matching: find.text('Lasts')),
+        findsOneWidget);
+    expect(find.descendant(of: furiten, matching: find.text('Example')),
+        findsOneWidget);
+    expect(find.descendant(of: furiten, matching: find.byType(TileFace)),
+        findsWidgets);
+
+    await open(Ruleset.hongKong);
+    await search('choosing a minimum');
+    final minimum = find.byKey(const Key('rule_minimum'));
+    expect(find.descendant(of: minimum, matching: find.text('Best for')),
+        findsOneWidget);
+    expect(find.descendant(of: minimum, matching: find.text('Example')),
+        findsNothing);
+    expect(find.descendant(of: minimum, matching: find.byType(TileFace)),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('configured minimums replace the pre-game default explanation', () {
     String winning(Ruleset r, {int? faan, int? tai}) =>
         rulesSections(r, minimumFaan: faan, minimumPoints: tai)
@@ -353,8 +439,38 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const Key('rulesPdf_sanma')), findsOneWidget);
     await closePopup(tester);
-    expect(taglineRules('Hong Kong'),
+    expect(taglineRules('Hong Kong'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the title screen opens the rulebook from the Learn popup and '
+      'its own button, on the ruleset picked', (tester) async {
+    Sfx.i.enabled = false;
+    await tester.binding.setSurfaceSize(kDesignSize);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const TileSenseApp());
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // The button is in the title row, named, with no popup to open first.
+    final icons = find.byKey(const Key('titleIcons'));
+    expect(find.descendant(of: icons, matching: find.text('Read rules')),
         findsOneWidget);
+    await tester.tap(find.byKey(const Key('titleRulebook')));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(tester.widget<RulesReader>(find.byType(RulesReader)).ruleset,
+        Ruleset.hongKong);
+    await tester.tap(find.byKey(const Key('rulesReaderClose')));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // And the first item in Learn / Train.
+    await tapInPopup(
+        tester, 'learnTile', find.byKey(const Key('rulebookLink')));
+    expect(find.byType(RulesReader), findsOneWidget);
+    expect(tester.widget<RulesReader>(find.byType(RulesReader)).ruleset,
+        Ruleset.hongKong);
+    await tester.tap(find.byKey(const Key('rulesReaderClose')));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
 
