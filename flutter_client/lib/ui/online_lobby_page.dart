@@ -21,6 +21,7 @@ import 'bar_back_button.dart';
 import 'character_picker.dart';
 import 'client_id_text.dart';
 import 'language_button.dart';
+import 'rules_reader.dart';
 import 'ruleset_flag.dart';
 import 'theme.dart';
 
@@ -249,7 +250,16 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
                         Row(
                           children: [
                             Expanded(child: _rulesetDropdown()),
-                            const SizedBox(width: 12),
+                            // The rulebook for the variant picked, before
+                            // anyone commits to a room.
+                            IconButton(
+                              key: const Key('onlineRulesRead'),
+                              tooltip: context.l10n.rules,
+                              icon: const Icon(Icons.menu_book),
+                              color: AppColors.goldText,
+                              onPressed: () => showRulesReader(context, _ruleset),
+                            ),
+                            const SizedBox(width: 4),
                             Expanded(child: _lengthDropdown()),
                           ],
                         ),
