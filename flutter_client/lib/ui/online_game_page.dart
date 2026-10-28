@@ -19,6 +19,7 @@ import 'client_id_text.dart';
 import 'hand_view.dart';
 import 'language_button.dart';
 import 'phone_menu.dart';
+import 'rules_reader.dart';
 import 'ruleset_badge.dart';
 import 'scoring_view.dart';
 import 'small_window_hint.dart';
@@ -143,6 +144,14 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                         icon: Icons.badge_outlined,
                         label: context.l10n.clientId,
                         onTap: closeThen(() => showClientIdDialog(context)),
+                      ),
+                      phoneMenuAction(
+                        key: const Key('onlineMenuRules'),
+                        icon: Icons.menu_book,
+                        label: context.l10n.rules,
+                        onTap: () => showRulesReader(context, game.ruleset,
+                            minimumFaan: game.minimumFaan,
+                            minimumPoints: game.minimumPoints),
                       ),
                     ],
                   ]),
@@ -308,6 +317,18 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
                 ),
                 const ClientIdButton(),
                 const SizedBox(width: 8),
+                // The same rulebook as the solo table; a dialog, so it never
+                // touches the live hand.
+                IconButton(
+                  key: const Key('rulesRead'),
+                  tooltip: context.l10n.rules,
+                  iconSize: 24,
+                  icon: const Icon(Icons.menu_book),
+                  color: AppColors.goldText,
+                  onPressed: () => showRulesReader(context, game.ruleset,
+                      minimumFaan: game.minimumFaan,
+                      minimumPoints: game.minimumPoints),
+                ),
                 IconButton(
                   key: const Key('soundToggle'),
                   tooltip: game.soundOn
