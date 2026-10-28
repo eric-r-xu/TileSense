@@ -40,10 +40,16 @@ class RuleEntry {
 
 class RuleSection {
   const RuleSection(this.id, this.title, this.points,
-      {this.entries = const []});
+      {this.entries = const [], this.nameHeading, this.valueHeading});
 
   final String id;
   final String title;
+
+  /// Column headings for [entries] when this section's table is not a
+  /// pattern catalogue (furiten types, minimums); [RulesText] supplies the
+  /// catalogue's own.
+  final String? nameHeading;
+  final String? valueHeading;
 
   /// One sentence each: a lone point reads as a paragraph, several as bullets.
   final List<String> points;
@@ -59,7 +65,12 @@ class RuleSection {
   RuleSection? filtered(String query) {
     if ('$title $body'.toLowerCase().contains(query)) return this;
     final hits = entries.where((e) => e.matches(query)).toList();
-    return hits.isEmpty ? null : RuleSection(id, title, points, entries: hits);
+    return hits.isEmpty
+        ? null
+        : RuleSection(id, title, points,
+            entries: hits,
+            nameHeading: nameHeading,
+            valueHeading: valueHeading);
   }
 }
 

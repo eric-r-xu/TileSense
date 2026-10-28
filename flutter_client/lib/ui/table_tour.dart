@@ -1,7 +1,8 @@
 /// The table tour: a short, one-time walk through the single-player table's
 /// controls, shown over the first hand a newcomer plays. It spotlights the real
 /// widgets one at a time — the hand, the buttons beside it, TileSensor (the
-/// guide) and the menu — so each control is explained where it lives, and
+/// guide), the rulebook and the menu — so each control is explained where it
+/// lives, and
 /// then gets out of the way for good. It can be replayed from the Learn popup
 /// and, on a phone, from the menu sheet.
 library;
@@ -44,6 +45,10 @@ class TableTourTargets {
   final hand = GlobalKey(debugLabel: 'tourHand');
   final toggles = GlobalKey(debugLabel: 'tourToggles');
   final guide = GlobalKey(debugLabel: 'tourGuide');
+
+  /// The bar's rulebook button; a phone has no such button, so its step
+  /// points at [menu], where Rules is.
+  final rules = GlobalKey(debugLabel: 'tourRules');
   final menu = GlobalKey(debugLabel: 'tourMenu');
 }
 
@@ -55,6 +60,7 @@ class TableTourOverlay extends StatefulWidget {
     required this.targets,
     required this.onDone,
     required this.phone,
+    this.onOpenRules,
   });
 
   final TableTourTargets targets;
@@ -64,12 +70,16 @@ class TableTourOverlay extends StatefulWidget {
   final bool phone;
   final VoidCallback onDone;
 
+  /// Opens the rulebook over the tour, from the rulebook step's button; the
+  /// tour stays on that step underneath.
+  final VoidCallback? onOpenRules;
+
   @override
   State<TableTourOverlay> createState() => _TableTourOverlayState();
 }
 
 class _TableTourOverlayState extends State<TableTourOverlay> {
-  static const _steps = 4;
+  static const _steps = 5;
   int _step = 0;
 
   void _finish() {
@@ -89,6 +99,7 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
         0 => widget.targets.hand,
         1 => widget.targets.toggles,
         2 => widget.targets.guide,
+        3 => widget.phone ? widget.targets.menu : widget.targets.rules,
         _ => widget.targets.menu,
       };
 
@@ -111,6 +122,10 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
       0 => (l10n.tourHandTitle, l10n.tourHandBody),
       1 => (l10n.tourButtonsTitle, l10n.tourButtonsBody),
       2 => (l10n.tourGuideTitle, l10n.tourGuideBody),
+      3 => (
+          l10n.tourRulesTitle,
+          widget.phone ? l10n.tourRulesBodyPhone : l10n.tourRulesBodyDesktop
+        ),
       _ => (
           l10n.tourMenuTitle,
           widget.phone ? l10n.tourMenuBodyPhone : l10n.tourMenuBodyDesktop
@@ -124,6 +139,7 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
         title: title,
         body: body,
         legend: _step == 1 ? _legend(l10n) : null,
+        onOpenRules: _step == 3 ? widget.onOpenRules : null,
         last: last,
       );
       // The card sits on whichever side of the spotlight has more room.
@@ -161,6 +177,7 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
     required String body,
     required bool last,
     Widget? legend,
+    VoidCallback? onOpenRules,
   }) {
     final l10n = context.l10n;
     return Material(
@@ -192,6 +209,20 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
                 style: const TextStyle(
                     color: Colors.white, fontSize: 17, height: 1.4)),
             if (legend != null) ...[const SizedBox(height: 10), legend],
+            if (onOpenRules != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const Key('tableTourOpenRules'),
+                onPressed: onOpenRules,
+                icon: const Icon(Icons.menu_book),
+                label: Text(l10n.tourRulesOpen,
+                    style: const TextStyle(fontSize: 16)),
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.goldText,
+                    side: const BorderSide(color: AppColors.gold),
+                    minimumSize: const Size(0, 48)),
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -259,8 +290,7 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
         row(Icons.touch_app, l10n.discardCaption, l10n.tourLegendDiscardBody),
         row(Icons.emoji_events, l10n.autoWinCaption,
             l10n.tourLegendAutoWinBody),
-        row(Icons.skip_next, l10n.autoPassCaption,
-            l10n.tourLegendAutoPassBody),
+        row(Icons.skip_next, l10n.autoPassCaption, l10n.tourLegendAutoPassBody),
       ],
     );
   }

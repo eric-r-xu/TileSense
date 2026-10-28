@@ -6,6 +6,7 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/learn_to_play_page.dart';
+import 'package:tilesense/ui/rules_reader.dart';
 import 'package:tilesense/ui/table_tour.dart';
 import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
@@ -46,7 +47,7 @@ void main() {
       (tester.widget(find.byType(TableView).first) as TableView).game
           as GameController;
 
-  testWidgets('the first hand opens the tour, paused; its four steps end it',
+  testWidgets('the first hand opens the tour, paused; its five steps end it',
       (tester) async {
     await boot(tester);
     await startGame(tester);
@@ -54,17 +55,58 @@ void main() {
     expect(gameOf(tester).paused, isTrue, reason: 'the table waits');
     expect(find.text('PAUSED', findRichText: true), findsNothing,
         reason: 'no pause cover over what the tour points at');
-    for (var step = 0; step < 4; step++) {
+    for (var step = 0; step < 5; step++) {
       expect(find.byKey(Key('tableTourStep_$step')), findsOneWidget);
       if (step == 1) {
         expect(find.byKey(const Key('tableTourLegend')), findsOneWidget);
       }
+      // Only the rulebook step has the button that opens it.
+      expect(find.byKey(const Key('tableTourOpenRules')),
+          step == 3 ? findsOneWidget : findsNothing);
       await tester.tap(find.byKey(const Key('tableTourNext')));
       await tester.pump();
     }
     expect(find.byKey(const Key('tableTour')), findsNothing);
     expect(gameOf(tester).paused, isFalse, reason: 'play resumes');
     expect(TableTour.shouldAutoShow, isFalse);
+  });
+
+  testWidgets(
+      'the rulebook step opens the rules and leaves the tour where it was',
+      (tester) async {
+    await boot(tester);
+    await startGame(tester);
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('tableTourNext')));
+      await tester.pump();
+    }
+    expect(find.byKey(const Key('tableTourStep_3')), findsOneWidget);
+    expect(find.text('The rulebook'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('tableTourOpenRules')));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(RulesReader), findsOneWidget);
+    expect(tester.widget<RulesReader>(find.byType(RulesReader)).ruleset,
+        gameOf(tester).ruleset);
+
+    await tester.tap(find.byKey(const Key('rulesReaderClose')));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(RulesReader), findsNothing);
+    expect(find.byKey(const Key('tableTourStep_3')), findsOneWidget);
+    expect(gameOf(tester).paused, isTrue, reason: 'still held for the tour');
+  });
+
+  testWidgets('on a phone the rulebook step sends you to Menu, then Rules',
+      (tester) async {
+    await boot(tester, size: const Size(852, 393));
+    await startGame(tester);
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('tableTourNext')));
+      await tester.pump();
+    }
+    expect(find.byKey(const Key('tableTourStep_3')), findsOneWidget);
+    expect(find.textContaining('Open Menu, then Rules'), findsOneWidget);
+    expect(find.byKey(const Key('tableTourOpenRules')), findsOneWidget);
   });
 
   testWidgets('Skip ends it for good; the Learn popup brings it back',
@@ -144,8 +186,8 @@ void main() {
       await tester.tap(find.byKey(const Key('learnNext')));
       await tester.pump();
       final card = find.byKey(const Key('learnTiles_1'));
-      expect(
-          find.descendant(of: card, matching: find.byType(Row)), findsNWidgets(2));
+      expect(find.descendant(of: card, matching: find.byType(Row)),
+          findsNWidgets(2));
     });
   });
 }

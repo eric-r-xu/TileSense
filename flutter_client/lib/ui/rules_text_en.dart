@@ -62,12 +62,36 @@ class EnRulesText extends RulesText {
                     'A kan draws a replacement from the dead wall.',
                     'Chi, pon and open kan make the hand open, which changes the yaku it can score.',
                   ]),
-        const RuleSection('winning', 'Winning: yaku and furiten', [
+        const RuleSection('winning', 'Winning and the yaku minimum', [
           'Tsumo wins on your own draw; ron wins on a discard.',
           'You need at least one yaku; dora alone are not enough.',
-          'Furiten: if any of your waits is in your own discards, you cannot ron, but can still tsumo.',
-          'Passing a ron also blocks ron for a while; after riichi, for the rest of the hand.',
+          'There is no point minimum beyond that: the smallest win is 1 han, worth 1,000 points at 30 fu on a ron (1,500 for the dealer).',
+          'To always hold a yaku, stay closed for riichi, or collect a dragon, round-wind or seat-wind pung.',
         ]),
+        const RuleSection(
+            'furiten',
+            'Furiten: when you cannot ron',
+            [
+              'Furiten blocks ron on your winning tiles, but you can still win by tsumo.',
+              'The table shows FURITEN when your ready hand is furiten.',
+              'Before each discard, check that none of your waits is among your own discards.',
+            ],
+            nameHeading: 'Type',
+            valueHeading: 'Lasts',
+            entries: [
+              RuleEntry('Discard furiten', 'While the wait stands',
+                  'A tile you wait on is in your own discards, even if another player called it away. Avoid it: before you discard, check your waits against your discards, and change the wait if needed. Here the 6 of dots was discarded earlier.',
+                  alias: 'Discard furiten',
+                  example: '123m 456m 789s 99p 45p → 3p 6p'),
+              RuleEntry('Temporary furiten', 'Until your next draw',
+                  'You passed on a winning tile, by choice or because the hand had no yaku. Avoid it: call ron when you can, and make sure your hand has a yaku before you wait. Here you passed on the 6 of dots.',
+                  alias: 'Temporary furiten',
+                  example: '234m 567p 345s 99s 78p → 6p 9p'),
+              RuleEntry('Riichi furiten', 'Rest of the hand',
+                  'You passed up a winning tile after declaring riichi, so it lasts to the end of the hand. Avoid it: always call ron on a winning tile, and before declaring riichi check that no wait is in your discards. Here you passed on the 5 of characters.',
+                  alias: 'Riichi furiten',
+                  example: '123m 456p 789s 55s 46m → 5m'),
+            ]),
         const RuleSection('riichi', 'Riichi and dora', [
           'With a closed, ready hand and enough points, declare riichi and pay a 1,000-point deposit.',
           'The hand is then locked: discard each draw, except for permitted kans.',
@@ -146,6 +170,25 @@ class EnRulesText extends RulesText {
           'Self-Pick adds faan, so a hand too small to win on a discard may win on a draw.',
           'There is no riichi or furiten.',
         ]),
+        const RuleSection(
+            'minimum',
+            'Choosing a minimum',
+            [
+              'Everyone at the table plays the same minimum, set before the game starts.',
+              'Raising it favours hands with real scoring features over cheap ones.',
+            ],
+            nameHeading: 'Minimum',
+            valueHeading: 'Best for',
+            entries: [
+              RuleEntry('0 faan', 'Learning',
+                  'Any complete hand wins, even a chicken hand with no scoring feature; the quickest games and the easiest place to start.'),
+              RuleEntry('1 faan', 'Casual play',
+                  'The hand needs one scoring feature, such as a dragon pung or Self-Pick.'),
+              RuleEntry('2 faan', 'Steady play',
+                  'A plain hand no longer wins, so you need to aim for a feature or two.'),
+              RuleEntry('3 faan', 'Traditional play',
+                  'The usual minimum in traditional play; Self-Pick still counts, so a hand one faan short on a discard can win off the wall.'),
+            ]),
         const RuleSection('scoring', 'Faan and flowers', [
           'Independent features add up; an upgraded feature replaces the lower one.',
           'Flowers and seasons can add bonuses.',
@@ -192,6 +235,23 @@ class EnRulesText extends RulesText {
           'Passing a winning discard blocks that wait until your next draw.',
           'Your own earlier discards do not cause riichi-style furiten.',
         ]),
+        const RuleSection(
+            'minimum',
+            'Choosing a minimum',
+            [
+              'TileSense’s points run higher than Taiwan’s tai, so any minimum here is stricter than it sounds.',
+              'Self-Drawn’s own point counts, so a hand one short can still win off the wall.',
+            ],
+            nameHeading: 'Minimum',
+            valueHeading: 'Best for',
+            entries: [
+              RuleEntry('1 tai', 'Closest to Taiwan',
+                  'Nearly any complete hand wins, as in most Taiwanese games.'),
+              RuleEntry('3 tai', 'Steady play',
+                  'A plain hand no longer wins, so you need a pattern or two.'),
+              RuleEntry('5 tai', 'Strict play (default)',
+                  'The source sheet’s number and a TileSense house rule: the strictest and slowest setting, where hands need real patterns.'),
+            ]),
         const RuleSection('scoring', 'Additive points and flowers', [
           'Patterns add flat tai (the source sheet’s points) instead of Hong Kong’s doubling table.',
           'Flower bonuses count toward the minimum.',
@@ -233,6 +293,7 @@ class EnRulesText extends RulesText {
         RuleSection('winning', 'The 8-point minimum', [
           'A win needs 8 points before flowers; 7 plus flowers is not enough.',
           'A hand with nothing else scores Chicken Hand (8).',
+          'Count as you build: a pattern worth 8 or more wins alone, while smaller ones must add up to 8.',
           'There is no riichi, furiten or honba.',
         ]),
         RuleSection('scoring', '81 fan and exclusions', [
@@ -280,6 +341,7 @@ class EnRulesText extends RulesText {
         ]),
         RuleSection('winning', 'Winning and passed wins', [
           'There is no minimum fan, riichi or honba.',
+          'Any complete hand wins, even a plain one worth 1 point, so a quick small win is a real option.',
           'After passing a Hu, you cannot win on that tile from another player until your next turn, or on another discard unless it pays more.',
         ]),
         RuleSection('scoring', 'Fan and payments', [

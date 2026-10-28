@@ -5231,22 +5231,46 @@ abstract class AppLocalizations {
   /// **'Tap TileSensor to show the guide. It ranks every discard, marks the best one in green and explains why. Tap again to hide it.'**
   String get tourGuideBody;
 
+  /// No description provided for @tourRulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The rulebook'**
+  String get tourRulesTitle;
+
+  /// No description provided for @tourRulesBodyDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'The book icon in the top bar opens the rulebook for this game: every scoring pattern with tile examples, plus how to win, minimums and payments. Search it any time.'**
+  String get tourRulesBodyDesktop;
+
+  /// No description provided for @tourRulesBodyPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Menu, then Rules, for the rulebook for this game: every scoring pattern with tile examples, plus how to win, minimums and payments. Search it any time.'**
+  String get tourRulesBodyPhone;
+
+  /// No description provided for @tourRulesOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the rulebook'**
+  String get tourRulesOpen;
+
   /// No description provided for @tourMenuTitle.
   ///
   /// In en, this message translates to:
-  /// **'Settings, rules and help'**
+  /// **'Settings and help'**
   String get tourMenuTitle;
 
   /// No description provided for @tourMenuBodyPhone.
   ///
   /// In en, this message translates to:
-  /// **'The Menu button holds pause, sound, speed, Auto-Play, the rules and the glossary. You can replay this tour from there.'**
+  /// **'The Menu button holds pause, sound, speed, Auto-Play and the glossary. You can replay this tour from there.'**
   String get tourMenuBodyPhone;
 
   /// No description provided for @tourMenuBodyDesktop.
   ///
   /// In en, this message translates to:
-  /// **'Settings run along the top bar, with the rules and the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.'**
+  /// **'Settings run along the top bar, with the glossary beside the ruleset. Menu, top left, takes you back to the main menu, where Learn replays this tour.'**
   String get tourMenuBodyDesktop;
 
   /// No description provided for @tourSkip.

@@ -191,7 +191,9 @@ class _RulesReaderState extends State<RulesReader> {
                             ],
                             if (section.entries.isNotEmpty)
                               _CatalogueTable(section.entries,
-                                  text: RulesText.of(l10n)),
+                                  text: RulesText.of(l10n),
+                                  nameHeading: section.nameHeading,
+                                  valueHeading: section.valueHeading),
                           ],
                         ),
                       ),
@@ -256,12 +258,17 @@ class _Points extends StatelessWidget {
 }
 
 /// A catalogue as a table: each pattern's name with its definition beneath,
-/// its value, and tiles that show it.
+/// its value, and tiles that show it. The tiles column is left out when no
+/// row has any (a table of minimums); [nameHeading] and [valueHeading]
+/// replace the catalogue's own headings for a table that is not one.
 class _CatalogueTable extends StatelessWidget {
-  const _CatalogueTable(this.entries, {required this.text});
+  const _CatalogueTable(this.entries,
+      {required this.text, this.nameHeading, this.valueHeading});
 
   final List<RuleEntry> entries;
   final RulesText text;
+  final String? nameHeading;
+  final String? valueHeading;
 
   static const _heading = TextStyle(
       color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold);
@@ -273,22 +280,25 @@ class _CatalogueTable extends StatelessWidget {
               constraints.maxWidth >= 600 ? TileSize.small : TileSize.tiny;
           Widget cell(Widget child) => Padding(
               padding: const EdgeInsets.fromLTRB(0, 8, 10, 8), child: child);
+          final showExample = entries.any((e) => e.example.isNotEmpty);
           return Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Table(
-              columnWidths: const {
-                0: FlexColumnWidth(4),
-                1: FlexColumnWidth(2),
-                2: FlexColumnWidth(5),
+              columnWidths: {
+                0: const FlexColumnWidth(4),
+                1: FlexColumnWidth(showExample ? 2 : 3),
+                if (showExample) 2: const FlexColumnWidth(5),
               },
               defaultVerticalAlignment: TableCellVerticalAlignment.top,
               border: const TableBorder(
                   horizontalInside: BorderSide(color: Colors.white12)),
               children: [
                 TableRow(children: [
-                  cell(Text(text.nameHeading, style: _heading)),
-                  cell(Text(text.valueHeading, style: _heading)),
-                  cell(Text(text.exampleHeading, style: _heading)),
+                  cell(Text(nameHeading ?? text.nameHeading, style: _heading)),
+                  cell(
+                      Text(valueHeading ?? text.valueHeading, style: _heading)),
+                  if (showExample)
+                    cell(Text(text.exampleHeading, style: _heading)),
                 ]),
                 for (final entry in entries)
                   TableRow(children: [
@@ -311,7 +321,7 @@ class _CatalogueTable extends StatelessWidget {
                     cell(Text(entry.value.isEmpty ? '—' : entry.value,
                         style: const TextStyle(
                             color: AppColors.goldText, fontSize: 15))),
-                    cell(_Example(entry.example, size: tiles)),
+                    if (showExample) cell(_Example(entry.example, size: tiles)),
                   ]),
               ],
             ),

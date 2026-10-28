@@ -24,6 +24,8 @@ simplified or left out, as listed below. This is a trainer, not a ruleset arbite
 - A hand in riichi is frozen: it must discard what it draws. It may make a closed kan only of the tile just drawn, and only if that leaves the wait unchanged; added kans are blocked. (Real rules allow some added kans; the trainer keeps riichi hands fixed.)
 - **Double riichi** is a riichi on your first discard with no call or kan at the table yet. **Ippatsu** lasts until your next discard or any call or kan.
 - **Furiten** bars ron, never tsumo, in three cases: a wait is in your own discards (including tiles later called away); you passed a winning tile since your last draw (temporary); or you passed one while in riichi (permanent for the hand).
+- Avoiding furiten: check your waits against your own discards before each discard (called-away tiles still count); ron a winning tile when you can, and hold a yaku before waiting, since a pass for lack of a yaku still counts; before riichi, check the wait, because the hand is locked afterwards. The in-app manual's Furiten table gives one example of each type.
+- **Minimum**: one yaku, with no further han or point floor; the smallest win is 1 han, 1,000 points at 30 fu on a ron (1,500 for the dealer).
 - **Kyuushu kyuuhai**: any seat may abort the hand on its first discard, before any call or kan, with nine or more different terminals and honours. The dealer repeats and a honba is added.
 
 ## Yaku

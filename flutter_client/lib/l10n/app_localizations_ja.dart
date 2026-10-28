@@ -2889,15 +2889,29 @@ class AppLocalizationsJa extends AppLocalizations {
       'TileSensorをタップするとガイドが開きます。すべての打牌を順位付けし、最善手を緑で示して理由を説明します。もう一度タップで閉じます。';
 
   @override
-  String get tourMenuTitle => '設定・ルール・ヘルプ';
+  String get tourRulesTitle => 'ルールブック';
+
+  @override
+  String get tourRulesBodyDesktop =>
+      '上部バーの本のアイコンで、このゲームのルールブックを開けます。全役・全点数パターンの牌の例、和了の条件、最低点、支払いまで、いつでも検索できます。';
+
+  @override
+  String get tourRulesBodyPhone =>
+      'メニューから「ルール」を開くと、このゲームのルールブックが読めます。全役・全点数パターンの牌の例、和了の条件、最低点、支払いまで、いつでも検索できます。';
+
+  @override
+  String get tourRulesOpen => 'ルールブックを開く';
+
+  @override
+  String get tourMenuTitle => '設定とヘルプ';
 
   @override
   String get tourMenuBodyPhone =>
-      'メニューボタンには一時停止、サウンド、速度、オートプレイ、ルール、用語集があります。このツアーもそこから再生できます。';
+      'メニューボタンには一時停止、サウンド、速度、オートプレイ、用語集があります。このツアーもそこから再生できます。';
 
   @override
   String get tourMenuBodyDesktop =>
-      '設定は上部のバーに並び、ルールと用語集はルール名の横にあります。左上のメニューでメインメニューに戻り、「学ぶ」からこのツアーを再生できます。';
+      '設定は上部のバーに並び、用語集はルール名の横にあります。左上のメニューでメインメニューに戻り、「学ぶ」からこのツアーを再生できます。';
 
   @override
   String get tourSkip => 'ツアーをスキップ';
