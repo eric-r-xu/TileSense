@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'loading_helpers.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/logic/efficiency_engine.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
+import 'package:tilesense/ui/meld_row.dart';
 import 'package:tilesense/ui/table_view.dart';
 import 'package:tilesense/ui/tile_face.dart';
 
@@ -173,6 +175,39 @@ void main() {
     });
   }
 
+  // The table's minimum is always on the table, in the status line: the
+  // style's own floor, or the one the table set. Riichi has none in points.
+  for (final (ruleset, minimum) in [
+    ('riichi', null),
+    ('hongKong', '0 faan min'),
+    ('taiwanese', '5 tai min'),
+    ('mcr', '8 fan min'),
+  ]) {
+    testWidgets(
+        '$ruleset: the status line ${minimum == null ? 'has no minimum' : 'says "$minimum"'}',
+        (tester) async {
+      await startGame(tester, ruleset: ruleset);
+      final line = find.byKey(const Key('tableStatus'));
+      final text = tester
+          .widget<Text>(find.descendant(of: line, matching: find.byType(Text)))
+          .textSpan!
+          .toPlainText();
+      if (minimum == null) {
+        expect(text, isNot(contains(' min')));
+      } else {
+        expect(text, contains(minimum));
+      }
+      // Still one line, inside its pill.
+      final pill = tester.getRect(find.byKey(const Key('statusPill')));
+      expect(pill.contains(tester.getRect(line).topLeft), isTrue);
+      expect(pill.contains(tester.getRect(line).bottomRight), isTrue);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+  }
+
   for (final (label, size) in [
     ('phone-shaped canvas', kDesignSize),
     ('tablet-shaped canvas', const Size(1600, 1128)),
@@ -320,14 +355,85 @@ void main() {
           final backs =
               find.descendant(of: hand, matching: find.byType(TileFace));
           expect(backs, findsNWidgets(rest));
-          // A turned small back is 22 long plus 0.5 padding each end: the
-          // strip holds the resting backs, one spare slot for the cut
-          // flash, the 6 gap and the drawn tile's slot — nothing more.
+          // A turned small back is 22 long plus 0.5 padding each end, at the
+          // hand's scale: the strip holds the resting backs, one spare slot
+          // for the cut flash, the 6 gap and the drawn tile's slot — nothing
+          // more.
           final scale = tester.getSize(backs.first).height / 22;
           expect(tester.getSize(hand).height,
-              closeTo(((rest + 2) * 23 + 6) * scale, 0.5),
+              closeTo((rest + 2) * (22 * scale + 1) + 6 * scale, 0.5),
               reason: 'seat $seat hand strip is sized to its $rest backs');
         }
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
+    }
+  }
+
+  for (final (label, size) in [
+    ('phone-shaped canvas', kDesignSize),
+    ('tablet-shaped canvas', const Size(1600, 1128)),
+  ]) {
+    for (final ruleset in ['riichi', 'taiwanese']) {
+      testWidgets(
+          '$ruleset, $label: every opponent\'s open melds are the same size, '
+          'however many calls each has', (tester) async {
+        // Uneven on purpose: four kans, one pon, and an added kan among two.
+        final calls = {
+          1: [for (var k = 0; k < 4; k++) (MeldKind.kan, false)],
+          2: [(MeldKind.triplet, false)],
+          3: [(MeldKind.triplet, false), (MeldKind.kan, true)],
+        };
+        await startGame(tester, ruleset: ruleset, size: size, arrange: (host) {
+          calls.forEach((seat, kinds) {
+            final s = host.round.seats[seat];
+            s.drawn = null;
+            s.melds.clear();
+            for (var k = 0; k < kinds.length; k++) {
+              final (kind, added) = kinds[k];
+              final type = TileType.values[TileType.man1.index + k * 2];
+              s.melds.add(Meld(
+                kind: kind,
+                low: type,
+                concealed: false,
+                addedKan: added,
+                calledFromSeatOffset: 3,
+                tiles: [
+                  for (var t = 0; t < (kind == MeldKind.kan ? 4 : 3); t++)
+                    Tile(600 + seat * 40 + k * 5 + t, type)
+                ],
+              ));
+            }
+            s.hand = s.hand.sublist(0, s.hand.length - 3 * kinds.length);
+          });
+        });
+        // A meld's upright tile is 22 wide before scaling; what is painted
+        // includes any FittedBox shrinking above it, which the widget's own
+        // layout size does not.
+        double painted(Element row) {
+          final tile = find
+              .descendant(
+                  of: find.byWidget(row.widget),
+                  matching: find.byType(TileFace))
+              .first;
+          final d = tester.getBottomRight(tile) - tester.getTopLeft(tile);
+          return math.min(d.dx.abs(), d.dy.abs());
+        }
+
+        final sizes = <int, Set<double>>{};
+        for (final e in find.byType(MeldRow).evaluate()) {
+          final m = (e.widget as MeldRow).meld;
+          final seat = (m.tiles.first.id - 600) ~/ 40;
+          if (!calls.containsKey(seat)) continue;
+          sizes.putIfAbsent(seat, () => {}).add(
+              double.parse(painted(e).toStringAsFixed(1)));
+        }
+        expect(sizes.keys, unorderedEquals(calls.keys));
+        final all = sizes.values.expand((v) => v).toList();
+        expect(all.reduce(math.max) - all.reduce(math.min), lessThan(0.5),
+            reason: 'melds painted at $sizes');
         expect(tester.takeException(), isNull);
 
         await tester.pumpWidget(const SizedBox());

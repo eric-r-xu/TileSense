@@ -82,6 +82,14 @@
       }
     }
   },
+  "minimumFanTag": "{n} fan min",
+  "@minimumFanTag": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "newGameConfirmTitle": "Start a new game?",
   "newGameConfirmBody": "The game in progress will be lost.",
   "keepPlaying": "Keep playing",

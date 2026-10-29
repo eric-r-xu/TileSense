@@ -9,6 +9,8 @@ import '../game/guide_host.dart';
 import '../game/sfx.dart' show kCharacterPortrait;
 import '../l10n/l10n.dart';
 import '../l10n/mahjong_terms.dart';
+import 'package:mahjong_core/mcr/mcr_rules.dart';
+import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/ruleset.dart' show Ruleset;
 import 'meld_row.dart';
@@ -79,16 +81,59 @@ class TableView extends StatelessWidget {
   final TableEdits? edits;
 
   static const int _pondCols = 6;
-  // Discard tiles render up to 25% larger than the authored `TileSize.normal`
-  // step — all four ponds alike. Melds on the felt stay at this size.
-  static const double _pondScale = 1.25;
+  // Discard tiles render up to 50% larger than the authored `TileSize.normal`
+  // step — all four ponds alike — on a table tall enough for it.
+  static const double _pondScale = 1.5;
+
+  /// The most an opponent's open melds are drawn at: 50% larger than the
+  /// authored `TileSize.small`. See [_meldScaleFor].
+  static const double _meldScaleMax = 1.5;
+
+  /// The least they shrink to, with a full table of calls.
+  static const double _meldScaleMin = 1.0;
+
+  /// How long a side seat's column of melds may run, in logical pixels: the
+  /// room the shortest table leaves beside the hand, kept a little under so a
+  /// taller table only ever has more.
+  static const double _sideMeldRoom = 490;
+
+  /// A meld's length along its row in unscaled `TileSize.small` pixels: its
+  /// upright tiles are 22 wide, and the sideways called tile takes 30.
+  static double _meldLength(Meld m) {
+    if (m.tiles.length < 3 || (m.kind == MeldKind.kan && m.concealed)) {
+      return 22.0 * m.tiles.length;
+    }
+    // Mirrors [MeldRow]: a called tile lies sideways, and an added kan's
+    // fourth lies on it, so the two share one 30-wide slot.
+    final kan = m.kind == MeldKind.kan;
+    final called = m.tiles.length > (kan && !m.addedKan ? 3 : 2);
+    final added = kan && m.addedKan && called;
+    final upright = m.tiles.length - (called ? 1 : 0) - (added ? 1 : 0);
+    return 22.0 * upright + (called ? 30 : 0);
+  }
+
+  /// One size for every opponent's open melds, so no seat's calls read as
+  /// bigger or smaller than another's. As large as [_meldScaleMax] allows, and
+  /// only as small as the fullest side seat's column needs to fit in
+  /// [_sideMeldRoom] — the across seat's wrap onto another line instead.
+  static double _meldScaleFor(Round round) {
+    var scale = _meldScaleMax;
+    for (final seat in [1, 3]) {
+      final melds = round.seats[seat].melds;
+      if (melds.isEmpty) continue;
+      final length = melds.fold<double>(0, (sum, m) => sum + _meldLength(m));
+      final gaps = 4.0 * (melds.length - 1);
+      scale = math.min(scale, (_sideMeldRoom - gaps) / length);
+    }
+    return scale.clamp(_meldScaleMin, _meldScaleMax).toDouble();
+  }
 
   /// The smallest pond tiles ever get, on a table too short for the full
   /// [_pondScale] — see [_pondScaleFor].
   static const double _minPondScale = 1.0;
 
   /// Felt kept between a full pond and whatever sits beyond it.
-  static const double _pondMargin = 5;
+  static const double _pondMargin = 3;
 
   /// The pond scale at which the across pond, the pill and your pond — each
   /// pond at its fullest, four rows behind a riichi stick — exactly fill a
@@ -125,14 +170,14 @@ class TableView extends StatelessWidget {
   static const double _statusPillMaxWidth = 2 * _sidePondInset - 20;
 
   /// Felt left between the pill and the pond above and below it.
-  static const double _statusPillGap = 6;
+  static const double _statusPillGap = 4;
 
   /// From the middle of the table to the inner edge of each side pond: clear
   /// of the widest pill, and of the centre ponds' corners.
   static const double _sidePondInset = 230;
 
   /// Width of each side seat's column (placard, hand and melds).
-  static const double _sideSeatWidth = 118;
+  static const double _sideSeatWidth = 152;
 
   /// Portrait size for your seat and for the across seat up in the app bar:
   /// the side seats' size, and short enough to sit inside the 50px bar.
@@ -166,7 +211,8 @@ class TableView extends StatelessWidget {
   // Fixed footprint: one riichi stick + four full rows. Anchored top-left so
   // earlier tiles stay put as later rows come in.
   static double _pondBoxW(double scale) =>
-      _pondCols * _pondTileW(scale) + 16; // room for a turned tile
+      // Room for a turned tile: 44 wide against a normal tile's 32.
+      _pondCols * _pondTileW(scale) + 12 * scale + 1;
   static double _pondBoxH(double scale) => 16 + 4 * _pondTileH(scale);
 
   @override
@@ -192,8 +238,11 @@ class TableView extends StatelessWidget {
                   child: Center(
                     child: FittedBox(
                       key: const Key('acrossHand'),
-                      child:
-                          _OpponentHand(game: game, seat: 2, vertical: false),
+                      child: _OpponentHand(
+                          game: game,
+                          seat: 2,
+                          vertical: false,
+                          towards: AxisDirection.up),
                     ),
                   ),
                 )
@@ -243,13 +292,15 @@ class TableView extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Wraps onto a second line when it has to, rather than
+                  // shrinking: every opponent's melds are the same size.
                   Expanded(
                     child: Align(
                       alignment: Alignment.topRight,
-                      child: FittedBox(
+                      child: KeyedSubtree(
                         key: const Key('acrossMelds'),
-                        fit: BoxFit.scaleDown,
-                        child: _meldGroup(round.seats[2]),
+                        child: _meldGroup(round.seats[2],
+                            alignment: WrapAlignment.end),
                       ),
                     ),
                   ),
@@ -699,8 +750,10 @@ class TableView extends StatelessWidget {
     );
   }
 
-  Widget _meldGroup(SeatState s) {
+  Widget _meldGroup(SeatState s,
+      {WrapAlignment alignment = WrapAlignment.start}) {
     final group = Wrap(
+      alignment: alignment,
       spacing: 4,
       runSpacing: 2,
       children: [
@@ -713,7 +766,7 @@ class TableView extends StatelessWidget {
             ValueKey('meld-${s.seat}-${m.tiles.map((t) => t.id).join(',')}'),
             MeldRow(m,
                 size: TileSize.small,
-                scale: _pondScale,
+                scale: _meldScaleFor(game.round),
                 // The across seat's row isn't turned like the side seats', so
                 // its tilted tile must be placed from the owner's viewpoint.
                 mirrored: s.seat == 2,
@@ -805,7 +858,11 @@ class TableView extends StatelessWidget {
                 child: FittedBox(
                   key: const Key('acrossHand'),
                   fit: BoxFit.scaleDown,
-                  child: _OpponentHand(game: game, seat: seat, vertical: false),
+                  child: _OpponentHand(
+                      game: game,
+                      seat: seat,
+                      vertical: false,
+                      towards: AxisDirection.up),
                 ),
               ),
             ),
@@ -836,45 +893,44 @@ class TableView extends StatelessWidget {
       ],
     );
     // The hand keeps its full size — the same backs as the across seat's —
-    // and the melds below it are what give way if a column of calls ever
-    // runs longer than the table is tall. Each call takes three backs out of
-    // the hand, so that only happens with four kans on a short table. Only a
-    // table shorter than the hand itself — the builder's on a phone, above
-    // its taller editor band — scales the hand down, keeping room for calls.
+    // and the melds stand beside it, down the same column, at the same size
+    // as every other opponent's: a call takes three backs out of the hand, so
+    // the two together never run longer than the hand alone did. Only a table
+    // shorter than the hand itself — the builder's on a phone, above its
+    // taller editor band — scales the hand down.
     final hand = _OpponentHand(
       key: ValueKey('sideHand-$seat'),
       game: game,
       seat: seat,
       vertical: true,
       rotate: isLeft ? 1 : 3,
+      towards: isLeft ? AxisDirection.left : AxisDirection.right,
     );
     final inside = LayoutBuilder(builder: (context, c) {
       final need = _OpponentHandState.mainExtent(
           _OpponentHandState.restFor(round, seat));
-      final room = c.maxHeight - (s.melds.isEmpty ? 0 : 60);
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (need <= room)
-            hand
-          else
-            SizedBox(
-              height: room,
+      final handBox = need <= c.maxHeight
+          ? hand
+          : SizedBox(
+              height: c.maxHeight,
               child: FittedBox(fit: BoxFit.scaleDown, child: hand),
-            ),
-          if (s.melds.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: RotatedBox(
-                  quarterTurns: isLeft ? 1 : 3,
-                  child: _meldGroup(s),
-                ),
-              ),
-            ),
-          ],
-        ],
+            );
+      if (s.melds.isEmpty) return handBox;
+      // Toward the middle of the table, the hand on the placard's side.
+      final melds = Flexible(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: RotatedBox(
+            quarterTurns: isLeft ? 1 : 3,
+            child: _meldGroup(s),
+          ),
+        ),
+      );
+      const gap = SizedBox(width: 4);
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: isLeft ? [handBox, gap, melds] : [melds, gap, handBox],
       );
     });
     // Scales the placard column down to fit rather than overflowing — the
@@ -882,6 +938,9 @@ class TableView extends StatelessWidget {
     // tray beneath it needs the same headroom [inside] gets.
     final flexPlacard =
         Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: placard));
+    // The hand and melds beside it get the larger share: the placard column
+    // is only as wide as the portrait.
+    final flexInside = Flexible(flex: 2, child: inside);
     return SizedBox(
       key: ValueKey('sideSeat-$seat'),
       width: _sideSeatWidth,
@@ -893,16 +952,8 @@ class TableView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: isLeft
-                  ? [
-                      flexPlacard,
-                      const SizedBox(width: 6),
-                      Flexible(child: inside)
-                    ]
-                  : [
-                      Flexible(child: inside),
-                      const SizedBox(width: 6),
-                      flexPlacard
-                    ],
+                  ? [flexPlacard, const SizedBox(width: 6), flexInside]
+                  : [flexInside, const SizedBox(width: 6), flexPlacard],
             ),
           ),
         ],
@@ -1220,12 +1271,16 @@ class _OpponentHand extends StatefulWidget {
     required this.seat,
     required this.vertical,
     this.rotate = 0,
+    required this.towards,
   });
 
   final GuideHost game;
   final int seat;
   final bool vertical;
   final int rotate;
+
+  /// The side of the screen this seat sits on: the white half of each back.
+  final AxisDirection towards;
 
   @override
   State<_OpponentHand> createState() => _OpponentHandState();
@@ -1236,13 +1291,21 @@ class _OpponentHandState extends State<_OpponentHand> {
   int? _gapIndex;
   Timer? _timer;
 
-  // Small-tile back footprint: 22×30 face + 0.5 padding on every side = 23×31.
-  // A rotated back (side seats) reports the same numbers swapped, so the
-  // extent along the strip's main axis is always 23 and its depth always 31
-  // regardless of orientation.
-  static const double _tileMain = 23;
-  static const double _tileCross = 31;
-  static const double _drawGap = 6;
+  /// Opponents' backs draw this much bigger than the authored small tile.
+  static const double _handScale = 1.3;
+
+  /// Seen from above, a back is only as deep as the tile is thick: half the
+  /// small tile's 30-long side.
+  static const double _handDepth = 0.5;
+
+  // Small-tile back footprint: 22 wide by 30 · [_handDepth] deep, both times
+  // [_handScale], plus 0.5 padding on every side. A rotated back (side seats)
+  // reports the same numbers swapped, so the extent along the strip's main
+  // axis is always the 22 one and its depth always the other regardless of
+  // orientation.
+  static const double _tileMain = 22 * _handScale + 1;
+  static const double _tileCross = 30 * _handDepth * _handScale + 1;
+  static const double _drawGap = 6 * _handScale;
 
   /// The backs [seat] has resting in hand, not counting a freshly drawn tile:
   /// at most a closed hand's 13, or Taiwanese's 16.
@@ -1298,7 +1361,10 @@ class _OpponentHandState extends State<_OpponentHand> {
           child: TileFace(
               faceDown: true,
               size: TileSize.small,
-              rotationQuarterTurns: rotate),
+              scale: _handScale,
+              rotationQuarterTurns: rotate,
+              topViewEdge: widget.towards,
+              topViewDepth: _handDepth),
         );
 
     final tiles = <Widget>[];
@@ -1313,7 +1379,8 @@ class _OpponentHandState extends State<_OpponentHand> {
     }
     if (hasDrawn) {
       tiles.add(SizedBox(
-          width: widget.vertical ? 0 : 6, height: widget.vertical ? 6 : 0));
+          width: widget.vertical ? 0 : _drawGap,
+          height: widget.vertical ? _drawGap : 0));
       tiles.add(back());
     }
 
@@ -1509,11 +1576,22 @@ class TableStatusLine extends StatelessWidget {
     final rules = round.ruleset;
     final l10n = context.l10n;
     final sichuan = rules.isSichuan;
+    // What a hand must be worth to win, always on the table: the style's own
+    // floor, or the one this table set. Riichi and sanma have none in points
+    // (a hand just needs a yaku), and Sichuan none to set.
+    final minimum = rules.isHongKong
+        ? l10n.minimumFaanTag(round.minimumFaan)
+        : rules.isTaiwanese
+            ? l10n.minimumTaiTag(round.minimumPoints)
+            : rules.isMcr
+                ? l10n.minimumFanTag(McrRules.minimumPoints)
+                : null;
     final rest = [
       l10n.statusWall(round.wall.remaining),
       if (rules.isChineseStyle) ...[
         if (showRuleset) l10n.rulesetName(rules),
         l10n.statusDealerRepeat(game.dealerRepeat),
+        if (minimum != null) minimum,
       ] else ...[
         l10n.statusHonba(game.honba),
         l10n.statusRiichiSticks(round.riichiSticks),

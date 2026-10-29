@@ -187,6 +187,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String minimumFanTag(int n) {
+    return '$n fan min';
+  }
+
+  @override
   String get newGameConfirmTitle => 'Start a new game?';
 
   @override
