@@ -181,7 +181,13 @@ class MpClient {
     _reconnectTimer?.cancel();
     _watchdog?.cancel();
     await _sub?.cancel();
-    await _channel.sink.close();
+    // A socket still opening (a retry that has only just started, against a
+    // server that is down) can take its time to settle, or never do: closing
+    // it must not hold the caller up, and a failed open is already handled.
+    await _channel.sink
+        .close()
+        .timeout(const Duration(seconds: 1), onTimeout: () {})
+        .catchError((Object _) {});
     if (!_controller.isClosed) await _controller.close();
   }
 }
