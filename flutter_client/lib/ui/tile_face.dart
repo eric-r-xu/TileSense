@@ -42,6 +42,8 @@ class TileFace extends StatelessWidget {
     this.rotationQuarterTurns = 0,
     this.showIndex = true,
     this.hovered = false,
+    this.topViewEdge,
+    this.topViewDepth = 1.0,
   });
 
   final Tile? tile;
@@ -72,6 +74,17 @@ class TileFace extends StatelessWidget {
   /// [highlightColor] / [highlight] tint is already showing.
   final bool hovered;
 
+  /// Draws a face-down tile as seen from above, the way an opponent's
+  /// concealed hand stands on the table: the half toward [topViewEdge] (the
+  /// side nearest its owner) is white, the other half the usual back colour.
+  /// The edge is in screen terms, so [rotationQuarterTurns] is already
+  /// accounted for: the tile is turned to lie across that axis, not rotated.
+  final AxisDirection? topViewEdge;
+
+  /// How much of the tile's long side a [topViewEdge] tile keeps: a tile seen
+  /// from above is as wide as it is, but only as deep as the tile is thick.
+  final double topViewDepth;
+
   TileType? get _type => tile?.type ?? type;
   bool get _aka => tile?.aka ?? false;
 
@@ -83,6 +96,8 @@ class TileFace extends StatelessWidget {
   //   • red fives (aka) and the red dragon  → aka-red
   //   • the green dragon, the whole bamboo (sou) suit, and 1-pin → bamboo-green
   //   • everything else → near-black (unchanged from before)
+  static const Color _backColor = Color(0xff1f7a86);
+  static const Color _topViewWhite = Color(0xfff7f5ec);
   static const Color _ink = Colors.black87;
   static const Color _red = Color(0xffc62828);
   static const Color _green = Color(0xff1b7a3a);
@@ -153,12 +168,47 @@ class TileFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final dims = _dims(size);
     final Widget face;
+    final edge = topViewEdge;
+    if ((faceDown || _type == null) && edge != null) {
+      // Same footprint as a back, turned on its side when the hand runs
+      // vertically; the white half is the one nearest the owner.
+      final turned = rotationQuarterTurns.isOdd;
+      final depth = dims.$2 * topViewDepth;
+      final w = turned ? depth : dims.$1;
+      final h = turned ? dims.$1 : depth;
+      final horizontalSplit =
+          edge == AxisDirection.up || edge == AxisDirection.down;
+      final nearFirst = edge == AxisDirection.up || edge == AxisDirection.left;
+      const near = Expanded(child: ColoredBox(color: _topViewWhite));
+      const far = Expanded(child: ColoredBox(color: _backColor));
+      final halves = nearFirst ? const [near, far] : const [far, near];
+      Widget result = Container(
+        width: w,
+        height: h,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xff0b3b41)),
+          borderRadius: BorderRadius.circular(dims.$1 * 0.14),
+        ),
+        // Stretched so each half fills the tile's width (or height): a bare
+        // coloured box has no size of its own to centre.
+        child: horizontalSplit
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: halves)
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: halves),
+      );
+      if (dimmed) result = Opacity(opacity: 0.45, child: result);
+      return result;
+    }
     if (faceDown || _type == null) {
       face = Container(
         width: dims.$1,
         height: dims.$2,
         decoration: BoxDecoration(
-          color: const Color(0xff1f7a86),
+          color: _backColor,
           border: Border.all(color: const Color(0xff0b3b41)),
           borderRadius: BorderRadius.circular(dims.$1 * 0.14),
         ),

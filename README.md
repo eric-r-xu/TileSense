@@ -419,23 +419,33 @@ version: 0.2.1+4     # 0.2.1 = version name, 4 = build number; bump +N on every 
 Thank you to the friends and players whose testing, suggestions and bug reports
 helped improve TileSense.
 
-- **Jesse C**: for identifying riichi exhaustive draws that wrongly advanced the
-  dealer while the dealer was tenpai, and for introducing me to two valuable
-  resources: [Hitori Mahjong Renshuuki (HMR)](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html),
-  used to validate the baseline EV calculations, and
-  [Euophrys's Mahjong Efficiency Trainer](https://euophrys.itch.io/mahjong-efficiency-trainer),
-  which underpins TileSense's shanten and ukeire calculations.
-- **Raymond M**: for identifying missed pinfu yaku scoring, illegal closed kans after
-  declaring riichi, and lack of chi choices when more than 1 sequence was available; for requesting Auto-Pass functionality for no calls and for score screen UX layout enhancements.
-- **Sherman L**: for suggesting a single-player rewind feature to revisit a
-  decision, try a different action and explore the outcome.
-- **Melissa R**: for suggesting larger buttons and more space between controls,
-  especially on mobile.
-- **Helen W**: for testing multiplayer from China and spotting slow home-screen
-  loading, which prompted audio caching that cut startup time.
-- **Vilay K**: for suggesting a slower pace of play, which directly inspired the pauses between calls and the adjustable bot speed. Vilay K's feedback, together with Robert K's, also shaped the `Learn to Play` module and the decision to start new players on the Hong Kong 0-point minimum.
-- **Mark G**: for recommending [Flutter](https://flutter.dev/), Google’s amazing open-source framework for building apps, enabling more consistent UI across devices and operating systems while at the same time reducing duplicate code and enhancing maintainability.
-- **Robert K**: for sharing a newcomer's perspective on mahjong, which led to the `Learn to Play` module for onboarding new players.
+- **Jesse C**: 
+  - identifying riichi exhaustive draws that wrongly advanced the dealer while the dealer was tenpai
+  - introducing me to two critical resources: 
+    - [Euophrys's Mahjong Efficiency Trainer](https://euophrys.itch.io/mahjong-efficiency-trainer), which underpins TileSense's shanten and ukeire calculations
+    - [Hitori Mahjong Renshuuki (HMR)](https://pathofhouou.blogspot.com/2019/05/training-tool-hitori-mahjong-simulator.html), used to validate the baseline EV calculations
+- **Raymond M**: 
+  - identifying missed pinfu yaku scoring, illegal closed kans after
+  declaring riichi, and lack of chi choices when more than 1 sequence was available
+  - Auto-Pass calling functionality
+  - UX layout enhancements 
+- **Raymond C**: 
+  - calling out that tutorial tiles and red lettering was too small in the `Learn to Play`  module
+  - noting that dragging tiles and the buttons' meanings weren't intuitive, which inspired the guided walkthrough of the UI.
+- **Sherman L**: 
+  - suggesting a single-player rewind feature to revert a single player decision mid-game against AI opponents
+- **Melissa R**: f
+  - suggesting larger buttons and more space between controls for mobile
+- **Helen W**: 
+  - testing and validating multiplayer functionality between China and USA
+  - identifying slow home-screen loading for slower connections/locations, which prompted audio caching that cut startup time.
+- **Vilay K**: 
+  - identifying speed enhancements improvements 
+  - `Learn to Play` module inspiration with Hong Kong 0 point minimum to start
+- **Mark G**: 
+  - [Flutter](https://flutter.dev/) recommendation to start this cross-platform work
+- **Robert K**: 
+  - `Learn to Play` module inspiration
 
 Thank you to everyone else who shared feedback. If I've missed you and you'd like
 to be credited, please get in touch.

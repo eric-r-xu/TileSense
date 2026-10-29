@@ -425,6 +425,12 @@ abstract class AppLocalizations {
   /// **'{n} tai min'**
   String minimumTaiTag(int n);
 
+  /// No description provided for @minimumFanTag.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} fan min'**
+  String minimumFanTag(int n);
+
   /// No description provided for @newGameConfirmTitle.
   ///
   /// In en, this message translates to:

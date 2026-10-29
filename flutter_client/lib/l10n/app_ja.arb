@@ -54,6 +54,7 @@
   "minimumTaiSentence": "、最低{n}台",
   "minimumFaanTag": "最低{n}翻",
   "minimumTaiTag": "最低{n}台",
+  "minimumFanTag": "最低{n}番",
   "newGameConfirmTitle": "新しい対局を始めますか？",
   "newGameConfirmBody": "進行中の対局は失われます。",
   "keepPlaying": "続ける",

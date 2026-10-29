@@ -75,8 +75,13 @@ void main() {
     expect(labelOf(tester, const Key('hanchan')), 'Hanchan');
     expect(playingOf(tester), 'Speed');
     expect(find.text('DORA'), findsNothing);
-    expect(find.textContaining('min'), findsNothing,
+    expect(
+        find.descendant(
+            of: find.byType(AppBar), matching: find.textContaining('min')),
+        findsNothing,
         reason: 'the default minimum is 0 faan, so the bar names none');
+    expect(find.textContaining('0 faan min'), findsOneWidget,
+        reason: 'the status line always names the minimum');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

@@ -267,13 +267,20 @@ void main() {
     testWidgets('creating a Sichuan room names it to the server',
         (tester) async {
       final game = OnlineGameController();
-      addTearDown(game.dispose);
       final sent = <Map<String, dynamic>>[];
       game.debugOnSend = sent.add;
-      game.createRoom(ruleset: Ruleset.sichuan, hanchan: false);
-      expect(sent.single['type'], 'create_room');
-      expect(sent.single['ruleset'], 'sichuan');
-      expect(sent.single['hanchan'], false);
+      try {
+        game.createRoom(ruleset: Ruleset.sichuan, hanchan: false);
+        expect(sent.single['type'], 'create_room');
+        expect(sent.single['ruleset'], 'sichuan');
+        expect(sent.single['hanchan'], false);
+      } finally {
+        // Inside the test, not a tearDown: closing the client is what cancels
+        // its reconnect timer, and the pending-timer check runs before
+        // tearDowns.
+        game.dispose();
+        await tester.pump(const Duration(seconds: 1));
+      }
     });
   });
 }

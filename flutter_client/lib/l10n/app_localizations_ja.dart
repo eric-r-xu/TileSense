@@ -185,6 +185,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String minimumFanTag(int n) {
+    return '最低$n番';
+  }
+
+  @override
   String get newGameConfirmTitle => '新しい対局を始めますか？';
 
   @override

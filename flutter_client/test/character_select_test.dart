@@ -203,7 +203,8 @@ void main() {
     expect(game.ruleset, Ruleset.hongKong);
     expect(game.minimumFaan, 2);
     expect(game.round.minimumFaan, 2);
-    expect(find.textContaining('2 faan min'), findsOneWidget);
+    // In the bar, as it isn't the default, and in the table's status line.
+    expect(find.textContaining('2 faan min'), findsNWidgets(2));
   });
 
   testWidgets('Taiwanese offers a 1, 3 or 5 tai minimum, and the game uses it',
@@ -239,7 +240,7 @@ void main() {
     expect(game.ruleset, Ruleset.taiwanese);
     expect(game.minimumPoints, 1);
     expect(game.round.minimumPoints, 1);
-    expect(find.textContaining('1 tai min'), findsOneWidget);
+    expect(find.textContaining('1 tai min'), findsNWidgets(2));
   });
 
   testWidgets('offline goes through character select, with a random distinct line-up',

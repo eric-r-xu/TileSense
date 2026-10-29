@@ -2023,27 +2023,33 @@ class _WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          e2eId(
-            'rulesRead_${value.name}',
-            TextButton.icon(
-              key: Key('rulesRead_${value.name}'),
-              onPressed: () => showRulesReader(context, value),
-              icon: const Icon(Icons.menu_book, size: 18),
-              label: Text(context.l10n.rulesRead),
-              style: TextButton.styleFrom(foregroundColor: AppColors.link),
-            ),
-          ),
-          TextButton.icon(
-            key: Key('rulesPdf_${value.name}'),
-            onPressed: () => openRules(value),
-            icon: const Icon(Icons.open_in_new, size: 14),
-            label: Text(context.l10n.rulesLinkLabel(value)),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.link,
-              visualDensity: VisualDensity.compact,
-              textStyle: const TextStyle(
-                  fontSize: 14, decoration: TextDecoration.underline),
-            ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              e2eId(
+                'rulesRead_${value.name}',
+                TextButton.icon(
+                  key: Key('rulesRead_${value.name}'),
+                  onPressed: () => showRulesReader(context, value),
+                  icon: const Icon(Icons.menu_book, size: 18),
+                  label: Text(context.l10n.rulesRead),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.link),
+                ),
+              ),
+              TextButton.icon(
+                key: Key('rulesPdf_${value.name}'),
+                onPressed: () => openRules(value),
+                icon: const Icon(Icons.open_in_new, size: 14),
+                label: Text(context.l10n.rulesLinkLabel(value)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.link,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(
+                      fontSize: 14, decoration: TextDecoration.underline),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -2090,25 +2096,40 @@ class _WelcomeScreen extends StatelessWidget {
         ],
       );
 
+  /// The styles side by side, so all six show at once instead of one column
+  /// that runs past the popup and scrolls: three across in the popup's full
+  /// width, fewer in a narrower one.
   void _showRules(BuildContext context) => _showTitlePopup(
         context,
         key: const Key('rulesPopup'),
         title: context.l10n.rules,
+        maxWidth: 1000,
         children: [
-          _rulesetOption(
-              context, Ruleset.riichi, context.l10n.rulesetSubtitleRiichi),
-          _rulesetOption(
-              context, Ruleset.sanma, context.l10n.rulesetSubtitleSanma),
-          _rulesetOption(
-              context, Ruleset.hongKong, context.l10n.rulesetSubtitleHongKong),
-          _rulesetOption(context, Ruleset.taiwanese,
-              context.l10n.rulesetSubtitleTaiwanese),
-          _rulesetOption(context, Ruleset.mcr, context.l10n.rulesetSubtitleMcr),
-          _rulesetOption(
-              context, Ruleset.sichuan, context.l10n.rulesetSubtitleSichuan),
+          LayoutBuilder(builder: (context, c) {
+            const gap = 12.0;
+            final columns = c.maxWidth >= 840 ? 3 : (c.maxWidth >= 520 ? 2 : 1);
+            final width = (c.maxWidth - gap * (columns - 1)) / columns;
+            final l10n = context.l10n;
+            return Wrap(
+              spacing: gap,
+              children: [
+                for (final (value, subtitle) in [
+                  (Ruleset.riichi, l10n.rulesetSubtitleRiichi),
+                  (Ruleset.sanma, l10n.rulesetSubtitleSanma),
+                  (Ruleset.hongKong, l10n.rulesetSubtitleHongKong),
+                  (Ruleset.taiwanese, l10n.rulesetSubtitleTaiwanese),
+                  (Ruleset.mcr, l10n.rulesetSubtitleMcr),
+                  (Ruleset.sichuan, l10n.rulesetSubtitleSichuan),
+                ])
+                  SizedBox(
+                    width: width,
+                    child: _rulesetOption(context, value, subtitle),
+                  ),
+              ],
+            );
+          }),
         ],
       );
-
 
   @override
   Widget build(BuildContext context) {
@@ -2568,6 +2589,7 @@ Future<void> _showTitlePopup(
   required Key key,
   required String title,
   required List<Widget> children,
+  double maxWidth = 560,
 }) =>
     showDialog<void>(
       context: context,
@@ -2576,7 +2598,7 @@ Future<void> _showTitlePopup(
         backgroundColor: const Color(0xff0c3030),
         insetPadding: const EdgeInsets.all(16),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
+          constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: 640),
           child: Material(
             type: MaterialType.transparency,
             child: Padding(

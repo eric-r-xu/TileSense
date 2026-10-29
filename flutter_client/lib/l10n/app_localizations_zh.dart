@@ -183,6 +183,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String minimumFanTag(int n) {
+    return '最低$n番';
+  }
+
+  @override
   String get newGameConfirmTitle => '开始新对局？';
 
   @override
@@ -3347,6 +3352,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String minimumTaiTag(int n) {
     return '最低$n台';
+  }
+
+  @override
+  String minimumFanTag(int n) {
+    return '最低$n番';
   }
 
   @override
