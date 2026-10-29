@@ -50,6 +50,11 @@ class _ScoringViewState extends State<ScoringView> {
   /// of letting it overflow the panel).
   static const double _tileScale = 1.08;
 
+  /// The winner's own hand is the answer to "who won", so it renders larger
+  /// than the other tile rows; its `FittedBox` scales it back down on a
+  /// narrow panel rather than overflowing.
+  static const double _winnerTileScale = 1.3;
+
   /// Matches the "recommended" green used elsewhere (the guide's top-discard
   /// highlight, the efficiency dial) so a winning tile reads the same way.
   static const Color _winGreen = AppColors.right;
@@ -378,14 +383,14 @@ class _ScoringViewState extends State<ScoringView> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1),
                   child: TileFace(
-                      tile: t, size: TileSize.normal, scale: _tileScale),
+                      tile: t, size: TileSize.normal, scale: _winnerTileScale),
                 ),
               if (winTile != null) ...[
                 const SizedBox(width: 8),
                 TileFace(
                   tile: winTile,
                   size: TileSize.normal,
-                  scale: _tileScale,
+                  scale: _winnerTileScale,
                   highlightColor: _winGreen,
                 ),
               ],
@@ -395,7 +400,9 @@ class _ScoringViewState extends State<ScoringView> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: TileFace(
-                        type: ty, size: TileSize.normal, scale: _tileScale),
+                        type: ty,
+                        size: TileSize.normal,
+                        scale: _winnerTileScale),
                   ),
               ],
             ],

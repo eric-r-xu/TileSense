@@ -961,6 +961,21 @@ class TableView extends StatelessWidget {
     );
   }
 
+  /// Whether [seat] won the hand on the result screen — or, at game end, the
+  /// match (everyone level on the top score). Keeps the winner findable when
+  /// the result panel is see-through.
+  bool _isResultWinner(int seat) {
+    final g = game;
+    if (g is! TableGameHost || g.phase == GamePhase.playing) return false;
+    if (g.phase == GamePhase.gameEnd) {
+      final top = g.round.ruleset.activeSeats
+          .map((i) => g.tablePoints[i])
+          .reduce(math.max);
+      return g.tablePoints[seat] == top;
+    }
+    return g.round.result?.winners.contains(seat) ?? false;
+  }
+
   /// A seat's character portrait, tucked beside its placard and sized to sit
   /// level with it. [tooltip], when given, names the player on hover — the
   /// same mechanism as the TileSensor guide toggle.
@@ -983,8 +998,18 @@ class TableView extends StatelessWidget {
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
+    final winning = _isResultWinner(seat);
+    final marked = winning
+        ? Builder(
+            builder: (context) => _WinnerPulse(
+              key: ValueKey('winnerPulse$seat'),
+              still: _still(context),
+              child: avatar,
+            ),
+          )
+        : avatar;
     final portrait =
-        tooltip == null ? avatar : Tooltip(message: tooltip, child: avatar);
+        tooltip == null ? marked : Tooltip(message: tooltip, child: marked);
     return _CallBubbleAnchor(
         seat: seat, ruleset: game.round.ruleset, child: portrait);
   }
@@ -1063,7 +1088,9 @@ class TableView extends StatelessWidget {
         return Tooltip(
           message: l10n.voidSuitHint,
           child: _statusBadge(
-            shown ? l10n.voidSuitBadge(l10n.suitName(s.voidSuit!)) : l10n.voidSuitUnknown,
+            shown
+                ? l10n.voidSuitBadge(l10n.suitName(s.voidSuit!))
+                : l10n.voidSuitUnknown,
             shown ? const Color(0xff8d3b3b) : const Color(0xff455a64),
             key: Key('voidSuitBadge_${s.seat}'),
           ),
@@ -1079,25 +1106,25 @@ class TableView extends StatelessWidget {
 
   Widget _autoplayBadge() => Builder(
       builder: (context) => Tooltip(
-        message: context.l10n.autoPlaySeatTooltip,
-        child: Container(
-          key: const Key('autoplaySeatBadge'),
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: const Color(0xff0c4747),
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.gold, width: 1.5),
-          ),
-          child: Image.asset(
-            kTileSensorAsset,
-            width: 18,
-            height: 18,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (_, __, ___) => const Icon(Icons.play_arrow,
-                size: 18, color: AppColors.gold),
-          ),
-        ),
-      ));
+            message: context.l10n.autoPlaySeatTooltip,
+            child: Container(
+              key: const Key('autoplaySeatBadge'),
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: const Color(0xff0c4747),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.gold, width: 1.5),
+              ),
+              child: Image.asset(
+                kTileSensorAsset,
+                width: 18,
+                height: 18,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) => const Icon(Icons.play_arrow,
+                    size: 18, color: AppColors.gold),
+              ),
+            ),
+          ));
 
   Widget _furitenBadge() => Builder(
       builder: (context) =>
@@ -1108,8 +1135,7 @@ class TableView extends StatelessWidget {
         return Tooltip(
           message: context.l10n.minimumShortfallTooltip(shortfall),
           child: _statusBadge(
-            context.l10n.minimumShortfallLabel(
-                game.round.ruleset, shortfall,
+            context.l10n.minimumShortfallLabel(game.round.ruleset, shortfall,
                 minimumFaan: game.round.minimumFaan,
                 minimumPoints: game.round.minimumPoints),
             kMinimumShortfallColor,
@@ -1240,6 +1266,66 @@ class _FlashTileState extends State<_FlashTile>
                   color: Color.lerp(
                       const Color(0x00ffd54f), const Color(0xffffd54f), t)!,
                   blurRadius: 6 + 10 * t,
+                  spreadRadius: 1 + 2 * t,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// A winner's portrait on the result screen: a pulsing gold ring. Static
+/// (steady ring, no pulse) when [still] — reduced motion.
+class _WinnerPulse extends StatefulWidget {
+  const _WinnerPulse({super.key, required this.child, required this.still});
+  final Widget child;
+  final bool still;
+
+  @override
+  State<_WinnerPulse> createState() => _WinnerPulseState();
+}
+
+class _WinnerPulseState extends State<_WinnerPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.still) _c.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) {
+        final t = Curves.easeInOut.transform(_c.value);
+        return Transform.scale(
+          scale: 1.0 + 0.10 * t,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.goldBright, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color:
+                      AppColors.goldBright.withValues(alpha: 0.35 + 0.35 * t),
+                  blurRadius: 8 + 10 * t,
                   spreadRadius: 1 + 2 * t,
                 ),
               ],
@@ -1661,10 +1747,7 @@ class TableBarTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final round = game.round;
     final table = TableView(
-        game: game,
-        edits: edits,
-        acrossInBar: true,
-        ownPortrait: ownPortrait);
+        game: game, edits: edits, acrossInBar: true, ownPortrait: ownPortrait);
     const seat = 2;
     // Sanma: nobody sits across, so the bar says so in their place.
     final sanma = round.ruleset.isSanma;
@@ -1683,19 +1766,19 @@ class TableBarTitle extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: EmptySeatNote(ruleset: round.ruleset))
                 : FittedBox(
-              key: const Key('acrossSeat'),
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  table._portrait(seat,
-                      size: TableView._barPortraitSize,
-                      tooltip: game.seatLabel(seat)),
-                  const SizedBox(width: 6),
-                  table._placard(round, seat),
-                ],
-              ),
-            ),
+                    key: const Key('acrossSeat'),
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        table._portrait(seat,
+                            size: TableView._barPortraitSize,
+                            tooltip: game.seatLabel(seat)),
+                        const SizedBox(width: 6),
+                        table._placard(round, seat),
+                      ],
+                    ),
+                  ),
           ),
           if (round.ruleset.isChineseStyle)
             LayoutId(

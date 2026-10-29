@@ -220,6 +220,13 @@ void main() {
 
       expect(find.byWidgetPredicate((w) => w is TileFace && w.tile == win),
           findsOneWidget);
+      // The winner's hand renders larger than the dora indicator row.
+      final scales = tester
+          .widgetList<TileFace>(find.byType(TileFace))
+          .map((t) => t.scale)
+          .toSet();
+      expect(scales.contains(1.3), isTrue);
+      expect(scales.every((s) => s >= 1.08), isTrue);
       expect(tester.takeException(), isNull);
     } finally {
       game.dispose();
