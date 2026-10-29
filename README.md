@@ -434,7 +434,7 @@ helped improve TileSense.
   - noting that dragging tiles and the buttons' meanings weren't intuitive, which inspired the guided walkthrough of the UI.
 - **Sherman L**: 
   - suggesting a single-player rewind feature to revert a single player decision mid-game against AI opponents
-- **Melissa R**: f
+- **Melissa R**: 
   - suggesting larger buttons and more space between controls for mobile
 - **Helen W**: 
   - testing and validating multiplayer functionality between China and USA
