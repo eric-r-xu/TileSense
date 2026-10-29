@@ -11,6 +11,10 @@ const Duration kScorePageDelay = Duration(seconds: 20);
 /// the score panel covers the table — time to see the winning tile land.
 const Duration kWinScorePause = Duration(milliseconds: 500);
 
+/// At game end, how long the final standings sit before the match winner's
+/// portrait grows into place — a beat to read the ranking, then the answer.
+const Duration kMatchWinnerReveal = Duration(milliseconds: 900);
+
 /// Online, how long the score panel's Continue stays locked after it appears,
 /// so one player can't skip the scores before the others have read them.
 const Duration kScoreContinueLock = Duration(seconds: 6);
