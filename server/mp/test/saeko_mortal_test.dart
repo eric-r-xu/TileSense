@@ -86,4 +86,56 @@ void main() {
     final pond = loop.round.seats[saekoSeat].allDiscards.map(mjaiTile);
     expect(named, containsAll(pond));
   });
+
+  test('sanma: Saeko asks with mjai seats 0-2 and sets Norths aside',
+      () async {
+    final room = roomWith('eric', ruleset: Ruleset.sanma);
+    final seats = <int>{};
+    var kitas = 0;
+    final loop = TableLoop(
+      room,
+      botTurnPace: Duration.zero,
+      afterCallPace: Duration.zero,
+      callDiscardHold: Duration.zero,
+      disconnectGrace: Duration.zero,
+      abandonGrace: const Duration(milliseconds: 400),
+      continueTimeout: Duration.zero,
+      continueLock: Duration.zero,
+      mortal: (seat, events, {hanchan = true}) async {
+        seats.add(seat);
+        final view = mjaiView(events, seat);
+        expect(view[1]['tehais'], hasLength(3));
+        final last = events.last;
+        if (last['type'] == 'tsumo' && last['actor'] == seat) {
+          if (last['pai'] == 'N') {
+            kitas++;
+            return {
+              'reaction': {'type': 'nukidora', 'actor': seat, 'pai': 'N'}
+            };
+          }
+          return {
+            'reaction': {
+              'type': 'dahai',
+              'actor': seat,
+              'pai': last['pai'],
+              'tsumogiri': true,
+            }
+          };
+        }
+        return {'reaction': null};
+      },
+    );
+    loop.start();
+    final saekoSeat = room.seats.indexWhere((s) => s?.character == 'saeko');
+    expect(saekoSeat, isNot(-1));
+    loop.handleDisconnect(0);
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    expect(seats, isNotEmpty);
+    expect(seats.single, Ruleset.sanma.activeSeats.indexOf(saekoSeat));
+    // Every North Saeko drew went aside, none into her pond.
+    final s = loop.round.seats[saekoSeat];
+    expect(s.allDiscards.where((t) => t.type == TileType.pei), isEmpty,
+        reason: '$kitas kitas asked');
+  });
 }
