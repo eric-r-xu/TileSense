@@ -191,6 +191,14 @@ def build_service(work, name):
 
 
 MORTAL_DIR = REPO / 'mortal_sidecar'
+# Per variant: the manifest pinning its model and libriichi, the cache folder
+# for its libriichi build, and the files `setup-` installs. Only 4-player has
+# an nginx route; multiplayer asks the sanma sidecar on the droplet itself.
+MORTAL_VARIANTS = {
+    'mortal': ('model.json', 'libriichi',
+               ('tilesense-mortal.service', 'nginx-mortal.conf', 'nginx-mortal-limits.conf')),
+    'mortal-sanma': ('model_sanma.json', 'libriichi-sanma', ('tilesense-mortal-sanma.service',)),
+}
 
 
 def mortal_cache():
@@ -198,7 +206,7 @@ def mortal_cache():
     return Path(os.environ.get('MORTAL_CACHE') or Path.home() / '.cache/tilesense-mortal')
 
 
-def fetch_model(pin):
+def fetch_model(pin, manifest='model.json'):
     """The pinned .onnx from the GitHub release, verified, cached by hash."""
     model = mortal_cache() / 'models' / (pin['sha256'] + '.onnx')
     if model.is_file() and hashlib.sha256(model.read_bytes()).hexdigest() == pin['sha256']:
@@ -209,18 +217,19 @@ def fetch_model(pin):
         shutil.copyfileobj(response, target)
     if hashlib.sha256(partial.read_bytes()).hexdigest() != pin['sha256']:
         partial.unlink()
-        raise ValueError('Downloaded Mortal model does not match the SHA-256 in model.json')
+        raise ValueError('Downloaded Mortal model does not match the SHA-256 in ' + manifest)
     os.replace(partial, model)
     return model
 
 
-def build_mortal(work, rid, revision, dirty):
-    pin = json.loads((MORTAL_DIR / 'model.json').read_text())
-    libriichi = mortal_cache() / 'libriichi'
+def build_mortal(work, rid, revision, dirty, variant='mortal'):
+    manifest, cache, _ = MORTAL_VARIANTS[variant]
+    pin = json.loads((MORTAL_DIR / manifest).read_text())
+    libriichi = mortal_cache() / cache
     run(['docker', 'info'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    run([str(MORTAL_DIR / 'deploy/build_libriichi.sh'), str(libriichi)])
+    run([str(MORTAL_DIR / 'deploy/build_libriichi.sh'), str(libriichi), str(MORTAL_DIR / manifest)])
     shutil.copy2(libriichi / 'libriichi.so', work / 'libriichi.so')
-    shutil.copy2(fetch_model(pin), work / 'mortal.onnx')
+    shutil.copy2(fetch_model(pin, manifest), work / 'mortal.onnx')
     for name in ('server.py', 'requirements.txt'):
         shutil.copy2(MORTAL_DIR / name, work / name)
     record = {'build_id': rid, 'git_commit': revision, 'dirty': dirty,
@@ -243,31 +252,35 @@ def mortal_unchanged(current, record):
 
 
 def deploy_mortal(target, droplet):
+    """`mortal`, `mortal-sanma`, or either with a `setup-` prefix."""
+    setup = target.startswith('setup-')
+    variant = target.removeprefix('setup-')
+    label = 'Mortal' if variant == 'mortal' else 'Mortal sanma'
     rid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-') + uuid.uuid4().hex[:8]
     with tempfile.TemporaryDirectory(prefix='tilesense-mortal-') as directory:
         work = Path(directory)
         # Build everything before connecting, like every other target.
-        if target == 'mortal':
+        if not setup:
             revision, dirty = source_state()
-            record = build_mortal(work, rid, revision, dirty)
+            record = build_mortal(work, rid, revision, dirty, variant)
         else:
-            for name in ('tilesense-mortal.service', 'nginx-mortal.conf', 'nginx-mortal-limits.conf'):
+            for name in MORTAL_VARIANTS[variant][2]:
                 shutil.copy2(MORTAL_DIR / 'deploy' / name, work / name)
         remote = Remote(droplet)
         try:
-            if target == 'mortal':
-                current = remote.call('mortal-status')
+            if not setup:
+                current = remote.call('mortal-status', variant=variant)
                 if os.environ.get('MORTAL_IF_CHANGED') == '1' and mortal_unchanged(current, record):
                     remote.call('commit')
-                    print('Mortal unchanged since release ' + current['build_id'] + '; skipped.')
+                    print(label + ' unchanged since release ' + current['build_id'] + '; skipped.')
                     return
                 if current.get('model_sha256') == record['model_sha256']:
                     (work / 'mortal.onnx').unlink()  # already on the server
             stage = remote.call('stage', id=rid)['path']
             remote.upload(str(work) + '/', stage + '/')
-            remote.call(target, id=rid)
+            remote.call('setup-mortal' if setup else 'mortal', id=rid, variant=variant)
             remote.call('commit')
-            print('Mortal set up.' if target == 'setup-mortal' else 'Deployment verified: ' + rid)
+            print(label + ' set up.' if setup else 'Deployment verified: ' + rid)
         finally:
             remote.close()
 
@@ -330,7 +343,7 @@ def confirm_mp_restart():
 
 
 def deploy(target, host, droplet, rollback=None):
-    if target in ('setup-mortal', 'mortal'):
+    if target in ('setup-mortal', 'mortal', 'setup-mortal-sanma', 'mortal-sanma'):
         return deploy_mortal(target, droplet)
     needs_client = target in ('all', 'client')
     needs_ingest = target in ('all', 'ingest')
@@ -424,7 +437,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('target', nargs='?', default='all', choices=[
         'all', 'client', 'ingest', 'mp', 'migrate', 'geoip', 'setup-client', 'rollback-client', 'rollback-ingest', 'rollback-mp',
-        'setup-mortal', 'mortal'])
+        'setup-mortal', 'mortal', 'setup-mortal-sanma', 'mortal-sanma'])
     parser.add_argument('release', nargs='?')
     args = parser.parse_args()
     if args.target.startswith('rollback-') != (args.release is not None):
