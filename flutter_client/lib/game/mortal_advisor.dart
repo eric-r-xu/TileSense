@@ -5,7 +5,10 @@
 ///
 /// Off unless the app is built with `--dart-define=MORTAL_URL=<address>`
 /// (`/tilesense/mortal` in production); then only offline riichi games, and
-/// the scenario builder's riichi tables, ask.
+/// the scenario builder's riichi tables, ask. Offline sanma games ask the
+/// three-player Mortal at `--dart-define=MORTAL_SANMA_URL=<address>`
+/// (`/tilesense/mortal-sanma`) instead, with mjai's seat numbers
+/// ([MjaiRecorder.mjaiSeat]).
 library;
 
 import 'dart:convert';
@@ -19,6 +22,9 @@ export 'package:mahjong_core/mortal_move.dart' show MortalMove;
 /// The Mortal sidecar's address, fixed at build time. Empty (the default)
 /// hides the column.
 const String kMortalUrl = String.fromEnvironment('MORTAL_URL');
+
+/// The three-player Mortal's address, for sanma; empty hides the column there.
+const String kMortalSanmaUrl = String.fromEnvironment('MORTAL_SANMA_URL');
 
 /// Mortal's discard indices 0-36, in its own action order.
 final _discardNames = [
@@ -42,7 +48,8 @@ class MortalAdvice {
   final MortalStatus status;
 
   /// A move other than a plain discard, in the panel's words: TSUMO, RON,
-  /// PON, CHI 345m, KAN, PASS, NINE TERMINALS. Null for a plain discard.
+  /// PON, CHI 345m, KAN, KITA, PASS, NINE TERMINALS. Null for a plain
+  /// discard.
   final String? action;
 
   /// The tile Mortal would cut (after declaring riichi, if [riichi]).
@@ -69,6 +76,7 @@ class MortalAdvice {
       'chi' => 'CHI ${_run(reaction!)}',
       'daiminkan' || 'ankan' || 'kakan' => 'KAN',
       'ryukyoku' => 'NINE TERMINALS',
+      'nukidora' => 'KITA',
       _ => call ? 'PASS' : null,
     };
     return MortalAdvice._(MortalStatus.ready,
@@ -119,7 +127,8 @@ class MortalAdvisor {
 
   /// Mortal's reply for [seat]. [events] is the hand with nothing hidden
   /// ([MjaiRecorder]); only [seat]'s own view of it ([mjaiView]) is sent.
-  /// [hanchan] false tells Mortal the game ends after East.
+  /// [hanchan] false tells Mortal the game ends after East: a hand per
+  /// player (4, or 3 in sanma). [seat] is in mjai's numbering.
   Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
       {bool hanchan = true}) async {
     final res = await http
@@ -128,7 +137,8 @@ class MortalAdvisor {
             body: jsonEncode({
               'player_id': seat,
               'events': mjaiView(events, seat),
-              'game_length': hanchan ? 8 : 4,
+              'game_length':
+                  (hanchan ? 2 : 1) * (events.first['tehais'] as List).length,
             }))
         .timeout(const Duration(seconds: 3));
     final body = jsonDecode(res.body) as Map<String, Object?>;

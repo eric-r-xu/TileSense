@@ -109,6 +109,7 @@ jobs:
           DROPLET_IP: ${{ secrets.DROPLET_IP }}
           DART_IMAGE: ${{ secrets.DART_IMAGE }}
           MORTAL: ${{ vars.MORTAL }}  # 1: the client shows the Mortal column
+          MORTAL_SANMA_CLIENT: ${{ vars.MORTAL_SANMA_CLIENT }}  # 1: and in offline sanma
         run: |
           {
             echo "export HOST=$HOST"
@@ -116,6 +117,7 @@ jobs:
             echo "export BASE_HREF=/tilesense/"
             echo "export DART_IMAGE=$DART_IMAGE"
             echo "export MORTAL=$MORTAL"
+            echo "export MORTAL_SANMA_CLIENT=$MORTAL_SANMA_CLIENT"
           } > deploy.env
       # The libriichi build and the model, keyed on the pin, so both are
       # fetched or built once per Mortal version.

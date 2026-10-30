@@ -95,8 +95,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
     List<Character>? seatCharacters,
     @visibleForTesting MortalAdvisor? mortal,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
-        _mortal =
+        _mortalRiichi =
             mortal ?? (kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl)),
+        _mortalSanma = mortal ??
+            (kMortalSanmaUrl.isEmpty ? null : MortalAdvisor(kMortalSanmaUrl)),
         seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
         _botFactory = botFactory ?? SimpleBot.new {
     if (ruleset.isChineseStyle) {
@@ -179,8 +181,17 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// it onto [_dealRound] rebuilds the table as it stood at that point.
   final List<_Move> _log = [];
 
-  /// Mortal, when the app is built with MORTAL_URL (tests may pass one).
-  final MortalAdvisor? _mortal;
+  /// Mortal, when the app is built with MORTAL_URL, and the three-player
+  /// Mortal, with MORTAL_SANMA_URL (tests may pass one for both).
+  final MortalAdvisor? _mortalRiichi;
+  final MortalAdvisor? _mortalSanma;
+
+  /// The Mortal for this game's rules: riichi or sanma, otherwise none.
+  MortalAdvisor? get _mortal => ruleset.isSanma
+      ? _mortalSanma
+      : ruleset.isRiichi
+          ? _mortalRiichi
+          : null;
 
   /// The round and move count Mortal was last asked about; see [_askMortal].
   (Round, int)? _mortalAsked;
@@ -201,10 +212,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   Future<Map<String, Object?>> _mortalReply(int seat) =>
       _mortalReplies.putIfAbsent((round, _log.length, seat),
-          () => _mortal!.ask(seat, _mjaiEvents(), hanchan: hanchan));
+          () => _mortal!.ask(ruleset.activeSeats.indexOf(seat), _mjaiEvents(),
+              hanchan: hanchan));
 
   @override
-  bool get mortalAvailable => _mortal != null && ruleset.isRiichi;
+  bool get mortalAvailable => _mortal != null;
 
   @override
   AutoplayBrain autoplayBrain = AutoplayBrain.tilesense;
@@ -1645,10 +1657,10 @@ class GameController extends ChangeNotifier implements TableGameHost {
   // --- Mortal's second opinion -----------------------------------------
 
   /// Asks Mortal about your turn or call, once per position, for the guide
-  /// panel. Riichi only, and not under Autoplay (nobody is reading the panel
+  /// panel. Riichi and sanma only, and not under Autoplay (nobody is reading the panel
   /// move by move, and it would cost the sidecar a request a turn).
   void _askMortal() {
-    if (_mortal == null || !ruleset.isRiichi) {
+    if (_mortal == null) {
       mortalAdvice = null;
       return;
     }
@@ -1679,13 +1691,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   // --- Saeko on Mortal ---------------------------------------------------
 
-  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi game,
-  /// in an app built with MORTAL_URL. Every other character, and Saeko under
-  /// Hong Kong or Taiwanese rules, stays on [SimpleBot]. (Online, the server
+  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi or
+  /// sanma game, in an app built with that game's Mortal. Every other
+  /// character, and Saeko under Hong Kong or Taiwanese rules, stays on
+  /// [SimpleBot]. (Online, the server
   /// plays its own bot Saeko on Mortal: server/mp/lib/table_loop.dart.)
   bool _playsMortal(int seat) =>
       _mortal != null &&
-      ruleset.isRiichi &&
       seat != kHumanSeat &&
       _characterForSeat(seat) == Character.saeko;
 
