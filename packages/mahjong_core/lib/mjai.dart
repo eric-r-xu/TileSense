@@ -1,7 +1,12 @@
 /// A riichi [Round] as mjai events — the protocol Mortal reads — so the
 /// Mortal-backed Saeko bot (offline, and on the multiplayer server) and the
-/// guide's Mortal column can ask for a move. Only under riichi rules; every
-/// other bot stays on `SimpleBot`. See flutter_client/BOT_STRATEGY.md.
+/// guide's Mortal column can ask for a move. Only under riichi rules (and
+/// sanma, for the server's sanma Mortal); every other bot stays on
+/// `SimpleBot`. See flutter_client/BOT_STRATEGY.md.
+///
+/// Mortal numbers only the seats being played, so in sanma, where this
+/// engine leaves seat 2 empty, seats 0, 1 and 3 are mjai's 0, 1 and 2
+/// ([MjaiRecorder.mjaiSeat]). A kita is sanma mjai's `nukidora`.
 ///
 /// [MjaiRecorder] is not told what happened; it watches. Call [sync] after
 /// every action on the round and it turns whatever changed since the last
@@ -37,6 +42,7 @@ List<String> _mjaiTiles(Iterable<Tile> tiles) => [for (final t in tiles) mjaiTil
 
 /// [events] as [seat] receives them from an mjai server — the other seats'
 /// starting hands and draws hidden — led by the `start_game` Mortal expects.
+/// [seat] is in mjai's numbering ([MjaiRecorder.mjaiSeat]).
 List<MjaiEvent> mjaiView(List<MjaiEvent> events, int seat) => [
       {'type': 'start_game'},
       for (final e in events)
@@ -44,7 +50,7 @@ List<MjaiEvent> mjaiView(List<MjaiEvent> events, int seat) => [
           'start_kyoku' => {
               ...e,
               'tehais': [
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < (e['tehais'] as List).length; i++)
                   i == seat ? (e['tehais'] as List)[i] : List.filled(13, '?')
               ],
             },
@@ -56,7 +62,8 @@ List<MjaiEvent> mjaiView(List<MjaiEvent> events, int seat) => [
 class MjaiRecorder {
   /// Starts recording [round], which must be freshly dealt. [kyoku] is the
   /// hand's number within its round wind, 1-4.
-  MjaiRecorder(this.round, {required int kyoku}) {
+  MjaiRecorder(this.round, {required int kyoku})
+      : _seats = round.ruleset.activeSeats {
     events.add({
       'type': 'start_kyoku',
       'bakaze': _mjaiType(round.roundWind.tile),
@@ -64,19 +71,25 @@ class MjaiRecorder {
       'kyoku': kyoku,
       'honba': round.honba,
       'kyotaku': round.riichiSticks,
-      'oya': round.dealer,
-      'scores': List.of(round.startPoints),
+      'oya': mjaiSeat(round.dealer),
+      'scores': [for (final i in _seats) round.startPoints[i]],
       'tehais': [
         // The dealer's first draw has already happened; it is sent as the
         // hand's first `tsumo` by the [sync] below.
-        for (final s in round.seats)
-          _mjaiTiles(s.hand.where((t) => t != s.drawn)),
+        for (final i in _seats)
+          _mjaiTiles(round.seats[i].hand.where((t) => t != round.seats[i].drawn)),
       ],
     });
     sync();
   }
 
   final Round round;
+
+  /// The engine's seats being played, in mjai's order.
+  final List<int> _seats;
+
+  /// [seat] (this engine's numbering) as mjai numbers it.
+  int mjaiSeat(int seat) => _seats.indexOf(seat);
 
   /// Every event so far, with nothing hidden; see [mjaiView].
   final List<MjaiEvent> events = [];
@@ -86,25 +99,26 @@ class MjaiRecorder {
   final List<List<Meld>> _melds = List.generate(4, (_) => []);
   final List<Tile?> _drawn = List.filled(4, null);
   final List<bool> _riichi = List.filled(4, false);
+  final List<int> _kita = List.filled(4, 0);
   int _dora = 1;
   int? _reachPending;
 
   Tile _doraIndicator(int i) => round.wall.deadWallDisplay()[4 + i * 2]!;
 
   void sync() {
-    for (var i = 0; i < 4; i++) {
+    for (final i in _seats) {
       final s = round.seats[i];
       if (s.allDiscards.length == _discards[i]) continue;
       _discards[i] = s.allDiscards.length;
       if (s.riichi && !_riichi[i]) {
         _riichi[i] = true;
         _reachPending = i;
-        events.add({'type': 'reach', 'actor': i});
+        events.add({'type': 'reach', 'actor': mjaiSeat(i)});
       }
       final tile = s.allDiscards.last;
       events.add({
         'type': 'dahai',
-        'actor': i,
+        'actor': mjaiSeat(i),
         'pai': mjaiTile(tile),
         'tsumogiri': tile == _drawn[i],
       });
@@ -113,12 +127,12 @@ class MjaiRecorder {
     // A riichi is accepted once its discard clears the call window unronned.
     if (_reachPending != null && round.phase != RoundPhase.callOffer) {
       if (round.result?.kind != RoundEndKind.ron) {
-        events.add({'type': 'reach_accepted', 'actor': _reachPending});
+        events.add({'type': 'reach_accepted', 'actor': mjaiSeat(_reachPending!)});
       }
       _reachPending = null;
     }
 
-    for (var i = 0; i < 4; i++) {
+    for (final i in _seats) {
       final melds = round.seats[i].melds;
       for (var m = 0; m < melds.length; m++) {
         final meld = melds[m];
@@ -128,13 +142,17 @@ class MjaiRecorder {
           // An added kan replaces the pon it extends.
           events.add({
             'type': 'kakan',
-            'actor': i,
+            'actor': mjaiSeat(i),
             'pai': mjaiTile(meld.tiles.last),
             'consumed': _mjaiTiles(meld.tiles.take(3)),
           });
         }
       }
       _melds[i] = List.of(melds);
+      // A North set aside comes before the replacement it draws.
+      for (; _kita[i] < round.seats[i].kita.length; _kita[i]++) {
+        events.add({'type': 'nukidora', 'actor': mjaiSeat(i), 'pai': 'N'});
+      }
     }
 
     final dora = round.wall.doraIndicators().length;
@@ -142,10 +160,10 @@ class MjaiRecorder {
       events.add({'type': 'dora', 'dora_marker': mjaiTile(_doraIndicator(_dora))});
     }
 
-    for (var i = 0; i < 4; i++) {
+    for (final i in _seats) {
       final drawn = round.seats[i].drawn;
       if (drawn != null && drawn != _drawn[i]) {
-        events.add({'type': 'tsumo', 'actor': i, 'pai': mjaiTile(drawn)});
+        events.add({'type': 'tsumo', 'actor': mjaiSeat(i), 'pai': mjaiTile(drawn)});
       }
       _drawn[i] = drawn;
     }
@@ -154,7 +172,7 @@ class MjaiRecorder {
   /// A new meld: a concealed kan, or a call off the discard it ends with.
   MjaiEvent _call(int seat, Meld meld) {
     if (meld.concealed) {
-      return {'type': 'ankan', 'actor': seat, 'consumed': _mjaiTiles(meld.tiles)};
+      return {'type': 'ankan', 'actor': mjaiSeat(seat), 'consumed': _mjaiTiles(meld.tiles)};
     }
     return {
       'type': switch (meld.kind) {
@@ -162,8 +180,8 @@ class MjaiRecorder {
         MeldKind.triplet => 'pon',
         _ => 'daiminkan',
       },
-      'actor': seat,
-      'target': (seat + meld.calledFromSeatOffset!) % 4,
+      'actor': mjaiSeat(seat),
+      'target': mjaiSeat((seat + meld.calledFromSeatOffset!) % 4),
       'pai': mjaiTile(meld.tiles.last),
       'consumed': _mjaiTiles(meld.tiles.take(meld.tiles.length - 1)),
     };

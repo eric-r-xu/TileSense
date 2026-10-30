@@ -43,7 +43,8 @@ class TableLoop {
     Duration? afterCallPace,
     MpTelemetry? telemetry,
     MortalAsk? mortal,
-  })  : _mortal = mortal ?? MortalClient.maybe()?.ask,
+  })  : _mortal =
+            mortal ?? MortalClient.maybe(sanma: room.ruleset.isSanma)?.ask,
         _turnTimeout = turnTimeout ??
             Duration(seconds: room.discardSeconds + room.callSeconds),
         _callTimeout = callTimeout ?? Duration(seconds: room.callSeconds),
@@ -67,7 +68,8 @@ class TableLoop {
   final Random _rng = Random.secure();
   final MpTelemetry? _tel;
 
-  /// Mortal, when the server runs with `MORTAL_URL` (tests may pass one);
+  /// Mortal, when the server runs with `MORTAL_URL` (`MORTAL_SANMA_URL` in
+  /// sanma rooms; tests may pass one);
   /// see [_playsMortal].
   final MortalAsk? _mortal;
 
@@ -227,9 +229,9 @@ class TableLoop {
         ruleset.seatIsActive(i) ? ruleset.startingPoints : 0
     ];
     _shuffleSeats();
-    // Under riichi the first bot is Saeko, who plays on Mortal, unless a
-    // player already has her.
-    var wantSaeko = ruleset.isRiichi;
+    // Under riichi or sanma the first bot is Saeko, who plays on Mortal,
+    // unless a player already has her.
+    var wantSaeko = ruleset.isJapanese;
     for (final i in _playedSeats) {
       if (room.seats[i] == null) {
         final character =
@@ -311,9 +313,9 @@ class TableLoop {
       minimumPoints: room.minimumPoints,
     );
     _mjai = _mortal != null &&
-            ruleset.isRiichi &&
+            ruleset.isJapanese &&
             room.seats.any((s) => s?.character == 'saeko')
-        ? MjaiRecorder(round, kyoku: (_roundNumber % 4) + 1)
+        ? MjaiRecorder(round, kyoku: (_roundNumber % _handsPerWind) + 1)
         : null;
     _discardSerial = 0;
     _justCalled = null;
@@ -493,8 +495,8 @@ class TableLoop {
 
   // --- Saeko on Mortal -----------------------------------------------------
 
-  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi game,
-  /// on a server run with `MORTAL_URL` — as in single player. A timed-out
+  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi or
+  /// sanma game, on a server run with Mortal — as in single player. A timed-out
   /// human Saeko's one-off move stays on [SimpleBot].
   bool _playsMortal(int seat) =>
       _mjai != null &&
@@ -523,7 +525,7 @@ class TableLoop {
     final mjai = _mjai;
     if (mjai == null) return fallback();
     try {
-      return read(await _mortal!(seat, List.of(mjai.events),
+      return read(await _mortal!(mjai.mjaiSeat(seat), List.of(mjai.events),
           hanchan: room.hanchan));
     } catch (e) {
       print('[mp] Saeko (Mortal) fell back to SimpleBot: $e');

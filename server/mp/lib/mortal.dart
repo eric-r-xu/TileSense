@@ -3,7 +3,8 @@
 /// app's `MortalAdvisor` (flutter_client/lib/game/mortal_advisor.dart).
 ///
 /// Off unless `MORTAL_URL` is set (`http://127.0.0.1:8790` in production,
-/// see deploy/tilesense-mp.service); without it, or whenever the sidecar
+/// see deploy/tilesense-mp.service), or for sanma rooms `MORTAL_SANMA_URL`
+/// (the three-player sidecar, `:8791`); without it, or whenever the sidecar
 /// fails, Saeko plays on `SimpleBot` like every other bot.
 library;
 
@@ -13,7 +14,7 @@ import 'dart:io';
 import 'package:mahjong_core/mahjong_core.dart';
 
 /// Posts one seat's view of a hand and returns Mortal's reply; throws on
-/// any failure.
+/// any failure. The seat is in mjai's numbering (`MjaiRecorder.mjaiSeat`).
 typedef MortalAsk = Future<Map<String, Object?>> Function(
     int seat, List<MjaiEvent> events,
     {required bool hanchan});
@@ -24,16 +25,17 @@ class MortalClient {
   final HttpClient _http = HttpClient()
     ..connectionTimeout = const Duration(seconds: 2);
 
-  /// The live client, or null when `MORTAL_URL` is unset. [env] is a test
-  /// seam.
-  static MortalClient? maybe([Map<String, String>? env]) {
-    final url = (env ?? Platform.environment)['MORTAL_URL'];
+  /// The live client, or null when `MORTAL_URL` (`MORTAL_SANMA_URL` for
+  /// [sanma]) is unset. [env] is a test seam.
+  static MortalClient? maybe({bool sanma = false, Map<String, String>? env}) {
+    final url = (env ?? Platform.environment)[
+        sanma ? 'MORTAL_SANMA_URL' : 'MORTAL_URL'];
     return url == null || url.isEmpty ? null : MortalClient(url);
   }
 
   /// Mortal's reply for [seat]. [events] is the hand with nothing hidden;
   /// only [seat]'s own view of it ([mjaiView]) is sent. [hanchan] false tells
-  /// Mortal the game ends after East.
+  /// Mortal the game ends after East: a hand per player (4, or 3 in sanma).
   Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
       {bool hanchan = true}) async {
     Future<Map<String, Object?>> post() async {
@@ -44,7 +46,7 @@ class MortalClient {
       final bytes = utf8.encode(jsonEncode({
         'player_id': seat,
         'events': mjaiView(events, seat),
-        'game_length': hanchan ? 8 : 4,
+        'game_length': (hanchan ? 2 : 1) * (events.first['tehais'] as List).length,
       }));
       req.contentLength = bytes.length;
       req.add(bytes);

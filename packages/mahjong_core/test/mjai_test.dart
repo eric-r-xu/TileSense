@@ -146,6 +146,79 @@ void main() {
         'reach', 'reach_accepted', 'dora']));
   });
 
+  test('sanma: three mjai seats, kita as nukidora, every hand rebuilt', () {
+    final seen = <String>{};
+    for (var seed = 0; seed < 200; seed++) {
+      final round = Round(
+        seed: seed,
+        dealer: Ruleset.sanma.activeSeats[seed % 3],
+        roundWind: Wind.east,
+        startingPoints: [35000, 35000, 0, 35000],
+        ruleset: Ruleset.sanma,
+      );
+      final recorder = MjaiRecorder(round, kyoku: seed % 3 + 1);
+      final bots = [for (var i = 0; i < 4; i++) SimpleBot(seed * 10 + i)];
+      for (var step = 0; !round.finished; step++) {
+        if (step > 4000) fail('seed $seed: hand did not finish');
+        if (round.phase == RoundPhase.callOffer) {
+          final choices = <int, CallType>{
+            for (final opt in round.callOptions)
+              opt.seat: bots[opt.seat].decideCall(
+                  round, opt.seat, round.pendingDiscard!, opt.types),
+          }..removeWhere((_, c) => c == CallType.none);
+          round.resolveCalls(choices);
+        } else {
+          final seat = round.turn;
+          final d = bots[seat].decideTurn(round, seat);
+          if (d.tsumo) {
+            round.declareTsumo(seat);
+          } else if (d.kita) {
+            round.declareKita(seat);
+          } else if (d.closedKan != null) {
+            round.closedKan(seat, d.closedKan!);
+          } else if (d.addedKan != null) {
+            round.addKan(seat, d.addedKan!);
+          } else {
+            round.discard(seat, d.discard ?? round.legalDiscards(seat).first,
+                declareRiichi: d.riichi);
+          }
+        }
+        recorder.sync();
+      }
+
+      final start = recorder.events.first;
+      expect(start['oya'], recorder.mjaiSeat(round.dealer));
+      expect(start['scores'], [35000, 35000, 35000]);
+      final hands = List.generate(3, (_) => <String>[]);
+      for (final e in recorder.events) {
+        seen.add(e['type'] as String);
+        expect([e['actor'], e['target']].whereType<int>(), everyElement(lessThan(3)));
+        final hand = hands[(e['actor'] as int?) ?? 0];
+        void take(Object? tile) =>
+            expect(hand.remove(tile), isTrue, reason: 'seed $seed: $e');
+        switch (e['type']) {
+          case 'start_kyoku':
+            for (var i = 0; i < 3; i++) {
+              hands[i].addAll((e['tehais'] as List)[i] as List<String>);
+            }
+          case 'tsumo':
+            hand.add(e['pai'] as String);
+          case 'dahai' || 'kakan' || 'nukidora':
+            take(e['pai']);
+          case 'pon' || 'daiminkan' || 'ankan':
+            (e['consumed'] as List).forEach(take);
+          case 'chi':
+            fail('seed $seed: sanma has no chi');
+        }
+      }
+      for (final (k, i) in Ruleset.sanma.activeSeats.indexed) {
+        expect(_sorted(hands[k]), _sorted(round.seats[i].hand.map(mjaiTile)),
+            reason: 'seed $seed seat $i');
+      }
+    }
+    expect(seen, containsAll(['nukidora', 'pon', 'reach']));
+  });
+
   test("a seat's view hides the others' hands and draws", () {
     final round = Round(
         seed: 1, dealer: 0, roundWind: Wind.east,

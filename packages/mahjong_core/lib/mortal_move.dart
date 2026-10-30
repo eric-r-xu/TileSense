@@ -15,7 +15,7 @@ import 'tile.dart';
 /// the caller then falls back to another player (SimpleBot, for Saeko).
 abstract final class MortalMove {
   /// [seat]'s turn: discard (after riichi, if Mortal declares it), tsumo,
-  /// closed or added kan, or nine terminals.
+  /// closed or added kan, nine terminals, or (sanma) kita.
   static BotTurn turn(Map<String, Object?> reply, Round round, int seat) {
     var reaction = reply['reaction'] as Map<String, Object?>?;
     final riichi = reaction?['type'] == 'reach';
@@ -46,6 +46,8 @@ abstract final class MortalMove {
         if (type != null) return BotTurn(addedKan: type);
       case 'ryukyoku' when round.canDeclareKyuushu(seat):
         return BotTurn(kyuushu: true);
+      case 'nukidora' when round.canKita(seat):
+        return BotTurn(kita: true);
     }
     throw _unplayable(reaction);
   }
