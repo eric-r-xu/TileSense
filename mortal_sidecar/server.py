@@ -17,8 +17,14 @@ event only.
 
 `game_length` is 4 for an East-only game and 8 (the default) for a hanchan:
 Mortal needs it to know which hand is the last. It is only handed to libriichi
-when it is 4, so a libriichi built before that option existed still serves
-hanchan.
+when it is not a hanchan, so a libriichi built before that option existed still
+serves hanchan.
+
+Sanma (three-player) runs the same file on a libriichi built with
+`--features sanma` and a sanma model (model_sanma.json): `player_id` is then
+0-2, `game_length` 3 or 6 (default 6), and the events are sanma mjai (`nukidora`
+for a kita, no `chi`, three seats). The libriichi it loads decides which, so one
+process serves one or the other; production runs them as two services.
 
 `reaction` is Mortal's mjai reply (or null: nothing to do), with
 `meta.q_values` / `meta.mask_bits` scoring every legal action. When it is a
@@ -31,6 +37,9 @@ Setup, from this directory (pyo3 0.25 needs Python <= 3.13):
         cargo build -p libriichi --lib --release)
     cp ~/Documents/GitHub/Mortal/target/release/libriichi.dylib libriichi.so
     .venv/bin/python server.py --model mortal_298k.onnx
+
+For sanma, build from the fork's `sanma` branch with `--features sanma`, copy the
+library to sanma/libriichi.so, and pass `--libriichi sanma --port 8791`.
 
 The .onnx file is exported from the checkpoint by export_onnx.py. Mortal (code and weights) is AGPL-3.0.
 """
@@ -51,18 +60,27 @@ parser.add_argument('--model', required=True, help='Mortal exported to ONNX (fp3
 parser.add_argument('--host', default='127.0.0.1')
 parser.add_argument('--port', type=int, default=8790)
 parser.add_argument('--allow-origin', help='CORS origin, for local `flutter run` only')
+parser.add_argument('--libriichi', help='folder holding libriichi.so (default: beside this file)')
 args = parser.parse_args()
 
 # libriichi.so is built from a Mortal checkout and placed beside this file.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+here = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(here, args.libriichi) if args.libriichi else here)
+from libriichi import consts
 from libriichi.mjai import Bot
+
+# Builds before sanma existed do not export these; they are 4-player.
+NUM_PLAYERS = getattr(consts, 'NUM_PLAYERS', 4)
+TONPUU = getattr(consts, 'TONPUU', 4)
+HANCHAN = getattr(consts, 'HANCHAN', 8)
 
 
 class OnnxEngine:
     """The engine contract libriichi's Mortal agent expects, backed by ONNX."""
 
     engine_type = 'mortal'
-    version = 4
+    # 4 for 4-player, 5 (the only one sanma builds accept) for sanma
+    version = consts.MAX_VERSION
     is_oracle = False
     enable_quick_eval = True
     enable_rule_based_agari_guard = True
@@ -73,6 +91,12 @@ class OnnxEngine:
         opts.intra_op_num_threads = 1
         opts.inter_op_num_threads = 1
         self.session = ort.InferenceSession(path, opts, providers=['CPUExecutionProvider'])
+        # A 4-player model on a sanma build (or the reverse) would fail on every
+        # request; refuse to start instead.
+        shape = tuple(self.session.get_inputs()[0].shape[1:])
+        if shape != consts.obs_shape(self.version):
+            raise SystemExit(f'{path} takes observations of shape {shape}, but this libriichi '
+                             f'({NUM_PLAYERS} players) makes {consts.obs_shape(self.version)}')
 
     def react_batch(self, obs, masks, invisible_obs):
         masks = np.stack(masks)
@@ -83,8 +107,8 @@ class OnnxEngine:
 engine = OnnxEngine(args.model)
 
 
-def react(seat, events, game_length=8):
-    bot = Bot(engine, seat) if game_length == 8 else Bot(engine, seat, game_length=game_length)
+def react(seat, events, game_length=HANCHAN):
+    bot = Bot(engine, seat) if game_length == HANCHAN else Bot(engine, seat, game_length=game_length)
     reaction = None
     for i, event in enumerate(events):
         reaction = bot.react(json.dumps(event), can_act=i == len(events) - 1)
@@ -121,11 +145,11 @@ class Handler(BaseHTTPRequestHandler):
             req = json.loads(self.rfile.read(length))
             events = req['events']
             seat = req.get('player_id')
-            if seat not in (0, 1, 2, 3) or not isinstance(events, list) or not events:
-                raise ValueError('expected player_id 0-3 and a non-empty events list')
-            game_length = req.get('game_length', 8)
-            if game_length not in (4, 8):
-                raise ValueError('expected game_length 4 or 8')
+            if seat not in range(NUM_PLAYERS) or not isinstance(events, list) or not events:
+                raise ValueError(f'expected player_id 0-{NUM_PLAYERS - 1} and a non-empty events list')
+            game_length = req.get('game_length', HANCHAN)
+            if game_length not in (TONPUU, HANCHAN):
+                raise ValueError(f'expected game_length {TONPUU} or {HANCHAN}')
             self._send(200, react(seat, events, game_length))
         except Exception as ex:
             self._send(400, {'error': str(ex)})
@@ -134,5 +158,5 @@ class Handler(BaseHTTPRequestHandler):
         pass  # one line per decision is noise in the journal
 
 
-print(f'mortal (onnx) serving on http://{args.host}:{args.port}', file=sys.stderr)
+print(f'mortal (onnx, {NUM_PLAYERS} players) serving on http://{args.host}:{args.port}', file=sys.stderr)
 HTTPServer((args.host, args.port), Handler).serve_forever()

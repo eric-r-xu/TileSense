@@ -12,6 +12,8 @@ mortal_sidecar/libriichi.so
 mortal_sidecar/*.onnx
 mortal_sidecar/*.pth
 mortal_sidecar/step0_positions.npz
+mortal_sidecar/*_positions.npz
+mortal_sidecar/sanma/
 HANDOFF.md
 flutter_client/e2e/node_modules/
 flutter_client/e2e/test-results/

@@ -1,0 +1,7 @@
+{
+  "url": "https://github.com/eric-r-xu/TileSense/releases/download/mortal-sanma-104k-onnx-v1/mortal_sanma.onnx",
+  "sha256": "e9863274c2972d15742fd3f46718bd2dff8ccc82e7a676aff25b44cbb63658c1",
+  "mortal_repo": "https://github.com/eric-r-xu/Mortal.git",
+  "mortal_commit": "6832fd1520658d810a5fa0a563e32fd16a703987",
+  "cargo_features": "sanma"
+}
