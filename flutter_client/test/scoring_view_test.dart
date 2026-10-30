@@ -220,6 +220,7 @@ void main() {
 
       expect(find.byWidgetPredicate((w) => w is TileFace && w.tile == win),
           findsOneWidget);
+      expect(find.byKey(const Key('scoreWinnerPortrait')), findsOneWidget);
       // The winner's hand renders larger than the dora indicator row.
       final scales = tester
           .widgetList<TileFace>(find.byType(TileFace))

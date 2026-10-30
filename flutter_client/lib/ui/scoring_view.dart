@@ -360,6 +360,26 @@ class _ScoringViewState extends State<ScoringView> {
         w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
     return Column(
       children: [
+        // The winner's portrait, so who won reads at a glance. Only wins get
+        // here — a draw has no winner to show.
+        Container(
+          key: const Key('scoreWinnerPortrait'),
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xff0c4747),
+            border: Border.all(color: AppColors.goldBright, width: 2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            kCharacterPortrait[game.characterForSeat(seat)]!,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+        const SizedBox(height: 4),
         Text(
           '${w.wind.kanji} ${game.seatLabel(seat)}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -593,37 +613,19 @@ class _ScoringViewState extends State<ScoringView> {
       children: [
         // Sanma's empty seat has nothing to show.
         for (final i in round.ruleset.activeSeats)
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: r.winners.contains(i)
-                ? BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.18),
-                    border: Border.all(color: AppColors.goldBright),
-                    borderRadius: BorderRadius.circular(6),
-                  )
-                : null,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (r.winners.contains(i)) ...[
-                      const Icon(Icons.star,
-                          size: 16, color: AppColors.goldBright),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(
-                      '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: r.winners.contains(i)
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
+                // Only the winner's name is picked out; the row stays plain.
+                Text(
+                  '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
+                  style: r.winners.contains(i)
+                      ? const TextStyle(
+                          color: AppColors.goldBright,
+                          fontWeight: FontWeight.bold)
+                      : const TextStyle(color: Colors.white),
                 ),
                 Text(
                   '${round.seats[i].points}'
