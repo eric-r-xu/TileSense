@@ -24,8 +24,10 @@ LEGACY = Path('/srv/digitalOcean/static/tilesense')
 BIN_DIR = Path('/usr/local/bin')
 UNIT_DIR = Path('/etc/systemd/system')
 MORTAL = Path('/opt/tilesense-mortal')
+MORTAL_SANMA = Path('/opt/tilesense-mortal-sanma')
 NGINX_LIMITS = Path('/etc/nginx/conf.d/tilesense-mortal-limits.conf')
 MORTAL_UNIT = 'tilesense-mortal.service'
+MORTAL_SANMA_UNIT = 'tilesense-mortal-sanma.service'
 MORTAL_MARKER = '# TileSense Mortal'
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,99}\Z')
 # Pruning keeps the newest releases and service rollbacks, and everything
@@ -344,7 +346,12 @@ def restore_nginx(backup):
 
 # --- Mortal sidecar -------------------------------------------------------
 #
-# /opt/tilesense-mortal/
+# Two variants run side by side: `mortal` (4-player, port 8790, behind the
+# /tilesense/mortal/ route) and `mortal-sanma` (three-player, port 8791, local
+# only: multiplayer asks it directly). Each has its own directory and unit,
+# laid out alike:
+#
+# /opt/tilesense-mortal/ (or /opt/tilesense-mortal-sanma/)
 #   releases/<id>/  server.py, libriichi.so, release.json, and symlinks
 #                   mortal.onnx -> models/<sha256>.onnx, venv -> venvs/<hash>
 #   models/, venvs/ shared by every release that pins the same model or
@@ -361,6 +368,25 @@ MORTAL_HEALTH = json.dumps({'player_id': 0, 'events': [
      + [['?'] * 13] * 3},
     {'type': 'tsumo', 'actor': 0, 'pai': '4s'}]})
 
+# The same for sanma: 19m 123567p 239s EE, drawing 4s.
+MORTAL_SANMA_HEALTH = json.dumps({'player_id': 0, 'events': [
+    {'type': 'start_game'},
+    {'type': 'start_kyoku', 'bakaze': 'E', 'dora_marker': '1p', 'kyoku': 1, 'honba': 0,
+     'kyotaku': 0, 'oya': 0, 'scores': [35000] * 3,
+     'tehais': [['1m', '9m', '1p', '2p', '3p', '5p', '6p', '7p', '2s', '3s', '9s', 'E', 'E']]
+     + [['?'] * 13] * 2},
+    {'type': 'tsumo', 'actor': 0, 'pai': '4s'}]})
+
+
+def mortal_variant(variant):
+    """(directory, unit, port, health request) of a Mortal variant. Read at call
+    time, so tests can point the directories elsewhere."""
+    if variant == 'mortal':
+        return MORTAL, MORTAL_UNIT, 8790, MORTAL_HEALTH
+    if variant == 'mortal-sanma':
+        return MORTAL_SANMA, MORTAL_SANMA_UNIT, 8791, MORTAL_SANMA_HEALTH
+    raise ValueError('Unknown Mortal variant')
+
 
 def sha256(path):
     digest = hashlib.sha256()
@@ -370,17 +396,18 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def mortal_health():
+def mortal_health(variant='mortal'):
     import urllib.request
-    request = urllib.request.Request('http://127.0.0.1:8790/react', MORTAL_HEALTH.encode(),
+    _, _, port, health = mortal_variant(variant)
+    request = urllib.request.Request(f'http://127.0.0.1:{port}/react', health.encode(),
                                      {'Content-Type': 'application/json'})
     with urllib.request.urlopen(request, timeout=10) as response:
         if response.status != 200 or not json.loads(response.read()).get('reaction'):
             raise OSError('Mortal health check failed')
 
 
-def mortal_status():
-    record = MORTAL / 'current/release.json'
+def mortal_status(variant='mortal'):
+    record = mortal_variant(variant)[0] / 'current/release.json'
     return json.loads(record.read_text()) if record.is_file() else {}
 
 
@@ -393,17 +420,20 @@ def nginx_mortal_config(text, block):
     return text.replace(anchor, MORTAL_MARKER + '\n' + block.rstrip() + '\n\n' + anchor, 1)
 
 
-def setup_mortal(stage):
-    """One-time: directories, the unit, and the nginx route and limits. The
-    service is enabled but first started by the first `mortal` release."""
-    unit = UNIT_DIR / MORTAL_UNIT
+def setup_mortal(stage, variant='mortal'):
+    """One-time: directories, the unit, and for 4-player the nginx route and
+    limits. The service is enabled but first started by the first release."""
+    root, unit_name, _, _ = mortal_variant(variant)
+    unit = UNIT_DIR / unit_name
     # Verified before each restart instead (switch_mortal): its program, the
     # release's venv, doesn't exist until the first release.
     for name in ('releases', 'models', 'venvs'):
-        (MORTAL / name).mkdir(parents=True, exist_ok=True)
-    shutil.copy2(stage / MORTAL_UNIT, unit)
+        (root / name).mkdir(parents=True, exist_ok=True)
+    shutil.copy2(stage / unit_name, unit)
     run(['systemctl', 'daemon-reload'])
-    run(['systemctl', 'enable', MORTAL_UNIT])
+    run(['systemctl', 'enable', unit_name])
+    if variant != 'mortal':
+        return {'configured': True}  # local only: no route
     path = NGINX.resolve(strict=True)
     original = path.read_text()
     block = '\n'.join('    ' + line if line else '' for line in
@@ -428,25 +458,26 @@ def setup_mortal(stage):
     return {'configured': True, 'nginx_backup': str(backup)}
 
 
-def install_mortal(stage, rid):
+def install_mortal(stage, rid, variant='mortal'):
     """Builds the release from the stage, switches `current` to it and
     restarts; any failure puts the previous release back before raising."""
+    root, unit_name, _, _ = mortal_variant(variant)
     record = json.loads((stage / 'release.json').read_text())
     if record['build_id'] != rid:
         raise ValueError('Release ID mismatch')
     for name in ('server.py', 'libriichi.so', 'requirements.txt'):
         if not (stage / name).is_file():
             raise ValueError('Incomplete Mortal release: ' + name)
-    if not (UNIT_DIR / MORTAL_UNIT).is_file():
-        raise ValueError('Run deploy.sh setup-mortal once first')
-    model = MORTAL / 'models' / (record['model_sha256'] + '.onnx')
+    if not (UNIT_DIR / unit_name).is_file():
+        raise ValueError('Run deploy.sh setup-' + variant + ' once first')
+    model = root / 'models' / (record['model_sha256'] + '.onnx')
     if (stage / 'mortal.onnx').is_file():
         if sha256(stage / 'mortal.onnx') != record['model_sha256']:
             raise ValueError('Model checksum mismatch')
         os.replace(stage / 'mortal.onnx', model)
     elif not model.is_file():
         raise ValueError('Model not on the server; upload it with this release')
-    venv = MORTAL / 'venvs' / sha256(stage / 'requirements.txt')[:16]
+    venv = root / 'venvs' / sha256(stage / 'requirements.txt')[:16]
     if not (venv / 'bin/python').is_file():
         building = venv.with_name(venv.name + '.building')
         shutil.rmtree(building, ignore_errors=True)
@@ -454,7 +485,7 @@ def install_mortal(stage, rid):
         run([str(building / 'bin/pip'), 'install', '--quiet', '--no-cache-dir',
              '-r', str(stage / 'requirements.txt')])
         os.replace(building, venv)
-    release = MORTAL / 'releases' / rid
+    release = root / 'releases' / rid
     if release.exists():
         raise ValueError('Release already exists; immutable releases cannot be overwritten')
     release.mkdir()
@@ -462,33 +493,34 @@ def install_mortal(stage, rid):
         shutil.copy2(stage / name, release / name)
     (release / 'mortal.onnx').symlink_to(model)
     (release / 'venv').symlink_to(venv)
-    current = MORTAL / 'current'
+    current = root / 'current'
     previous = os.readlink(current) if current.is_symlink() else None
     try:
-        switch_mortal(release)
+        switch_mortal(release, variant)
         return {'previous': previous}
     except BaseException:
         if previous:
-            switch_mortal(Path(previous))
+            switch_mortal(Path(previous), variant)
         else:
             # A first release that fails has nothing to go back to: stop it
             # rather than let it restart forever (the column shows "—").
-            run(['systemctl', 'stop', MORTAL_UNIT])
+            run(['systemctl', 'stop', unit_name])
         raise
 
 
-def switch_mortal(target):
-    current = MORTAL / 'current'
-    temporary = MORTAL / '.current-next'
+def switch_mortal(target, variant='mortal'):
+    root, unit_name, _, _ = mortal_variant(variant)
+    current = root / 'current'
+    temporary = root / '.current-next'
     temporary.unlink(missing_ok=True)
     temporary.symlink_to(target)
     os.replace(temporary, current)
-    run(['systemd-analyze', 'verify', str(UNIT_DIR / MORTAL_UNIT)])
-    run(['systemctl', 'restart', MORTAL_UNIT])
+    run(['systemd-analyze', 'verify', str(UNIT_DIR / unit_name)])
+    run(['systemctl', 'restart', unit_name])
     # Loading the model takes a few seconds.
     for attempt in range(30):
         try:
-            mortal_health()
+            mortal_health(variant)
             return
         except OSError:
             if attempt == 29:
@@ -496,11 +528,11 @@ def switch_mortal(target):
             time.sleep(1)
 
 
-def restore_mortal(previous):
+def restore_mortal(previous, variant='mortal'):
     target = Path(previous)
-    if target.parent != MORTAL / 'releases' or not (target / 'server.py').is_file():
+    if target.parent != mortal_variant(variant)[0] / 'releases' or not (target / 'server.py').is_file():
         raise ValueError('Invalid Mortal rollback target')
-    switch_mortal(target)
+    switch_mortal(target, variant)
     return {}
 
 
@@ -512,10 +544,12 @@ def handle(message):
         return setup_client()
     if action == 'migrate':
         return migrate(message['uri'], message['migrations'])
+    # Messages without a variant (an older deploy.py) mean 4-player.
+    variant = message.get('variant', 'mortal')
     if action == 'mortal-status':
-        return mortal_status()
+        return mortal_status(variant)
     if action == 'restore-mortal':
-        return restore_mortal(message['previous'])
+        return restore_mortal(message['previous'], variant)
     if action == 'preflight-client':
         if '# TileSense versioned releases' not in NGINX.resolve(strict=True).read_text():
             raise ValueError('Run deploy.sh setup-client once before publishing client releases')
@@ -532,9 +566,9 @@ def handle(message):
         stage.mkdir(parents=True, exist_ok=False)
         return {'path': str(stage)}
     if action == 'setup-mortal':
-        return setup_mortal(stage)
+        return setup_mortal(stage, variant)
     if action == 'mortal':
-        return install_mortal(stage, rid)
+        return install_mortal(stage, rid, variant)
     if action == 'rollback-service':
         return rollback_service(stage, message['name'])
     if action == 'service':
@@ -592,7 +626,8 @@ def main():
                         elif message['action'] == 'service':
                             undo.append({'action': 'rollback-service', 'id': message['id'], 'name': message['name']})
                         elif message['action'] == 'mortal' and result['previous']:
-                            undo.append({'action': 'restore-mortal', 'previous': result['previous']})
+                            undo.append({'action': 'restore-mortal', 'previous': result['previous'],
+                                         'variant': message.get('variant', 'mortal')})
                         elif message['action'] in ('setup-client', 'setup-mortal') and 'nginx_backup' in result:
                             undo.append({'action': 'restore-nginx', 'backup': result['nginx_backup']})
                     print(json.dumps({'ok': True, 'result': result}), flush=True)

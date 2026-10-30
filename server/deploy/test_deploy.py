@@ -310,6 +310,44 @@ location / { proxy_pass http://unix:/run/myproject/myproject.sock; }
             calls = [c.args[0] for c in remote.run.call_args_list]
         self.assertIn(['systemctl', 'stop', 'tilesense-mortal.service'], calls)
 
+    def test_mortal_sanma_release_uses_its_own_directory_unit_and_port(self):
+        mortal, patches = self.mortal_env()
+        (self.root / 'units/tilesense-mortal-sanma.service').write_text('unit')
+        sanma = self.root / 'opt-sanma'
+        for name in ('releases', 'models', 'venvs'):
+            (sanma / name).mkdir(parents=True)
+        with contextlib.ExitStack() as stack:
+            for p in patches: stack.enter_context(p)
+            stack.enter_context(patch.object(remote, 'MORTAL_SANMA', sanma))
+            remote.install_mortal(self.mortal_stage(), 'm1', 'mortal-sanma')
+            calls = [c.args[0] for c in remote.run.call_args_list]
+            health = [c.args for c in remote.mortal_health.call_args_list]
+            status = remote.mortal_status('mortal-sanma')
+        self.assertEqual((sanma / 'current').resolve(), sanma / 'releases/m1')
+        self.assertFalse((mortal / 'current').exists())
+        self.assertIn(['systemctl', 'restart', 'tilesense-mortal-sanma.service'], calls)
+        self.assertEqual(health, [('mortal-sanma',)])
+        self.assertEqual(status['build_id'], 'm1')
+        self.assertEqual(remote.mortal_variant('mortal-sanma')[2], 8791)
+
+    def test_mortal_sanma_setup_never_touches_nginx(self):
+        units = self.root / 'units'
+        units.mkdir()
+        stage = self.root / 'stage'
+        stage.mkdir()
+        (stage / 'tilesense-mortal-sanma.service').write_text('unit')
+        with patch.object(remote, 'MORTAL_SANMA', self.root / 'opt-sanma'), \
+             patch.object(remote, 'UNIT_DIR', units), patch.object(remote, 'run') as run, \
+             patch.object(remote, 'NGINX', self.root / 'missing-nginx'):
+            self.assertEqual(remote.setup_mortal(stage, 'mortal-sanma'), {'configured': True})
+        self.assertTrue((units / 'tilesense-mortal-sanma.service').is_file())
+        self.assertTrue((self.root / 'opt-sanma/releases').is_dir())
+        self.assertNotIn(['systemctl', 'reload', 'nginx'], [c.args[0] for c in run.call_args_list])
+
+    def test_mortal_unknown_variant_is_refused(self):
+        with self.assertRaises(ValueError): remote.mortal_status('mortal-mcr')
+        with self.assertRaises(ValueError): remote.handle({'action': 'mortal-status', 'variant': '../x'})
+
     def test_nginx_mortal_route_added_once_and_fails_closed(self):
         text = 'server {\n    # TileSense versioned releases\n}\n'
         updated = remote.nginx_mortal_config(text, '    location /tilesense/mortal/ {}')
@@ -420,7 +458,7 @@ class DriverTests(unittest.TestCase):
             with self.assertRaises(ValueError): deploy.deploy('rollback-mp', 'host', 'ip', 'old-release')
         remote.assert_not_called()
 
-    def mortal_run(self, current, env):
+    def mortal_run(self, current, env, target='mortal'):
         worker = MagicMock()
         worker.call.side_effect = lambda action, **kw: current if action == 'mortal-status' else {'path': '/stage'}
         record = {'build_id': 'r', 'git_commit': 'abc', 'dirty': False, 'model_sha256': 'sha', 'mortal_commit': 'c'}
@@ -429,10 +467,11 @@ class DriverTests(unittest.TestCase):
             return record
         with patch.dict(os.environ, env, clear=True), \
              patch.object(deploy, 'source_state', return_value=('abc', False)), \
-             patch.object(deploy, 'build_mortal', side_effect=build), \
+             patch.object(deploy, 'build_mortal', side_effect=build) as build_mortal, \
              patch.object(deploy, 'Remote', return_value=worker), \
              patch.object(deploy, 'run') as run:
-            deploy.deploy('mortal', 'host', 'ip')
+            deploy.deploy(target, 'host', 'ip')
+        self.built_variant = build_mortal.call_args.args[-1]
         return [c.args[0] for c in worker.call.call_args_list], worker, run
 
     def test_mortal_skips_when_nothing_changed(self):
@@ -448,6 +487,29 @@ class DriverTests(unittest.TestCase):
             actions, _, _ = self.mortal_run(current, {})
         self.assertEqual(actions, ['mortal-status', 'stage', 'mortal', 'commit'])
         self.assertEqual(uploaded, ['mortal.onnx'])
+
+    def test_mortal_sanma_deploys_its_own_variant(self):
+        current = {'build_id': 'old', 'git_commit': 'old', 'dirty': False, 'model_sha256': 'other'}
+        actions, worker, _ = self.mortal_run(current, {}, 'mortal-sanma')
+        self.assertEqual(actions, ['mortal-status', 'stage', 'mortal', 'commit'])
+        self.assertEqual(self.built_variant, 'mortal-sanma')
+        for call in worker.call.call_args_list:
+            if call.args[0] in ('mortal-status', 'mortal'):
+                self.assertEqual(call.kwargs['variant'], 'mortal-sanma')
+
+    def test_mortal_sanma_build_uses_its_manifest_and_cache(self):
+        pin = {'url': 'u', 'sha256': 's', 'mortal_commit': 'c'}
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.dict(os.environ, {'MORTAL_CACHE': directory}), \
+             patch.object(deploy, 'run') as run, patch.object(deploy.shutil, 'copy2'), \
+             patch.object(deploy, 'fetch_model', return_value=Path('m')) as fetch, \
+             patch.object(deploy.Path, 'read_text', return_value=json.dumps(pin)):
+            record = deploy.build_mortal(Path(directory), 'r', 'abc', False, 'mortal-sanma')
+        build = run.call_args_list[1].args[0]
+        self.assertEqual(build[1:], [str(Path(directory) / 'libriichi-sanma'),
+                                     str(deploy.MORTAL_DIR / 'model_sanma.json')])
+        self.assertEqual(fetch.call_args.args[1], 'model_sanma.json')
+        self.assertEqual(record['model_sha256'], 's')
 
     def test_client_build_shows_the_mortal_column_only_with_mortal_1(self):
         for env, expected in (({}, False), ({'MORTAL': '1'}, True)):

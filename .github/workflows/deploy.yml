@@ -5,7 +5,8 @@
 # once CI has passed on a push to ericrxu_dev.
 # Mortal (the guide's Mortal column) too, once the MORTAL variable is 1: its
 # sidecar first, and only when mortal_sidecar/ or the pinned model changed.
-# By hand (Actions tab -> Deploy -> Run workflow): mortal, mp, which drops live
+# The sanma Mortal (Saeko in sanma rooms) likewise, once MORTAL_SANMA is 1.
+# By hand (Actions tab -> Deploy -> Run workflow): mortal, mortal-sanma, mp, which drops live
 # online rooms, and the rollbacks. ingest, migrate, geoip and all need doctl and
 # database credentials, so they stay on the laptop.
 name: Deploy
@@ -20,7 +21,7 @@ on:
       target:
         description: What to deploy
         type: choice
-        options: [client, mortal, mp, rollback-client, rollback-ingest, rollback-mp]
+        options: [client, mortal, mortal-sanma, mp, rollback-client, rollback-ingest, rollback-mp]
         default: client
       release:
         description: Release ID (rollbacks only)
@@ -75,6 +76,9 @@ jobs:
       MORTAL_STEP: >-
         ${{ inputs.target == 'mortal' ||
             (github.event_name == 'workflow_run' && vars.MORTAL == '1') }}
+      MORTAL_SANMA_STEP: >-
+        ${{ inputs.target == 'mortal-sanma' ||
+            (github.event_name == 'workflow_run' && vars.MORTAL_SANMA == '1') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -129,10 +133,26 @@ jobs:
           ./deploy.sh mortal 2>&1 | tee "$RUNNER_TEMP/mortal.log"
           grep -E '^(Deployment verified|Mortal unchanged)' "$RUNNER_TEMP/mortal.log" \
             | sed 's/^/Mortal: /' >> "$GITHUB_STEP_SUMMARY" || true
+      # Its own cache, keyed on its own pin: a sanma libriichi is a different build.
+      - if: env.MORTAL_SANMA_STEP == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tilesense-mortal-sanma
+          key: mortal-sanma-${{ hashFiles('mortal_sidecar/model_sanma.json') }}
+      # Runs even if Mortal failed; sanma rooms fall back to SimpleBot without it.
+      - name: ./deploy.sh mortal-sanma
+        if: ${{ !cancelled() && env.MORTAL_SANMA_STEP == 'true' }}
+        run: |
+          set -o pipefail
+          export MORTAL_CACHE="$HOME/.cache/tilesense-mortal-sanma"
+          [[ "$TARGET" == mortal-sanma ]] || export MORTAL_IF_CHANGED=1
+          ./deploy.sh mortal-sanma 2>&1 | tee "$RUNNER_TEMP/mortal-sanma.log"
+          grep -E '^(Deployment verified|Mortal sanma unchanged)' "$RUNNER_TEMP/mortal-sanma.log" \
+            | sed 's/^/Mortal sanma: /' >> "$GITHUB_STEP_SUMMARY" || true
       # Runs even if Mortal failed: the client must not wait on it (its column
       # just shows "—"); the job still ends failed so the failure is seen.
       - name: ./deploy.sh ${{ env.TARGET }}
-        if: ${{ !cancelled() && env.TARGET != 'mortal' }}
+        if: ${{ !cancelled() && env.TARGET != 'mortal' && env.TARGET != 'mortal-sanma' }}
         run: |
           set -o pipefail  # or tee would hide a failed deploy
           case "$TARGET" in
