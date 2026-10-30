@@ -17,12 +17,14 @@ class _FakeMortal extends MortalAdvisor {
   final Map<String, Object?>? reply;
   final asked = <int>{};
   final hanchans = <bool>{};
+  final players = <int>{};
 
   @override
   Future<Map<String, Object?>> ask(int seat, List<MjaiEvent> events,
       {bool hanchan = true}) async {
     asked.add(seat);
     hanchans.add(hanchan);
+    players.add((events.first['tehais'] as List).length);
     return reply ?? (throw StateError('sidecar down'));
   }
 }
@@ -225,6 +227,33 @@ void main() {
         // Seat 0 is you: the guide column asks about your first turn. Of
         // the bots, only Saeko (seat 1) asks.
         expect(mortal.asked.difference({kHumanSeat}), {1});
+      } finally {
+        game.dispose();
+        Sfx.i.enabled = true;
+      }
+    });
+
+    testWidgets('sanma asks the sanma Mortal with mjai seats 0-2',
+        (tester) async {
+      Sfx.i.enabled = false;
+      final mortal = _FakeMortal();
+      // Seat 2 is sanma's empty seat; Saeko sits on the left, seat 3.
+      final game = GameController(
+          seed: 7,
+          seatCharacters: const [
+            Character.orderic,
+            Character.grant,
+            Character.hubert,
+            Character.saeko,
+          ],
+          mortal: mortal,
+          ruleset: Ruleset.sanma);
+      try {
+        expect(game.mortalAvailable, isTrue);
+        await playHands(tester, game);
+        // You are mjai seat 0; Saeko's seat 3 is mjai seat 2.
+        expect(mortal.asked.difference({kHumanSeat}), {2});
+        expect(mortal.players, {3});
       } finally {
         game.dispose();
         Sfx.i.enabled = true;

@@ -194,10 +194,13 @@ A second sidecar, `tilesense-mortal-sanma`, serves the three-player Mortal on
 libriichi built with `--features sanma`, pinned in
 `mortal_sidecar/model_sanma.json`, and deploys exactly like the 4-player one,
 under `/opt/tilesense-mortal-sanma/` with its own cache
-(`~/.cache/tilesense-mortal-sanma` on the runner). It has no nginx route:
-multiplayer calls it on the droplet, so nothing outside can reach it.
+(`~/.cache/tilesense-mortal-sanma` on the runner). Multiplayer calls it on the
+droplet; the app's offline sanma games (guide column, Saeko, Auto-Play on
+Mortal) call it at `/tilesense/mortal-sanma/`, a route beside the 4-player
+one that shares its request limits (`nginx-mortal-sanma.conf`).
 
-1. `./deploy.sh setup-mortal-sanma` (once): installs and enables the service.
+1. `./deploy.sh setup-mortal-sanma` (once, and again after this route was
+   added): installs and enables the service and adds the nginx route.
 2. `./deploy.sh mortal-sanma`, or Run workflow → `mortal-sanma`. It checks a
    real sanma hand before going live, and switches back if that fails. Then:
    `systemctl status tilesense-mortal-sanma` and
@@ -205,8 +208,13 @@ multiplayer calls it on the droplet, so nothing outside can reach it.
    the 4-player one).
 3. Set the repository variable `MORTAL_SANMA` = `1` so pushes deploy it when
    `mortal_sidecar/` or its pin changes.
+4. Once the route answers
+   (`curl -s https://<host>/tilesense/mortal-sanma/react` gives a 4xx JSON
+   error, not nginx's 404 page), set `MORTAL_SANMA_CLIENT` = `1` and deploy the
+   client: offline sanma then shows the Mortal column and plays Saeko on it.
 
-**To turn it off:** set `MORTAL_SANMA` to anything but `1`;
+**To turn it off:** set `MORTAL_SANMA_CLIENT` and `MORTAL_SANMA` to anything
+but `1`;
 `systemctl stop tilesense-mortal-sanma` stops it. **To change the model:**
 publish a new release, update `model_sanma.json`, and merge.
 

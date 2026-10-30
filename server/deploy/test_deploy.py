@@ -330,19 +330,34 @@ location / { proxy_pass http://unix:/run/myproject/myproject.sock; }
         self.assertEqual(status['build_id'], 'm1')
         self.assertEqual(remote.mortal_variant('mortal-sanma')[2], 8791)
 
-    def test_mortal_sanma_setup_never_touches_nginx(self):
+    def test_mortal_sanma_setup_adds_its_own_route_beside_the_4_player_one(self):
         units = self.root / 'units'
         units.mkdir()
         stage = self.root / 'stage'
         stage.mkdir()
         (stage / 'tilesense-mortal-sanma.service').write_text('unit')
+        (stage / 'nginx-mortal-sanma.conf').write_text(
+            '# comment\nlocation /tilesense/mortal-sanma/ {}\n')
+        (stage / 'nginx-mortal-limits.conf').write_text('limits')
+        site = self.root / 'site'
+        site.write_text('server {\n    # TileSense Mortal\n    location /tilesense/mortal/ {}\n\n'
+                        '    # TileSense versioned releases\n}\n')
+        limits = self.root / 'limits.conf'
+        limits.write_text('limits')
         with patch.object(remote, 'MORTAL_SANMA', self.root / 'opt-sanma'), \
              patch.object(remote, 'UNIT_DIR', units), patch.object(remote, 'run') as run, \
-             patch.object(remote, 'NGINX', self.root / 'missing-nginx'):
+             patch.object(remote, 'NGINX', site), patch.object(remote, 'NGINX_LIMITS', limits):
+            result = remote.setup_mortal(stage, 'mortal-sanma')
+            text = site.read_text()
             self.assertEqual(remote.setup_mortal(stage, 'mortal-sanma'), {'configured': True})
+        self.assertIn('nginx_backup', result)
+        self.assertEqual(text.count('# TileSense sanma Mortal'), 1)
+        self.assertEqual(text.count('location /tilesense/mortal-sanma/ {}'), 1)
+        self.assertIn('location /tilesense/mortal/ {}', text)
+        self.assertNotIn('# comment', text)
+        self.assertEqual(site.read_text(), text)  # the second setup changed nothing
         self.assertTrue((units / 'tilesense-mortal-sanma.service').is_file())
-        self.assertTrue((self.root / 'opt-sanma/releases').is_dir())
-        self.assertNotIn(['systemctl', 'reload', 'nginx'], [c.args[0] for c in run.call_args_list])
+        self.assertIn(['systemctl', 'reload', 'nginx'], [c.args[0] for c in run.call_args_list])
 
     def test_mortal_unknown_variant_is_refused(self):
         with self.assertRaises(ValueError): remote.mortal_status('mortal-mcr')
@@ -520,6 +535,18 @@ class DriverTests(unittest.TestCase):
                 deploy.build_client(Path('/tmp/w'), 'rid', 'abc', False)
             flutter = run.call_args_list[0].args[0]
             self.assertEqual('--dart-define=MORTAL_URL=/tilesense/mortal' in flutter, expected)
+
+    def test_client_build_asks_the_sanma_mortal_only_with_mortal_sanma_client_1(self):
+        # MORTAL_SANMA alone deploys the sidecar; the client waits for its route.
+        for env, expected in (({'MORTAL_SANMA': '1'}, False), ({'MORTAL_SANMA_CLIENT': '1'}, True)):
+            with patch.dict(os.environ, env, clear=True), \
+                 patch.object(deploy, 'output', return_value='{}'), patch.object(deploy, 'run') as run, \
+                 patch.object(deploy.shutil, 'copytree'), patch.object(deploy, 'stamp_client'), \
+                 patch.object(deploy.Path, 'read_text', return_value='version: 1.0.0+1'):
+                deploy.build_client(Path('/tmp/w'), 'rid', 'abc', False)
+            flutter = run.call_args_list[0].args[0]
+            self.assertEqual('--dart-define=MORTAL_SANMA_URL=/tilesense/mortal-sanma' in flutter, expected)
+            self.assertNotIn('--dart-define=MORTAL_URL=/tilesense/mortal', flutter)
 
     def test_all_builds_precede_remote_and_client_activates_last(self):
         events = []

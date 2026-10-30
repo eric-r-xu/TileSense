@@ -90,6 +90,15 @@ void main() {
         'CHI 345m');
   });
 
+  test('a sanma kita reads as KITA', () {
+    final advice = MortalAdvice.fromReply({
+      'reaction': {'type': 'nukidora', 'actor': 0, 'pai': 'N'},
+      'riichi_discard': null,
+    }, call: false);
+    expect(advice.action, 'KITA');
+    expect(advice.discard, isNull);
+  });
+
   group('the guide panel', () {
     // Tenpai: cut 9s. Mortal would declare riichi on that cut, and ranks 3p
     // and 4p behind it.

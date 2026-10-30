@@ -29,6 +29,7 @@ NGINX_LIMITS = Path('/etc/nginx/conf.d/tilesense-mortal-limits.conf')
 MORTAL_UNIT = 'tilesense-mortal.service'
 MORTAL_SANMA_UNIT = 'tilesense-mortal-sanma.service'
 MORTAL_MARKER = '# TileSense Mortal'
+MORTAL_SANMA_MARKER = '# TileSense sanma Mortal'
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,99}\Z')
 # Pruning keeps the newest releases and service rollbacks, and everything
 # younger than the window so open tabs can still load deferred parts.
@@ -411,18 +412,19 @@ def mortal_status(variant='mortal'):
     return json.loads(record.read_text()) if record.is_file() else {}
 
 
-def nginx_mortal_config(text, block):
-    if MORTAL_MARKER in text:
+def nginx_mortal_config(text, block, marker=MORTAL_MARKER):
+    if marker in text:
         return text
     anchor = '    # TileSense versioned releases'
     if text.count(anchor) != 1:
         raise ValueError('Run deploy.sh setup-client first; expected one TileSense releases block')
-    return text.replace(anchor, MORTAL_MARKER + '\n' + block.rstrip() + '\n\n' + anchor, 1)
+    return text.replace(anchor, marker + '\n' + block.rstrip() + '\n\n' + anchor, 1)
 
 
 def setup_mortal(stage, variant='mortal'):
-    """One-time: directories, the unit, and for 4-player the nginx route and
-    limits. The service is enabled but first started by the first release."""
+    """One-time: directories, the unit, the variant's nginx route, and the
+    request limits the routes share. The service is enabled but first started
+    by the first release."""
     root, unit_name, _, _ = mortal_variant(variant)
     unit = UNIT_DIR / unit_name
     # Verified before each restart instead (switch_mortal): its program, the
@@ -432,13 +434,13 @@ def setup_mortal(stage, variant='mortal'):
     shutil.copy2(stage / unit_name, unit)
     run(['systemctl', 'daemon-reload'])
     run(['systemctl', 'enable', unit_name])
-    if variant != 'mortal':
-        return {'configured': True}  # local only: no route
+    route, marker = (('nginx-mortal.conf', MORTAL_MARKER) if variant == 'mortal'
+                     else ('nginx-mortal-sanma.conf', MORTAL_SANMA_MARKER))
     path = NGINX.resolve(strict=True)
     original = path.read_text()
     block = '\n'.join('    ' + line if line else '' for line in
-                      (stage / 'nginx-mortal.conf').read_text().splitlines() if not line.startswith('#'))
-    updated = nginx_mortal_config(original, block)
+                      (stage / route).read_text().splitlines() if not line.startswith('#'))
+    updated = nginx_mortal_config(original, block, marker)
     limits = (stage / 'nginx-mortal-limits.conf').read_text()
     if updated == original and NGINX_LIMITS.is_file() and NGINX_LIMITS.read_text() == limits:
         return {'configured': True}

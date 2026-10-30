@@ -154,7 +154,11 @@ def build_client(work, rid, revision, dirty):
          '--dart-define=BUILD_ID=' + rid, '--dart-define=APP_VERSION=' + version,
          '--dart-define=UPDATE_BASE_HREF=' + BASE,
          # MORTAL=1 shows the guide's Mortal column; the sidecar must be live.
-         *(['--dart-define=MORTAL_URL=' + BASE + 'mortal'] if os.environ.get('MORTAL') == '1' else [])],
+         *(['--dart-define=MORTAL_URL=' + BASE + 'mortal'] if os.environ.get('MORTAL') == '1' else []),
+         # MORTAL_SANMA_CLIENT=1 does the same for offline sanma; its route
+         # comes from setup-mortal-sanma.
+         *(['--dart-define=MORTAL_SANMA_URL=' + BASE + 'mortal-sanma']
+           if os.environ.get('MORTAL_SANMA_CLIENT') == '1' else [])],
         cwd=client)
     web = work / 'web'
     shutil.copytree(client / 'build/web', web)
@@ -197,7 +201,9 @@ MORTAL_DIR = REPO / 'mortal_sidecar'
 MORTAL_VARIANTS = {
     'mortal': ('model.json', 'libriichi',
                ('tilesense-mortal.service', 'nginx-mortal.conf', 'nginx-mortal-limits.conf')),
-    'mortal-sanma': ('model_sanma.json', 'libriichi-sanma', ('tilesense-mortal-sanma.service',)),
+    'mortal-sanma': ('model_sanma.json', 'libriichi-sanma',
+                     ('tilesense-mortal-sanma.service', 'nginx-mortal-sanma.conf',
+                      'nginx-mortal-limits.conf')),
 }
 
 
