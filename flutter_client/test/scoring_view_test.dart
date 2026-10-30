@@ -220,6 +220,14 @@ void main() {
 
       expect(find.byWidgetPredicate((w) => w is TileFace && w.tile == win),
           findsOneWidget);
+      expect(find.byKey(const Key('scoreWinnerPortrait')), findsOneWidget);
+      // The winner's hand renders larger than the dora indicator row.
+      final scales = tester
+          .widgetList<TileFace>(find.byType(TileFace))
+          .map((t) => t.scale)
+          .toSet();
+      expect(scales.contains(1.3), isTrue);
+      expect(scales.every((s) => s >= 1.08), isTrue);
       expect(tester.takeException(), isNull);
     } finally {
       game.dispose();
@@ -272,6 +280,44 @@ void main() {
 
       // Still inside the panel: no render overflow, and every tile sits
       // within the scrollable panel's bounds (it wraps/scrolls instead).
+      expect(tester.takeException(), isNull);
+    } finally {
+      game.dispose();
+      Sfx.i.enabled = true;
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }
+  });
+
+  testWidgets('the match winner\'s portrait grows after a short delay',
+      (tester) async {
+    Sfx.i.enabled = false;
+    final game = _EndGame([5900, 17400, 31600, 45100]);
+    game.togglePause();
+    try {
+      game.round
+        ..phase = RoundPhase.finished
+        ..result = RoundResult(
+          kind: RoundEndKind.exhaustiveDraw,
+          winners: const [],
+          pointDeltas: const {},
+          label: 'Game over',
+        );
+      game.phase = GamePhase.gameEnd;
+      CallCallout.i.clear();
+      await tester.binding.setSurfaceSize(kDesignSize);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+          MaterialApp(home: Scaffold(body: ScoringView(game: game))));
+      await tester.pump();
+
+      final avatar = find.byKey(const Key('scoreWinnerAvatar'));
+      expect(avatar, findsOneWidget);
+      expect(tester.getSize(avatar).width, 26);
+
+      await tester.pump(kMatchWinnerReveal);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(tester.getSize(avatar).width, greaterThan(60));
       expect(tester.takeException(), isNull);
     } finally {
       game.dispose();

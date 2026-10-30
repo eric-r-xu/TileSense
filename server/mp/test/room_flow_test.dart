@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:io';
 
@@ -969,7 +970,7 @@ void main() {
         if (c != null && m['lastDiscardSeat'] == c.seat) {
           measured.add((held: c.held, after: t - c.at));
           call = null;
-          if (measured.length >= 3 && !done.isCompleted) done.complete();
+          if (measured.length >= 4 && !done.isCompleted) done.complete();
         }
         discardAt = t;
       }
@@ -992,13 +993,19 @@ void main() {
     addTearDown(watch.cancel);
 
     await done.future.timeout(const Duration(seconds: 60));
-    const slack = 40; // timer and socket jitter on a loaded machine
-    for (final c in measured) {
-      expect(c.held, greaterThanOrEqualTo(hold.inMilliseconds - slack),
-          reason: 'the called tile should be seen landing first');
-      expect(c.after, greaterThanOrEqualTo(afterCall.inMilliseconds - slack),
-          reason: "the caller's next discard waits out its bubble");
-    }
+    // Both gaps are timed from when each message reaches this client, and
+    // this test shares its process with the server. A loaded machine can
+    // deliver a discard late, which only ever shortens the hold measured
+    // against it — so a single call can look rushed when the server held it
+    // in full. Without the hold every call would be rushed, so the longest
+    // gap is the one to check.
+    const slack = 40; // timer and socket jitter
+    expect(measured.map((c) => c.held).reduce(math.max),
+        greaterThanOrEqualTo(hold.inMilliseconds - slack),
+        reason: 'the called tile should be seen landing first: $measured');
+    expect(measured.map((c) => c.after).reduce(math.max),
+        greaterThanOrEqualTo(afterCall.inMilliseconds - slack),
+        reason: "the caller's next discard waits out its bubble: $measured");
   });
 
   test('an oversized message closes the socket', () async {

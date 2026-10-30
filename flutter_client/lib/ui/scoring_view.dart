@@ -50,6 +50,11 @@ class _ScoringViewState extends State<ScoringView> {
   /// of letting it overflow the panel).
   static const double _tileScale = 1.08;
 
+  /// The winner's own hand is the answer to "who won", so it renders larger
+  /// than the other tile rows; its `FittedBox` scales it back down on a
+  /// narrow panel rather than overflowing.
+  static const double _winnerTileScale = 1.3;
+
   /// Matches the "recommended" green used elsewhere (the guide's top-discard
   /// highlight, the efficiency dial) so a winning tile reads the same way.
   static const Color _winGreen = AppColors.right;
@@ -287,8 +292,8 @@ class _ScoringViewState extends State<ScoringView> {
                                   ? l10n.autoContinuePaused
                                   : game.paused
                                       ? l10n.autoContinueHeld
-                                      : l10n.autoContinueIn(_secondsLeft
-                                          .clamp(0, _autoContinueSeconds)),
+                                      : l10n.autoContinueIn(_secondsLeft.clamp(
+                                          0, _autoContinueSeconds)),
                               key: const Key('scoreCountdown'),
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 12),
@@ -355,6 +360,26 @@ class _ScoringViewState extends State<ScoringView> {
         w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
     return Column(
       children: [
+        // The winner's portrait, so who won reads at a glance. Only wins get
+        // here — a draw has no winner to show.
+        Container(
+          key: const Key('scoreWinnerPortrait'),
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xff0c4747),
+            border: Border.all(color: AppColors.goldBright, width: 2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            kCharacterPortrait[game.characterForSeat(seat)]!,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+        const SizedBox(height: 4),
         Text(
           '${w.wind.kanji} ${game.seatLabel(seat)}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -378,14 +403,14 @@ class _ScoringViewState extends State<ScoringView> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1),
                   child: TileFace(
-                      tile: t, size: TileSize.normal, scale: _tileScale),
+                      tile: t, size: TileSize.normal, scale: _winnerTileScale),
                 ),
               if (winTile != null) ...[
                 const SizedBox(width: 8),
                 TileFace(
                   tile: winTile,
                   size: TileSize.normal,
-                  scale: _tileScale,
+                  scale: _winnerTileScale,
                   highlightColor: _winGreen,
                 ),
               ],
@@ -395,7 +420,9 @@ class _ScoringViewState extends State<ScoringView> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: TileFace(
-                        type: ty, size: TileSize.normal, scale: _tileScale),
+                        type: ty,
+                        size: TileSize.normal,
+                        scale: _winnerTileScale),
                   ),
               ],
             ],
@@ -445,9 +472,12 @@ class _ScoringViewState extends State<ScoringView> {
           round.ruleset.isSichuan
               ? context.l10n.sichuanScoreTotal(score.han, score.points)
               : round.ruleset.isMcr
-              ? context.l10n.mcrScoreTotal(score.mcrQualifyingPoints ?? score.han,
-                  score.mcrFlowerPoints ?? 0, score.points)
-              : _totalLine(context.l10n, score, taiwanese: taiwanese, hk: hk),
+                  ? context.l10n.mcrScoreTotal(
+                      score.mcrQualifyingPoints ?? score.han,
+                      score.mcrFlowerPoints ?? 0,
+                      score.points)
+                  : _totalLine(context.l10n, score,
+                      taiwanese: taiwanese, hk: hk),
           style: const TextStyle(
               color: AppColors.goldBright, fontWeight: FontWeight.bold),
         ),
@@ -566,7 +596,8 @@ class _ScoringViewState extends State<ScoringView> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(context.l10n.waits,
-                    style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(width: 2),
                 for (final wt in waits)
                   TileFace(type: wt, size: TileSize.small, scale: _tileScale),
@@ -587,9 +618,14 @@ class _ScoringViewState extends State<ScoringView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Only the winner's name is picked out; the row stays plain.
                 Text(
                   '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
-                  style: const TextStyle(color: Colors.white),
+                  style: r.winners.contains(i)
+                      ? const TextStyle(
+                          color: AppColors.goldBright,
+                          fontWeight: FontWeight.bold)
+                      : const TextStyle(color: Colors.white),
                 ),
                 Text(
                   '${round.seats[i].points}'
@@ -655,6 +691,9 @@ class _ScoringViewState extends State<ScoringView> {
     final seats = [...game.round.ruleset.activeSeats]
       ..sort((a, b) => game.tablePoints[b].compareTo(game.tablePoints[a]));
     const style = TextStyle(color: Colors.white70);
+    // Everyone level on the top score shares first.
+    final top = game.tablePoints[seats.first];
+    bool isWinner(int seat) => game.tablePoints[seat] == top;
     return Wrap(
       key: const Key('scoreStandings'),
       alignment: WrapAlignment.center,
@@ -665,17 +704,23 @@ class _ScoringViewState extends State<ScoringView> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('#${i + 1}',
+              Text(isWinner(seats[i]) ? '\u{1F451}' : '#${i + 1}',
                   style: style.copyWith(
-                      color: i == 0 ? AppColors.goldBright : null,
+                      color: isWinner(seats[i]) ? AppColors.goldBright : null,
                       fontWeight: FontWeight.bold)),
               const SizedBox(width: 6),
-              _standingsAvatar(game.characterForSeat(seats[i]), first: i == 0),
+              _standingsAvatar(game.characterForSeat(seats[i]),
+                  first: isWinner(seats[i])),
               const SizedBox(width: 6),
               Text(
                   '${game.seatLabel(seats[i])}: '
                   '${game.tablePoints[seats[i]]}',
-                  style: style),
+                  style: isWinner(seats[i])
+                      ? style.copyWith(
+                          color: AppColors.goldBright,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)
+                      : style),
             ],
           ),
       ],
@@ -683,23 +728,91 @@ class _ScoringViewState extends State<ScoringView> {
   }
 
   Widget _standingsAvatar(Character character, {required bool first}) {
+    final image = Image.asset(
+      kCharacterPortrait[character]!,
+      fit: BoxFit.cover,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+    );
+    if (first) return _WinnerAvatar(child: image);
     return Container(
       width: 26,
       height: 26,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xff0c4747),
-        border: Border.all(
-            color: first ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.6),
-            width: first ? 1.5 : 1),
+        border:
+            Border.all(color: AppColors.gold.withValues(alpha: 0.6), width: 1),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Image.asset(
-        kCharacterPortrait[character]!,
-        fit: BoxFit.cover,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      child: image,
+    );
+  }
+}
+
+/// The match winner's portrait: sits at the standings size, then after
+/// [kMatchWinnerReveal] grows with a gold glow. Skips the wait and the growth
+/// when the platform asks for reduced motion.
+class _WinnerAvatar extends StatefulWidget {
+  const _WinnerAvatar({required this.child});
+  final Widget child;
+
+  @override
+  State<_WinnerAvatar> createState() => _WinnerAvatarState();
+}
+
+class _WinnerAvatarState extends State<_WinnerAvatar> {
+  static const double _small = 26;
+  static const double _big = 88;
+
+  bool _grown = false;
+  Timer? _timer;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_grown || _timer != null) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _grown = true;
+      return;
+    }
+    _timer = Timer(kMatchWinnerReveal, () {
+      if (mounted) setState(() => _grown = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.disableAnimationsOf(context);
+    final size = _grown ? _big : _small;
+    return AnimatedContainer(
+      key: const Key('scoreWinnerAvatar'),
+      duration: still ? Duration.zero : const Duration(milliseconds: 450),
+      curve: Curves.easeOutBack,
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xff0c4747),
+        border:
+            Border.all(color: AppColors.goldBright, width: _grown ? 3 : 1.5),
+        boxShadow: _grown
+            ? [
+                BoxShadow(
+                    color: AppColors.goldBright.withValues(alpha: 0.55),
+                    blurRadius: 18,
+                    spreadRadius: 2),
+              ]
+            : const [],
       ),
+      clipBehavior: Clip.antiAlias,
+      child: widget.child,
     );
   }
 }
