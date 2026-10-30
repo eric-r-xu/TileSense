@@ -1,0 +1,30 @@
+# /etc/systemd/system/tilesense-mortal-sanma.service
+#
+# The sanma (three-player) Mortal: the same ../server.py as tilesense-mortal,
+# on a sanma libriichi and model (../model_sanma.json), on its own port so the
+# two run side by side. Stateless, so a restart loses nothing. Capped like
+# tilesense-mortal (the sanma network is the same size); together they stay
+# well inside the shared 1 vCPU / 2 GB droplet.
+[Unit]
+Description=TileSense sanma Mortal sidecar (three-player Mortal moves)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=OMP_NUM_THREADS=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/tilesense-mortal-sanma/current/venv/bin/python /opt/tilesense-mortal-sanma/current/server.py --model /opt/tilesense-mortal-sanma/current/mortal.onnx --host 127.0.0.1 --port 8791
+Restart=always
+RestartSec=2
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+MemoryHigh=250M
+MemoryMax=300M
+CPUQuota=40%
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
