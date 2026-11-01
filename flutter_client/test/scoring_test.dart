@@ -98,6 +98,119 @@ void main() {
     expect(s.fu, 25);
   });
 
+  group('seven pairs still takes the yaku for how it was won', () {
+    // Sherman's hand: 22p 55p 33s 55s 88s 99s and a green dragon pair.
+    HandScore win({
+      bool riichi = false,
+      bool doubleRiichi = false,
+      bool ippatsu = false,
+      bool tsumo = false,
+      bool haitei = false,
+      bool houtei = false,
+    }) =>
+        scoreHand(
+          parseTiles('22p 55p 33s 55s 88s 99s G'),
+          parseTiles('G').single,
+          const [],
+          ScoreContext(
+            roundWind: Wind.east,
+            seatWind: Wind.west,
+            isTsumo: tsumo,
+            closed: true,
+            riichi: riichi,
+            doubleRiichi: doubleRiichi,
+            ippatsu: ippatsu,
+            haitei: haitei,
+            houtei: houtei,
+            sanma: true,
+          ),
+          isDealer: false,
+        );
+
+    Map<String, int> yaku(HandScore s) => {for (final y in s.yaku) y.name: y.han};
+
+    test('a plain win is just chiitoitsu', () {
+      final s = win();
+      expect(yaku(s), {'Chiitoitsu': 2});
+      expect(s.han, 2);
+      expect(s.fu, 25);
+    });
+
+    test('double riichi adds its 2 han', () {
+      final s = win(doubleRiichi: true);
+      expect(yaku(s), {'Double Riichi': 2, 'Chiitoitsu': 2});
+      expect(s.han, 4);
+      expect(s.fu, 25);
+    });
+
+    test('riichi, ippatsu, tsumo, haitei and houtei count too', () {
+      expect(yaku(win(riichi: true))['Riichi'], 1);
+      expect(yaku(win(riichi: true, ippatsu: true))['Ippatsu'], 1);
+      expect(yaku(win(tsumo: true))['Menzen Tsumo'], 1);
+      expect(yaku(win(tsumo: true, haitei: true))['Haitei Raoyue'], 1);
+      expect(yaku(win(houtei: true))['Houtei Raoyui'], 1);
+      expect(win(riichi: true, ippatsu: true, tsumo: true).han, 5);
+    });
+
+    /// A closed seven-pairs ron on [last], the other twelve tiles [rest].
+    HandScore pairs(String rest, String last) => scoreHand(
+          parseTiles(rest),
+          parseTiles(last).single,
+          const [],
+          ScoreContext(
+            roundWind: Wind.east,
+            seatWind: Wind.south,
+            isTsumo: false,
+            closed: true,
+          ),
+          isDealer: false,
+        );
+
+    test('tanyao counts when every pair is a simple', () {
+      final s = pairs('22p 44p 66p 33s 55s 77s 8s', '8s');
+      expect(yaku(s), {'Chiitoitsu': 2, 'Tanyao': 1});
+      expect(s.han, 3);
+      expect(s.fu, 25);
+    });
+
+    test('one terminal or honor pair means no tanyao', () {
+      expect(yaku(pairs('22p 44p 66p 33s 55s 77s 1s', '1s')).containsKey('Tanyao'),
+          isFalse);
+    });
+
+    test('honroutou counts when every pair is a terminal or honor', () {
+      final s = pairs('11m 99m 11p 99p 11s 99s E', 'E');
+      expect(yaku(s), {'Chiitoitsu': 2, 'Honroutou': 2});
+      expect(s.han, 4);
+    });
+
+    test('chinitsu and honitsu count at their closed values', () {
+      final chinitsu = pairs('11p 22p 44p 55p 77p 88p 9p', '9p');
+      expect(yaku(chinitsu), {'Chiitoitsu': 2, 'Chinitsu': 6});
+      final honitsu = pairs('11m 99m EE SS WW BB G', 'G');
+      // One suit and honors, and every pair a terminal or honor.
+      expect(yaku(honitsu), {'Chiitoitsu': 2, 'Honroutou': 2, 'Honitsu': 3});
+    });
+
+    test('a seven-pair yakuman is unchanged by riichi', () {
+      HandScore honors(bool riichi) => scoreHand(
+            parseTiles('EE SS WW NN BB GG R'),
+            parseTiles('R').single,
+            const [],
+            ScoreContext(
+              roundWind: Wind.east,
+              seatWind: Wind.south,
+              isTsumo: false,
+              closed: true,
+              riichi: riichi,
+            ),
+            isDealer: false,
+          );
+      expect(honors(true).yakuman, honors(false).yakuman);
+      expect(honors(true).yaku.any((y) => y.name == 'Riichi'), isFalse);
+    });
+  });
+
   test('kokushi is a yakuman worth 32000 for a non-dealer', () {
     final s = score('19m 19p 19s E S W N B G R', '1m');
     expect(s.yakuman, greaterThanOrEqualTo(1));
