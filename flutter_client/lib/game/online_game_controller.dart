@@ -415,14 +415,16 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
   /// ([riichiAutoDiscardDelay]) — purely a client-side convenience: every
   /// later discard is already forced to be the drawn tile, so this just sends
   /// the discard the player had no choice over. Never fires with a self-kan
-  /// on offer (a real decision, left to the player) or a tsumo/flower win on
-  /// offer (a win is never thrown away).
+  /// or sanma's kita on offer (real decisions, left to the player) or a
+  /// tsumo/flower win on offer (a win is never thrown away).
   void _maybeAutoDiscardInRiichi() {
     if (!isHumanTurn) return;
     final human = round.seats[kHumanSeat];
     if (!human.riichi) return;
     if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) return;
     if (round.closedKanTypes(kHumanSeat).isNotEmpty) return;
+    // A North drawn under riichi can be set aside as kita instead.
+    if (round.canKita(kHumanSeat)) return;
     final drawn = human.drawn;
     if (drawn == null || drawn.id == _autoDiscardedTileId) return;
     _autoDiscardedTileId = drawn.id;
