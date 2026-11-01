@@ -244,7 +244,20 @@ HandScore _scoreDecomp(
       yaku.add(const YakuResult('Tsuuiisou', 0, yakuman: 1));
       yakuman += 1;
     }
+    // Seven pairs is an ordinary closed win like any other, so riichi, tsumo
+    // and the rest count with it, as do the yaku for what the tiles are
+    // (a yakuman scores on its own).
+    if (yakuman == 0) _situationalYaku(ctx, yaku);
     yaku.add(const YakuResult('Chiitoitsu', 2));
+    if (yakuman == 0) {
+      if (_allGroupsAndPair(groups, d, (t) => !t.isTerminalOrHonor)) {
+        yaku.add(const YakuResult('Tanyao', 1));
+      }
+      if (_allGroupsAndPair(groups, d, (t) => t.isTerminalOrHonor)) {
+        yaku.add(const YakuResult('Honroutou', 2));
+      }
+      _flushYaku(allTypes, ctx.closed, yaku);
+    }
   } else {
     yakuman += _yakumanYaku(groups, d, ctx, yaku, isDealer: isDealer);
     if (yakuman == 0) {
@@ -348,6 +361,22 @@ int _yakumanYaku(
 
 // --- standard yaku ------------------------------------------------------------
 
+/// Yaku that come from how the hand was won rather than from its shape, so
+/// they apply to every ordinary hand, seven pairs included.
+void _situationalYaku(ScoreContext ctx, List<YakuResult> out) {
+  if (ctx.doubleRiichi) {
+    out.add(const YakuResult('Double Riichi', 2));
+  } else if (ctx.riichi) {
+    out.add(const YakuResult('Riichi', 1));
+  }
+  if (ctx.ippatsu) out.add(const YakuResult('Ippatsu', 1));
+  if (ctx.closed && ctx.isTsumo) out.add(const YakuResult('Menzen Tsumo', 1));
+  if (ctx.haitei) out.add(const YakuResult('Haitei Raoyue', 1));
+  if (ctx.houtei) out.add(const YakuResult('Houtei Raoyui', 1));
+  if (ctx.rinshan) out.add(const YakuResult('Rinshan Kaihou', 1));
+  if (ctx.chankan) out.add(const YakuResult('Chankan', 1));
+}
+
 void _standardYaku(
   List<Meld> groups,
   HandDecomposition d,
@@ -361,17 +390,7 @@ void _standardYaku(
   final seqs = groups.where((g) => g.isSequence).toList();
   final triplets = groups.where((g) => g.isTripletLike).toList();
 
-  if (ctx.doubleRiichi) {
-    out.add(const YakuResult('Double Riichi', 2));
-  } else if (ctx.riichi) {
-    out.add(const YakuResult('Riichi', 1));
-  }
-  if (ctx.ippatsu) out.add(const YakuResult('Ippatsu', 1));
-  if (closed && ctx.isTsumo) out.add(const YakuResult('Menzen Tsumo', 1));
-  if (ctx.haitei) out.add(const YakuResult('Haitei Raoyue', 1));
-  if (ctx.houtei) out.add(const YakuResult('Houtei Raoyui', 1));
-  if (ctx.rinshan) out.add(const YakuResult('Rinshan Kaihou', 1));
-  if (ctx.chankan) out.add(const YakuResult('Chankan', 1));
+  _situationalYaku(ctx, out);
 
   // Tanyao.
   if (_allGroupsAndPair(groups, d, (t) => !t.isTerminalOrHonor)) {
@@ -456,7 +475,12 @@ void _standardYaku(
     out.add(const YakuResult('Honroutou', 2));
   }
 
-  // Honitsu / Chinitsu.
+  _flushYaku(allTypes, closed, out);
+}
+
+/// Honitsu / Chinitsu: one suit, with or without honors. Shared by ordinary
+/// hands and seven pairs.
+void _flushYaku(List<TileType> allTypes, bool closed, List<YakuResult> out) {
   final suits = <int>{};
   var hasHonor = false;
   for (final t in allTypes) {
