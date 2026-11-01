@@ -466,15 +466,19 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// While locked into riichi, cut the drawn tile on its own after a short
   /// random pause ([riichiAutoDiscardDelay]) — every later discard is already
   /// forced to be the drawn tile ([Round.discard]'s tsumogiri lock), so there
-  /// is nothing to confirm. Never fires with a self-kan on offer (a real
-  /// decision, left to the player) or a tsumo/flower win on offer (a win is
-  /// never thrown away). A tap on the tile during the pause still discards it
-  /// at once; the timer then finds the turn already over and does nothing.
+  /// is nothing to confirm. Never fires with a self-kan or sanma's kita on
+  /// offer (real decisions, left to the player) or a tsumo/flower win on offer
+  /// (a win is never thrown away). A tap on the tile during the pause still
+  /// discards it at once; the timer then finds the turn already over and does
+  /// nothing.
   void _maybeAutoDiscardInRiichi() {
     final human = round.seats[kHumanSeat];
     if (!human.riichi) return;
     if (round.canTsumo(kHumanSeat) || round.canFlowerWin(kHumanSeat)) return;
     if (round.closedKanTypes(kHumanSeat).isNotEmpty) return;
+    // A North drawn under riichi can be set aside as kita, which keeps the
+    // wait and adds a dora; cutting it for you would take that away.
+    if (round.canKita(kHumanSeat)) return;
     final drawn = human.drawn;
     if (drawn == null) return;
     final r = round;

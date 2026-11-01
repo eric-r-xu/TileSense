@@ -90,6 +90,48 @@ void main() {
       fail('no seed dealt you a North');
     });
 
+    test('a riichi hand that draws a North is not cut for you: KITA stays', () {
+      // Riichi normally cuts the drawn tile 0.5-1.5s after it lands, since the
+      // cut is forced. A drawn North is a real choice (kita keeps the wait and
+      // adds a dora), so the auto-cut must stand down, like it does for a kan.
+      GameController riichiWithDraw(TileType drawnType) {
+        final game = GameController(seed: 1, ruleset: Ruleset.sanma)
+          ..setAutoplay(false);
+        final me = game.round.seats[kHumanSeat];
+        final drawn = Tile(900, drawnType);
+        me
+          ..hand = [...parseTiles('111m 999m 123p 456p 7p'), drawn]
+          ..drawn = drawn
+          ..riichi = true
+          ..melds = [];
+        game.round
+          ..turn = kHumanSeat
+          ..phase = RoundPhase.discarding;
+        // Re-run the turn step the way resuming from a pause does.
+        game
+          ..togglePause()
+          ..togglePause();
+        return game;
+      }
+
+      fakeAsync((fa) {
+        final north = riichiWithDraw(TileType.pei);
+        fa.elapse(const Duration(seconds: 6));
+        expect(north.humanCanKita, isTrue, reason: 'KITA is still on offer');
+        expect(north.round.seats[kHumanSeat].pond, isEmpty,
+            reason: 'the North was not thrown away');
+        north.humanKita();
+        expect(north.round.seats[kHumanSeat].kita, hasLength(1));
+        north.dispose();
+
+        // Control: a drawn tile that is not a North is still cut for you.
+        final plain = riichiWithDraw(TileType.pin9);
+        fa.elapse(const Duration(seconds: 6));
+        expect(plain.round.seats[kHumanSeat].pond, isNotEmpty);
+        plain.dispose();
+      });
+    });
+
     test('the dealer passes round three seats, and a North seat is never '
         'yours', () {
       final game = GameController(seed: 1, ruleset: Ruleset.sanma)
