@@ -442,6 +442,7 @@ Thank you to the below players whose testing, suggestions and bug reports helped
   - identifying missed pinfu yaku scoring.
   - identifying illegal closed kans after declaring riichi.
   - identifying missing chi choices when more than one sequence was available.
+  - identifying the score-screen auto-continue countdown resetting to 20 seconds after pressing Resume.
   - suggesting the Auto-Pass calling feature.
   - suggesting UX layout improvements.
 - **Robert K**:

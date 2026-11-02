@@ -122,10 +122,12 @@ class _ScoringViewState extends State<ScoringView> {
     });
   }
 
-  void _startCountdown() {
+  void _startCountdown({bool keepRemaining = false}) {
     _timer?.cancel();
     if (!_autoEnabled || game.phase == GamePhase.gameEnd) return;
-    _secondsLeft = _autoContinueSeconds;
+    if (!keepRemaining || _secondsLeft <= 0) {
+      _secondsLeft = _autoContinueSeconds;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       // Freeze the countdown while the game is paused — pausing on the score
@@ -157,7 +159,8 @@ class _ScoringViewState extends State<ScoringView> {
   void _toggleAuto() {
     setState(() => _autoEnabled = !_autoEnabled);
     if (_autoEnabled) {
-      _startCountdown();
+      // Resume from where Pause stopped it, not back at the full wait.
+      _startCountdown(keepRemaining: true);
     } else {
       _timer?.cancel();
     }
