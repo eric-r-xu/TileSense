@@ -12,6 +12,7 @@ import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/scoring.dart';
 import 'package:mahjong_core/sichuan/sichuan_ledger.dart';
 import 'package:mahjong_core/tile.dart';
+import 'score_text.dart';
 import 'tile_face.dart';
 import 'theme.dart';
 
@@ -355,7 +356,6 @@ class _ScoringViewState extends State<ScoringView> {
   Widget _handBlock(Round round, int seat, HandScore score, Tile? winTile) {
     final w = round.seats[seat];
     final hk = round.ruleset.isChineseStyle;
-    final taiwanese = round.ruleset.isTaiwanese;
     // The dora indicators always show; ura only counts (and only shows) for a
     // hand that won in riichi.
     final doraInd = round.wall.doraIndicators();
@@ -450,61 +450,18 @@ class _ScoringViewState extends State<ScoringView> {
           runSpacing: 2,
           children: [
             for (final y in score.yaku)
-              Text(
-                  switch (context.l10n.scoringName(y.name, round.ruleset)) {
-                    final name when round.ruleset.isMcr =>
-                      context.l10n.yakuLineMcr(name, y.han),
-                    final name when taiwanese => y.faan == 1
-                        ? context.l10n.yakuLineTaiOne(name, y.faan)
-                        : context.l10n.yakuLineTaiMany(name, y.faan),
-                    final name when hk =>
-                      context.l10n.yakuLineFaan(name, y.faan),
-                    final name => y.yakuman > 0
-                        ? context.l10n.yakuLineYakuman(name)
-                        : context.l10n.yakuLineHan(name, y.han),
-                  },
+              Text(yakuLine(context.l10n, y, round.ruleset),
                   style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          // Taiwanese's pattern total and payout are the same flat number —
-          // see taiwanese_scoring.dart — so there is nothing to show twice
-          // the way "faan — chips" or "han fu — points" show two different
-          // scales.
-          round.ruleset.isSichuan
-              ? context.l10n.sichuanScoreTotal(score.han, score.points)
-              : round.ruleset.isMcr
-                  ? context.l10n.mcrScoreTotal(
-                      score.mcrQualifyingPoints ?? score.han,
-                      score.mcrFlowerPoints ?? 0,
-                      score.points)
-                  : _totalLine(context.l10n, score,
-                      taiwanese: taiwanese, hk: hk),
+          scoreTotalLine(context.l10n, score, round.ruleset),
           style: const TextStyle(
               color: AppColors.goldBright, fontWeight: FontWeight.bold),
         ),
       ],
     );
-  }
-
-  /// The hand's total: Taiwanese's points, Hong Kong's faan and chips, or
-  /// riichi's han and fu (or limit) and points.
-  String _totalLine(AppLocalizations l10n, HandScore score,
-      {required bool taiwanese, required bool hk}) {
-    final limit = score.limitName.isEmpty
-        ? ''
-        : l10n.limitSuffix(l10n.limitName(score.limitName));
-    if (taiwanese) {
-      return score.points == 1
-          ? l10n.scorePointOne(score.points)
-          : l10n.scorePointMany(score.points);
-    }
-    if (hk) return l10n.scoreFaanChips(score.faan, score.points, limit);
-    if (score.yakuman > 0) {
-      return l10n.scoreLimitOnly(l10n.limitName(score.limitName), score.points);
-    }
-    return l10n.scoreHanFu(score.han, score.fu, limit, score.points);
   }
 
   /// One line of dora / ura-dora indicator tiles, labelled. Empty when there
