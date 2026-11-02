@@ -43,8 +43,8 @@ void main() {
 
   group('record', () {
     test('survives a round trip, and anything unreadable starts fresh', () {
-      final p = Progress(
-          wins: 4, hands: 9, done: {Nudge.fullGuide}, muted: true);
+      final p =
+          Progress(wins: 4, hands: 9, done: {Nudge.fullGuide}, muted: true);
       final back = Progress.fromJson(p.toJson());
       expect((back.wins, back.hands, back.muted), (4, 9, true));
       expect(back.done, {Nudge.fullGuide});
@@ -82,27 +82,25 @@ void main() {
     });
 
     test('they come in order as wins mount, each once', () {
-      expect(due(wins(kFullGuideWins)), Nudge.fullGuide);
-      expect(due(wins(kHigherMinimumWins, done: {Nudge.fullGuide})),
-          Nudge.higherMinimum);
+      // The full-guide suggestion is retired, so it is never due.
+      expect(due(wins(kFullGuideWins)), isNull);
+      expect(due(wins(kHigherMinimumWins)), Nudge.higherMinimum);
       expect(
           due(wins(kNewRulesetWins,
               done: {Nudge.fullGuide, Nudge.higherMinimum})),
           Nudge.newRuleset);
-      expect(
-          due(wins(99, done: {...Nudge.values})), isNull);
+      expect(due(wins(99, done: {...Nudge.values})), isNull);
     });
 
     test('one at a time: the earliest that is open', () {
-      expect(due(wins(kNewRulesetWins)), Nudge.fullGuide);
+      expect(due(wins(kNewRulesetWins)), Nudge.higherMinimum);
     });
 
     test('a suggestion that no longer makes sense is skipped', () {
       // Already on the full guide: nothing to switch to.
       expect(due(wins(kFullGuideWins), simple: false), isNull);
       // Past the minimum already, or not Hong Kong: no minimum to raise.
-      expect(
-          due(wins(kHigherMinimumWins, done: {Nudge.fullGuide}), faan: 1),
+      expect(due(wins(kHigherMinimumWins, done: {Nudge.fullGuide}), faan: 1),
           isNull);
       expect(
           due(wins(kHigherMinimumWins, done: {Nudge.fullGuide}),
@@ -110,7 +108,9 @@ void main() {
           isNull);
       // Nowhere further to go from Riichi.
       expect(
-          due(wins(kNewRulesetWins, done: {...Nudge.values}.difference({Nudge.newRuleset})),
+          due(
+              wins(kNewRulesetWins,
+                  done: {...Nudge.values}.difference({Nudge.newRuleset})),
               ruleset: Ruleset.riichi),
           isNull);
     });
@@ -148,8 +148,13 @@ void main() {
         game.humanTsumo();
         expect(game.phase, GamePhase.roundEnd);
         game.continueFromRoundEnd();
-        expect((ProgressStore.instance.value.wins,
-            ProgressStore.instance.value.hands), (1, 1));
+        expect((
+          ProgressStore.instance.value.wins,
+          ProgressStore.instance.value.hands
+        ), (
+          1,
+          1
+        ));
       } finally {
         game.dispose();
       }
@@ -162,8 +167,13 @@ void main() {
         game.setAutoplay(false); // off again before the win: still not yours
         game.humanTsumo();
         game.continueFromRoundEnd();
-        expect((ProgressStore.instance.value.wins,
-            ProgressStore.instance.value.hands), (0, 1));
+        expect((
+          ProgressStore.instance.value.wins,
+          ProgressStore.instance.value.hands
+        ), (
+          0,
+          1
+        ));
       } finally {
         game.dispose();
       }
@@ -187,8 +197,13 @@ void main() {
         game.round.phase = RoundPhase.discarding;
         game.humanTsumo();
         game.continueFromRoundEnd();
-        expect((ProgressStore.instance.value.wins,
-            ProgressStore.instance.value.hands), (1, 2));
+        expect((
+          ProgressStore.instance.value.wins,
+          ProgressStore.instance.value.hands
+        ), (
+          1,
+          2
+        ));
       } finally {
         game.dispose();
       }
@@ -217,19 +232,11 @@ void main() {
       expect(find.byKey(const Key('nudgeCard')), findsNothing);
     });
 
-    testWidgets('the full-guide suggestion switches the guide, once',
-        (tester) async {
+    testWidgets('the full-guide suggestion is never offered', (tester) async {
       earn(kFullGuideWins);
       await boot(tester);
-      expect(text(tester), contains('won $kFullGuideWins hands'));
-      expect(text(tester), contains('full guide'));
-      expect(BeginnerGuide.on.value, isTrue);
-
-      await tester.tap(find.byKey(const Key('nudgeAction')));
-      await tester.pump();
-      expect(BeginnerGuide.on.value, isFalse);
       expect(find.byKey(const Key('nudgeCard')), findsNothing);
-      expect(ProgressStore.instance.value.done, {Nudge.fullGuide});
+      expect(BeginnerGuide.on.value, isTrue);
     });
 
     testWidgets('the minimum suggestion changes the next game\'s minimum',
@@ -249,8 +256,7 @@ void main() {
           .widget<OutlinedButton>(find.byKey(const Key('minimumFaan_1')))
           .style!
           .side!
-          .resolve({})!
-          .width;
+          .resolve({})!.width;
       expect(selected, 2, reason: 'the 1 faan minimum is now chosen');
     });
 
@@ -265,18 +271,18 @@ void main() {
 
       await tester.tap(find.byKey(const Key('nudgeAction')));
       await tester.pump();
-      expect(taglineRules('Taiwanese'),
-          findsOneWidget);
+      expect(taglineRules('Taiwanese'), findsOneWidget);
     });
 
     testWidgets('Not now retires one; Stop suggesting retires them all',
         (tester) async {
       earn(kNewRulesetWins);
       await boot(tester);
+      expect(text(tester), contains('1 faan minimum'));
       await tester.tap(find.byKey(const Key('nudgeNotNow')));
       await tester.pump();
       expect(BeginnerGuide.on.value, isTrue, reason: 'nothing was changed');
-      expect(text(tester), contains('1 faan minimum'),
+      expect(text(tester), contains('Taiwanese'),
           reason: 'the next one is offered');
 
       await tester.tap(find.byKey(const Key('nudgeStop')));
@@ -285,7 +291,8 @@ void main() {
       expect(ProgressStore.instance.value.muted, isTrue);
     });
 
-    testWidgets('every suggestion fits, in every language, on a desktop and '
+    testWidgets(
+        'every suggestion fits, in every language, on a desktop and '
         'a phone', (tester) async {
       addTearDown(
           () => AppLanguageController.instance.select(AppLanguage.english));
