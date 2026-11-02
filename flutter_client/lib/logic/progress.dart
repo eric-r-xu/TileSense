@@ -159,9 +159,8 @@ Nudge? dueNudge(
 }) {
   if (p.muted) return null;
   bool open(Nudge n, int wins) => p.wins >= wins && !p.done.contains(n);
-  if (open(Nudge.fullGuide, kFullGuideWins) && simpleGuide) {
-    return Nudge.fullGuide;
-  }
+  // The full-guide suggestion is retired: it is never offered. [Nudge.fullGuide]
+  // stays so progress saved by earlier versions still reads back.
   if (open(Nudge.higherMinimum, kHigherMinimumWins) &&
       ruleset.isHongKong &&
       minimumFaan == 0) {
