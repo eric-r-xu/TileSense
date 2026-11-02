@@ -25,6 +25,8 @@ import 'efficiency_overlay.dart';
 import 'language_button.dart';
 import '../l10n/l10n.dart';
 import 'phone_menu.dart';
+import 'score_text.dart';
+import 'scenario_win_panel.dart';
 import 'ruleset_flag.dart';
 import 'rules_reader.dart';
 import 'table_view.dart';
@@ -65,7 +67,7 @@ class ScenarioPage extends StatefulWidget {
 
 class _ScenarioPageState extends State<ScenarioPage> {
   late final ScenarioController _c =
-      ScenarioController(seatWind: widget.seatWind);
+      ScenarioController(seatWind: widget.seatWind, scoreWins: true);
 
   _Slot _slot = _Slot.hand;
   int _slotSeat = kHumanSeat;
@@ -336,15 +338,25 @@ class _ScenarioPageState extends State<ScenarioPage> {
                       Positioned(
                         left: 8,
                         top: TableView.guidePanelTop,
-                        child: EfficiencyOverlay(
-                          game: _c,
-                          report: _c.report,
-                          maxHeight: c.maxHeight -
-                              TableView.guidePanelTop -
-                              _editorHeight -
-                              8,
-                          showGameControls: false,
-                        ),
+                        child: _c.win?.wins ?? false
+                            ? ScenarioWinPanel(
+                                controller: _c,
+                                onEdit: _edit,
+                                phone: _phone,
+                                maxHeight: c.maxHeight -
+                                    TableView.guidePanelTop -
+                                    _editorHeight -
+                                    8,
+                              )
+                            : EfficiencyOverlay(
+                                game: _c,
+                                report: _c.report,
+                                maxHeight: c.maxHeight -
+                                    TableView.guidePanelTop -
+                                    _editorHeight -
+                                    8,
+                                showGameControls: false,
+                              ),
                       ),
                     ],
                   ),
@@ -692,8 +704,26 @@ class _ScenarioPageState extends State<ScenarioPage> {
   Widget _statusLine() {
     final problems = s.problems();
     final blocked = _c.blockedReason;
+    final win = _c.win;
     final (text, color) = switch ((problems.isEmpty, blocked)) {
+      // A table with nothing on it yet says where to start, rather than
+      // scolding that the hand holds 0 tiles.
+      _ when s.hand.isEmpty && s.offered == null => (
+          'Tap the tiles below to build your hand. 14 tiles that make a '
+              'complete hand are scored; 13 get a call read, or a discard '
+              'read with a 14th.',
+          Colors.white70
+        ),
       (false, _) => (problems.first, const Color(0xffef9a9a)),
+      (true, _) when win != null && win.wins => (
+          'Winning hand: ${scoreTotalLine(context.l10n, win.score, s.ruleset)}',
+          const Color(0xffa5d6a7)
+        ),
+      (true, _) when win != null => (
+          'Complete hand, but it cannot win: ${win.problem}. '
+              'The discard read is below.',
+          const Color(0xffffcc80)
+        ),
       (true, final b?) => (b, const Color(0xffffcc80)),
       _ => (
           'Scored: ${s.isDiscardRead ? "${s.concealedTarget(withDraw: true)} tiles — discard recommendation" : "${s.concealedTarget(withDraw: false)} tiles — call recommendation"}'
@@ -704,7 +734,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
     return Row(
       children: [
         Icon(
-            problems.isEmpty && blocked == null
+            problems.isEmpty && blocked == null && win?.problem == null
                 ? Icons.check_circle_outline
                 : Icons.info_outline,
             size: 14,

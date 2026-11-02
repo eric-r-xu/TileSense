@@ -21,11 +21,38 @@ import 'package:mahjong_core/sichuan/sichuan_wall.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/round.dart';
+import 'package:mahjong_core/scoring.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:mahjong_core/wall.dart';
 import 'scenario.dart';
 import 'scenario_mjai.dart';
+
+/// A posed hand that is complete, scored as the win it would be.
+class ScenarioWin {
+  const ScenarioWin({
+    required this.score,
+    required this.winTile,
+    required this.byTsumo,
+    required this.fromOffer,
+    this.problem,
+  });
+
+  final HandScore score;
+
+  /// The tile that completed the hand.
+  final Tile winTile;
+  final bool byTsumo;
+
+  /// The win is on the tile on offer rather than one of the hand's own.
+  final bool fromOffer;
+
+  /// Why the hand is complete but cannot be declared (no yaku, under the
+  /// table's minimum, a void suit still held); null when it wins.
+  final String? problem;
+
+  bool get wins => problem == null;
+}
 
 class ScenarioController extends ChangeNotifier implements GuideHost {
   /// [seatWind] is the wind you start on (East when null). [askMortal] false
@@ -33,9 +60,14 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   ///
   /// [seatCharacters] gives each seat a persona, portrait and name on the
   /// table; without it the seats go by where they sit.
+  ///
+  /// [scoreWins] has a complete hand scored as the win it is (see [win]) and
+  /// stands the guide down for it. Only the Hand Builder wants that: the daily
+  /// quiz poses complete hands too, and asks what to discard from them.
   ScenarioController(
       {Wind? seatWind,
       bool askMortal = true,
+      this.scoreWins = false,
       List<Character>? seatCharacters,
       @visibleForTesting MortalAdvisor? mortal})
       : _seatCharacters = seatCharacters,
@@ -49,6 +81,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
 
   final MortalAdvisor? _mortal;
   final List<Character>? _seatCharacters;
+  final bool scoreWins;
 
   // Bumped by every edit, so a reply to a table since changed is dropped.
   int _mortalAsk = 0;
@@ -65,6 +98,13 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
 
   /// Why the guide has nothing to say, when it has nothing to say.
   String? blockedReason;
+
+  /// The posed hand scored as a win, when it is a complete hand (14 tiles, or
+  /// 13 plus an offered tile it can ron). Null otherwise.
+  ScenarioWin? win;
+
+  /// What a 13-tile hand waits on, when it is tenpai.
+  List<TileType> waits = const [];
 
   /// The dials a live game would play at this point, as [autoDials] picks
   /// them: the hand is read off the round and seat wind as a hanchan in which
@@ -186,8 +226,9 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       return;
     }
     mortalAdvice = MortalAdvice.thinking;
-    _mortal.advise(events, call: !scenario.isDiscardRead).then(
-        (advice) => advice, onError: (Object e) {
+    _mortal
+        .advise(events, call: !scenario.isDiscardRead)
+        .then((advice) => advice, onError: (Object e) {
       debugPrint('Mortal advice unavailable: $e');
       return MortalAdvice.failed;
     }).then((advice) {
@@ -247,11 +288,25 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     _callAdvice = null;
     kanAdvice = null;
     blockedReason = null;
+    win = null;
+    waits = const [];
 
     final problems = scenario.problems();
     if (problems.isNotEmpty) {
       report = EfficiencyReport.waiting();
       blockedReason = problems.first;
+      notifyListeners();
+      return;
+    }
+
+    win = scoreWins ? _scoreWin() : null;
+    if (win?.wins ?? false) {
+      // A hand that has already won has no discard to choose: the score is
+      // the answer, so the guide stands down (and a Mortal reply to the
+      // earlier ask is dropped).
+      _mortalAsk++;
+      mortalAdvice = null;
+      report = EfficiencyReport.waiting();
       notifyListeners();
       return;
     }
@@ -318,8 +373,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     final offered = scenario.offered;
     if (offered == null) {
       report = EfficiencyReport.waiting();
-      blockedReason = 'Set the tile an opponent just discarded to get a '
-          'call recommendation, or add a 14th tile for a discard read.';
+      waits = round.waitsFor(kHumanSeat);
+      blockedReason = waits.isEmpty
+          ? 'Set the tile an opponent just discarded to get a '
+              'call recommendation, or add a 14th tile for a discard read.'
+          : 'Tenpai, waiting on ${waits.map((t) => t.code).join(' ')}. Add '
+              'one as your 14th tile, or set it on offer, to score the win.';
       notifyListeners();
       return;
     }
@@ -368,6 +427,80 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       opponentMelds: oppMelds,
     );
     notifyListeners();
+  }
+
+  /// The posed hand as a win, or null when it is not a complete hand: your
+  /// own tiles with a winning tile picked out of them ([Scenario.winType], the
+  /// last one placed unless chosen), or 13 tiles that win on the tile on
+  /// offer. A complete hand of your own that cannot be declared carries its
+  /// [ScenarioWin.problem].
+  ScenarioWin? _scoreWin() {
+    final hand = scenario.hand;
+    final Tile winTile;
+    final bool tsumo;
+    final bool fromOffer;
+    if (scenario.isDiscardRead) {
+      if (hand.isEmpty) return null;
+      winTile = hand.lastWhere((t) => t.type == scenario.winType,
+          orElse: () => hand.last);
+      tsumo = scenario.winByTsumo;
+      fromOffer = false;
+    } else {
+      final offered = scenario.offered;
+      // A furiten hand cannot ron whatever it is worth.
+      if (offered == null || round.isFuriten(kHumanSeat)) return null;
+      winTile = offered;
+      tsumo = false;
+      fromOffer = true;
+    }
+
+    final human = round.seats[kHumanSeat];
+    final japanese = ruleset.isJapanese;
+    // The situations a posed table can't know are read off the scenario for
+    // the scoring, then put back.
+    final (wasRiichi, wasIppatsu, wasReplacement) =
+        (human.riichi, human.ippatsu, human.replacementDraw);
+    final riichi =
+        japanese && human.closed && (human.riichi || scenario.riichi);
+    human.riichi = riichi;
+    human.ippatsu = riichi && scenario.ippatsu;
+    human.replacementDraw = japanese && tsumo && scenario.rinshan;
+    final HandScore? score;
+    try {
+      score = round.scorePosedWin(kHumanSeat, winTile,
+          isTsumo: tsumo, chankan: japanese && !tsumo && scenario.chankan);
+    } finally {
+      human.riichi = wasRiichi;
+      human.ippatsu = wasIppatsu;
+      human.replacementDraw = wasReplacement;
+    }
+    if (score == null) return null;
+
+    String? problem;
+    if (!score.valid) {
+      problem = ruleset.isTaiwanese
+          ? 'it is under the ${scenario.minimumPoints}-tai minimum'
+          : japanese
+              ? 'it has no yaku'
+              : 'it does not score enough to win';
+    } else if (ruleset.isHongKong && score.faan < scenario.minimumFaan) {
+      problem = 'it is ${score.faan} faan, under the '
+          '${scenario.minimumFaan}-faan minimum';
+    } else if (ruleset.isSichuan &&
+        human.voidSuit != null &&
+        [...hand, if (fromOffer) winTile]
+            .any((t) => t.type.isSuit && t.type.suit == human.voidSuit)) {
+      problem = 'it still holds the suit you gave up';
+    }
+    // A tile on offer that does not win is the call question the guide
+    // answers (pon, chi, pass), not a hand to explain.
+    if (fromOffer && problem != null) return null;
+    return ScenarioWin(
+        score: score,
+        winTile: winTile,
+        byTsumo: tsumo,
+        fromOffer: fromOffer,
+        problem: problem);
   }
 
   static GuidedAction? _guidedFor(CallType t) => switch (t) {

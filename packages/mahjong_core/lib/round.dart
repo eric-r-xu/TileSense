@@ -1804,6 +1804,30 @@ class Round {
 
   // --- scoring bridge --------------------------------------------------
 
+  /// Scores [seat]'s tiles as a win on [winTile], for a posed table that has
+  /// no turn to play out — the scenario builder asks "what is this hand
+  /// worth?" without drawing or discarding anything. [winTile] is either one
+  /// of the seat's own tiles (a self-draw, or a ron the caller has picked out
+  /// of a full hand) or a tile that is not in hand (the tile on offer); it is
+  /// taken out of the hand before scoring, as a real win would.
+  ///
+  /// Null when the tiles are not a complete hand. Otherwise the score as the
+  /// rules compute it: [HandScore.valid] is false for a hand that is complete
+  /// but cannot win (no yaku, or under Taiwanese's minimum), and Hong Kong's
+  /// faan floor is left for the caller to hold it to, as [_winsWith] does.
+  HandScore? scorePosedWin(int seat, Tile winTile,
+      {required bool isTsumo, bool chankan = false}) {
+    final s = seats[seat];
+    final concealed = [...s.hand];
+    final at = concealed.indexWhere((t) => t.id == winTile.id);
+    if (at >= 0) concealed.removeAt(at);
+    final counts = toCounts34([...concealed, winTile]);
+    if (!_isAgari(counts, meldCount: s.melds.length)) return null;
+    return _score(s, concealed, winTile,
+        isTsumo: isTsumo, dryRun: true, chankan: chankan);
+  }
+
+
   HandScore _score(SeatState s, List<Tile> concealed, Tile winTile,
       {required bool isTsumo, bool dryRun = false, bool chankan = false}) {
     if (ruleset.isSichuan) {

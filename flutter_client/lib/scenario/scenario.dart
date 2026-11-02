@@ -124,6 +124,19 @@ class Scenario {
   int minimumFaan = HongKongRules.defaultMinimumFaan;
   int minimumPoints = TaiwaneseRules.defaultMinimumPoints;
 
+  /// How a complete hand was won, for scoring it. [winType] is the tile that
+  /// completed it (null: the last one placed); [winByTsumo] a self-draw rather
+  /// than a ron; [riichi] the human seat declared riichi (without needing a
+  /// pond to declare it on); [ippatsu], [rinshan] and [chankan] the riichi
+  /// situations that add han. Haitei and houtei come from [wallRemaining]
+  /// being 0.
+  TileType? winType;
+  bool winByTsumo = true;
+  bool riichi = false;
+  bool ippatsu = false;
+  bool rinshan = false;
+  bool chankan = false;
+
   /// The tile on offer for a call, for the 13-tile "should I call?" read.
   /// Null in the 14-tile discard read.
   Tile? offered;
@@ -337,6 +350,12 @@ class Scenario {
 
   void clear() {
     hand.clear();
+    winType = null;
+    winByTsumo = true;
+    riichi = false;
+    ippatsu = false;
+    rinshan = false;
+    chankan = false;
     for (final s in seats) {
       s.clear();
     }
