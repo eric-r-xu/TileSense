@@ -9,23 +9,6 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
-## 2026-11-02 — Hand Builder tour
-
-- **A walkthrough for the Hand Builder.** The first time it opens, a seven-step
-  spotlight lights the real controls one at a time, as the table tour does for a
-  first game: the tile palette (and what the number under each tile means), the
-  tiles in the slot being filled, the chips that choose the slot, the table,
-  the status line, TileSensor's panel, and the Menu. The guide step has a
-  **Try a sample hand** button, so a newcomer sees TileSensor read a table
-  without placing 14 tiles first. Replay it from the builder's **Menu > How the
-  builder works**. Code: `flutter_client/lib/ui/builder_tour.dart`.
-- **One spotlight for both tours.** The dimmed screen, gold ring and card moved to
-  `flutter_client/lib/ui/spotlight_tour.dart`; the table tour and the builder tour
-  each supply only their steps. The card is now placed from its measured size and
-  kept on screen beside a large target, and its text scrolls (Next stays in
-  reach) when a phone's boosted text makes it taller than the screen.
-- Translated into Japanese, Simplified Chinese and Traditional Chinese.
-
 ## 2026-11-02 — A finished game is not resumed
 
 - **Menu > Single Player > Start no longer brings back a game that has ended.**
