@@ -237,7 +237,7 @@ void main() {
     expect(text(tester, 'quizVerdict'), 'Not quite.');
     expect(told!.tile, puzzle.answer.tile);
     expect(told!.move, isNot(puzzle.answer.move));
-    expect(text(tester, 'quizMortalLine'), contains('Mortal'));
+    expect(text(tester, 'quizMortalLine'), contains('Model'));
     expect(text(tester, 'quizMortalLine'), isNot(contains('ranks')));
   });
 

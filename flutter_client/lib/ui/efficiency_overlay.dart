@@ -159,7 +159,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
             Expanded(
               child: _dialChip(
                 label:
-                    brain == AutoplayBrain.mortal ? 'Mortal bot' : 'TileSense',
+                    brain == AutoplayBrain.mortal ? 'Model' : 'TileSense',
                 colour: brainColor(brain),
                 active: game.autoplayBrain == brain,
                 chipKey: Key('guideBrain_${brain.name}'),
@@ -1183,7 +1183,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
     final table = Table(
       columnWidths: {
         0: const FixedColumnWidth(34),
-        if (mortal != null) 1: fit('Mortal bot', 50),
+        if (mortal != null) 1: fit('Model', 50),
         1 + m: fit(_hk ? 'Away' : 'Shanten', 52),
         2 + m: fit(_hk ? 'Accepts' : 'Ukeire', 48),
         evHmrCol: fit('EV (HMR)', 50),
@@ -1200,7 +1200,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       children: [
         _headerRow([
           '',
-          if (mortal != null) 'Mortal bot',
+          if (mortal != null) 'Model',
           _hk ? 'Away' : 'Shanten',
           _hk ? 'Accepts' : 'Ukeire',
           'EV (HMR)',
@@ -1521,7 +1521,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         // with the guide's green when the guide recommends the same move.
         decoration:
             picked ? _pickFill(guide: _guideAgrees(a), mortal: true) : null,
-        child: Text('Mortal: $text',
+        child: Text('Model: $text',
             key: const ValueKey('mortal-line'),
             style: TextStyle(
                 color: picked ? Colors.white : _mortalColour,
@@ -1607,7 +1607,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
                 GuideConstants.chineseStyleDealInCost(
                     widget.game.round.ruleset)),
             'Detail' => _detailTip(),
-            'Mortal bot' => _mortalTip,
+            'Model' => _mortalTip,
             _ => null,
           };
           // A ranking column's arrow: up where higher is better, down where
@@ -1617,7 +1617,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
               .where((c) => c.$1 == l)
               .map((c) => c.$2)
               .firstOrNull;
-          final colour = l == 'Mortal bot'
+          final colour = l == 'Model'
               ? _mortalColour
               : l == 'TileSense EV'
                   ? const Color(0xffbfe6e0)

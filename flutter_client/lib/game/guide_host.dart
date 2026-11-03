@@ -25,7 +25,7 @@ enum GamePhase { playing, roundEnd, gameEnd }
 /// guide panel's rows.
 enum AutoplayBrain {
   tilesense('TileSense'),
-  mortal('Mortal');
+  mortal('Model');
 
   const AutoplayBrain(this.label);
   final String label;

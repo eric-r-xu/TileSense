@@ -572,7 +572,7 @@ abstract class AppLocalizations {
   /// No description provided for @mortalBot.
   ///
   /// In en, this message translates to:
-  /// **'Mortal bot'**
+  /// **'Model'**
   String get mortalBot;
 
   /// No description provided for @algorithmTooltip.
@@ -2876,7 +2876,7 @@ abstract class AppLocalizations {
   /// No description provided for @tipAutoChoices.
   ///
   /// In en, this message translates to:
-  /// **'• TileSense (default): the guide; its recommendation is on top.\n• Mortal bot: Mortal plays your seat, and its preferred move is on top. Any decision Mortal can\'t answer is played by the guide.'**
+  /// **'• TileSense (default): the guide; its recommendation is on top.\n• Model: Model plays your seat, and its preferred move is on top. Any decision Model can\'t answer is played by the guide.'**
   String get tipAutoChoices;
 
   /// No description provided for @tipEvTitle.
@@ -3494,13 +3494,13 @@ abstract class AppLocalizations {
   /// No description provided for @tipMortalBody.
   ///
   /// In en, this message translates to:
-  /// **'What Mortal, an open-source deep-learning mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide\'s filled green; green with a red outline means they agree.\n\n'**
+  /// **'What Model, a trained mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide\'s filled green; green with a red outline means they agree.\n\n'**
   String get tipMortalBody;
 
   /// No description provided for @tipMortalAuto.
   ///
   /// In en, this message translates to:
-  /// **'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the rows follow Mortal\'s order; on TileSense (the default) they follow the guide\'s, and this is a second opinion. The green tile is always the guide\'s pick. Whenever Mortal can\'t answer, the guide decides.\n\n'**
+  /// **'With AUTO-PLAY on Model, Auto-Play plays these moves and the rows follow Model\'s order; on TileSense (the default) they follow the guide\'s, and this is a second opinion. The green tile is always the guide\'s pick. Whenever Model can\'t answer, the guide decides.\n\n'**
   String get tipMortalAuto;
 
   /// No description provided for @tipMortalSource.
@@ -4802,7 +4802,7 @@ abstract class AppLocalizations {
   /// No description provided for @quizAgree.
   ///
   /// In en, this message translates to:
-  /// **'TileSense and Mortal agree'**
+  /// **'TileSense and Model agree'**
   String get quizAgree;
 
   /// No description provided for @quizTileSenseSays.
@@ -4814,7 +4814,7 @@ abstract class AppLocalizations {
   /// No description provided for @quizMortalSays.
   ///
   /// In en, this message translates to:
-  /// **'What Mortal says'**
+  /// **'What Model says'**
   String get quizMortalSays;
 
   /// No description provided for @quizShanten.
@@ -4844,37 +4844,37 @@ abstract class AppLocalizations {
   /// No description provided for @quizMortalRank.
   ///
   /// In en, this message translates to:
-  /// **'Mortal ranks your pick {rank} of {total}.'**
+  /// **'Model ranks your pick {rank} of {total}.'**
   String quizMortalRank(int rank, int total);
 
   /// No description provided for @quizMortalPicked.
   ///
   /// In en, this message translates to:
-  /// **'Mortal picked this too.'**
+  /// **'Model picked this too.'**
   String get quizMortalPicked;
 
   /// No description provided for @quizMortalRankFirst.
   ///
   /// In en, this message translates to:
-  /// **'Mortal\'s top pick.'**
+  /// **'Model\'s top pick.'**
   String get quizMortalRankFirst;
 
   /// No description provided for @quizMortalKan.
   ///
   /// In en, this message translates to:
-  /// **'Mortal declares the kan here too.'**
+  /// **'Model declares the kan here too.'**
   String get quizMortalKan;
 
   /// No description provided for @quizMortalNoKan.
   ///
   /// In en, this message translates to:
-  /// **'Mortal does not declare a kan here.'**
+  /// **'Model does not declare a kan here.'**
   String get quizMortalNoKan;
 
   /// No description provided for @quizMortalNote.
   ///
   /// In en, this message translates to:
-  /// **'Mortal does not explain its choices; this is its ranking.'**
+  /// **'Model does not explain its choices; this is its ranking.'**
   String get quizMortalNote;
 
   /// No description provided for @quizSeat.
@@ -4976,13 +4976,13 @@ abstract class AppLocalizations {
   /// No description provided for @quizMortalRiichi.
   ///
   /// In en, this message translates to:
-  /// **'Mortal declares riichi here.'**
+  /// **'Model declares riichi here.'**
   String get quizMortalRiichi;
 
   /// No description provided for @quizMortalDama.
   ///
   /// In en, this message translates to:
-  /// **'Mortal stays quiet (dama) here.'**
+  /// **'Model stays quiet (dama) here.'**
   String get quizMortalDama;
 
   /// No description provided for @quizSituation.

@@ -210,11 +210,12 @@ one that shares its request limits (`nginx-mortal-sanma.conf`).
    `mortal_sidecar/` or its pin changes.
 4. Once the route answers
    (`curl -s https://<host>/tilesense/mortal-sanma/react` gives a 4xx JSON
-   error, not nginx's 404 page), set `MORTAL_SANMA_CLIENT` = `1` and deploy the
-   client: offline sanma then shows the Mortal column and plays Saeko on it.
+   error, not nginx's 404 page), deploy the client: offline sanma shows the
+   Mortal column and plays Saeko on it by default. `MORTAL_SANMA_CLIENT`
+   defaults to `1` when unset or empty, both locally and in GitHub Actions.
+   Set it to `0` on hosts without the sanma sidecar and route.
 
-**To turn it off:** set `MORTAL_SANMA_CLIENT` and `MORTAL_SANMA` to anything
-but `1`;
+**To turn it off:** set `MORTAL_SANMA_CLIENT` and `MORTAL_SANMA` to `0`;
 `systemctl stop tilesense-mortal-sanma` stops it. **To change the model:**
 publish a new release, update `model_sanma.json`, and merge.
 

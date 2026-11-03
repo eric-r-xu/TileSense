@@ -536,9 +536,12 @@ class DriverTests(unittest.TestCase):
             flutter = run.call_args_list[0].args[0]
             self.assertEqual('--dart-define=MORTAL_URL=/tilesense/mortal' in flutter, expected)
 
-    def test_client_build_asks_the_sanma_mortal_only_with_mortal_sanma_client_1(self):
-        # MORTAL_SANMA alone deploys the sidecar; the client waits for its route.
-        for env, expected in (({'MORTAL_SANMA': '1'}, False), ({'MORTAL_SANMA_CLIENT': '1'}, True)):
+    def test_client_build_enables_sanma_mortal_by_default_with_explicit_opt_out(self):
+        # CI may pass an empty repository variable; it also uses the default.
+        for env, expected in (({}, True), ({'MORTAL_SANMA_CLIENT': ''}, True),
+                              ({'MORTAL_SANMA': '1'}, True),
+                              ({'MORTAL_SANMA_CLIENT': '1'}, True),
+                              ({'MORTAL_SANMA_CLIENT': '0'}, False)):
             with patch.dict(os.environ, env, clear=True), \
                  patch.object(deploy, 'output', return_value='{}'), patch.object(deploy, 'run') as run, \
                  patch.object(deploy.shutil, 'copytree'), patch.object(deploy, 'stamp_client'), \
