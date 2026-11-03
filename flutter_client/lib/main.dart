@@ -1322,6 +1322,11 @@ class _GamePageState extends State<GamePage> {
         for (var seat = 0; seat < _characters.length; seat++) {
           _game.setSeatCharacter(seat, _characters[seat]);
         }
+        // Start picks up the game left under way, but one that has ended has
+        // nothing to resume: deal a fresh game rather than show its final
+        // scores under the characters just picked. (The setters above deal
+        // one themselves when the rules, length or dealer changed.)
+        if (_game.phase == GamePhase.gameEnd) _game.newGame();
         if (_game.paused) _game.togglePause();
       }
       setState(() {
