@@ -15,6 +15,8 @@ import 'package:tilesense/game/sfx.dart';
 /// Paired sanma hanchan, with two Model opponents and default guide dials.
 /// Run with SANMA_COMPARE_GAMES=12 and a local sanma sidecar on
 /// SANMA_COMPARE_PORT (18891). SANMA_COMPARE_OUT saves per-game CSV results.
+/// SANMA_COMPARE_ALLOW_FALLBACKS=1 records invalid games instead of stopping;
+/// exclude both arms of affected seed pairs when analyzing pure-model play.
 void main() {
   final env = Platform.environment;
   final games = int.tryParse(env['SANMA_COMPARE_GAMES'] ?? '') ?? 0;
@@ -47,7 +49,10 @@ String _play(int seed, int dealerIndex, AutoplayBrain brain, int port) {
   final previousPrint = debugPrint;
   var fallbacks = 0;
   debugPrint = (String? message, {int? wrapWidth}) {
-    if (message?.contains('fell back') ?? false) fallbacks++;
+    if (message?.contains('fell back') ?? false) {
+      fallbacks++;
+      print('seed $seed, ${brain.name}: $message');
+    }
   };
   late String row;
   try {
@@ -106,8 +111,10 @@ String _play(int seed, int dealerIndex, AutoplayBrain brain, int port) {
           model.failures,
           fallbacks
         ].join(',');
-        expect(model.failures, 0, reason: 'model failed at seed $seed');
-        expect(fallbacks, 0, reason: 'fallback at seed $seed');
+        if (Platform.environment['SANMA_COMPARE_ALLOW_FALLBACKS'] != '1') {
+          expect(model.failures, 0, reason: 'model failed at seed $seed');
+          expect(fallbacks, 0, reason: 'fallback at seed $seed');
+        }
       } finally {
         game.dispose();
       }

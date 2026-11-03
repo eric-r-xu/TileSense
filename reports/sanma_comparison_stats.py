@@ -18,15 +18,18 @@ def analyze(path, expected_pairs):
         seed, arm = int(row['seed']), row['brain']
         if arm not in ('guide', 'model'):
             raise ValueError(f'Unknown arm: {arm}')
-        if int(row['failures']) or int(row['fallbacks']):
-            raise ValueError(f'Invalid game: seed {seed}, arm {arm}')
         pair = pairs.setdefault(seed, {})
         if arm in pair:
             raise ValueError(f'Duplicate game: seed {seed}, arm {arm}')
         pair[arm] = row
     if len(pairs) != expected_pairs or any(len(p) != 2 for p in pairs.values()):
         raise ValueError('Incomplete paired sample')
-    ordered = [pairs[s] for s in sorted(pairs)]
+    invalid = sorted(s for s, pair in pairs.items() if any(
+        int(r['failures']) or int(r['fallbacks']) for r in pair.values()))
+    ordered = [pairs[s] for s in sorted(pairs) if s not in invalid]
+    n = len(ordered)
+    if n < 3:
+        raise ValueError('Too few valid pairs')
     for pair in ordered:
         if pair['guide']['dealer'] != pair['model']['dealer']:
             raise ValueError('Mismatched starting dealers')
@@ -43,8 +46,8 @@ def analyze(path, expected_pairs):
     permutations = 100000
     extremes = np.zeros(2, dtype=int)
     for _ in range(permutations // 1000):
-        signs = rng.choice([-1, 1], size=(1000, expected_pairs))
-        permuted = signs @ diffs / expected_pairs
+        signs = rng.choice([-1, 1], size=(1000, n))
+        permuted = signs @ diffs / n
         extremes += (np.abs(permuted) >= np.abs(observed) - 1e-10).sum(axis=0)
     pvals = (extremes + 1) / (permutations + 1)
     # Holm correction across the two prespecified outcomes.
@@ -60,13 +63,15 @@ def analyze(path, expected_pairs):
     for dealer in sorted(set(dealers)):
         indices = np.flatnonzero(dealers == dealer)
         sampled = rng.choice(indices, size=(20000, len(indices)), replace=True)
-        bootstrap += diffs[sampled].sum(axis=1) / expected_pairs
+        bootstrap += diffs[sampled].sum(axis=1) / n
     intervals = np.quantile(bootstrap, [0.025, 0.975], axis=0)
     result = {
-        'pairs': expected_pairs, 'seed_min': min(pairs), 'seed_max': max(pairs),
+        'pairs': n, 'attempted_pairs': expected_pairs, 'excluded_seeds': invalid, 'seed_min': min(pairs), 'seed_max': max(pairs),
         'dealer_counts': {str(d): int((dealers == d).sum()) for d in set(dealers)},
         'permutations': permutations, 'bootstrap_resamples': len(bootstrap),
-        'resampling_seed': 20261103, 'invalid_games': 0,
+        'resampling_seed': 20261103,
+        'fallback_moves': sum(int(r['fallbacks']) for r in rows),
+        'request_failures': sum(int(r['failures']) for r in rows),
         'total_hands': sum(int(r['hands']) for r in rows),
         'model_requests': sum(int(r['requests']) for r in rows),
         'arms': {}, 'model_minus_guide': {},
@@ -95,8 +100,8 @@ def main():
     path.with_suffix('.stats.json').write_text(json.dumps(result, indent=2) + '\n')
     lines = [
         '# Sanma Model vs TileSense guide: 60-pair follow-up', '',
-        f"Fixed sample: {result['pairs']} fresh paired East–South games "
-        f"({2 * result['pairs']} games), seeds {result['seed_min']}–{result['seed_max']}. "
+        f"Fixed sample: {result['attempted_pairs']} fresh paired East–South games "
+        f"({2 * result['attempted_pairs']} games), seeds {result['seed_min']}–{result['seed_max']}. "
         'The original 12 pilot pairs are excluded. Both opponents use Model; '
         'starting dealers are balanced across active seats 0, 1 and 3. '
         'The tested seat uses Model or the guide with default automatic dials '
@@ -105,6 +110,7 @@ def main():
         '`e9863274c2972d15742fd3f46718bd2dff8ccc82e7a676aff25b44cbb63658c1` '
         '(the deployed 104k model). Game code: f9dd6cb; '
         'harness: flutter_client/test/sanma_model_comparison_test.dart.', '',
+        f"Valid pairs analyzed: {result['pairs']}. Excluded seed pairs: {result['excluded_seeds']}.", '',
         '| Engine | Mean placement ↓ | Mean final points | 1st / 2nd / 3rd |',
         '|---|---:|---:|---|',
     ]
@@ -119,15 +125,20 @@ def main():
         lines.append(f"| {metric} | {s['mean']:+,.{digits}f} | "
                      f"[{lo:+,.{digits}f}, {hi:+,.{digits}f}] | "
                      f"{s['p_two_sided']:.5f} | {s['p_holm']:.5f} |")
-    lines += ['', 'Methods: paired label-swap permutation test (100,000 resamples, '
+    significant = [name for name, value in result['model_minus_guide'].items()
+                   if value['p_holm'] < 0.05]
+    lines += ['', 'Outcomes significant at family-wise 5% after Holm correction: '
+              + (', '.join(significant) if significant else 'none') + '.', '',
+              'Methods: paired label-swap permutation test (100,000 resamples, '
               'two-sided absolute mean statistic, plus-one correction). Holm correction '
               'controls the family-wise 5% threshold for the two outcomes. '
               '95% percentile bootstrap intervals resample whole pairs within '
               'starting-dealer strata (20,000 resamples); intervals are marginal, '
               'not adjusted for multiple comparisons. Resampling RNG seed: 20261103.', '',
-              f"All {result['pairs']} pairs are valid: zero model request failures or "
-              f"fallback moves over {result['model_requests']:,} requests and "
-              f"{result['total_hands']:,} hands.", '',
+              f"Across all attempted games: {result['request_failures']} request failures, "
+              f"{result['fallback_moves']} fallback moves, {result['model_requests']:,} requests, "
+              f"{result['total_hands']:,} hands. Both arms of any affected pair are excluded; "
+              'the pure-model analysis is conditional on completing without fallback. Exclusions may bias the comparison.', '',
               'Limitations: inference assumes seed pairs represent the relevant game '
               'population; the permutation test assumes paired arm exchangeability under '
               'the null. These results describe play against two Model opponents using '
@@ -136,7 +147,7 @@ def main():
               'result does not establish equal strength.', '',
               'Reproduction, from the repository root with the sanma sidecar on port 18891:', '',
               '```sh', 'cd flutter_client',
-              'SANMA_COMPARE_GAMES=60 SANMA_COMPARE_SEED=100000 SANMA_COMPARE_OUT=../reports/sanma_model_comparison_60.csv flutter test --dart-define=MP_ENDPOINT=ws://127.0.0.1:9 test/sanma_model_comparison_test.dart',
+              'SANMA_COMPARE_GAMES=60 SANMA_COMPARE_SEED=100000 SANMA_COMPARE_ALLOW_FALLBACKS=1 SANMA_COMPARE_OUT=../reports/sanma_model_comparison_60.csv flutter test --dart-define=MP_ENDPOINT=ws://127.0.0.1:9 test/sanma_model_comparison_test.dart',
               'cd ..', 'mortal_sidecar/.venv/bin/python reports/sanma_comparison_stats.py reports/sanma_model_comparison_60.csv 60', '```']
     path.with_suffix('.md').write_text('\n'.join(lines) + '\n')
     print(json.dumps(result, indent=2))
