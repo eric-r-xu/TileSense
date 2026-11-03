@@ -169,7 +169,7 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   bool get lastDiscardTsumogiri => false;
 
   @override
-  int get handInWind => 1;
+  int get handInWind => scenario.dealer + 1;
   @override
   int get honba => scenario.honba;
   // The builder poses a single static hand — there is no dealer-repeat

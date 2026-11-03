@@ -68,7 +68,7 @@ class EnRulesText extends RulesText {
           'There is no point minimum beyond that: the smallest win is 1 han, worth 1,000 points at 30 fu on a ron (1,500 for the dealer).',
           'To always hold a yaku, stay closed for riichi, or collect a dragon, round-wind or seat-wind pung.',
         ]),
-        const RuleSection(
+        RuleSection(
             'furiten',
             'Furiten: when you cannot ron',
             [
@@ -80,17 +80,23 @@ class EnRulesText extends RulesText {
             valueHeading: 'Lasts',
             entries: [
               RuleEntry('Discard furiten', 'While the wait stands',
-                  'A tile you wait on is in your own discards, even if another player called it away. Avoid it: before you discard, check your waits against your discards, and change the wait if needed. Here the 6 of dots was discarded earlier.',
+                  'A tile you wait on is in your own discards, even if another player called it away${sanma ? ' (by pon or kan; sanma has no chi)' : ''}. Avoid it: before you discard, check your waits against your discards, and change the wait if needed. Here the 6 of dots was discarded earlier.',
                   alias: 'Discard furiten',
-                  example: '123m 456m 789s 99p 45p → 3p 6p'),
+                  example: sanma
+                      ? '123s 456s 789s 99m 45p → 3p 6p'
+                      : '123m 456m 789s 99p 45p → 3p 6p'),
               RuleEntry('Temporary furiten', 'Until your next draw',
                   'You passed on a winning tile, by choice or because the hand had no yaku. Avoid it: call ron when you can, and make sure your hand has a yaku before you wait. Here you passed on the 6 of dots.',
                   alias: 'Temporary furiten',
-                  example: '234m 567p 345s 99s 78p → 6p 9p'),
+                  example: sanma
+                      ? '111m 567p 345s 99s 78p → 6p 9p'
+                      : '234m 567p 345s 99s 78p → 6p 9p'),
               RuleEntry('Riichi furiten', 'Rest of the hand',
-                  'You passed up a winning tile after declaring riichi, so it lasts to the end of the hand. Avoid it: always call ron on a winning tile, and before declaring riichi check that no wait is in your discards. Here you passed on the 5 of characters.',
+                  'You passed up a winning tile after declaring riichi, so it lasts to the end of the hand. Avoid it: always call ron on a winning tile, and before declaring riichi check that no wait is in your discards. Here you passed on the 5 of ${sanma ? 'dots' : 'characters'}.',
                   alias: 'Riichi furiten',
-                  example: '123m 456p 789s 55s 46m → 5m'),
+                  example: sanma
+                      ? '111m 456s 789s 55s 46p → 5p'
+                      : '123m 456p 789s 55s 46m → 5m'),
             ]),
         const RuleSection('riichi', 'Riichi and dora', [
           'With a closed, ready hand and enough points, declare riichi and pay a 1,000-point deposit.',
