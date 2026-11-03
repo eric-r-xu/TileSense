@@ -63,7 +63,7 @@ class ZhRulesText extends RulesText {
           '除这一个役外没有最低点数要求；最小的和牌是1番，30符荣和为1,000点（庄家1,500点）。',
           '想始终有役，可以保持门清走立直，或集齐三元牌、场风或自风的刻子。',
         ]),
-        const RuleSection(
+        RuleSection(
             'furiten',
             '振听：不能荣和的情况',
             [
@@ -75,17 +75,23 @@ class ZhRulesText extends RulesText {
             valueHeading: '持续',
             entries: [
               RuleEntry('舍牌振听', '直到听牌改变',
-                  '听的牌中有一张在自己的舍牌里，被别人吃碰走的也算。避免：打牌前对照听牌与自己的舍牌，必要时改变听牌。图中6筒已打过。',
+                  '听的牌中有一张在自己的舍牌里，${sanma ? '被别人碰杠走的也算（三麻没有吃）' : '被别人吃碰走的也算'}。避免：打牌前对照听牌与自己的舍牌，必要时改变听牌。图中6筒已打过。',
                   alias: 'Discard furiten',
-                  example: '123m 456m 789s 99p 45p → 3p 6p'),
+                  example: sanma
+                      ? '123s 456s 789s 99m 45p → 3p 6p'
+                      : '123m 456m 789s 99p 45p → 3p 6p'),
               RuleEntry('同巡振听', '到下次摸牌',
                   '放过了一张能和的牌，无论是主动放弃还是因为没有役。避免：能荣和时就和，听牌前确认手牌有役。图中放过了6筒。',
                   alias: 'Temporary furiten',
-                  example: '234m 567p 345s 99s 78p → 6p 9p'),
+                  example: sanma
+                      ? '111m 567p 345s 99s 78p → 6p 9p'
+                      : '234m 567p 345s 99s 78p → 6p 9p'),
               RuleEntry('立直振听', '到本局结束',
-                  '立直后放过了能和的牌，会持续到本局结束。避免：能和就一定荣和，立直前确认听的牌不在自己的舍牌里。图中放过了5万。',
+                  '立直后放过了能和的牌，会持续到本局结束。避免：能和就一定荣和，立直前确认听的牌不在自己的舍牌里。图中放过了${sanma ? '5筒' : '5万'}。',
                   alias: 'Riichi furiten',
-                  example: '123m 456p 789s 55s 46m → 5m'),
+                  example: sanma
+                      ? '111m 456s 789s 55s 46p → 5p'
+                      : '123m 456p 789s 55s 46m → 5m'),
             ]),
         const RuleSection('riichi', '立直与宝牌', [
           '门清听牌且点数足够时，可以宣告立直并支付1,000点立直棒。',
