@@ -2939,6 +2939,63 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get builderTourPaletteTitle => '牌を選ぶ';
+
+  @override
+  String get builderTourPaletteBody =>
+      '牌をタップすると、いま選んでいる場所に追加されます。牌の下の小さな数字は残り枚数です。残りがない牌は暗くなるので、同じ牌が4枚を超えることはありません。';
+
+  @override
+  String get builderTourContentsTitle => '置いた牌';
+
+  @override
+  String get builderTourContentsBody => '選択中の場所にある牌がここに並びます。牌をタップすると外せます。';
+
+  @override
+  String get builderTourChipsTitle => '入力する場所を選ぶ';
+
+  @override
+  String get builderTourChipsBody =>
+      'このチップで次の牌の行き先を選びます。手牌、相手が捨てた牌（鳴き候補）、ドラまたは花牌、各プレイヤーの捨て牌と副露です。最初は手牌が選ばれています。';
+
+  @override
+  String get builderTourTableTitle => '卓も一緒に更新されます';
+
+  @override
+  String get builderTourTableBody =>
+      '置いた牌はすべて卓に表示されます。卓の上の捨て牌、副露、ドラの部分を直接タップして、入力を始めることもできます。';
+
+  @override
+  String get builderTourStatusTitle => '卓の準備はOK？';
+
+  @override
+  String get builderTourStatusBody =>
+      'この行は、卓に次に必要なものを教えます。13枚なら鳴きの判断、14枚目の牌があれば打牌の判断、14枚で完成した手牌なら和了として採点されます。';
+
+  @override
+  String get builderTourGuideTitle => 'TileSensor の読み';
+
+  @override
+  String get builderTourGuideBody =>
+      'ガイドパネルが卓を読み取り、各打牌を順位付けするか、和了手を採点します。牌を追加・削除するたびに更新されます。';
+
+  @override
+  String get builderTourSample => 'サンプル手牌を試す';
+
+  @override
+  String get builderTourMenuTitle => '卓の設定';
+
+  @override
+  String get builderTourMenuBody =>
+      'メニューには、ランダムとクリア、ルールブック、残り牌数、本場と供託、場風と自風、そしてリーチ・三麻・香港・台湾・MCR・四川を切り替えるルールのダイヤルがあります。このツアーもそこから再生できます。';
+
+  @override
+  String get builderTourDone => '組み立てを始める';
+
+  @override
+  String get builderTourMenuLink => 'ビルダーの使い方';
+
+  @override
   String get rulesTileTooltip => '遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。';
 
   @override

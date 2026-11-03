@@ -2908,6 +2908,63 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get builderTourPaletteTitle => '选牌';
+
+  @override
+  String get builderTourPaletteBody =>
+      '点按一张牌，就把它加到你正在编辑的位置。每张牌下面的小数字是剩余张数；没有剩余的牌会变暗，所以桌上同一种牌不会超过四张。';
+
+  @override
+  String get builderTourContentsTitle => '已放置的牌';
+
+  @override
+  String get builderTourContentsBody => '所选位置里的牌都列在这里。点按一张牌即可取下。';
+
+  @override
+  String get builderTourChipsTitle => '选择要填的位置';
+
+  @override
+  String get builderTourChipsBody =>
+      '这些标签决定下一张牌放到哪里：你的手牌、待鸣的牌、宝牌或花牌，以及每位玩家的牌河和副露。一开始选中的是你的手牌。';
+
+  @override
+  String get builderTourTableTitle => '牌桌同步更新';
+
+  @override
+  String get builderTourTableBody =>
+      '你放下的每张牌都会出现在牌桌上。也可以直接点按牌桌上的牌河、副露或宝牌区域，开始往里放牌。';
+
+  @override
+  String get builderTourStatusTitle => '牌桌准备好了吗？';
+
+  @override
+  String get builderTourStatusBody =>
+      '这一行告诉你牌桌接下来还需要什么。13 张牌给出鸣牌建议，再加第 14 张牌给出打牌建议，14 张组成完整牌型则按和牌计分。';
+
+  @override
+  String get builderTourGuideTitle => 'TileSensor 的判断';
+
+  @override
+  String get builderTourGuideBody =>
+      '向导面板会读取你的牌桌：为每张可打的牌排序，或为和牌计分。每次添加或取下牌，它都会更新。';
+
+  @override
+  String get builderTourSample => '试试示例手牌';
+
+  @override
+  String get builderTourMenuTitle => '牌桌设置';
+
+  @override
+  String get builderTourMenuBody =>
+      '菜单里有随机和清空、规则手册、牌墙数量、本场与立直棒、场风和自风，以及在日本麻将、三人麻将、香港、台湾、国标和四川之间切换的规则转盘。也可以在那里重看这段导览。';
+
+  @override
+  String get builderTourDone => '开始组牌';
+
+  @override
+  String get builderTourMenuLink => '手牌构建器怎么用';
+
+  @override
   String get rulesTileTooltip => '选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。';
 
   @override
@@ -6078,6 +6135,63 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String tourStepOf(int step, int total) {
     return '第$step步，共$total步';
   }
+
+  @override
+  String get builderTourPaletteTitle => '選牌';
+
+  @override
+  String get builderTourPaletteBody =>
+      '點按一張牌，就把它加到你正在編輯的位置。每張牌下面的小數字是剩餘張數；沒有剩餘的牌會變暗，所以桌上同一種牌不會超過四張。';
+
+  @override
+  String get builderTourContentsTitle => '已放置的牌';
+
+  @override
+  String get builderTourContentsBody => '所選位置裡的牌都列在這裡。點按一張牌即可取下。';
+
+  @override
+  String get builderTourChipsTitle => '選擇要填的位置';
+
+  @override
+  String get builderTourChipsBody =>
+      '這些標籤決定下一張牌放到哪裡：你的手牌、待鳴的牌、寶牌或花牌，以及每位玩家的牌河和副露。一開始選中的是你的手牌。';
+
+  @override
+  String get builderTourTableTitle => '牌桌同步更新';
+
+  @override
+  String get builderTourTableBody =>
+      '你放下的每張牌都會出現在牌桌上。也可以直接點按牌桌上的牌河、副露或寶牌區域，開始往裡放牌。';
+
+  @override
+  String get builderTourStatusTitle => '牌桌準備好了嗎？';
+
+  @override
+  String get builderTourStatusBody =>
+      '這一行告訴你牌桌接下來還需要什麼。13 張牌給出鳴牌建議，再加第 14 張牌給出打牌建議，14 張組成完整牌型則按和牌計分。';
+
+  @override
+  String get builderTourGuideTitle => 'TileSensor 的判斷';
+
+  @override
+  String get builderTourGuideBody =>
+      '嚮導面板會讀取你的牌桌：為每張可打的牌排序，或為和牌計分。每次新增或取下牌，它都會更新。';
+
+  @override
+  String get builderTourSample => '試試範例手牌';
+
+  @override
+  String get builderTourMenuTitle => '牌桌設定';
+
+  @override
+  String get builderTourMenuBody =>
+      '選單裡有隨機和清空、規則手冊、牌牆數量、本場與立直棒、場風和自風，以及在日本麻將、三人麻將、香港、台灣、國標和四川之間切換的規則轉盤。也可以在那裡重看這段導覽。';
+
+  @override
+  String get builderTourDone => '開始組牌';
+
+  @override
+  String get builderTourMenuLink => '手牌建構器怎麼用';
 
   @override
   String get rulesTileTooltip => '選擇要玩的麻將規則：日本麻將、三人麻將、香港、台灣、國標或四川。';
