@@ -269,7 +269,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get algorithmCaption => '算法';
 
   @override
-  String get mortalBot => 'Mortal 机器人';
+  String get mortalBot => 'Model';
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
@@ -1535,7 +1535,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tipAutoChoices =>
-      '• TileSense（默认）：由指南打牌，首行显示指南的建议。\n• Mortal：由 Mortal 打牌，首行显示其建议。Mortal 无法回答时由指南决定。';
+      '• TileSense（默认）：由指南打牌，首行显示指南的建议。\n• Model：由 Model 打牌，首行显示其建议。Model 无法回答时由指南决定。';
 
   @override
   String get tipEvTitle => 'TileSense 期望值\n';
@@ -1847,11 +1847,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tipMortalBody =>
-      'Mortal 是开源深度学习麻将 AI，只使用你所在座位可见的信息。★标出其建议打牌（★R表示先立直）；数字表示其他候选项的优先顺序。Mortal 的建议用红框标出，指南的建议填充绿色；绿色加红框表示两者一致。\n\n';
+      'Model 是经过训练的麻将 AI，只使用你所在座位可见的信息。★标出其建议打牌（★R表示先立直）；数字表示其他候选项的优先顺序。Model 的建议用红框标出，指南的建议填充绿色；绿色加红框表示两者一致。\n\n';
 
   @override
   String get tipMortalAuto =>
-      '自动打牌选择 Mortal 时，会按其建议行动，列表也按其偏好排序。选择 TileSense（默认）时，按指南排序，Mortal 仅供参考。绿色牌始终是指南的建议。Mortal 无法回答时由指南决定。\n\n';
+      '自动打牌选择 Model 时，会按其建议行动，列表也按其偏好排序。选择 TileSense（默认）时，按指南排序，Model 仅供参考。绿色牌始终是指南的建议。Model 无法回答时由指南决定。\n\n';
 
   @override
   String get tipMortalSource =>
@@ -2608,13 +2608,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quizBestMove => '最佳选择';
 
   @override
-  String get quizAgree => 'TileSense与Mortal一致';
+  String get quizAgree => 'TileSense与Model一致';
 
   @override
   String get quizTileSenseSays => 'TileSense为何推荐';
 
   @override
-  String get quizMortalSays => 'Mortal的评价';
+  String get quizMortalSays => 'Model的评价';
 
   @override
   String get quizShanten => '向听数';
@@ -2630,23 +2630,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String quizMortalRank(int rank, int total) {
-    return 'Mortal把你的选择排在$total个选项中的第$rank位。';
+    return 'Model把你的选择排在$total个选项中的第$rank位。';
   }
 
   @override
-  String get quizMortalPicked => 'Mortal也选了这一手。';
+  String get quizMortalPicked => 'Model也选了这一手。';
 
   @override
-  String get quizMortalRankFirst => '这是Mortal的首选。';
+  String get quizMortalRankFirst => '这是Model的首选。';
 
   @override
-  String get quizMortalKan => 'Mortal在这里也会杠。';
+  String get quizMortalKan => 'Model在这里也会杠。';
 
   @override
-  String get quizMortalNoKan => 'Mortal在这里不会杠。';
+  String get quizMortalNoKan => 'Model在这里不会杠。';
 
   @override
-  String get quizMortalNote => 'Mortal不会解释原因，这是它的排名。';
+  String get quizMortalNote => 'Model不会解释原因，这是它的排名。';
 
   @override
   String get quizSeat => '座位';
@@ -2703,10 +2703,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quizAskRiichi => '这样打牌就听牌了。你要立直，还是默听？';
 
   @override
-  String get quizMortalRiichi => 'Mortal在这里会立直。';
+  String get quizMortalRiichi => 'Model在这里会立直。';
 
   @override
-  String get quizMortalDama => 'Mortal在这里会默听。';
+  String get quizMortalDama => 'Model在这里会默听。';
 
   @override
   String get quizSituation => '局面';
@@ -3498,7 +3498,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get algorithmCaption => '演算法';
 
   @override
-  String get mortalBot => 'Mortal 機器人';
+  String get mortalBot => 'Model';
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
@@ -4764,7 +4764,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get tipAutoChoices =>
-      '• TileSense（預設）：由指南打牌，首行顯示指南的建議。\n• Mortal：由 Mortal 打牌，首行顯示其建議。Mortal 無法回答時由指南決定。';
+      '• TileSense（預設）：由指南打牌，首行顯示指南的建議。\n• Model：由 Model 打牌，首行顯示其建議。Model 無法回答時由指南決定。';
 
   @override
   String get tipEvTitle => 'TileSense 期望值\n';
@@ -5076,11 +5076,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get tipMortalBody =>
-      'Mortal 是開源深度學習麻將 AI，只使用你所在座位可見的資訊。★標出其建議打牌（★R表示先立直）；數字表示其他候選項的優先順序。Mortal 的建議用紅框標出，指南的建議填充綠色；綠色加紅框表示兩者一致。\n\n';
+      'Model 是經過訓練的麻將 AI，只使用你所在座位可見的資訊。★標出其建議打牌（★R表示先立直）；數字表示其他候選項的優先順序。Model 的建議用紅框標出，指南的建議填充綠色；綠色加紅框表示兩者一致。\n\n';
 
   @override
   String get tipMortalAuto =>
-      '自動打牌選擇 Mortal 時，會按其建議行動，列表也按其偏好排序。選擇 TileSense（預設）時，按指南排序，Mortal 僅供參考。綠色牌始終是指南的建議。Mortal 無法回答時由指南決定。\n\n';
+      '自動打牌選擇 Model 時，會按其建議行動，列表也按其偏好排序。選擇 TileSense（預設）時，按指南排序，Model 僅供參考。綠色牌始終是指南的建議。Model 無法回答時由指南決定。\n\n';
 
   @override
   String get tipMortalSource =>
@@ -5837,13 +5837,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get quizBestMove => '最佳選擇';
 
   @override
-  String get quizAgree => 'TileSense與Mortal一致';
+  String get quizAgree => 'TileSense與Model一致';
 
   @override
   String get quizTileSenseSays => 'TileSense為何推薦';
 
   @override
-  String get quizMortalSays => 'Mortal的評價';
+  String get quizMortalSays => 'Model的評價';
 
   @override
   String get quizShanten => '向聽數';
@@ -5859,23 +5859,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String quizMortalRank(int rank, int total) {
-    return 'Mortal把你的選擇排在$total個選項中的第$rank位。';
+    return 'Model把你的選擇排在$total個選項中的第$rank位。';
   }
 
   @override
-  String get quizMortalPicked => 'Mortal也選了這一手。';
+  String get quizMortalPicked => 'Model也選了這一手。';
 
   @override
-  String get quizMortalRankFirst => '這是Mortal的首選。';
+  String get quizMortalRankFirst => '這是Model的首選。';
 
   @override
-  String get quizMortalKan => 'Mortal在這裡也會槓。';
+  String get quizMortalKan => 'Model在這裡也會槓。';
 
   @override
-  String get quizMortalNoKan => 'Mortal在這裡不會槓。';
+  String get quizMortalNoKan => 'Model在這裡不會槓。';
 
   @override
-  String get quizMortalNote => 'Mortal不會解釋原因，這是它的排名。';
+  String get quizMortalNote => 'Model不會解釋原因，這是它的排名。';
 
   @override
   String get quizSeat => '座位';
@@ -5932,10 +5932,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get quizAskRiichi => '這樣打牌就聽牌了。你要立直，還是默聽？';
 
   @override
-  String get quizMortalRiichi => 'Mortal在這裡會立直。';
+  String get quizMortalRiichi => 'Model在這裡會立直。';
 
   @override
-  String get quizMortalDama => 'Mortal在這裡會默聽。';
+  String get quizMortalDama => 'Model在這裡會默聽。';
 
   @override
   String get quizSituation => '局面';

@@ -272,7 +272,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get algorithmCaption => 'アルゴリズム';
 
   @override
-  String get mortalBot => 'Mortal ボット';
+  String get mortalBot => 'Model';
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
@@ -1548,7 +1548,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tipAutoChoices =>
-      '• TileSense（初期設定）：ガイドのおすすめを先頭に表示します。\n• Mortal：Mortal があなたの席を打ち、その推奨手を先頭に表示します。回答できない場合はガイドが判断します。';
+      '• TileSense（初期設定）：ガイドのおすすめを先頭に表示します。\n• Model：Model があなたの席を打ち、その推奨手を先頭に表示します。回答できない場合はガイドが判断します。';
 
   @override
   String get tipEvTitle => 'TileSense 期待値\n';
@@ -1863,11 +1863,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tipMortalBody =>
-      'Mortal は公開されている深層学習の麻雀AIです。あなたの席から見える情報だけで判断します。★は推奨打牌（★Rは先にリーチ）、数字は残りの候補の優先順位です。Mortal の推奨牌は赤枠、ガイドの推奨牌は緑色です。緑色で赤枠なら両者が一致しています。\n\n';
+      'Model は学習済みの麻雀AIです。あなたの席から見える情報だけで判断します。★は推奨打牌（★Rは先にリーチ）、数字は残りの候補の優先順位です。Model の推奨牌は赤枠、ガイドの推奨牌は緑色です。緑色で赤枠なら両者が一致しています。\n\n';
 
   @override
   String get tipMortalAuto =>
-      'オートプレイを Mortal にすると、その判断で打ち、候補も Mortal 順になります。TileSense（初期設定）ではガイド順で、Mortal は参考意見です。緑の牌は常にガイドの推奨です。Mortal が回答できない場合はガイドが判断します。\n\n';
+      'オートプレイを Model にすると、その判断で打ち、候補も Model 順になります。TileSense（初期設定）ではガイド順で、Model は参考意見です。緑の牌は常にガイドの推奨です。Model が回答できない場合はガイドが判断します。\n\n';
 
   @override
   String get tipMortalSource =>
@@ -2636,13 +2636,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get quizBestMove => '最善手';
 
   @override
-  String get quizAgree => 'TileSenseとMortalが一致';
+  String get quizAgree => 'TileSenseとModelが一致';
 
   @override
   String get quizTileSenseSays => 'TileSenseが推す理由';
 
   @override
-  String get quizMortalSays => 'Mortalの評価';
+  String get quizMortalSays => 'Modelの評価';
 
   @override
   String get quizShanten => '向聴数';
@@ -2658,23 +2658,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String quizMortalRank(int rank, int total) {
-    return 'Mortalはあなたの選択を$total手中$rank位と評価しました。';
+    return 'Modelはあなたの選択を$total手中$rank位と評価しました。';
   }
 
   @override
-  String get quizMortalPicked => 'Mortalも同じ手を選びました。';
+  String get quizMortalPicked => 'Modelも同じ手を選びました。';
 
   @override
-  String get quizMortalRankFirst => 'Mortalの第一候補です。';
+  String get quizMortalRankFirst => 'Modelの第一候補です。';
 
   @override
-  String get quizMortalKan => 'Mortalもここでカンします。';
+  String get quizMortalKan => 'Modelもここでカンします。';
 
   @override
-  String get quizMortalNoKan => 'Mortalはここではカンしません。';
+  String get quizMortalNoKan => 'Modelはここではカンしません。';
 
   @override
-  String get quizMortalNote => 'Mortalは理由を説明しません。これは順位付けです。';
+  String get quizMortalNote => 'Modelは理由を説明しません。これは順位付けです。';
 
   @override
   String get quizSeat => '席';
@@ -2731,10 +2731,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get quizAskRiichi => 'この打牌でテンパイです。リーチしますか、ダマで行きますか？';
 
   @override
-  String get quizMortalRiichi => 'Mortalはここでリーチをかけます。';
+  String get quizMortalRiichi => 'Modelはここでリーチをかけます。';
 
   @override
-  String get quizMortalDama => 'Mortalはここではダマで行きます。';
+  String get quizMortalDama => 'Modelはここではダマで行きます。';
 
   @override
   String get quizSituation => '場況';

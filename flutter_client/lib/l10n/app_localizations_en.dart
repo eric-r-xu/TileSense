@@ -276,7 +276,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get algorithmCaption => 'ALGORITHM';
 
   @override
-  String get mortalBot => 'Mortal bot';
+  String get mortalBot => 'Model';
 
   @override
   String algorithmTooltip(String style, String focus, String strategy) {
@@ -1565,7 +1565,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tipAutoChoices =>
-      '• TileSense (default): the guide; its recommendation is on top.\n• Mortal bot: Mortal plays your seat, and its preferred move is on top. Any decision Mortal can\'t answer is played by the guide.';
+      '• TileSense (default): the guide; its recommendation is on top.\n• Model: Model plays your seat, and its preferred move is on top. Any decision Model can\'t answer is played by the guide.';
 
   @override
   String get tipEvTitle => 'TILESENSE EV\n';
@@ -1904,11 +1904,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tipMortalBody =>
-      'What Mortal, an open-source deep-learning mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide\'s filled green; green with a red outline means they agree.\n\n';
+      'What Model, a trained mahjong AI, would do in your seat, seeing only what your seat can see. ★ marks its discard (★R: it would declare riichi first); the numbers are its order of preference among the rest. Its pick is outlined in red and the guide\'s filled green; green with a red outline means they agree.\n\n';
 
   @override
   String get tipMortalAuto =>
-      'With AUTO-PLAY on Mortal bot, Auto-Play plays these moves and the rows follow Mortal\'s order; on TileSense (the default) they follow the guide\'s, and this is a second opinion. The green tile is always the guide\'s pick. Whenever Mortal can\'t answer, the guide decides.\n\n';
+      'With AUTO-PLAY on Model, Auto-Play plays these moves and the rows follow Model\'s order; on TileSense (the default) they follow the guide\'s, and this is a second opinion. The green tile is always the guide\'s pick. Whenever Model can\'t answer, the guide decides.\n\n';
 
   @override
   String get tipMortalSource =>
@@ -2696,13 +2696,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizBestMove => 'Best move';
 
   @override
-  String get quizAgree => 'TileSense and Mortal agree';
+  String get quizAgree => 'TileSense and Model agree';
 
   @override
   String get quizTileSenseSays => 'Why TileSense likes it';
 
   @override
-  String get quizMortalSays => 'What Mortal says';
+  String get quizMortalSays => 'What Model says';
 
   @override
   String get quizShanten => 'Shanten';
@@ -2718,24 +2718,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String quizMortalRank(int rank, int total) {
-    return 'Mortal ranks your pick $rank of $total.';
+    return 'Model ranks your pick $rank of $total.';
   }
 
   @override
-  String get quizMortalPicked => 'Mortal picked this too.';
+  String get quizMortalPicked => 'Model picked this too.';
 
   @override
-  String get quizMortalRankFirst => 'Mortal\'s top pick.';
+  String get quizMortalRankFirst => 'Model\'s top pick.';
 
   @override
-  String get quizMortalKan => 'Mortal declares the kan here too.';
+  String get quizMortalKan => 'Model declares the kan here too.';
 
   @override
-  String get quizMortalNoKan => 'Mortal does not declare a kan here.';
+  String get quizMortalNoKan => 'Model does not declare a kan here.';
 
   @override
   String get quizMortalNote =>
-      'Mortal does not explain its choices; this is its ranking.';
+      'Model does not explain its choices; this is its ranking.';
 
   @override
   String get quizSeat => 'Seat';
@@ -2793,10 +2793,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That cut leaves you ready. Riichi, or stay quiet (dama)?';
 
   @override
-  String get quizMortalRiichi => 'Mortal declares riichi here.';
+  String get quizMortalRiichi => 'Model declares riichi here.';
 
   @override
-  String get quizMortalDama => 'Mortal stays quiet (dama) here.';
+  String get quizMortalDama => 'Model stays quiet (dama) here.';
 
   @override
   String get quizSituation => 'The situation';

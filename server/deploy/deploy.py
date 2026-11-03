@@ -155,10 +155,10 @@ def build_client(work, rid, revision, dirty):
          '--dart-define=UPDATE_BASE_HREF=' + BASE,
          # MORTAL=1 shows the guide's Mortal column; the sidecar must be live.
          *(['--dart-define=MORTAL_URL=' + BASE + 'mortal'] if os.environ.get('MORTAL') == '1' else []),
-         # MORTAL_SANMA_CLIENT=1 does the same for offline sanma; its route
-         # comes from setup-mortal-sanma.
+         # The live sanma sidecar powers the guide and bot Saeko by default.
+         # MORTAL_SANMA_CLIENT=0 disables it for deployments without the route.
          *(['--dart-define=MORTAL_SANMA_URL=' + BASE + 'mortal-sanma']
-           if os.environ.get('MORTAL_SANMA_CLIENT') == '1' else [])],
+           if (os.environ.get('MORTAL_SANMA_CLIENT') or '1') == '1' else [])],
         cwd=client)
     web = work / 'web'
     shutil.copytree(client / 'build/web', web)

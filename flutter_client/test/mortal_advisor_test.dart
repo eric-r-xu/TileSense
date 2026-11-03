@@ -194,10 +194,10 @@ void main() {
     testWidgets("stars Mortal's pick, ranks the rest, and names the riichi",
         (tester) async {
       await show(tester, riichi9s, () {
-        expect(find.text('Mortal bot'), findsOneWidget);
+        expect(find.text('Model'), findsOneWidget);
         expect(find.text('★R'), findsOneWidget);
         expect(find.text('2'), findsWidgets);
-        expect(find.text('Mortal: RIICHI, cut 9s'), findsOneWidget);
+        expect(find.text('Model: RIICHI, cut 9s'), findsOneWidget);
         // The guide and Mortal both pick 9s: green, outlined in red.
         expect(fillOf(tester, '9s')!.color, green);
         expect(fillOf(tester, '9s')!.border, redBorder);
@@ -236,15 +236,15 @@ void main() {
 
     testWidgets('shows … while Mortal thinks', (tester) async {
       await show(tester, MortalAdvice.thinking, () {
-        expect(find.text('Mortal bot'), findsOneWidget);
+        expect(find.text('Model'), findsOneWidget);
         expect(find.text('…'), findsWidgets);
-        expect(find.text('Mortal: thinking…'), findsOneWidget);
+        expect(find.text('Model: thinking…'), findsOneWidget);
       });
     });
 
     testWidgets('has no Mortal column without MORTAL_URL', (tester) async {
       await show(tester, null, () {
-        expect(find.text('Mortal bot'), findsNothing);
+        expect(find.text('Model'), findsNothing);
         expect(find.byKey(const ValueKey('mortal-line')), findsNothing);
       });
     });
