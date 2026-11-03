@@ -4,6 +4,10 @@
 /// cut, each of your calls spends one pond tile, and your starting hand is
 /// whatever that leaves.
 ///
+/// A discard is tsumogiri for you, and for any seat after its riichi, where
+/// the rules force it; every other opponent discard is sent as tedashi, since a
+/// posed table does not say which it was.
+///
 /// Only your own draws are sent. The other seats' are never checked, and
 /// leaving them out lets hidden filler draws set the wall to exactly the
 /// posed count.
@@ -47,11 +51,17 @@ List<MjaiEvent>? scenarioMjaiEvents(Scenario sc) {
     List<MjaiEvent> cut({required bool drawn}) {
       final tile = mjaiTile(s.pond[p]);
       final riichi = s.riichi && p == s.riichiPondIndex;
+      // Once a seat has declared riichi its hand is locked: every later cut
+      // is the tile it just drew. Mortal reads tsumogiri against tedashi, so
+      // a riichi seat's pond must not look like it kept cutting from hand.
+      // The posed table can't say how the other discards were made, so they
+      // stay tedashi, apart from your own draws.
+      final locked = s.riichi && p > s.riichiPondIndex;
       p++;
       return [
         if (drawn) ...draw(s.seat, tile),
         if (riichi) {'type': 'reach', 'actor': s.seat},
-        dahai(s.seat, tile, tsumogiri: drawn && you),
+        dahai(s.seat, tile, tsumogiri: drawn && (you || locked)),
         if (riichi) {'type': 'reach_accepted', 'actor': s.seat},
       ];
     }

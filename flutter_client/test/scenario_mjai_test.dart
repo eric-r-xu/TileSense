@@ -93,6 +93,78 @@ void main() {
     expect(replayHand(events), mjai(sc.hand));
   });
 
+  group('tsumogiri and tedashi', () {
+    /// The `tsumogiri` flag on each of [seat]'s cuts, in order.
+    List<bool> flagsOf(List<MjaiEvent> events, int seat) => [
+          for (final e in events)
+            if (e['type'] == 'dahai' && e['actor'] == seat)
+              e['tsumogiri'] as bool
+        ];
+
+    test('a riichi seat\'s cuts after its declaration are tsumogiri', () {
+      final sc = table(drawn: '9p');
+      pond(sc, 1, 'E S W N 1m');
+      sc.seats[1]
+        ..riichi = true
+        ..riichiPondIndex = 1;
+      final events = scenarioMjaiEvents(sc)!;
+
+      // E before riichi and S, the riichi cut itself, are tedashi; the posed
+      // table can't say otherwise. Everything after the declaration is forced.
+      expect(flagsOf(events, 1), [false, false, true, true, true]);
+      // The declaration still brackets exactly the riichi cut.
+      final types = [
+        for (final e in events)
+          if (e['actor'] == 1 &&
+              (e['type'] == 'reach' ||
+                  e['type'] == 'dahai' ||
+                  e['type'] == 'reach_accepted'))
+            e['type']
+      ];
+      expect(types, [
+        'dahai',
+        'reach',
+        'dahai',
+        'reach_accepted',
+        'dahai',
+        'dahai',
+        'dahai'
+      ]);
+    });
+
+    test('a riichi on the last tile leaves nothing to lock', () {
+      final sc = table(drawn: '9p');
+      pond(sc, 2, 'E S W');
+      sc.seats[2]
+        ..riichi = true
+        ..riichiPondIndex = 2;
+      expect(flagsOf(scenarioMjaiEvents(sc)!, 2), [false, false, false]);
+    });
+
+    test('a seat that has not declared riichi cuts from hand, whoever has', () {
+      final sc = table(drawn: '9p');
+      pond(sc, 1, 'E S W');
+      pond(sc, 2, 'N 1m 2m');
+      sc.seats[1]
+        ..riichi = true
+        ..riichiPondIndex = 0;
+      final events = scenarioMjaiEvents(sc)!;
+      expect(flagsOf(events, 1), [false, true, true]);
+      expect(flagsOf(events, 2), [false, false, false]);
+      expect(flagsOf(events, 3), isEmpty);
+    });
+
+    test('your own cuts of your draws stay tsumogiri, riichi or not', () {
+      final sc = table(drawn: '9p');
+      pond(sc, 0, 'E 9s N');
+      expect(flagsOf(scenarioMjaiEvents(sc)!, 0), [true, true, true]);
+      sc.seats[0]
+        ..riichi = true
+        ..riichiPondIndex = 1;
+      expect(flagsOf(scenarioMjaiEvents(sc)!, 0), [true, true, true]);
+    });
+  });
+
   test('your pon is made on its target\'s cut, and paid for from your pond',
       () {
     final sc = table(hand: '123m 456m 789m 5s', drawn: '9p');

@@ -231,6 +231,60 @@ void main() {
     expect(view[2], {'type': 'tsumo', 'actor': 0, 'pai': '?'});
   });
 
+  test('dahai says tsumogiri exactly when the cut tile was just drawn', () {
+    // Mortal reads tsumogiri against tedashi for every seat, so each flag must
+    // match the table: the drawn tile is the one cut, a cut straight after a
+    // call is from hand, and a seat in riichi can only cut what it draws.
+    var tsumogiri = 0, tedashi = 0, afterCall = 0, afterRiichi = 0;
+    for (var seed = 1; seed <= 40; seed++) {
+      var seen = 0;
+      final drawnBefore = List<Tile?>.filled(4, null);
+      final locked = List.filled(4, false);
+      final justCalled = List.filled(4, false);
+      _playHand(seed, (round, recorder) {
+        for (final e in recorder.events.skip(seen)) {
+          final seat = e['actor'] as int?;
+          switch (e['type']) {
+            case 'reach_accepted':
+              locked[seat!] = true;
+            // A daiminkan is not here: its rinshan draw comes before the cut.
+            case 'chi' || 'pon':
+              justCalled[seat!] = true;
+            // A call followed by a kan draws before it cuts, so the cut is
+            // the drawn tile and no longer straight after the call.
+            case 'tsumo' || 'kakan' || 'ankan':
+              justCalled[seat!] = false;
+            case 'dahai':
+              final cut = round.seats[seat!].allDiscards.last;
+              final drew = drawnBefore[seat]?.id == cut.id;
+              expect(e['tsumogiri'], drew, reason: 'seed $seed, seat $seat');
+              if (justCalled[seat]) {
+                expect(e['tsumogiri'], isFalse,
+                    reason: 'seed $seed: a cut after a call is from hand');
+                afterCall++;
+              }
+              if (locked[seat]) {
+                expect(e['tsumogiri'], isTrue,
+                    reason: 'seed $seed: riichi locks the hand');
+                afterRiichi++;
+              }
+              justCalled[seat] = false;
+              e['tsumogiri'] == true ? tsumogiri++ : tedashi++;
+          }
+        }
+        seen = recorder.events.length;
+        for (var i = 0; i < 4; i++) {
+          drawnBefore[i] = round.seats[i].drawn;
+        }
+      });
+    }
+    // The checks above are only worth anything if hands reached each case.
+    expect(tsumogiri, greaterThan(0));
+    expect(tedashi, greaterThan(0));
+    expect(afterCall, greaterThan(0));
+    expect(afterRiichi, greaterThan(0));
+  });
+
   test("Mortal's legal actions match this engine's at every decision",
       () async {
     final url = Uri.parse('$_mortalUrl/react');
