@@ -10,34 +10,26 @@ library;
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
-import '../telemetry/src/platform_web.dart'
-    if (dart.library.io) '../telemetry/src/platform_stub.dart' as platform;
+import 'spotlight_tour.dart';
 import 'theme.dart';
 
 /// Whether the tour has been seen on this device; the same pattern as
 /// `LearnToPlay`.
 abstract final class TableTour {
   static const storageKey = 'ts_table_tour_seen';
+  static final _seen = SeenOnce(storageKey);
 
   /// Whether a first hand opens the tour. Off in tests (see
   /// `flutter_test_config.dart`) unless a test turns it on.
-  static bool autoShow = true;
+  static bool get autoShow => _seen.autoShow;
+  static set autoShow(bool v) => _seen.autoShow = v;
 
-  // Off the web there is no localStorage, so remember it for the session.
-  static bool _seenThisSession = false;
+  static bool get shouldAutoShow => _seen.shouldAutoShow;
 
-  static bool get shouldAutoShow =>
-      autoShow &&
-      !_seenThisSession &&
-      platform.localStorageGet(storageKey) != '1';
-
-  static void markSeen() {
-    _seenThisSession = true;
-    platform.localStorageSet(storageKey, '1');
-  }
+  static void markSeen() => _seen.markSeen();
 
   /// Forgets that the tour was seen (for tests).
-  static void reset() => _seenThisSession = false;
+  static void reset() => _seen.reset();
 }
 
 /// The widgets the tour points at, keyed so it can find them on screen.
@@ -54,7 +46,7 @@ class TableTourTargets {
 
 /// The tour over the whole table. [onDone] runs on the last step's button and
 /// on Skip; either way the tour is marked seen.
-class TableTourOverlay extends StatefulWidget {
+class TableTourOverlay extends StatelessWidget {
   const TableTourOverlay({
     super.key,
     required this.targets,
@@ -75,185 +67,54 @@ class TableTourOverlay extends StatefulWidget {
   final VoidCallback? onOpenRules;
 
   @override
-  State<TableTourOverlay> createState() => _TableTourOverlayState();
-}
-
-class _TableTourOverlayState extends State<TableTourOverlay> {
-  static const _steps = 5;
-  int _step = 0;
-
-  void _finish() {
-    TableTour.markSeen();
-    widget.onDone();
-  }
-
-  void _next() {
-    if (_step == _steps - 1) {
-      _finish();
-    } else {
-      setState(() => _step++);
-    }
-  }
-
-  GlobalKey get _target => switch (_step) {
-        0 => widget.targets.hand,
-        1 => widget.targets.toggles,
-        2 => widget.targets.guide,
-        3 => widget.phone ? widget.targets.menu : widget.targets.rules,
-        _ => widget.targets.menu,
-      };
-
-  /// Where [key]'s widget sits in this overlay, or null when it is not on
-  /// screen (the step then shows its card alone, centred).
-  Rect? _rectOf(GlobalKey key) {
-    final target = key.currentContext?.findRenderObject();
-    final me = context.findRenderObject();
-    if (target is! RenderBox || me is! RenderBox || !target.attached) {
-      return null;
-    }
-    final topLeft = me.globalToLocal(target.localToGlobal(Offset.zero));
-    return (topLeft & target.size).inflate(6);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final (title, body) = switch (_step) {
-      0 => (l10n.tourHandTitle, l10n.tourHandBody),
-      1 => (l10n.tourButtonsTitle, l10n.tourButtonsBody),
-      2 => (l10n.tourGuideTitle, l10n.tourGuideBody),
-      3 => (
-          l10n.tourRulesTitle,
-          widget.phone ? l10n.tourRulesBodyPhone : l10n.tourRulesBodyDesktop
+    return SpotlightTour(
+      keyPrefix: 'tableTour',
+      seen: TableTour._seen,
+      onDone: onDone,
+      doneLabel: l10n.tourDone,
+      steps: [
+        TourStep(
+          target: targets.hand,
+          title: l10n.tourHandTitle,
+          body: l10n.tourHandBody,
         ),
-      _ => (
-          l10n.tourMenuTitle,
-          widget.phone ? l10n.tourMenuBodyPhone : l10n.tourMenuBodyDesktop
+        TourStep(
+          target: targets.toggles,
+          title: l10n.tourButtonsTitle,
+          body: l10n.tourButtonsBody,
+          extra: _legend(l10n),
         ),
-    };
-    final last = _step == _steps - 1;
-    return LayoutBuilder(builder: (context, c) {
-      // Measured after layout, so the spotlight follows the real widgets.
-      final hole = _rectOf(_target);
-      final card = _card(
-        title: title,
-        body: body,
-        legend: _step == 1 ? _legend(l10n) : null,
-        onOpenRules: _step == 3 ? widget.onOpenRules : null,
-        last: last,
-      );
-      // The card sits on whichever side of the spotlight has more room.
-      final above = hole != null && hole.center.dy > c.maxHeight / 2;
-      return Stack(
-        key: const Key('tableTour'),
-        children: [
-          // Swallows every tap: the table waits until the tour is done.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              child: CustomPaint(painter: _SpotlightPainter(hole)),
-            ),
-          ),
-          if (hole == null)
-            Center(child: card)
-          else
-            Positioned(
-              left: (hole.center.dx - _cardWidth / 2)
-                  .clamp(16.0, c.maxWidth - _cardWidth - 16),
-              top: above ? null : hole.bottom + 16,
-              bottom: above ? c.maxHeight - hole.top + 16 : null,
-              child: card,
-            ),
-        ],
-      );
-    });
-  }
-
-  static const double _cardWidth = 560;
-
-  Widget _card({
-    required String title,
-    required String body,
-    required bool last,
-    Widget? legend,
-    VoidCallback? onOpenRules,
-  }) {
-    final l10n = context.l10n;
-    return Material(
-      key: Key('tableTourStep_$_step'),
-      color: AppColors.sheet,
-      borderRadius: BorderRadius.circular(14),
-      elevation: 8,
-      child: Container(
-        width: _cardWidth,
-        padding: const EdgeInsets.fromLTRB(22, 18, 22, 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.gold, width: 2),
+        TourStep(
+          target: targets.guide,
+          title: l10n.tourGuideTitle,
+          body: l10n.tourGuideBody,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.tourStepOf(_step + 1, _steps),
-                style: const TextStyle(color: Colors.white38, fontSize: 13)),
-            const SizedBox(height: 4),
-            Text(title,
-                style: const TextStyle(
-                    color: AppColors.goldText,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(body,
-                style: const TextStyle(
-                    color: Colors.white, fontSize: 17, height: 1.4)),
-            if (legend != null) ...[const SizedBox(height: 10), legend],
-            if (onOpenRules != null) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                key: const Key('tableTourOpenRules'),
-                onPressed: onOpenRules,
-                icon: const Icon(Icons.menu_book),
-                label: Text(l10n.tourRulesOpen,
-                    style: const TextStyle(fontSize: 16)),
-                style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.goldText,
-                    side: const BorderSide(color: AppColors.gold),
-                    minimumSize: const Size(0, 48)),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (!last)
-                  TextButton(
-                    key: const Key('tableTourSkip'),
-                    onPressed: _finish,
-                    style: TextButton.styleFrom(
-                        foregroundColor: Colors.white60,
-                        minimumSize: const Size(88, 48)),
-                    child: Text(l10n.tourSkip,
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  key: const Key('tableTourNext'),
-                  onPressed: _next,
-                  style: AppButtons.primary(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 12),
-                  ),
-                  child: Text(last ? l10n.tourDone : l10n.tourNext,
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold)),
+        TourStep(
+          target: phone ? targets.menu : targets.rules,
+          title: l10n.tourRulesTitle,
+          body: phone ? l10n.tourRulesBodyPhone : l10n.tourRulesBodyDesktop,
+          extra: onOpenRules == null
+              ? null
+              : OutlinedButton.icon(
+                  key: const Key('tableTourOpenRules'),
+                  onPressed: onOpenRules,
+                  icon: const Icon(Icons.menu_book),
+                  label: Text(l10n.tourRulesOpen,
+                      style: const TextStyle(fontSize: 16)),
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.goldText,
+                      side: const BorderSide(color: AppColors.gold),
+                      minimumSize: const Size(0, 48)),
                 ),
-              ],
-            ),
-          ],
         ),
-      ),
+        TourStep(
+          target: targets.menu,
+          title: l10n.tourMenuTitle,
+          body: phone ? l10n.tourMenuBodyPhone : l10n.tourMenuBodyDesktop,
+        ),
+      ],
     );
   }
 
@@ -294,34 +155,4 @@ class _TableTourOverlayState extends State<TableTourOverlay> {
       ],
     );
   }
-}
-
-/// Dims everything but [hole], and rings the hole in gold.
-class _SpotlightPainter extends CustomPainter {
-  _SpotlightPainter(this.hole);
-
-  final Rect? hole;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final dim = Path()..addRect(Offset.zero & size);
-    final h = hole;
-    if (h != null) {
-      final cut = Path()
-        ..addRRect(RRect.fromRectAndRadius(h, const Radius.circular(12)));
-      canvas.drawPath(Path.combine(PathOperation.difference, dim, cut),
-          Paint()..color = const Color(0xb3000000));
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(h, const Radius.circular(12)),
-          Paint()
-            ..color = AppColors.gold
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 3);
-    } else {
-      canvas.drawPath(dim, Paint()..color = const Color(0xb3000000));
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SpotlightPainter old) => old.hole != hole;
 }

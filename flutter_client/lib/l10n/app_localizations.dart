@@ -5315,6 +5315,108 @@ abstract class AppLocalizations {
   /// **'{step} of {total}'**
   String tourStepOf(int step, int total);
 
+  /// No description provided for @builderTourPaletteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your tiles'**
+  String get builderTourPaletteTitle;
+
+  /// No description provided for @builderTourPaletteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a tile to add it to the part of the table you are filling. The small number under each tile is how many copies are left; a tile with none left goes dim, so the table never holds more than four of anything.'**
+  String get builderTourPaletteBody;
+
+  /// No description provided for @builderTourContentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What you have placed'**
+  String get builderTourContentsTitle;
+
+  /// No description provided for @builderTourContentsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The tiles in the selected part of the table are listed here. Tap one to take it back off.'**
+  String get builderTourContentsBody;
+
+  /// No description provided for @builderTourChipsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what to fill'**
+  String get builderTourChipsTitle;
+
+  /// No description provided for @builderTourChipsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These chips pick where the next tile goes: your hand, the tile on offer, the dora or flowers, and each player\'s discards and calls. Your hand is selected to begin with.'**
+  String get builderTourChipsBody;
+
+  /// No description provided for @builderTourTableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The table follows along'**
+  String get builderTourTableTitle;
+
+  /// No description provided for @builderTourTableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything you place appears on the table. You can also tap a discard area, a call area or the dora on the table itself to start filling it.'**
+  String get builderTourTableBody;
+
+  /// No description provided for @builderTourStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the table ready?'**
+  String get builderTourStatusTitle;
+
+  /// No description provided for @builderTourStatusBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This line says what the table needs next. 13 tiles get a call read, a 14th tile gets a discard read, and 14 tiles that make a complete hand are scored as a win.'**
+  String get builderTourStatusBody;
+
+  /// No description provided for @builderTourGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TileSensor\'s read'**
+  String get builderTourGuideTitle;
+
+  /// No description provided for @builderTourGuideBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The guide panel reads your table: it ranks each discard, or scores a winning hand. It updates every time you add or remove a tile.'**
+  String get builderTourGuideBody;
+
+  /// No description provided for @builderTourSample.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a sample hand'**
+  String get builderTourSample;
+
+  /// No description provided for @builderTourMenuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Table setup'**
+  String get builderTourMenuTitle;
+
+  /// No description provided for @builderTourMenuBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu has Random and Clear, the rulebook, the wall count, honba and sticks, the round and seat wind, and the Rules dial to switch between riichi, sanma, Hong Kong, Taiwanese, MCR and Sichuan. You can replay this tour from there.'**
+  String get builderTourMenuBody;
+
+  /// No description provided for @builderTourDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Start building'**
+  String get builderTourDone;
+
+  /// No description provided for @builderTourMenuLink.
+  ///
+  /// In en, this message translates to:
+  /// **'How the builder works'**
+  String get builderTourMenuLink;
+
   /// No description provided for @rulesTileTooltip.
   ///
   /// In en, this message translates to:

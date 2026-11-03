@@ -3015,6 +3015,64 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get builderTourPaletteTitle => 'Pick your tiles';
+
+  @override
+  String get builderTourPaletteBody =>
+      'Tap a tile to add it to the part of the table you are filling. The small number under each tile is how many copies are left; a tile with none left goes dim, so the table never holds more than four of anything.';
+
+  @override
+  String get builderTourContentsTitle => 'What you have placed';
+
+  @override
+  String get builderTourContentsBody =>
+      'The tiles in the selected part of the table are listed here. Tap one to take it back off.';
+
+  @override
+  String get builderTourChipsTitle => 'Choose what to fill';
+
+  @override
+  String get builderTourChipsBody =>
+      'These chips pick where the next tile goes: your hand, the tile on offer, the dora or flowers, and each player\'s discards and calls. Your hand is selected to begin with.';
+
+  @override
+  String get builderTourTableTitle => 'The table follows along';
+
+  @override
+  String get builderTourTableBody =>
+      'Everything you place appears on the table. You can also tap a discard area, a call area or the dora on the table itself to start filling it.';
+
+  @override
+  String get builderTourStatusTitle => 'Is the table ready?';
+
+  @override
+  String get builderTourStatusBody =>
+      'This line says what the table needs next. 13 tiles get a call read, a 14th tile gets a discard read, and 14 tiles that make a complete hand are scored as a win.';
+
+  @override
+  String get builderTourGuideTitle => 'TileSensor\'s read';
+
+  @override
+  String get builderTourGuideBody =>
+      'The guide panel reads your table: it ranks each discard, or scores a winning hand. It updates every time you add or remove a tile.';
+
+  @override
+  String get builderTourSample => 'Try a sample hand';
+
+  @override
+  String get builderTourMenuTitle => 'Table setup';
+
+  @override
+  String get builderTourMenuBody =>
+      'Menu has Random and Clear, the rulebook, the wall count, honba and sticks, the round and seat wind, and the Rules dial to switch between riichi, sanma, Hong Kong, Taiwanese, MCR and Sichuan. You can replay this tour from there.';
+
+  @override
+  String get builderTourDone => 'Start building';
+
+  @override
+  String get builderTourMenuLink => 'How the builder works';
+
+  @override
   String get rulesTileTooltip =>
       'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.';
 

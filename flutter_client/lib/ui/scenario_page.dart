@@ -13,6 +13,7 @@ import '../game/game_controller.dart';
 import '../l10n/mahjong_terms.dart';
 import '../main.dart' show isPhoneLayout;
 import 'bar_back_button.dart';
+import 'builder_tour.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -73,6 +74,10 @@ class _ScenarioPageState extends State<ScenarioPage> {
   int _slotSeat = kHumanSeat;
   _MeldKind _meldKind = _MeldKind.pon;
   bool _aka = false;
+
+  // The builder tour is up: over a first visit, or on request from the Menu.
+  bool _touring = BuilderTour.shouldAutoShow;
+  final _tour = BuilderTourTargets();
 
   /// Height of the editor band below the table: taller on a phone, whose
   /// tiles and chips are drawn big enough to tap.
@@ -312,7 +317,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       appBar: _appBar(),
       body: SafeArea(
         child: AnimatedBuilder(
@@ -322,10 +327,13 @@ class _ScenarioPageState extends State<ScenarioPage> {
               Column(
                 children: [
                   Expanded(
-                    child: TableView(
-                      game: _c,
-                      edits: _tableEdits(),
-                      acrossInBar: true,
+                    child: KeyedSubtree(
+                      key: _tour.table,
+                      child: TableView(
+                        game: _c,
+                        edits: _tableEdits(),
+                        acrossInBar: true,
+                      ),
                     ),
                   ),
                   _editor(),
@@ -338,25 +346,28 @@ class _ScenarioPageState extends State<ScenarioPage> {
                       Positioned(
                         left: 8,
                         top: TableView.guidePanelTop,
-                        child: _c.win?.wins ?? false
-                            ? ScenarioWinPanel(
-                                controller: _c,
-                                onEdit: _edit,
-                                phone: _phone,
-                                maxHeight: c.maxHeight -
-                                    TableView.guidePanelTop -
-                                    _editorHeight -
-                                    8,
-                              )
-                            : EfficiencyOverlay(
-                                game: _c,
-                                report: _c.report,
-                                maxHeight: c.maxHeight -
-                                    TableView.guidePanelTop -
-                                    _editorHeight -
-                                    8,
-                                showGameControls: false,
-                              ),
+                        child: KeyedSubtree(
+                          key: _tour.guide,
+                          child: _c.win?.wins ?? false
+                              ? ScenarioWinPanel(
+                                  controller: _c,
+                                  onEdit: _edit,
+                                  phone: _phone,
+                                  maxHeight: c.maxHeight -
+                                      TableView.guidePanelTop -
+                                      _editorHeight -
+                                      8,
+                                )
+                              : EfficiencyOverlay(
+                                  game: _c,
+                                  report: _c.report,
+                                  maxHeight: c.maxHeight -
+                                      TableView.guidePanelTop -
+                                      _editorHeight -
+                                      8,
+                                  showGameControls: false,
+                                ),
+                        ),
                       ),
                     ],
                   ),
@@ -366,6 +377,21 @@ class _ScenarioPageState extends State<ScenarioPage> {
           ),
         ),
       ),
+    );
+    // The tour covers the whole screen, bar included.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        page,
+        if (_touring)
+          Positioned.fill(
+            child: BuilderTourOverlay(
+              targets: _tour,
+              onDone: () => setState(() => _touring = false),
+              onSample: _randomize,
+            ),
+          ),
+      ],
     );
   }
 
@@ -494,8 +520,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               key: const Key('builderMenuClear'),
                               icon: Icons.delete_outline,
                               label: 'Clear',
-                              onTap:
-                                  closeThen(() => _edit((sc) => sc.clear())),
+                              onTap: closeThen(() => _edit((sc) => sc.clear())),
                             ),
                           ],
                           [
@@ -512,6 +537,17 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               onTap: () => showRulesReader(context, s.ruleset,
                                   minimumFaan: s.minimumFaan,
                                   minimumPoints: s.minimumPoints),
+                            ),
+                          ],
+                          [
+                            // The builder tour again, for anyone who skipped
+                            // it or wants a reminder.
+                            phoneMenuAction(
+                              key: const Key('builderMenuTour'),
+                              icon: Icons.tour_outlined,
+                              label: context.l10n.builderTourMenuLink,
+                              onTap: closeThen(
+                                  () => setState(() => _touring = true)),
                             ),
                           ],
                           [
@@ -576,8 +612,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 current: s.minimumFaan,
                                 label: (n) => '$n',
                                 colour: (_) => AppColors.goldText,
-                                onPick: (n) =>
-                                    _edit((x) => x.minimumFaan = n),
+                                onPick: (n) => _edit((x) => x.minimumFaan = n),
                               ),
                             ],
                           if (s.ruleset == Ruleset.taiwanese)
@@ -675,11 +710,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
     final band = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _statusLine(),
+        KeyedSubtree(key: _tour.status, child: _statusLine()),
         const SizedBox(height: 4),
         _slotChips(),
         const SizedBox(height: 4),
-        Expanded(child: _slotContents()),
+        Expanded(
+            child: KeyedSubtree(key: _tour.contents, child: _slotContents())),
         _palette(),
       ],
     );
@@ -692,7 +728,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
         children: [
           Expanded(child: band),
           const SizedBox(width: 14),
-          PhoneMenuButton(onTap: _showBuilderMenu),
+          PhoneMenuButton(key: _tour.menu, onTap: _showBuilderMenu),
           // With the band's own padding, 26 off the screen's right edge,
           // which a raised phone case can cover — as in the game.
           const SizedBox(width: 16),
@@ -782,6 +818,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
     }
 
     return SizedBox(
+      key: _tour.chips,
       height: _phone ? _phoneTarget : 26,
       child: ListView(
         scrollDirection: Axis.horizontal,
@@ -808,44 +845,44 @@ class _ScenarioPageState extends State<ScenarioPage> {
           for (var seat = 0; seat < 4; seat++)
             // Nobody sits across in sanma.
             if (s.ruleset.seatIsActive(seat)) ...[
-            chip(
-                '${seat == kHumanSeat ? "You" : _windOf(seat)} pond '
-                '(${s.seats[seat].pond.length})',
-                _slot == _Slot.pond && _slotSeat == seat, () {
-              setState(() {
-                _slot = _Slot.pond;
-                _slotSeat = seat;
-              });
-            }),
-            chip('calls (${s.seats[seat].melds.length})',
-                _slot == _Slot.melds && _slotSeat == seat, () {
-              setState(() {
-                _slot = _Slot.melds;
-                _slotSeat = seat;
-              });
-            }),
-            if (_sichuan) ...[
               chip(
-                  'void ${s.seats[seat].voidSuit == null ? '?' : context.l10n.suitName(s.seats[seat].voidSuit!)}',
-                  _slot == _Slot.voidSuit && _slotSeat == seat, () {
+                  '${seat == kHumanSeat ? "You" : _windOf(seat)} pond '
+                  '(${s.seats[seat].pond.length})',
+                  _slot == _Slot.pond && _slotSeat == seat, () {
                 setState(() {
-                  _slot = _Slot.voidSuit;
+                  _slot = _Slot.pond;
                   _slotSeat = seat;
                 });
-              }, key: Key('builderVoid_$seat')),
-              if (seat != kHumanSeat) _outToggle(seat),
-            ] else if (!_hk)
-              _riichiToggle(seat),
-            if (_sanma)
-              chip('kita (${s.seats[seat].kita.length})',
-                  _slot == _Slot.kita && _slotSeat == seat, () {
+              }),
+              chip('calls (${s.seats[seat].melds.length})',
+                  _slot == _Slot.melds && _slotSeat == seat, () {
                 setState(() {
-                  _slot = _Slot.kita;
+                  _slot = _Slot.melds;
                   _slotSeat = seat;
                 });
-              }, key: Key('builderKita_$seat')),
-            const VerticalDivider(width: 14, color: Colors.white24),
-          ],
+              }),
+              if (_sichuan) ...[
+                chip(
+                    'void ${s.seats[seat].voidSuit == null ? '?' : context.l10n.suitName(s.seats[seat].voidSuit!)}',
+                    _slot == _Slot.voidSuit && _slotSeat == seat, () {
+                  setState(() {
+                    _slot = _Slot.voidSuit;
+                    _slotSeat = seat;
+                  });
+                }, key: Key('builderVoid_$seat')),
+                if (seat != kHumanSeat) _outToggle(seat),
+              ] else if (!_hk)
+                _riichiToggle(seat),
+              if (_sanma)
+                chip('kita (${s.seats[seat].kita.length})',
+                    _slot == _Slot.kita && _slotSeat == seat, () {
+                  setState(() {
+                    _slot = _Slot.kita;
+                    _slotSeat = seat;
+                  });
+                }, key: Key('builderKita_$seat')),
+              const VerticalDivider(width: 14, color: Colors.white24),
+            ],
         ],
       ),
     );
@@ -917,8 +954,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   /// The selected slot's current contents — tap any tile to take it back off.
   Widget _slotContents() {
-    Widget tiles(List<Tile> list, void Function(int) remove,
-        {double? scale}) {
+    Widget tiles(List<Tile> list, void Function(int) remove, {double? scale}) {
       if (list.isEmpty) {
         return const Align(
           alignment: Alignment.centerLeft,
@@ -1128,6 +1164,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// inert, which is what keeps the table to four copies of anything.
   Widget _palette() {
     return SizedBox(
+      key: _tour.palette,
       height: _phone ? 108 : 62,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1198,9 +1235,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
             child: InkWell(
               onTap: enabled ? () => _place(type) : null,
               child: TileFace(
-                  type: type,
-                  size: TileSize.normal,
-                  scale: _phone ? 1.9 : 1),
+                  type: type, size: TileSize.normal, scale: _phone ? 1.9 : 1),
             ),
           ),
           Text('$left',

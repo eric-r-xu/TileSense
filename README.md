@@ -234,7 +234,8 @@ code lives in the corresponding `sanma/`, `hong_kong/`, `taiwanese/`, `mcr/` and
 ### Learning and rules references
 
 **Learn / Train** offers Learn to Play, Practice, the daily quiz, a searchable
-variant-aware glossary, and the table tour. English, Chinese and Japanese UI
+variant-aware glossary, and the table tour. The **Hand Builder** has its own
+first-visit tour, replayable from its Menu. English, Chinese and Japanese UI
 translations live in `flutter_client/lib/l10n/`.
 
 **Read rules** opens a searchable, scrollable native summary for each variant,
