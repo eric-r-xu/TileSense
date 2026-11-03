@@ -5,7 +5,6 @@ import 'package:tilesense/ui/builder_tour.dart';
 import 'package:tilesense/ui/scenario_page.dart';
 import 'package:tilesense/ui/table_tour.dart';
 
-import 'helpers.dart';
 import 'loading_helpers.dart';
 
 /// The Hand Builder tour over a newcomer's first visit to the builder.
