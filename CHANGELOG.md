@@ -9,6 +9,16 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-02 — A finished game is not resumed
+
+- **Menu > Single Player > Start no longer brings back a game that has ended.**
+  Leaving a table for the welcome screen keeps the game so Start can pick it up
+  again, which is right for a game under way. For one that had ended it showed
+  that game's final scores under the characters just picked, until New Game.
+  Start now deals a fresh game when the one left behind is over; a game still
+  under way is resumed as before. Code: `_startOffline` in
+  `flutter_client/lib/main.dart`; test: `restart_after_game_end_test.dart`.
+
 ## 2026-10-25 — Welcome screen rules switch
 
 - The welcome tagline names the rules in play as a button ("Sharpen your

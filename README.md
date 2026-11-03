@@ -441,7 +441,8 @@ Thank you to the below players whose testing, suggestions and bug reports helped
 - **Raymond M**:
   - identifying missed pinfu yaku scoring.
   - identifying illegal closed kans after declaring riichi.
-  - reporting that a complete hand in the Hand Builder (three each of Chun, Haku, Hatsu and East plus a pair of North) wasn't recognised as a win or scored, and left no clear next step. This led to winning-hand scoring, a winning-tile and tsumo/ron choice, tenpai wait hints and a first-use prompt in the builder.
+  - reporting that a complete hand in the Hand Builder wasn't recognised as a win or scored, and left no clear next step.
+  - reporting that a new single-player game started from the Menu still showed the last game's final scores.
   - identifying missing chi choices when more than one sequence was available.
   - identifying the score-screen auto-continue countdown resetting to 20 seconds after pressing Resume.
   - suggesting the Auto-Pass calling feature.
