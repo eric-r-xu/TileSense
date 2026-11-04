@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/mcr/mcr_fan.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -346,8 +348,14 @@ void main() {
     await tester.pumpAndSettle();
     final viewport = tester.getRect(find.byKey(const Key('rulesList')));
     final source = tester.getRect(find.byKey(const Key('rule_source')));
-    expect(source.top, greaterThanOrEqualTo(viewport.top));
+    // The end of the list is reachable: the last section's bottom is at the
+    // viewport's. On a phone, with larger text, that section can be taller
+    // than the viewport, so its top is only checked when it could fit.
+    if (source.height <= viewport.height) {
+      expect(source.top, greaterThanOrEqualTo(viewport.top));
+    }
     expect(source.bottom, lessThanOrEqualTo(viewport.bottom + 1));
+    expect(source.bottom, greaterThan(viewport.bottom - 40));
     expect(find.byKey(const Key('rulesReaderClose')).hitTestable(),
         findsOneWidget);
     expect(find.byKey(const Key('rulesExternalReference')).hitTestable(),
@@ -443,7 +451,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the title screen opens the rulebook from the Learn popup and '
+  testWidgets(
+      'the title screen opens the rulebook from the Learn popup and '
       'its own button, on the ruleset picked', (tester) async {
     Sfx.i.enabled = false;
     await tester.binding.setSurfaceSize(kDesignSize);
@@ -495,5 +504,213 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
+  });
+
+  group('zoom and tile examples', () {
+    Future<void> open(WidgetTester tester, Size size,
+        {Ruleset ruleset = Ruleset.riichi}) async {
+      await pumpLocalized(
+          tester, Scaffold(body: RulesReader(ruleset: ruleset, onClose: () {})),
+          size: size);
+    }
+
+    Future<void> search(WidgetTester tester, String query) async {
+      await tester.enterText(find.byKey(const Key('rulesSearch')), query);
+      await tester.pump();
+    }
+
+    String level(WidgetTester tester) =>
+        tester.widget<Text>(find.byKey(const Key('rulesZoomLevel'))).data!;
+
+    double tileWidth(WidgetTester tester) =>
+        tester.getSize(find.byType(TileFace).first).width;
+
+    /// True when every tile sits on one line: same top edge.
+    bool oneRow(WidgetTester tester) {
+      final tops = {
+        for (final e in find.byType(TileFace).evaluate())
+          tester.getTopLeft(find.byWidget(e.widget)).dy.round()
+      };
+      return tops.length == 1;
+    }
+
+    // A viewport tall enough to build the whole list at once, so every
+    // catalogue example is on screen to be measured.
+    for (final width in [390.0, 900.0, 1200.0]) {
+      testWidgets('every example is one row of tiles, ${width.toInt()} wide',
+          (tester) async {
+        for (final ruleset in Ruleset.values) {
+          await open(tester, Size(width, 40000), ruleset: ruleset);
+          final expected = rulesSections(ruleset)
+              .expand((section) => section.entries)
+              .where((e) => e.example.isNotEmpty)
+              .length;
+          final rows = find.byWidgetPredicate((w) =>
+              w is SingleChildScrollView &&
+              w.scrollDirection == Axis.horizontal);
+          expect(rows, findsNWidgets(expected), reason: ruleset.name);
+          for (final row in rows.evaluate()) {
+            final tops = {
+              for (final tile in find
+                  .descendant(
+                      of: find.byWidget(row.widget),
+                      matching: find.byType(TileFace))
+                  .evaluate())
+                tester.getTopLeft(find.byWidget(tile.widget)).dy.round()
+            };
+            expect(tops.length, 1, reason: '${ruleset.name} wraps: $tops');
+          }
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('tiles are bigger than the old small ones', (tester) async {
+      await open(tester, const Size(900, 800));
+      await search(tester, 'chiitoitsu');
+      expect(oneRow(tester), isTrue);
+      // TileSize.small was 22 wide, tiny 15.
+      expect(tileWidth(tester), greaterThanOrEqualTo(32));
+    });
+
+    testWidgets('the buttons zoom in, out and back, within limits',
+        (tester) async {
+      await open(tester, const Size(1200, 800));
+      await search(tester, 'chiitoitsu');
+      expect(level(tester), '100%');
+      final tile = tileWidth(tester);
+      final section = find.byKey(const Key('rule_yaku'));
+      final height = tester.getSize(section).height;
+      expect(
+          tester
+              .widget<IconButton>(find.byKey(const Key('rulesZoomOut')))
+              .onPressed,
+          isNull,
+          reason: 'already the smallest');
+      expect(
+          tester
+              .widget<IconButton>(find.byKey(const Key('rulesZoomReset')))
+              .onPressed,
+          isNull);
+
+      await tester.tap(find.byKey(const Key('rulesZoomIn')));
+      await tester.pump();
+      expect(level(tester), '125%');
+      expect(tileWidth(tester), closeTo(tile * 1.25, 0.5));
+      expect(tester.getSize(section).height, greaterThan(height));
+      expect(oneRow(tester), isTrue);
+
+      await tester.tap(find.byKey(const Key('rulesZoomOut')));
+      await tester.pump();
+      expect(level(tester), '100%');
+
+      for (var i = 0; i < 8; i++) {
+        await tester.tap(find.byKey(const Key('rulesZoomIn')));
+        await tester.pump();
+      }
+      expect(level(tester), '300%');
+      expect(
+          tester
+              .widget<IconButton>(find.byKey(const Key('rulesZoomIn')))
+              .onPressed,
+          isNull,
+          reason: 'already the largest');
+      expect(oneRow(tester), isTrue,
+          reason: 'zoomed tiles scroll sideways rather than wrapping');
+      await tester.tap(find.byKey(const Key('rulesZoomReset')));
+      await tester.pump();
+      expect(level(tester), '100%');
+      expect(tileWidth(tester), tile);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('zoomed-in tiles scroll sideways instead of shrinking',
+        (tester) async {
+      await open(tester, const Size(390, 700));
+      await search(tester, 'chiitoitsu');
+      final shrunk = tileWidth(tester);
+      await tester.tap(find.byKey(const Key('rulesZoomIn')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('rulesZoomIn')));
+      await tester.pump();
+      expect(tileWidth(tester), greaterThan(shrunk));
+      expect(tileWidth(tester), closeTo(32 * 1.2 * 1.25 * 1.25, 0.5),
+          reason: 'the size asked for, not squeezed to fit');
+      final row = tester.state<ScrollableState>(find
+          .descendant(
+              of: find.byKey(const Key('rule_yaku')),
+              matching: find.byType(Scrollable))
+          .first);
+      expect(row.position.maxScrollExtent, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Ctrl/Cmd with + - 0 and the wheel zoom like the table',
+        (tester) async {
+      await open(tester, const Size(900, 800));
+      await tester.tap(find.byKey(const Key('rulesList')));
+      await tester.pump();
+
+      Future<void> chord(LogicalKeyboardKey modifier, LogicalKeyboardKey key,
+          {bool shift = false}) async {
+        await tester.sendKeyDownEvent(modifier);
+        if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyEvent(key);
+        if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyUpEvent(modifier);
+        await tester.pump();
+      }
+
+      await chord(LogicalKeyboardKey.controlLeft, LogicalKeyboardKey.equal);
+      expect(level(tester), '125%');
+      await chord(LogicalKeyboardKey.metaLeft, LogicalKeyboardKey.equal,
+          shift: true);
+      expect(level(tester), '156%');
+      await chord(LogicalKeyboardKey.controlLeft, LogicalKeyboardKey.minus);
+      expect(level(tester), '125%');
+      await chord(LogicalKeyboardKey.metaLeft, LogicalKeyboardKey.digit0);
+      expect(level(tester), '100%');
+
+      // A bare wheel scrolls the list and leaves the size alone ...
+      final list = find.byKey(const Key('rulesList'));
+      final scrollable = tester.state<ScrollableState>(
+          find.descendant(of: list, matching: find.byType(Scrollable)).first);
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(tester.getCenter(list)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, 120)));
+      await tester.pump();
+      expect(level(tester), '100%');
+      expect(scrollable.position.pixels, greaterThan(0));
+
+      // ... and with Ctrl held it zooms and the list stays put.
+      final before = scrollable.position.pixels;
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, -120)));
+      await tester.pump();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      expect(level(tester), '125%');
+      expect(scrollable.position.pixels, before);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('pinching with two fingers zooms', (tester) async {
+      await open(tester, const Size(900, 800));
+      final centre = tester.getCenter(find.byKey(const Key('rulesList')));
+      final a = await tester.startGesture(centre - const Offset(50, 0));
+      final b = await tester.startGesture(centre + const Offset(50, 0));
+      await a.moveBy(const Offset(-50, 0));
+      await b.moveBy(const Offset(50, 0));
+      await tester.pump();
+      // Twice as far apart: twice the size.
+      expect(level(tester), '200%');
+      await a.moveBy(const Offset(50, 0));
+      await b.moveBy(const Offset(-50, 0));
+      await tester.pump();
+      expect(level(tester), '100%');
+      await a.up();
+      await b.up();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
   });
 }

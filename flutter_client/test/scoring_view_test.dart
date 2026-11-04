@@ -226,8 +226,8 @@ void main() {
           .widgetList<TileFace>(find.byType(TileFace))
           .map((t) => t.scale)
           .toSet();
-      expect(scales.contains(1.3), isTrue);
-      expect(scales.every((s) => s >= 1.08), isTrue);
+      expect(scales.contains(1.75), isTrue);
+      expect(scales.every((s) => s >= 1.4), isTrue);
       expect(tester.takeException(), isNull);
     } finally {
       game.dispose();

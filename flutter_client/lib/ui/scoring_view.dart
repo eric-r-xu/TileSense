@@ -45,16 +45,17 @@ class ScoringView extends StatefulWidget {
 class _ScoringViewState extends State<ScoringView> {
   static final int _autoContinueSeconds = kScorePageDelay.inSeconds;
 
-  /// Every tile in this panel renders 8% larger than its shared [TileSize]
-  /// step (within the 5–10% the panel can afford — see the `FittedBox`/`Wrap`
-  /// wrappers each row already sits in, which absorb the extra size instead
-  /// of letting it overflow the panel).
-  static const double _tileScale = 1.08;
+  /// Every tile in this panel renders 40% larger than its shared [TileSize]
+  /// step: the panel is up to 1380 wide, so the dora, tenpai and wait rows can
+  /// afford it, and the `FittedBox`/`Wrap` wrappers each row sits in absorb
+  /// the rest on a narrow panel instead of letting it overflow.
+  static const double _tileScale = 1.4;
 
   /// The winner's own hand is the answer to "who won", so it renders larger
-  /// than the other tile rows; its `FittedBox` scales it back down on a
-  /// narrow panel rather than overflowing.
-  static const double _winnerTileScale = 1.3;
+  /// than the other tile rows (a 14-tile hand is about 850 wide at this size);
+  /// its `FittedBox` scales it back down on a narrow panel rather than
+  /// overflowing.
+  static const double _winnerTileScale = 1.75;
 
   /// Matches the "recommended" green used elsewhere (the guide's top-discard
   /// highlight, the efficiency dial) so a winning tile reads the same way.
@@ -63,7 +64,7 @@ class _ScoringViewState extends State<ScoringView> {
   /// The panel's border gold, shared by its two buttons.
 
   /// Continue and Pause match, and each clears a phone thumb.
-  static const Size _buttonSize = Size(120, 44);
+  static const Size _buttonSize = Size(150, 52);
 
   int _page = 0;
   bool _autoEnabled = true;
@@ -215,8 +216,9 @@ class _ScoringViewState extends State<ScoringView> {
                 Opacity(
                   opacity: _dimmed ? 0.25 : 1.0,
                   child: Container(
-                    padding: const EdgeInsets.all(20),
-                    constraints: const BoxConstraints(maxWidth: 880),
+                    padding: const EdgeInsets.all(28),
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxWidth: 1380),
                     decoration: BoxDecoration(
                       color: const Color(0xff0b2f2f),
                       borderRadius: BorderRadius.circular(14),
@@ -231,10 +233,10 @@ class _ScoringViewState extends State<ScoringView> {
                               : title,
                           style: const TextStyle(
                               color: AppColors.goldBright,
-                              fontSize: 26,
+                              fontSize: 32,
                               fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         if (winners.isNotEmpty &&
                             scoreFor(page) != null &&
                             scoreFor(page)!.valid)
@@ -242,10 +244,16 @@ class _ScoringViewState extends State<ScoringView> {
                               r.winTiles[winners[page]]),
                         if (r.kind == RoundEndKind.exhaustiveDraw)
                           _tenpaiReveal(round, r),
-                        const SizedBox(height: 12),
-                        _transfers(round, r),
-                        if (round.ruleset.isSichuan) _sichuanPayments(round, r),
                         const SizedBox(height: 16),
+                        _details(
+                            round,
+                            r,
+                            winners.isNotEmpty &&
+                                    scoreFor(page) != null &&
+                                    scoreFor(page)!.valid
+                                ? scoreFor(page)
+                                : null),
+                        const SizedBox(height: 20),
                         // Continue on the left, Pause on the right, the same
                         // size and gold; the countdown they control sits
                         // underneath both.
@@ -270,10 +278,11 @@ class _ScoringViewState extends State<ScoringView> {
                                         game.continueFromRoundEnd();
                                       }
                                     },
-                              child: Text(label),
+                              child: Text(label,
+                                  style: const TextStyle(fontSize: 18)),
                             ),
                             if (!gameOver) ...[
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               OutlinedButton(
                                 key: const Key('scorePause'),
                                 style: OutlinedButton.styleFrom(
@@ -283,7 +292,8 @@ class _ScoringViewState extends State<ScoringView> {
                                 ),
                                 onPressed: _toggleAuto,
                                 child: Text(
-                                    _autoEnabled ? l10n.pause : l10n.resume),
+                                    _autoEnabled ? l10n.pause : l10n.resume,
+                                    style: const TextStyle(fontSize: 18)),
                               ),
                             ],
                           ],
@@ -300,7 +310,7 @@ class _ScoringViewState extends State<ScoringView> {
                                           0, _autoContinueSeconds)),
                               key: const Key('scoreCountdown'),
                               style: const TextStyle(
-                                  color: Colors.white70, fontSize: 12),
+                                  color: Colors.white70, fontSize: 15),
                             ),
                           ),
                         if (gameOver)
@@ -367,8 +377,8 @@ class _ScoringViewState extends State<ScoringView> {
         // here — a draw has no winner to show.
         Container(
           key: const Key('scoreWinnerPortrait'),
-          width: 56,
-          height: 56,
+          width: 72,
+          height: 72,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xff0c4747),
@@ -385,9 +395,9 @@ class _ScoringViewState extends State<ScoringView> {
         const SizedBox(height: 4),
         Text(
           '${w.wind.kanji} ${game.seatLabel(seat)}',
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: const TextStyle(color: Colors.white70, fontSize: 17),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         // Always one row: the panel is wide enough for a full hand at native
         // size, and FittedBox shrinks (never wraps) the rare over-wide hand
         // with open melds.
@@ -431,7 +441,7 @@ class _ScoringViewState extends State<ScoringView> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         if (round.ruleset.isSichuan)
           const SizedBox.shrink()
         else if (hk)
@@ -443,23 +453,6 @@ class _ScoringViewState extends State<ScoringView> {
           if (uraInd.isNotEmpty)
             _indicatorRow(context.l10n.yakuUraDora, uraInd),
         ],
-        const SizedBox(height: 2),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 2,
-          children: [
-            for (final y in score.yaku)
-              Text(yakuLine(context.l10n, y, round.ruleset),
-                  style: const TextStyle(color: Colors.white, fontSize: 12)),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          scoreTotalLine(context.l10n, score, round.ruleset),
-          style: const TextStyle(
-              color: AppColors.goldBright, fontWeight: FontWeight.bold),
-        ),
       ],
     );
   }
@@ -473,11 +466,11 @@ class _ScoringViewState extends State<ScoringView> {
       {bool indicators = true}) {
     if (tiles.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Wrap(
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 3,
+        spacing: 4,
         children: [
           Text(
               indicators
@@ -485,8 +478,8 @@ class _ScoringViewState extends State<ScoringView> {
                       ? context.l10n.indicatorRowMany(label)
                       : context.l10n.indicatorRowOne(label))
                   : context.l10n.plainRow(label),
-              style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          const SizedBox(width: 2),
+              style: const TextStyle(color: Colors.white60, fontSize: 16)),
+          const SizedBox(width: 4),
           for (final ty in tiles)
             TileFace(type: ty, size: TileSize.normal, scale: _tileScale),
         ],
@@ -507,10 +500,10 @@ class _ScoringViewState extends State<ScoringView> {
                   ? context.l10n.allNoten
                   : context.l10n.tenpaiRevealed,
           style: const TextStyle(
-              color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+              color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         for (final seat in seats) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           _tenpaiHandRow(round, seat),
         ],
       ],
@@ -524,9 +517,9 @@ class _ScoringViewState extends State<ScoringView> {
       children: [
         Text(
           '${s.wind.kanji} ${game.seatLabel(seat)}',
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         // Normal rather than small: a tenpai reveal is read closely, tile by
         // tile, so it gets the same size as the winning hand above it. The
         // surrounding Wrap + the panel's own SingleChildScrollView (see
@@ -540,7 +533,7 @@ class _ScoringViewState extends State<ScoringView> {
             for (final t in sortByType(s.hand))
               TileFace(tile: t, size: TileSize.normal, scale: _tileScale),
             for (final m in s.melds) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 10),
               for (final ty in m.types)
                 TileFace(type: ty, size: TileSize.normal, scale: _tileScale),
             ],
@@ -557,8 +550,8 @@ class _ScoringViewState extends State<ScoringView> {
               children: [
                 Text(context.l10n.waits,
                     style:
-                        const TextStyle(color: Colors.white70, fontSize: 11)),
-                const SizedBox(width: 2),
+                        const TextStyle(color: Colors.white70, fontSize: 15)),
+                const SizedBox(width: 4),
                 for (final wt in waits)
                   TileFace(type: wt, size: TileSize.small, scale: _tileScale),
               ],
@@ -568,39 +561,170 @@ class _ScoringViewState extends State<ScoringView> {
     );
   }
 
+  /// Below this the yaku and the payments stack instead of sitting side by
+  /// side: each card then has the whole panel's width to itself.
+  static const double _sideBySide = 820;
+
+  /// The hand's itemized score beside where the points went. A draw has no
+  /// hand to itemize, so its payments get the stage alone.
+  Widget _details(Round round, RoundResult r, HandScore? score) {
+    return LayoutBuilder(builder: (context, c) {
+      final payments = _card(
+        key: const Key('scorePayments'),
+        children: [
+          _transfers(round, r),
+          if (round.ruleset.isSichuan) _sichuanPayments(round, r),
+        ],
+      );
+      if (score == null) {
+        return ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720), child: payments);
+      }
+      final breakdown = _breakdown(round, score);
+      if (c.maxWidth < _sideBySide) {
+        return Column(
+            children: [breakdown, const SizedBox(height: 14), payments]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: breakdown),
+          const SizedBox(width: 20),
+          Expanded(child: payments),
+        ],
+      );
+    });
+  }
+
+  /// A subtly raised block, so the itemized rows read as one unit.
+  Widget _card({Key? key, required List<Widget> children}) => Container(
+        key: key,
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+        decoration: BoxDecoration(
+          color: const Color(0x14ffffff),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      );
+
+  /// One line per yaku with what it is worth in a column of its own, then the
+  /// hand's total underneath. The names and the values are the same strings the
+  /// one-line form uses, so every language and ruleset reads as it always did.
+  Widget _breakdown(Round round, HandScore score) {
+    final l10n = context.l10n;
+    final ruleset = round.ruleset;
+    return _card(
+      key: const Key('scoreBreakdown'),
+      children: [
+        for (final y in score.yaku)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.white12)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(l10n.scoringName(y.name, ruleset),
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 19)),
+                ),
+                const SizedBox(width: 12),
+                Text(yakuValue(l10n, y, ruleset),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                        color: AppColors.goldText,
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        const SizedBox(height: 12),
+        Text(
+          scoreTotalLine(l10n, score, ruleset),
+          key: const Key('scoreTotal'),
+          style: const TextStyle(
+              color: AppColors.goldBright,
+              fontSize: 22,
+              fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  /// Every seat's score before and after the hand, and what it gained or
+  /// lost: who paid, who was paid, and by how much. The winner is picked out;
+  /// a seat that neither paid nor won shows an unchanged score.
   Widget _transfers(Round round, RoundResult r) {
     return Column(
       children: [
         // Sanma's empty seat has nothing to show.
         for (final i in round.ruleset.activeSeats)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Only the winner's name is picked out; the row stays plain.
-                Text(
-                  '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
-                  style: r.winners.contains(i)
-                      ? const TextStyle(
-                          color: AppColors.goldBright,
-                          fontWeight: FontWeight.bold)
-                      : const TextStyle(color: Colors.white),
-                ),
-                Text(
-                  '${round.seats[i].points}'
-                  '   (${_delta(r.pointDeltas[i] ?? 0)})',
-                  style: TextStyle(
-                    color: (r.pointDeltas[i] ?? 0) >= 0
-                        ? const Color(0xff81c784)
-                        : const Color(0xffff8a80),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+          _transferRow(
+            label: '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
+            winner: r.winners.contains(i),
+            after: round.seats[i].points,
+            delta: r.pointDeltas[i] ?? 0,
           ),
       ],
+    );
+  }
+
+  Widget _transferRow({
+    required String label,
+    required bool winner,
+    required int after,
+    required int delta,
+  }) {
+    final change =
+        delta >= 0 ? const Color(0xff81c784) : const Color(0xffff8a80);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white12)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            // Only the winner's name is picked out; the row stays plain.
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: winner
+                  ? const TextStyle(
+                      color: AppColors.goldBright,
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold)
+                  : const TextStyle(color: Colors.white, fontSize: 19),
+            ),
+          ),
+          Text('${after - delta}',
+              style: const TextStyle(color: Colors.white54, fontSize: 17)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(Icons.arrow_forward, size: 16, color: Colors.white38),
+          ),
+          Text('$after',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold)),
+          SizedBox(
+            width: 104,
+            child: Text(_delta(delta),
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                    color: change, fontSize: 19, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -626,17 +750,29 @@ class _ScoringViewState extends State<ScoringView> {
     }
     if (sums.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: 14),
       child: Column(
         key: const Key('sichuanPayments'),
         children: [
           for (final e in sums.entries)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 1),
-              child: Text(
-                '${kindName(e.key.$1)}: ${game.seatLabel(e.key.$2)} → '
-                '${game.seatLabel(e.key.$3)}  ${e.value}',
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${kindName(e.key.$1)}: ${game.seatLabel(e.key.$2)} → '
+                      '${game.seatLabel(e.key.$3)}',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  ),
+                  Text('${e.value}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold)),
+                ],
               ),
             ),
         ],
@@ -650,7 +786,7 @@ class _ScoringViewState extends State<ScoringView> {
   Widget _standings(TableGameHost game) {
     final seats = [...game.round.ruleset.activeSeats]
       ..sort((a, b) => game.tablePoints[b].compareTo(game.tablePoints[a]));
-    const style = TextStyle(color: Colors.white70);
+    const style = TextStyle(color: Colors.white70, fontSize: 17);
     // Everyone level on the top score shares first.
     final top = game.tablePoints[seats.first];
     bool isWinner(int seat) => game.tablePoints[seat] == top;
