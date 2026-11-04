@@ -11,8 +11,18 @@ import '../l10n/mahjong_terms.dart';
 
 /// One yaku (or faan, tai, fan) as a line: its name in this language and what
 /// it is worth in [r]'s own units.
-String yakuLine(AppLocalizations l10n, YakuResult y, Ruleset r) {
-  final name = l10n.scoringName(y.name, r);
+String yakuLine(AppLocalizations l10n, YakuResult y, Ruleset r) =>
+    _yakuFormat(l10n, y, r, l10n.scoringName(y.name, r));
+
+/// Just what a yaku is worth, in [r]'s own units ("2", "3番", "3 pts",
+/// "yakuman"), for a table that sets the name in a column of its own. It is the
+/// language's own [yakuLine] with the name left out, so the unit and its
+/// position follow the language rather than being guessed here.
+String yakuValue(AppLocalizations l10n, YakuResult y, Ruleset r) =>
+    _yakuFormat(l10n, y, r, '').trim();
+
+String _yakuFormat(
+    AppLocalizations l10n, YakuResult y, Ruleset r, String name) {
   if (r.isMcr) return l10n.yakuLineMcr(name, y.han);
   if (r.isTaiwanese) {
     return y.faan == 1

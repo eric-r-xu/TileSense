@@ -9,6 +9,22 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-03 — Bigger round scores and rules reader
+
+- **Round score screen.** The panel is wider (up to 1380 px, was 880) with
+  larger type and tiles (the winning hand is 1.75x, other rows 1.4x). A win's
+  score is itemized: one row per yaku/faan/tai/fan with its value in its own
+  column and the hand total beneath, beside a payments card that shows every
+  seat's score before and after the hand and what it gained or lost. Sichuan's
+  payment lines sit in the same card. Narrow panels stack the two cards.
+  Code: `ui/scoring_view.dart`, `yakuValue` in `ui/score_text.dart`.
+- **Rules reader.** Larger text, a wider dialog (up to 1080 px), and zoom like
+  the table's: − / + / reset buttons with the level (100–300%), Ctrl/Cmd with
+  `+` `-` `0` or the wheel, and pinch on touch. Zoom reflows the text and
+  scales the tiles. Every catalogue example is a single row of larger tiles
+  under its definition (shrunk to fit at 100%, scrolling sideways when zoomed),
+  with the value on the pattern's name line. Code: `ui/rules_reader.dart`.
+
 ## 2026-11-02 — A finished game is not resumed
 
 - **Menu > Single Player > Start no longer brings back a game that has ended.**

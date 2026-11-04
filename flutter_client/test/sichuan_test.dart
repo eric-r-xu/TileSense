@@ -272,7 +272,10 @@ void main() {
       expect(find.byKey(const Key('sichuanPayments')), findsOneWidget);
       expect(find.textContaining('Void-suit penalty'), findsNWidgets(3));
       expect(find.textContaining('48'), findsWidgets);
-      expect(find.textContaining('-144'), findsOneWidget);
+      // The loser's row: score after (this table starts everyone at 0, so it
+      // equals the change) and the change itself.
+      expect(find.text('-144'), findsNWidgets(2));
+      expect(find.text('+48'), findsNWidgets(3));
     });
   });
 

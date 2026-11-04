@@ -73,6 +73,17 @@ Controls, search hints and notices use the app's ARB localization workflow. The
 notice says the translations are TileSense's own and that the external reference
 (in English) is the source the rules follow.
 
+## Size and zoom
+
+Text and tiles are larger than the first pass, and the dialog is up to 1080
+wide. The header has zoom buttons (− level + reset, 100–300%), and Ctrl/Cmd with
+`+`, `-`, `0` or the wheel, and a two-finger pinch, do the same. Zoom reflows:
+text is scaled through the text scaler and the tiles by the same factor, so
+words stay sharp and wrap at the dialog's width. A catalogue entry shows its
+name and value on one line, its definition, then its tile example as one row;
+at 100% a row too wide for the dialog shrinks to fit, and once zoomed it keeps
+its size and scrolls sideways.
+
 ## Limits and follow-up work
 
 The summaries describe what TileSense implements, including its house rules and
