@@ -9,6 +9,11 @@
 /// three-player Mortal at `--dart-define=MORTAL_SANMA_URL=<address>`
 /// (`/tilesense/mortal-sanma`) instead, with mjai's seat numbers
 /// ([MjaiRecorder.mjaiSeat]).
+///
+/// The Nagomi bot (riichi only) asks her own sidecar, built with
+/// `--dart-define=MORTAL_NAGOMI_URL=<address>` (`/tilesense/mortal-nagomi`),
+/// which serves the fine-tuned model; without it, or when it fails, she plays
+/// Saeko's Mortal, and then `SimpleBot`.
 library;
 
 import 'dart:convert';
@@ -25,6 +30,10 @@ const String kMortalUrl = String.fromEnvironment('MORTAL_URL');
 
 /// The three-player Mortal's address, for sanma; empty hides the column there.
 const String kMortalSanmaUrl = String.fromEnvironment('MORTAL_SANMA_URL');
+
+/// The fine-tuned model bot Nagomi plays in riichi; empty means she plays
+/// Saeko's Mortal.
+const String kMortalNagomiUrl = String.fromEnvironment('MORTAL_NAGOMI_URL');
 
 /// Mortal's discard indices 0-36, in its own action order.
 final _discardNames = [

@@ -43,8 +43,13 @@ class TableLoop {
     Duration? afterCallPace,
     MpTelemetry? telemetry,
     MortalAsk? mortal,
+    MortalAsk? nagomiMortal,
   })  : _mortal =
             mortal ?? MortalClient.maybe(sanma: room.ruleset.isSanma)?.ask,
+        _nagomiMortal = nagomiMortal ??
+            (room.ruleset.isSanma
+                ? null
+                : MortalClient.maybe(nagomi: true)?.ask),
         _turnTimeout = turnTimeout ??
             Duration(seconds: room.discardSeconds + room.callSeconds),
         _callTimeout = callTimeout ?? Duration(seconds: room.callSeconds),
@@ -72,6 +77,11 @@ class TableLoop {
   /// sanma rooms; tests may pass one);
   /// see [_playsMortal].
   final MortalAsk? _mortal;
+
+  /// Bot Nagomi's own Mortal (the fine-tuned model, `MORTAL_NAGOMI_URL`);
+  /// null in sanma, where she has no model, or when the server has none. She
+  /// then plays on [_mortal], as Saeko does, and on `SimpleBot` after that.
+  final MortalAsk? _nagomiMortal;
 
   /// This hand as mjai events, for Mortal; null when nobody here plays on
   /// Mortal. Kept in step with the round by [_syncMjai].
@@ -312,9 +322,8 @@ class TableLoop {
       minimumFaan: room.minimumFaan,
       minimumPoints: room.minimumPoints,
     );
-    _mjai = _mortal != null &&
-            ruleset.isJapanese &&
-            room.seats.any((s) => s?.character == 'saeko')
+    _mjai = ruleset.isJapanese &&
+            room.seats.any((s) => _isMortalCharacter(s?.character))
         ? MjaiRecorder(round, kyoku: (_roundNumber % _handsPerWind) + 1)
         : null;
     _discardSerial = 0;
@@ -495,13 +504,23 @@ class TableLoop {
 
   // --- Saeko on Mortal -----------------------------------------------------
 
-  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi or
-  /// sanma game, on a server run with Mortal — as in single player. A timed-out
-  /// human Saeko's one-off move stays on [SimpleBot].
+  /// Whether [character] plays on Mortal at this table: Saeko in a riichi or
+  /// sanma game, Nagomi in a four-player riichi game (hanchan or East only),
+  /// each on a server run with a Mortal for her.
+  bool _isMortalCharacter(String? character) => switch (character) {
+        'saeko' => _mortal != null,
+        'nagomi' =>
+          !ruleset.isSanma && (_nagomiMortal != null || _mortal != null),
+        _ => false,
+      };
+
+  /// Whether Mortal plays [seat]: a bot seat showing Saeko or Nagomi, as in
+  /// single player. A timed-out human Saeko's (or Nagomi's) one-off move
+  /// stays on [SimpleBot].
   bool _playsMortal(int seat) =>
       _mjai != null &&
       _bots.containsKey(seat) &&
-      room.seats[seat]?.character == 'saeko';
+      _isMortalCharacter(room.seats[seat]?.character);
 
   /// Brings [_mjai] up to date with the round. It must see every action
   /// separately to keep them in order, so this runs at every broadcast (each
@@ -518,19 +537,28 @@ class TableLoop {
   }
 
   /// Mortal's reply read by [read], or [fallback]'s answer if Mortal fails
-  /// or names a move this table doesn't offer.
+  /// or names a move this table doesn't offer. Saeko asks the server's Mortal;
+  /// Nagomi asks her own first and then Saeko's.
   Future<T> _askMortal<T>(int seat, T Function(Map<String, Object?>) read,
       T Function() fallback) async {
     _syncMjai();
     final mjai = _mjai;
     if (mjai == null) return fallback();
-    try {
-      return read(await _mortal!(mjai.mjaiSeat(seat), List.of(mjai.events),
-          hanchan: room.hanchan));
-    } catch (e) {
-      print('[mp] Saeko (Mortal) fell back to SimpleBot: $e');
-      return fallback();
+    final nagomi = room.seats[seat]?.character == 'nagomi';
+    final chain = <(String, MortalAsk)>[
+      if (nagomi && _nagomiMortal != null) ('Nagomi', _nagomiMortal),
+      if (_mortal != null) (nagomi ? "Nagomi (on Saeko's Mortal)" : 'Saeko', _mortal),
+    ];
+    for (final (name, ask) in chain) {
+      try {
+        return read(await ask(mjai.mjaiSeat(seat), List.of(mjai.events),
+            hanchan: room.hanchan));
+      } catch (e) {
+        print('[mp] $name (Mortal) failed: $e');
+      }
     }
+    print('[mp] ${nagomi ? 'Nagomi' : 'Saeko'} fell back to SimpleBot');
+    return fallback();
   }
 
   Future<BotTurn> _botTurn(int seat) async {

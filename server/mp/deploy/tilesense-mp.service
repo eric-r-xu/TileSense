@@ -22,6 +22,10 @@ Environment=INGEST_URL=http://127.0.0.1:8787/ingest
 # to SimpleBot.
 Environment=MORTAL_URL=http://127.0.0.1:8790
 Environment=MORTAL_SANMA_URL=http://127.0.0.1:8791
+# Bot Nagomi plays the fine-tuned model in four-player riichi rooms, hanchan
+# or East only; with this unset or the sidecar down she plays Saeko's Mortal,
+# then SimpleBot. Remove the line to turn her model off.
+Environment=MORTAL_NAGOMI_URL=http://127.0.0.1:8792
 ExecStart=/usr/local/bin/tilesense-mp
 Restart=always
 RestartSec=2

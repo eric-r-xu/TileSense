@@ -158,7 +158,12 @@ def build_client(work, rid, revision, dirty):
          # The live sanma sidecar powers the guide and bot Saeko by default.
          # MORTAL_SANMA_CLIENT=0 disables it for deployments without the route.
          *(['--dart-define=MORTAL_SANMA_URL=' + BASE + 'mortal-sanma']
-           if (os.environ.get('MORTAL_SANMA_CLIENT') or '1') == '1' else [])],
+           if (os.environ.get('MORTAL_SANMA_CLIENT') or '1') == '1' else []),
+         # Bot Nagomi's fine-tuned model in offline riichi. Off unless
+         # MORTAL_NAGOMI_CLIENT=1: set it once ./deploy.sh mortal-nagomi is live.
+         # Without it, or when the route is down, she plays Saeko's Mortal.
+         *(['--dart-define=MORTAL_NAGOMI_URL=' + BASE + 'mortal-nagomi']
+           if os.environ.get('MORTAL_NAGOMI_CLIENT') == '1' else [])],
         cwd=client)
     web = work / 'web'
     shutil.copytree(client / 'build/web', web)
@@ -197,14 +202,21 @@ def build_service(work, name):
 MORTAL_DIR = REPO / 'mortal_sidecar'
 # Per variant: the manifest pinning its model and libriichi, the cache folder
 # for its libriichi build, and the files `setup-` installs. Only 4-player has
-# an nginx route; multiplayer asks the sanma sidecar on the droplet itself.
+# an nginx route for the app's offline games (all three have one now);
+# multiplayer asks the sanma and Nagomi sidecars on the droplet itself. Nagomi's
+# shares the 4-player libriichi build, since her manifest pins the same Mortal
+# commit.
 MORTAL_VARIANTS = {
     'mortal': ('model.json', 'libriichi',
                ('tilesense-mortal.service', 'nginx-mortal.conf', 'nginx-mortal-limits.conf')),
     'mortal-sanma': ('model_sanma.json', 'libriichi-sanma',
                      ('tilesense-mortal-sanma.service', 'nginx-mortal-sanma.conf',
                       'nginx-mortal-limits.conf')),
+    'mortal-nagomi': ('model_nagomi.json', 'libriichi',
+                      ('tilesense-mortal-nagomi.service', 'nginx-mortal-nagomi.conf',
+                       'nginx-mortal-limits.conf')),
 }
+MORTAL_LABELS = {'mortal': 'Mortal', 'mortal-sanma': 'Mortal sanma', 'mortal-nagomi': 'Mortal Nagomi'}
 
 
 def mortal_cache():
@@ -258,10 +270,10 @@ def mortal_unchanged(current, record):
 
 
 def deploy_mortal(target, droplet):
-    """`mortal`, `mortal-sanma`, or either with a `setup-` prefix."""
+    """`mortal`, `mortal-sanma`, `mortal-nagomi`, or any with a `setup-` prefix."""
     setup = target.startswith('setup-')
     variant = target.removeprefix('setup-')
-    label = 'Mortal' if variant == 'mortal' else 'Mortal sanma'
+    label = MORTAL_LABELS[variant]
     rid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-') + uuid.uuid4().hex[:8]
     with tempfile.TemporaryDirectory(prefix='tilesense-mortal-') as directory:
         work = Path(directory)
@@ -349,7 +361,8 @@ def confirm_mp_restart():
 
 
 def deploy(target, host, droplet, rollback=None):
-    if target in ('setup-mortal', 'mortal', 'setup-mortal-sanma', 'mortal-sanma'):
+    if target in ('setup-mortal', 'mortal', 'setup-mortal-sanma', 'mortal-sanma',
+                  'setup-mortal-nagomi', 'mortal-nagomi'):
         return deploy_mortal(target, droplet)
     needs_client = target in ('all', 'client')
     needs_ingest = target in ('all', 'ingest')
@@ -443,7 +456,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('target', nargs='?', default='all', choices=[
         'all', 'client', 'ingest', 'mp', 'migrate', 'geoip', 'setup-client', 'rollback-client', 'rollback-ingest', 'rollback-mp',
-        'setup-mortal', 'mortal', 'setup-mortal-sanma', 'mortal-sanma'])
+        'setup-mortal', 'mortal', 'setup-mortal-sanma', 'mortal-sanma',
+        'setup-mortal-nagomi', 'mortal-nagomi'])
     parser.add_argument('release', nargs='?')
     args = parser.parse_args()
     if args.target.startswith('rollback-') != (args.release is not None):

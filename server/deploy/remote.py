@@ -25,11 +25,14 @@ BIN_DIR = Path('/usr/local/bin')
 UNIT_DIR = Path('/etc/systemd/system')
 MORTAL = Path('/opt/tilesense-mortal')
 MORTAL_SANMA = Path('/opt/tilesense-mortal-sanma')
+MORTAL_NAGOMI = Path('/opt/tilesense-mortal-nagomi')
 NGINX_LIMITS = Path('/etc/nginx/conf.d/tilesense-mortal-limits.conf')
 MORTAL_UNIT = 'tilesense-mortal.service'
 MORTAL_SANMA_UNIT = 'tilesense-mortal-sanma.service'
+MORTAL_NAGOMI_UNIT = 'tilesense-mortal-nagomi.service'
 MORTAL_MARKER = '# TileSense Mortal'
 MORTAL_SANMA_MARKER = '# TileSense sanma Mortal'
+MORTAL_NAGOMI_MARKER = '# TileSense Nagomi Mortal'
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,99}\Z')
 # Pruning keeps the newest releases and service rollbacks, and everything
 # younger than the window so open tabs can still load deferred parts.
@@ -347,12 +350,14 @@ def restore_nginx(backup):
 
 # --- Mortal sidecar -------------------------------------------------------
 #
-# Two variants run side by side: `mortal` (4-player, port 8790, behind the
-# /tilesense/mortal/ route) and `mortal-sanma` (three-player, port 8791, local
-# only: multiplayer asks it directly). Each has its own directory and unit,
-# laid out alike:
+# Three variants run side by side: `mortal` (4-player, port 8790, behind the
+# /tilesense/mortal/ route), `mortal-sanma` (three-player, port 8791, local
+# only: multiplayer asks it directly) and `mortal-nagomi` (4-player, the model
+# fine-tuned for bot Nagomi, port 8792, behind /tilesense/mortal-nagomi/ for the
+# app's offline games; multiplayer asks it directly). Each has its own
+# directory and unit, laid out alike:
 #
-# /opt/tilesense-mortal/ (or /opt/tilesense-mortal-sanma/)
+# /opt/tilesense-mortal/ (or -sanma/, -nagomi/)
 #   releases/<id>/  server.py, libriichi.so, release.json, and symlinks
 #                   mortal.onnx -> models/<sha256>.onnx, venv -> venvs/<hash>
 #   models/, venvs/ shared by every release that pins the same model or
@@ -386,6 +391,8 @@ def mortal_variant(variant):
         return MORTAL, MORTAL_UNIT, 8790, MORTAL_HEALTH
     if variant == 'mortal-sanma':
         return MORTAL_SANMA, MORTAL_SANMA_UNIT, 8791, MORTAL_SANMA_HEALTH
+    if variant == 'mortal-nagomi':  # 4-player hand, so the 4-player health request
+        return MORTAL_NAGOMI, MORTAL_NAGOMI_UNIT, 8792, MORTAL_HEALTH
     raise ValueError('Unknown Mortal variant')
 
 
@@ -434,8 +441,11 @@ def setup_mortal(stage, variant='mortal'):
     shutil.copy2(stage / unit_name, unit)
     run(['systemctl', 'daemon-reload'])
     run(['systemctl', 'enable', unit_name])
-    route, marker = (('nginx-mortal.conf', MORTAL_MARKER) if variant == 'mortal'
-                     else ('nginx-mortal-sanma.conf', MORTAL_SANMA_MARKER))
+    route, marker = {
+        'mortal': ('nginx-mortal.conf', MORTAL_MARKER),
+        'mortal-sanma': ('nginx-mortal-sanma.conf', MORTAL_SANMA_MARKER),
+        'mortal-nagomi': ('nginx-mortal-nagomi.conf', MORTAL_NAGOMI_MARKER),
+    }[variant]
     path = NGINX.resolve(strict=True)
     original = path.read_text()
     block = '\n'.join('    ' + line if line else '' for line in
