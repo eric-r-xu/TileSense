@@ -1,0 +1,69 @@
+{
+  "pairs": 59,
+  "attempted_pairs": 60,
+  "excluded_seeds": [
+    100015
+  ],
+  "seed_min": 100000,
+  "seed_max": 100059,
+  "dealer_counts": {
+    "0": 19,
+    "1": 20,
+    "3": 20
+  },
+  "permutations": 100000,
+  "bootstrap_resamples": 20000,
+  "resampling_seed": 20261103,
+  "fallback_moves": 2,
+  "request_failures": 0,
+  "total_hands": 1036,
+  "model_requests": 34103,
+  "arms": {
+    "guide": {
+      "mean_place": 2.406779661016949,
+      "mean_points": 26135.593220338982,
+      "placements": {
+        "1": 8,
+        "2": 19,
+        "3": 32
+      },
+      "tied_placements": 0
+    },
+    "model": {
+      "mean_place": 2.1186440677966103,
+      "mean_points": 32022.033898305086,
+      "placements": {
+        "1": 15,
+        "2": 22,
+        "3": 22
+      },
+      "tied_placements": 0
+    }
+  },
+  "model_minus_guide": {
+    "place": {
+      "mean": -0.288135593220339,
+      "ci95": [
+        -0.5258474576271183,
+        -0.05084745762711864
+      ],
+      "p_two_sided": 0.035309646903530965,
+      "p_holm": 0.07061929380706193,
+      "positive_pairs": 12,
+      "zero_pairs": 21,
+      "negative_pairs": 26
+    },
+    "points": {
+      "mean": 5886.440677966101,
+      "ci95": [
+        -1011.9067796610168,
+        12766.101694915254
+      ],
+      "p_two_sided": 0.10162898371016289,
+      "p_holm": 0.10162898371016289,
+      "positive_pairs": 32,
+      "zero_pairs": 0,
+      "negative_pairs": 27
+    }
+  }
+}

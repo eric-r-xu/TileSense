@@ -94,11 +94,14 @@ class GameController extends ChangeNotifier implements TableGameHost {
     this.minimumPoints = TaiwaneseRules.defaultMinimumPoints,
     List<Character>? seatCharacters,
     @visibleForTesting MortalAdvisor? mortal,
+    @visibleForTesting MortalAdvisor? nagomiMortal,
   })  : _seed = seed ?? DateTime.now().millisecondsSinceEpoch,
         _mortalRiichi =
             mortal ?? (kMortalUrl.isEmpty ? null : MortalAdvisor(kMortalUrl)),
         _mortalSanma = mortal ??
             (kMortalSanmaUrl.isEmpty ? null : MortalAdvisor(kMortalSanmaUrl)),
+        _mortalNagomi = nagomiMortal ??
+            (kMortalNagomiUrl.isEmpty ? null : MortalAdvisor(kMortalNagomiUrl)),
         seatCharacters = List.of(seatCharacters ?? kSeatCharacters),
         _botFactory = botFactory ?? SimpleBot.new {
     if (ruleset.isChineseStyle) {
@@ -186,6 +189,11 @@ class GameController extends ChangeNotifier implements TableGameHost {
   final MortalAdvisor? _mortalRiichi;
   final MortalAdvisor? _mortalSanma;
 
+  /// The fine-tuned model bot Nagomi plays in riichi, with MORTAL_NAGOMI_URL.
+  /// She has none in sanma. Without it, or when it fails, she asks [_mortal]
+  /// (Saeko's), and then [SimpleBot] decides.
+  final MortalAdvisor? _mortalNagomi;
+
   /// The Mortal for this game's rules: riichi or sanma, otherwise none.
   MortalAdvisor? get _mortal => ruleset.isSanma
       ? _mortalSanma
@@ -211,9 +219,33 @@ class GameController extends ChangeNotifier implements TableGameHost {
       {};
 
   Future<Map<String, Object?>> _mortalReply(int seat) =>
-      _mortalReplies.putIfAbsent((round, _log.length, seat),
-          () => _mortal!.ask(ruleset.activeSeats.indexOf(seat), _mjaiEvents(),
-              hanchan: hanchan));
+      _mortalReplies.putIfAbsent((round, _log.length, seat), () {
+        final mjaiSeat = ruleset.activeSeats.indexOf(seat);
+        return _askAdvisors(seat, mjaiSeat, _mjaiEvents());
+      });
+
+  /// Nagomi's own Mortal first, when [seat] is her bot seat in riichi; then
+  /// [_mortal]. The events are read before any wait, so they are this position's.
+  Future<Map<String, Object?>> _askAdvisors(
+      int seat, int mjaiSeat, List<MjaiEvent> events) async {
+    final nagomi = _mortalNagomi;
+    if (nagomi != null && _isNagomiBot(seat)) {
+      try {
+        return await nagomi.ask(mjaiSeat, events, hanchan: hanchan);
+      } catch (e) {
+        debugPrint("Nagomi (Mortal) fell back to Saeko's Mortal: $e");
+      }
+    }
+    final mortal = _mortal;
+    if (mortal == null) throw StateError('no Mortal for these rules');
+    return mortal.ask(mjaiSeat, events, hanchan: hanchan);
+  }
+
+  /// Whether [seat] is a bot showing Nagomi in a riichi game.
+  bool _isNagomiBot(int seat) =>
+      ruleset.isRiichi &&
+      seat != kHumanSeat &&
+      _characterForSeat(seat) == Character.nagomi;
 
   @override
   bool get mortalAvailable => _mortal != null;
@@ -1696,14 +1728,19 @@ class GameController extends ChangeNotifier implements TableGameHost {
   // --- Saeko on Mortal ---------------------------------------------------
 
   /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi or
-  /// sanma game, in an app built with that game's Mortal. Every other
-  /// character, and Saeko under Hong Kong or Taiwanese rules, stays on
-  /// [SimpleBot]. (Online, the server
-  /// plays its own bot Saeko on Mortal: server/mp/lib/table_loop.dart.)
+  /// sanma game, in an app built with that game's Mortal; or showing Nagomi in
+  /// a riichi game, on her own Mortal or else Saeko's. Every other character,
+  /// and either under Hong Kong or Taiwanese rules, stays on [SimpleBot].
+  /// (Online, the server plays its bot Saeko and Nagomi on Mortal:
+  /// server/mp/lib/table_loop.dart.)
   bool _playsMortal(int seat) =>
-      _mortal != null &&
       seat != kHumanSeat &&
-      _characterForSeat(seat) == Character.saeko;
+      switch (_characterForSeat(seat)) {
+        Character.saeko => _mortal != null,
+        Character.nagomi =>
+          ruleset.isRiichi && (_mortalNagomi != null || _mortal != null),
+        _ => false,
+      };
 
   /// [seat]'s turn from its bot, or null while Mortal is still thinking.
   BotTurn? _botTurn(int seat) {
@@ -1824,7 +1861,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
           .then<Object?>((answer) => answer, onError: (Object e) {
         debugPrint(seat == kHumanSeat
             ? 'Mortal fell back to the guide for your seat: $e'
-            : 'Saeko (Mortal) fell back to SimpleBot: $e');
+            : '${_characterForSeat(seat) == Character.nagomi ? 'Nagomi' : 'Saeko'}'
+                ' (Mortal) fell back to SimpleBot: $e');
         return null;
       }).then((answer) {
         // An answer for a table that has moved on (undo, new hand) is dropped.

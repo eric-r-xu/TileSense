@@ -1,11 +1,15 @@
 /// Asks the Mortal sidecar (mortal_sidecar/server.py) for a bot Saeko's
-/// moves in a multiplayer riichi game — the server's counterpart of the
+/// (or, from her own sidecar, a bot Nagomi's) moves in a multiplayer riichi game — the server's counterpart of the
 /// app's `MortalAdvisor` (flutter_client/lib/game/mortal_advisor.dart).
 ///
 /// Off unless `MORTAL_URL` is set (`http://127.0.0.1:8790` in production,
 /// see deploy/tilesense-mp.service), or for sanma rooms `MORTAL_SANMA_URL`
 /// (the three-player sidecar, `:8791`); without it, or whenever the sidecar
 /// fails, Saeko plays on `SimpleBot` like every other bot.
+///
+/// Bot Nagomi (four-player riichi only) has her own sidecar, serving the
+/// fine-tuned model, at `MORTAL_NAGOMI_URL` (`:8792`); when it is unset or
+/// fails she plays Saeko's Mortal, and then `SimpleBot`.
 library;
 
 import 'dart:convert';
@@ -15,9 +19,8 @@ import 'package:mahjong_core/mahjong_core.dart';
 
 /// Posts one seat's view of a hand and returns Mortal's reply; throws on
 /// any failure. The seat is in mjai's numbering (`MjaiRecorder.mjaiSeat`).
-typedef MortalAsk = Future<Map<String, Object?>> Function(
-    int seat, List<MjaiEvent> events,
-    {required bool hanchan});
+typedef MortalAsk = Future<Map<String, Object?>>
+    Function(int seat, List<MjaiEvent> events, {required bool hanchan});
 
 class MortalClient {
   MortalClient(String url) : _url = Uri.parse('$url/react');
@@ -26,10 +29,15 @@ class MortalClient {
     ..connectionTimeout = const Duration(seconds: 2);
 
   /// The live client, or null when `MORTAL_URL` (`MORTAL_SANMA_URL` for
-  /// [sanma]) is unset. [env] is a test seam.
-  static MortalClient? maybe({bool sanma = false, Map<String, String>? env}) {
-    final url = (env ?? Platform.environment)[
-        sanma ? 'MORTAL_SANMA_URL' : 'MORTAL_URL'];
+  /// [sanma], `MORTAL_NAGOMI_URL` for [nagomi]) is unset. [env] is a test seam.
+  static MortalClient? maybe(
+      {bool sanma = false, bool nagomi = false, Map<String, String>? env}) {
+    assert(!(sanma && nagomi), 'Nagomi has no sanma model');
+    final url = (env ?? Platform.environment)[sanma
+        ? 'MORTAL_SANMA_URL'
+        : nagomi
+            ? 'MORTAL_NAGOMI_URL'
+            : 'MORTAL_URL'];
     return url == null || url.isEmpty ? null : MortalClient(url);
   }
 
@@ -46,7 +54,8 @@ class MortalClient {
       final bytes = utf8.encode(jsonEncode({
         'player_id': seat,
         'events': mjaiView(events, seat),
-        'game_length': (hanchan ? 2 : 1) * (events.first['tehais'] as List).length,
+        'game_length':
+            (hanchan ? 2 : 1) * (events.first['tehais'] as List).length,
       }));
       req.contentLength = bytes.length;
       req.add(bytes);

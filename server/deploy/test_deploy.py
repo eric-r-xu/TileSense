@@ -359,6 +359,87 @@ location / { proxy_pass http://unix:/run/myproject/myproject.sock; }
         self.assertTrue((units / 'tilesense-mortal-sanma.service').is_file())
         self.assertIn(['systemctl', 'reload', 'nginx'], [c.args[0] for c in run.call_args_list])
 
+    def test_mortal_nagomi_release_uses_its_own_directory_unit_and_port(self):
+        mortal, patches = self.mortal_env()
+        (self.root / 'units/tilesense-mortal-nagomi.service').write_text('unit')
+        nagomi = self.root / 'opt-nagomi'
+        for name in ('releases', 'models', 'venvs'):
+            (nagomi / name).mkdir(parents=True)
+        with contextlib.ExitStack() as stack:
+            for p in patches: stack.enter_context(p)
+            stack.enter_context(patch.object(remote, 'MORTAL_NAGOMI', nagomi))
+            remote.install_mortal(self.mortal_stage(), 'm1', 'mortal-nagomi')
+            calls = [c.args[0] for c in remote.run.call_args_list]
+            health = [c.args for c in remote.mortal_health.call_args_list]
+            status = remote.mortal_status('mortal-nagomi')
+        self.assertEqual((nagomi / 'current').resolve(), nagomi / 'releases/m1')
+        self.assertFalse((mortal / 'current').exists())
+        self.assertIn(['systemctl', 'restart', 'tilesense-mortal-nagomi.service'], calls)
+        self.assertEqual(health, [('mortal-nagomi',)])
+        self.assertEqual(status['build_id'], 'm1')
+        self.assertEqual(remote.mortal_variant('mortal-nagomi')[2], 8792)
+        # a 4-player model, so the 4-player health hand
+        self.assertEqual(remote.mortal_variant('mortal-nagomi')[3], remote.MORTAL_HEALTH)
+
+    def test_mortal_nagomi_setup_adds_its_own_route_beside_the_others(self):
+        units = self.root / 'units'
+        units.mkdir()
+        stage = self.root / 'stage'
+        stage.mkdir()
+        (stage / 'tilesense-mortal-nagomi.service').write_text('unit')
+        (stage / 'nginx-mortal-nagomi.conf').write_text(
+            '# comment\nlocation /tilesense/mortal-nagomi/ {}\n')
+        (stage / 'nginx-mortal-limits.conf').write_text('limits')
+        site = self.root / 'site'
+        site.write_text('server {\n    # TileSense Mortal\n    location /tilesense/mortal/ {}\n\n'
+                        '    # TileSense sanma Mortal\n    location /tilesense/mortal-sanma/ {}\n\n'
+                        '    # TileSense versioned releases\n}\n')
+        limits = self.root / 'limits.conf'
+        limits.write_text('limits')
+        with patch.object(remote, 'MORTAL_NAGOMI', self.root / 'opt-nagomi'), \
+             patch.object(remote, 'UNIT_DIR', units), patch.object(remote, 'run') as run, \
+             patch.object(remote, 'NGINX', site), patch.object(remote, 'NGINX_LIMITS', limits):
+            result = remote.setup_mortal(stage, 'mortal-nagomi')
+            text = site.read_text()
+            self.assertEqual(remote.setup_mortal(stage, 'mortal-nagomi'), {'configured': True})
+            calls = [c.args[0] for c in run.call_args_list]
+        self.assertIn('nginx_backup', result)
+        self.assertEqual(text.count('# TileSense Nagomi Mortal'), 1)
+        self.assertEqual(text.count('location /tilesense/mortal-nagomi/ {}'), 1)
+        self.assertIn('location /tilesense/mortal/ {}', text)
+        self.assertIn('location /tilesense/mortal-sanma/ {}', text)
+        self.assertNotIn('# comment', text)
+        self.assertEqual(site.read_text(), text)  # the second setup changed nothing
+        self.assertTrue((units / 'tilesense-mortal-nagomi.service').is_file())
+        self.assertIn(['systemctl', 'enable', 'tilesense-mortal-nagomi.service'], calls)
+        self.assertIn(['systemctl', 'reload', 'nginx'], calls)
+
+    def test_client_build_gives_nagomi_her_own_mortal_only_when_asked(self):
+        for env, expected in (({}, False), ({'MORTAL_NAGOMI_CLIENT': ''}, False),
+                              ({'MORTAL_NAGOMI_CLIENT': '0'}, False),
+                              ({'MORTAL_NAGOMI_CLIENT': '1'}, True)):
+            with patch.dict(os.environ, env, clear=True), \
+                 patch.object(deploy, 'output', return_value='{}'), patch.object(deploy, 'run') as run, \
+                 patch.object(deploy.shutil, 'copytree'), patch.object(deploy, 'stamp_client'), \
+                 patch.object(deploy.Path, 'read_text', return_value='version: 1.0.0+1'):
+                deploy.build_client(Path('/tmp/w'), 'rid', 'abc', False)
+            flutter = run.call_args_list[0].args[0]
+            self.assertEqual('--dart-define=MORTAL_NAGOMI_URL=/tilesense/mortal-nagomi' in flutter, expected)
+
+    def test_mortal_nagomi_pin_shares_the_4_player_libriichi_build(self):
+        # deploy.py gives Nagomi the 4-player libriichi cache, so her manifest must
+        # pin the same Mortal build and ask for no extra cargo features.
+        root = Path(__file__).resolve().parents[2] / 'mortal_sidecar'
+        mortal = json.loads((root / 'model.json').read_text())
+        nagomi = json.loads((root / 'model_nagomi.json').read_text())
+        self.assertEqual(nagomi['mortal_repo'], mortal['mortal_repo'])
+        self.assertEqual(nagomi['mortal_commit'], mortal['mortal_commit'])
+        self.assertNotIn('cargo_features', nagomi)
+        self.assertRegex(nagomi['sha256'], r'^[0-9a-f]{64}$')
+        self.assertNotEqual(nagomi['sha256'], mortal['sha256'])
+        self.assertEqual(deploy.MORTAL_VARIANTS['mortal-nagomi'][1], deploy.MORTAL_VARIANTS['mortal'][1])
+        self.assertTrue((root / 'deploy/tilesense-mortal-nagomi.service').is_file())
+
     def test_mortal_unknown_variant_is_refused(self):
         with self.assertRaises(ValueError): remote.mortal_status('mortal-mcr')
         with self.assertRaises(ValueError): remote.handle({'action': 'mortal-status', 'variant': '../x'})

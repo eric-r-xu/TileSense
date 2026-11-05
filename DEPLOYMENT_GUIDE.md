@@ -102,8 +102,8 @@ and manual rsync commands bypass these locks and must no longer be used.
 - **By hand** (Actions tab → Deploy → Run workflow): `mortal`, `mp`, which drops live
   online rooms (choosing it is the `ALLOW_MP_RESTART=1` acknowledgement), and
   `rollback-client`, `rollback-ingest` and `rollback-mp` with a release ID.
-- **Laptop only:** `ingest`, `migrate`, `geoip`, `all`, `setup-client` and
-  `setup-mortal`. The
+- **Laptop only:** `ingest`, `migrate`, `geoip`, `all`, `setup-client`,
+  `setup-mortal`, and `mortal-nagomi` with its `setup-` step. The
   first four need doctl and database credentials, which are kept off GitHub.
 
 Deploys queue and are never cancelled midway. The droplet's own lock still
@@ -218,6 +218,50 @@ one that shares its request limits (`nginx-mortal-sanma.conf`).
 **To turn it off:** set `MORTAL_SANMA_CLIENT` and `MORTAL_SANMA` to `0`;
 `systemctl stop tilesense-mortal-sanma` stops it. **To change the model:**
 publish a new release, update `model_sanma.json`, and merge.
+
+### The Nagomi Mortal
+
+A third sidecar, `tilesense-mortal-nagomi`, serves the model fine-tuned for bot
+Nagomi on `127.0.0.1:8792`. Multiplayer asks it for Nagomi's moves in
+four-player riichi rooms, hanchan or East only, and the app's offline riichi
+games call it at `/tilesense/mortal-nagomi/` (`nginx-mortal-nagomi.conf`, which
+shares the 4-player route's request limits). Saeko keeps the 298k on `:8790`,
+and Nagomi stays on `SimpleBot` in sanma and under Hong Kong or Taiwanese
+rules. It is the same `server.py` and the same libriichi build as the 4-player
+one (`model_nagomi.json` pins the same Mortal commit and `deploy.py` reuses that
+cache); only the model differs. When it is down or unset, Nagomi plays Saeko's
+Mortal, and then `SimpleBot`.
+
+The model is `ft/run1/g23033.pth`, the 298k fine-tuned on 23,033 Phoenix
+hanchan (see `~/Downloads/NAGOMI_MODEL_PLAN.md`). In 12,000 one-versus-three
+games and 11,500 two-versus-two games it was not distinguishable from the 298k,
+so this is a separate model, not a stronger one. Like Mortal it is AGPL-3.0.
+
+1. Publish `mortal_nagomi.onnx` as the GitHub release named in
+   `model_nagomi.json` (`mortal-nagomi-ft-onnx-v1`), and check that the file's
+   SHA-256 matches the pin.
+2. `./deploy.sh setup-mortal-nagomi` (once): installs and enables the service
+   and adds the nginx route.
+3. `./deploy.sh mortal-nagomi`. It checks a real hand before going live and
+   switches back if that fails. Then `systemctl status tilesense-mortal-nagomi`
+   and `systemctl show -p MemoryCurrent tilesense-mortal-nagomi` (about 170 MB
+   on a 1 vCPU / 2 GB droplet already running two other sidecars: check free
+   memory first).
+4. Multiplayer: add `Environment=MORTAL_NAGOMI_URL=http://127.0.0.1:8792` to
+   `tilesense-mp.service` (the repository copy has it) and restart
+   multiplayer, which drops live rooms.
+5. The app: once the route answers
+   (`curl -s https://<host>/tilesense/mortal-nagomi/react` gives a 4xx JSON
+   error, not nginx's 404 page), set the repository variable
+   `MORTAL_NAGOMI_CLIENT` = `1` (or `MORTAL_NAGOMI_CLIENT=1` in `deploy.env`
+   for a laptop build) and deploy the client. It is off by default, so no build
+   calls a route that is not there yet.
+
+**To turn it off:** set `MORTAL_NAGOMI_CLIENT` to `0` and deploy the client;
+remove the multiplayer line and restart it; or
+`systemctl stop tilesense-mortal-nagomi`. Nagomi then plays Saeko's Mortal.
+**To change the model:** publish a new release, update `model_nagomi.json`,
+and run `./deploy.sh mortal-nagomi`.
 
 ## Recovery and retention
 
