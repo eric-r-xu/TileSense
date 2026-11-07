@@ -116,7 +116,7 @@ void main() {
         final viewer = round.turn;
         final mirror = buildRoundFromSnapshot(wireFor(round, viewer), mySeat: viewer);
         expect(mirror.seats[0].voidSuit, round.seats[viewer].voidSuit);
-        expect(mirror.mustDiscardVoid(0), round.mustDiscardVoid(viewer));
+        expect(mirror.holdsVoidInHand(0), round.holdsVoidInHand(viewer));
         expect({for (final t in mirror.legalDiscards(0)) t.id},
             {for (final t in round.legalDiscards(viewer)) t.id});
       }

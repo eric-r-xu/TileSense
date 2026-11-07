@@ -19,7 +19,7 @@ void main() {
     expect(newUuid(), isNot(id));
   });
 
-  test('a quiz answer reports its puzzle, choice, day and streak', () {
+  test('a quiz answer reports its puzzle, choice, and day', () {
     final p = Telemetry.quizAnsweredPayload(
       puzzleId: 'q0007',
       puzzleKind: 'discard',
@@ -28,7 +28,6 @@ void main() {
       correct: false,
       riichiOption: true,
       day: '2026-10-20',
-      streak: 3,
       firstToday: true,
     );
     expect(p, {
@@ -39,7 +38,6 @@ void main() {
       'correct': false,
       'riichi_option': true,
       'day': '2026-10-20',
-      'streak': 3,
       'first_today': true,
     });
   });

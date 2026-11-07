@@ -377,7 +377,6 @@ Future<void> _applyEvent(
             'correct': e['correct'] == true,
             'riichi_option': e['riichi_option'] == true,
             'day': text(e['day'], 10),
-            'streak': (e['streak'] as num?)?.toInt() ?? 0,
             'first_today': e['first_today'] == true,
           }),
         },

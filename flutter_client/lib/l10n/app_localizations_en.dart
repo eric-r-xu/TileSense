@@ -2153,7 +2153,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voidSuitHint =>
-      'You must discard every tile of this suit before any other, and a hand still holding one can\'t win.';
+      'A hand holding this suit can\'t win, and any left after a draw incurs a large penalty.';
 
   @override
   String get voidSuitWaiting => 'Waiting for the other players to choose…';
@@ -2179,7 +2179,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voidSuitUnknown => 'Void: ?';
 
   @override
-  String get voidFirstNotice => 'Discard your void suit first';
+  String get voidNote =>
+      'Void suit: can\'t win with it in hand; any left after a draw is a large penalty';
 
   @override
   String get huOutBadge => 'HU';
@@ -2478,7 +2479,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glossaryDefVoid =>
-      'You give up one of the three suits at the start. While you hold any tile of it, you must discard those first.';
+      'You give up one of the three suits at the start. A hand holding any of it can\'t win, and any left after a draw incurs a large penalty.';
 
   @override
   String get glossaryDefScore =>
@@ -2776,11 +2777,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quizCardDone => 'Done for today. Back tomorrow!';
-
-  @override
-  String quizStreak(int days) {
-    return '$days-day streak';
-  }
 
   @override
   String get loadingQuiz => 'Loading the daily quiz…';

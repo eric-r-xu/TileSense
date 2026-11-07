@@ -22,3 +22,6 @@ flutter_client/e2e/playwright-report/
 analytics/dbt/target/
 analytics/dbt/dbt_packages/
 analytics/dbt/logs/
+*.log
+flutter_client/tools
+/reports

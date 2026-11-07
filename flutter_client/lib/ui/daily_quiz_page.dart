@@ -61,7 +61,7 @@ class DailyQuizScreen extends StatefulWidget {
   /// Puzzles to use instead of the shipped file, for tests.
   final Future<List<QuizPuzzle>>? puzzles;
 
-  /// Where the streak is kept; the app's own when null.
+  /// Where the day's answer is kept; the app's own when null.
   final ProgressStore? progress;
 
   /// Where an answer is reported (see [Telemetry.quizAnsweredPayload]); the
@@ -86,8 +86,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
 
   ProgressStore get _store => widget.progress ?? ProgressStore.instance;
 
-  /// Reports the answer. The streak is kept when the last question of the day
-  /// is answered: the day counts once it has been played through.
+  /// Reports the answer. The day is recorded when its last question is
+  /// answered: it counts once it has been played through.
   void _record(QuizPuzzle puzzle, QuizChoice picked, bool correct,
       {required bool last}) {
     final store = _store;
@@ -103,7 +103,6 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
       correct: correct,
       riichiOption: puzzle.riichiOption,
       day: dayKey(now),
-      streak: store.value.quizStreakOn(now),
       firstToday: first,
     );
     (widget.onTelemetry ?? Telemetry.shared()?.quizAnswered)?.call(payload);
@@ -137,7 +136,6 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
               return QuizResultsPage(
                 right: _right,
                 total: today.length,
-                streak: _store.value.quizStreakOn(_day),
                 onExit: widget.onExit,
               );
             }
@@ -833,13 +831,11 @@ class QuizResultsPage extends StatelessWidget {
     super.key,
     required this.right,
     required this.total,
-    required this.streak,
     required this.onExit,
   });
 
   final int right;
   final int total;
-  final int streak;
   final VoidCallback onExit;
 
   @override
@@ -887,12 +883,6 @@ class QuizResultsPage extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 22)),
-                      if (streak > 0) ...[
-                        const SizedBox(height: 8),
-                        Text(l10n.quizStreak(streak),
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 16)),
-                      ],
                       const SizedBox(height: 14),
                       Text(l10n.quizDone,
                           textAlign: TextAlign.center,

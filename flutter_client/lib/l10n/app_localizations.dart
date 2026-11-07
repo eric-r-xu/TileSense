@@ -3908,7 +3908,7 @@ abstract class AppLocalizations {
   /// No description provided for @voidSuitHint.
   ///
   /// In en, this message translates to:
-  /// **'You must discard every tile of this suit before any other, and a hand still holding one can\'t win.'**
+  /// **'A hand holding this suit can\'t win, and any left after a draw incurs a large penalty.'**
   String get voidSuitHint;
 
   /// No description provided for @voidSuitWaiting.
@@ -3953,11 +3953,11 @@ abstract class AppLocalizations {
   /// **'Void: ?'**
   String get voidSuitUnknown;
 
-  /// No description provided for @voidFirstNotice.
+  /// No description provided for @voidNote.
   ///
   /// In en, this message translates to:
-  /// **'Discard your void suit first'**
-  String get voidFirstNotice;
+  /// **'Void suit: can\'t win with it in hand; any left after a draw is a large penalty'**
+  String get voidNote;
 
   /// No description provided for @huOutBadge.
   ///
@@ -4442,7 +4442,7 @@ abstract class AppLocalizations {
   /// No description provided for @glossaryDefVoid.
   ///
   /// In en, this message translates to:
-  /// **'You give up one of the three suits at the start. While you hold any tile of it, you must discard those first.'**
+  /// **'You give up one of the three suits at the start. A hand holding any of it can\'t win, and any left after a draw incurs a large penalty.'**
   String get glossaryDefVoid;
 
   /// No description provided for @glossaryDefScore.
@@ -4948,12 +4948,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done for today. Back tomorrow!'**
   String get quizCardDone;
-
-  /// No description provided for @quizStreak.
-  ///
-  /// In en, this message translates to:
-  /// **'{days}-day streak'**
-  String quizStreak(int days);
 
   /// No description provided for @loadingQuiz.
   ///

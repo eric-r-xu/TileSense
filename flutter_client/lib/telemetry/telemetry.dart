@@ -249,7 +249,7 @@ class Telemetry {
   /// What `quiz_answered` carries, kept in one place so the app and its test
   /// agree on it. [choice] and [answer] are the moves as text (`riichi 5p`,
   /// `pass`); [day] is the player's local calendar day, `2026-10-20`.
-  /// [firstToday] is false for a replay, which the streak ignores.
+  /// [firstToday] is false for a replay.
   static Map<String, Object?> quizAnsweredPayload({
     required String puzzleId,
     required String puzzleKind,
@@ -258,7 +258,6 @@ class Telemetry {
     required bool correct,
     required bool riichiOption,
     required String day,
-    required int streak,
     required bool firstToday,
   }) =>
       {
@@ -269,7 +268,6 @@ class Telemetry {
         'correct': correct,
         'riichi_option': riichiOption,
         'day': day,
-        'streak': streak,
         'first_today': firstToday,
       };
 

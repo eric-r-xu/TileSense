@@ -322,8 +322,8 @@ class ZhRulesText extends RulesText {
         ]),
         RuleSection('void', '定缺', [
           '开局前选定一门要打掉的花色。',
-          '打完这门的牌之前，不能打其他花色。',
           '手牌或副露中还有这门牌时不能胡。',
+          '流局时手中仍有这门牌，将被重罚。',
           '所选的花色在第一次打牌时才公开。',
         ]),
         RuleSection('calls', '鸣牌与血战到底', [

@@ -536,6 +536,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
   /// how the measurement harnesses pin a fixed arm.
   bool dialsAuto = true;
 
+  /// Experimental calibration policy; no UI setting or default behavior change.
+  bool expandedRiichiLookahead = false;
+
   /// Hands left in the game, counting this one; a dealer repeat in the final
   /// hand still leaves one.
   int get _handsLeft => max(1, _handsPerGame - _roundNumber);
@@ -1956,6 +1959,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
         style: playStyle,
         focus: handFocus,
         strategy: strategy,
+        expandedRiichiLookahead: expandedRiichiLookahead,
         tablePoints: tablePoints,
         mySeat: kHumanSeat,
         // Hands left in the game, including this one — a floor rather than a

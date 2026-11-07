@@ -334,8 +334,8 @@ class EnRulesText extends RulesText {
         ]),
         RuleSection('void', 'Choose a void suit', [
           'Before play, choose one suit to give up.',
-          'Discard all of it before any other suit.',
           'You cannot win while you hold or have melded that suit.',
+          'Any of it left in hand after a draw incurs a large penalty.',
           'Opponents see your choice at your first discard.',
         ]),
         RuleSection('calls', 'Calls and continued play', [

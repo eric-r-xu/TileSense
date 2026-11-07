@@ -175,13 +175,17 @@ class SimpleBot {
         : CallType.none;
   }
 
-  /// Sichuan discards: the void suit first (the rules force it), then the tile
+  /// Sichuan discards: the void suit first (it can never win, and left in hand it costs the
+  /// penalty), then the tile
   /// that leaves the rest of the hand fewest away from ready, then the widest
   /// acceptance.
   Tile _sichuanDiscard(Round round, int seat) {
     final s = round.seats[seat];
     final tiles = round.legalDiscards(seat);
-    if (round.mustDiscardVoid(seat)) return tiles[_rng.nextInt(tiles.length)];
+    if (round.holdsVoidInHand(seat)) {
+      final voids = [for (final t in tiles) if (t.type.suit == s.voidSuit) t];
+      return voids[_rng.nextInt(voids.length)];
+    }
     final counts = toTrainerCounts(s.hand);
     final remaining = List<int>.filled(38, 4);
     for (final o in round.seats) {

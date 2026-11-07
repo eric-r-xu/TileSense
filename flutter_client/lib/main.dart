@@ -2651,7 +2651,7 @@ Future<void> _showTitlePopup(
     );
 
 /// The Learn popup's first row: today's quiz, whether its puzzle is waiting or
-/// done, the streak, and the rules the puzzle is posed in. Under rules with no
+/// done, and the rules the puzzle is posed in. Under rules with no
 /// quiz (sanma) it says so instead, and opens nothing.
 class _DailyQuizAction extends StatelessWidget {
   const _DailyQuizAction({required this.ruleset, required this.onPressed});
@@ -2707,7 +2707,6 @@ class _DailyQuizAction extends StatelessWidget {
           final today = DateTime.now();
           final progress = ProgressStore.instance.value;
           final done = progress.quizAnsweredOn(today);
-          final streak = progress.quizStreakOn(today);
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: e2eId(
@@ -2754,23 +2753,6 @@ class _DailyQuizAction extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (streak > 0) ...[
-                      const SizedBox(width: 12),
-                      Container(
-                        key: const Key('dailyQuizStreak'),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.gold,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(l10n.quizStreak(streak),
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ],
                   ],
                 ),
               ),

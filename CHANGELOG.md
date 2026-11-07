@@ -9,6 +9,19 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-06 — Quiz streak removed
+
+- **The daily quiz no longer has a day streak.** The "N-day streak" badge on the
+  Learn popup's quiz row and on the results page are gone, along with the stored
+  streak and best-streak counts (old saved records are read as before), the
+  `streak` field of the `quiz_answered` telemetry event, and the `streak` column
+  of `fct_quiz_answers`. A day is still done after its fifth answer.
+- **Sichuan no longer forces the void suit out first.** Any tile may be
+  discarded; a note on the table (and in the rules, glossary and prompt) says you
+  can't win with a void-suit tile in hand and any left after a draw incurs a large
+  penalty. The scoring is unchanged, and the bots and guide still cut the suit
+  first.
+
 ## 2026-11-03 — Bigger round scores and rules reader
 
 - **Round score screen.** The panel is wider (up to 1380 px, was 880) with

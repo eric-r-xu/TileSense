@@ -7,7 +7,7 @@ import 'package:tilesense/logic/progress.dart';
 import 'package:tilesense/main.dart';
 import 'helpers.dart';
 
-/// The daily quiz's way in from the welcome screen, and its streak.
+/// The daily quiz's way in from the welcome screen, and its day.
 void main() {
   late Map<String, String> storage;
 
@@ -23,45 +23,24 @@ void main() {
   });
   tearDown(() => Sfx.i.enabled = true);
 
-  group('the streak', () {
+  group('the day', () {
     final mon = DateTime(2026, 10, 19, 9);
     final tue = DateTime(2026, 10, 20, 22);
-    final thu = DateTime(2026, 10, 22);
 
-    test('counts days in a row, once a day', () {
+    test('counts once a day, and survives a reload', () {
       final s = freshStore()
         ..recordQuiz(mon, correct: true)
         ..recordQuiz(mon, correct: false); // a second answer the same day
-      expect(s.value.quizStreakOn(mon), 1);
       expect(s.value.quizCorrect, isTrue, reason: 'the first answer counts');
-      s.recordQuiz(tue, correct: false);
-      expect(s.value.quizStreakOn(tue), 2);
-      expect(s.value.quizBest, 2);
+      expect(s.value.quizAnsweredOn(mon), isTrue);
+      expect(s.value.quizAnsweredOn(tue), isFalse);
+      expect(freshStore().value.quizAnsweredOn(mon), isTrue);
     });
 
-    test('is kept until the day after the next one is missed', () {
-      final s = freshStore()..recordQuiz(mon, correct: true);
-      expect(s.value.quizStreakOn(tue), 1, reason: 'today can still be played');
-      expect(s.value.quizStreakOn(thu), 0, reason: 'a day was missed');
-      s.recordQuiz(thu, correct: true);
-      expect(s.value.quizStreakOn(thu), 1);
-      expect(s.value.quizBest, 1);
-    });
-
-    test('crosses a month end and survives a reload', () {
-      final s = freshStore()
-        ..recordQuiz(DateTime(2026, 10, 31), correct: true)
-        ..recordQuiz(DateTime(2026, 11, 1), correct: true);
-      expect(s.value.quizStreakOn(DateTime(2026, 11, 1)), 2);
-      final again = freshStore();
-      expect(again.value.quizStreakOn(DateTime(2026, 11, 1)), 2);
-      expect(again.value.quizAnsweredOn(DateTime(2026, 11, 1)), isTrue);
-    });
-
-    test('an old record without quiz fields reads as no streak', () {
+    test('an old record without quiz fields reads as unanswered', () {
       final p = Progress.fromJson('{"wins":4,"hands":9}');
       expect(p.wins, 4);
-      expect(p.quizStreakOn(DateTime.now()), 0);
+      expect(p.quizAnsweredOn(DateTime.now()), isFalse);
     });
   });
 
@@ -105,7 +84,6 @@ void main() {
     await openPopup(tester, 'learnTile');
     expect(tester.widget<Text>(find.byKey(const Key('dailyQuizStatus'))).data,
         "Today's puzzles are ready");
-    expect(find.byKey(const Key('dailyQuizStreak')), findsNothing);
     await tester.tap(find.byKey(const Key('dailyQuizCard')));
     await tester.pump();
     await settle(tester);
@@ -184,12 +162,12 @@ void main() {
     expect(find.text('Single Player'), findsOneWidget);
   });
 
-  testWidgets('answering marks today done and starts the streak',
+  testWidgets('answering marks today done',
       (tester) async {
     await pumpMenu(tester);
     await openQuiz(tester);
     await settle(tester);
-    // Five questions make a day; the streak waits for the fifth. Leaving
+    // Five questions make a day; it is done only after the fifth. Leaving
     // after the first leaves the day undone and starts it again.
     Future<void> answer() async {
       await tester.tap(find.byKey(const Key('quizChoice_0')));
@@ -226,12 +204,5 @@ void main() {
     await openPopup(tester, 'learnTile');
     expect(tester.widget<Text>(find.byKey(const Key('dailyQuizStatus'))).data,
         'Done for today. Back tomorrow!');
-    expect(
-        tester
-            .widget<Text>(find.descendant(
-                of: find.byKey(const Key('dailyQuizStreak')),
-                matching: find.byType(Text)))
-            .data,
-        '1-day streak');
   });
 }

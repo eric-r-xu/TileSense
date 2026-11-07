@@ -2095,7 +2095,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voidSuitTitle => '选择定缺花色';
 
   @override
-  String get voidSuitHint => '必须先打完这一门的牌才能打其他牌，手中仍有这一门的牌时不能和牌。';
+  String get voidSuitHint => '手中有这一门的牌时不能和牌，流局时仍有则被重罚。';
 
   @override
   String get voidSuitWaiting => '等待其他玩家选择…';
@@ -2121,7 +2121,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voidSuitUnknown => '缺：?';
 
   @override
-  String get voidFirstNotice => '请先打出定缺的牌';
+  String get voidNote => '定缺：手中有缺门牌不能胡；流局时仍有则被重罚';
 
   @override
   String get huOutBadge => '胡';
@@ -2405,7 +2405,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glossaryTermVoid => '缺门';
 
   @override
-  String get glossaryDefVoid => '开局时放弃三种花色中的一种。只要你手里还有这门的牌，就必须先打出它们。';
+  String get glossaryDefVoid => '开局时放弃三种花色中的一种。手里有这门的牌时不能胡牌，流局时仍有则被重罚。';
 
   @override
   String get glossaryDefScore => '胡牌所得的价值。越多，牌越值钱。有些牌桌规定了胡牌所需的最低值。';
@@ -2687,11 +2687,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get quizCardDone => '今天已完成，明天再来！';
-
-  @override
-  String quizStreak(int days) {
-    return '连续$days天';
-  }
 
   @override
   String get loadingQuiz => '正在载入每日一题…';
@@ -5324,7 +5319,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get voidSuitTitle => '選擇定缺花色';
 
   @override
-  String get voidSuitHint => '必須先打完這一門的牌才能打其他牌，手中仍有這一門的牌時不能和牌。';
+  String get voidSuitHint => '手中有這一門的牌時不能和牌，流局時仍有則被重罰。';
 
   @override
   String get voidSuitWaiting => '等待其他玩家選擇…';
@@ -5350,7 +5345,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get voidSuitUnknown => '缺：?';
 
   @override
-  String get voidFirstNotice => '請先打出定缺的牌';
+  String get voidNote => '定缺：手中有缺門牌不能胡；流局時仍有則被重罰';
 
   @override
   String get huOutBadge => '胡';
@@ -5634,7 +5629,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get glossaryTermVoid => '缺門';
 
   @override
-  String get glossaryDefVoid => '開局時放棄三種花色中的一種。只要你手裡還有這門的牌，就必須先打出它們。';
+  String get glossaryDefVoid => '開局時放棄三種花色中的一種。手裡有這門的牌時不能胡牌，流局時仍有則被重罰。';
 
   @override
   String get glossaryDefScore => '糊牌所得的價值。越多，牌越值錢。有些牌桌規定了食糊所需的最低值。';
@@ -5916,11 +5911,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get quizCardDone => '今天已完成，明天再來！';
-
-  @override
-  String quizStreak(int days) {
-    return '連續$days天';
-  }
 
   @override
   String get loadingQuiz => '正在載入每日一題…';

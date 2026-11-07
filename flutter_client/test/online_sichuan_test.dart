@@ -147,7 +147,7 @@ void main() {
     });
   });
 
-  testWidgets('with a void suit in hand, any other discard is not sent',
+  testWidgets('with a void suit in hand, any discard is still sent',
       (tester) {
     return withGame(tester, (game) async {
       final sent = <Map<String, dynamic>>[];
@@ -160,15 +160,12 @@ void main() {
       final suit = round.seats[0].voidSuit!;
       final hand = round.seats[0].hand;
       final other = hand.firstWhere((t) => t.type.suit != suit);
-      final void_ = hand.firstWhere((t) => t.type.suit == suit);
       game.debugReceive(state(round));
       expect(game.isHumanTurn, isTrue);
 
       game.humanDiscard(other);
-      expect(sent, isEmpty, reason: 'void suit first');
-      game.humanDiscard(void_);
       expect(sent.single['kind'], 'discard');
-      expect(sent.single['tileId'], void_.id);
+      expect(sent.single['tileId'], other.id);
     });
   });
 

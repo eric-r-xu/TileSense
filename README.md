@@ -127,8 +127,7 @@ is configured with `MORTAL_URL`; players still receive no online guide.
 Five new puzzles each day, from the start page (the card under the rules choice, or
 **Daily quiz** beside Practice). Each poses a table and asks what you would do, in
 multiple choice, then moves on with **Next question**; a results page gives the
-score, and the day-streak extends once the fifth is answered. The five are
-different puzzles, and the pool is worked through in turn before any repeats.
+score. The five are different puzzles, and the pool is worked through in turn before any repeats.
 
 - **A cut**, or what to do with an opponent's discard (chi, pon, kan or pass).
 - **Kan (kong in Hong Kong) whenever it could be declared**: holding all four of a
@@ -145,7 +144,6 @@ different puzzles, and the pool is worked through in turn before any repeats.
   guide's own sentence is shown in English only.
 - Some tables have uneven scores. In the last two hands the guide then plays for
   placement, as in a game; the Custom Hand & Context Builder still has no scores.
-- A day streak, kept on the device. Only a day's first answer counts.
 
 Everything but the puzzles themselves is live: the app works TileSense's answer out
 again from the table and fails a test if it ever stops matching the stored one, so

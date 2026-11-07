@@ -322,8 +322,8 @@ class ZhHantRulesText extends RulesText {
         ]),
         RuleSection('void', '定缺', [
           '開局前選定一門要打掉的花色。',
-          '打完這門的牌之前，不能打其他花色。',
           '手牌或副露中還有這門牌時不能胡。',
+          '流局時手中仍有這門牌，將被重罰。',
           '所選的花色在第一次打牌時才公開。',
         ]),
         RuleSection('calls', '鳴牌與血戰到底', [
