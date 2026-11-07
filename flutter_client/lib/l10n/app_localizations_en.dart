@@ -2180,7 +2180,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voidNote =>
-      'Void suit: can\'t win with it in hand; any left after a draw is a large penalty';
+      'Can\'t win holding your void suit; any left after a draw is a large penalty';
 
   @override
   String get huOutBadge => 'HU';

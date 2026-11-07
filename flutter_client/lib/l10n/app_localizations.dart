@@ -3956,7 +3956,7 @@ abstract class AppLocalizations {
   /// No description provided for @voidNote.
   ///
   /// In en, this message translates to:
-  /// **'Void suit: can\'t win with it in hand; any left after a draw is a large penalty'**
+  /// **'Can\'t win holding your void suit; any left after a draw is a large penalty'**
   String get voidNote;
 
   /// No description provided for @huOutBadge.
