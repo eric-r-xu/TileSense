@@ -23,7 +23,7 @@ void main() {
       c.edit((s) => s.seats[0].voidSuit = 2);
       expect(c.blockedReason, isNull);
       expect(c.round.seats[0].voidSuit, 2);
-      expect(c.round.mustDiscardVoid(0), isTrue);
+      expect(c.round.holdsVoidInHand(0), isTrue);
       expect(c.report.lines, isNotEmpty);
       expect(c.report.lines.firstWhere((l) => l.recommended).discard.suit, 2);
     });

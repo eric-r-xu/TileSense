@@ -281,18 +281,16 @@ class _HandViewState extends State<HandView> {
             ? mortal!.discard
             : null;
 
-    // Sichuan: while any tile of the void suit is held, it is the only thing
-    // that may be discarded, so everything else is dimmed and cannot be tapped.
-    final voidFirst = round.ruleset.isSichuan && round.mustDiscardVoid(kHumanSeat);
+    // Sichuan: tiles of the void suit are tinted while held; they may be
+    // discarded in any order, but cannot win and are penalised if left.
+    final voidFirst = round.ruleset.isSichuan && round.holdsVoidInHand(kHumanSeat);
     final callTileIds = _beginnerHelp ? _callTileIds() : const <int>{};
 
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
       final isVoidTile = voidFirst && tile.type.suit == seat.voidSuit;
-      final voidBlocked = voidFirst && !isVoidTile;
       final tappable = canPlay &&
           (!riichiLocked || isDrawn) &&
-          !voidBlocked &&
           !round.canFlowerWin(kHumanSeat);
       final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = isTop
@@ -341,7 +339,7 @@ class _HandViewState extends State<HandView> {
                   scale: _handScale,
                   highlightColor: hc,
                   borderColorOverride: border,
-                  dimmed: (riichiLocked && !isDrawn) || (voidBlocked && canPlay),
+                  dimmed: (riichiLocked && !isDrawn),
                   hovered: _hoveredTileId == tile.id,
                 ),
               ),
@@ -1024,10 +1022,10 @@ class _HandViewState extends State<HandView> {
         ));
       }
     } else if (game.isHumanTurn) {
-      if (ruleset.isSichuan && game.round.mustDiscardVoid(kHumanSeat)) {
+      if (ruleset.isSichuan && game.round.holdsVoidInHand(kHumanSeat)) {
         buttons.add(Chip(
-          key: const Key('voidFirstChip'),
-          label: Text(context.l10n.voidFirstNotice,
+          key: const Key('voidNoteChip'),
+          label: Text(context.l10n.voidNote,
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -1105,7 +1103,7 @@ class _HandViewState extends State<HandView> {
       game.humanCanRiichi,
       game.awaitingHumanVoidSuit,
       game.round.awaitingVoidSuit,
-      game.round.ruleset.isSichuan && game.round.mustDiscardVoid(kHumanSeat),
+      game.round.ruleset.isSichuan && game.round.holdsVoidInHand(kHumanSeat),
       showGuide && game.report.recommendRiichi,
       showGuide ? game.recommendedChiRun : null,
     ].join('|');

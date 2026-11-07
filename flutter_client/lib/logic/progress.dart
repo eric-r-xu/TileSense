@@ -37,8 +37,6 @@ class Progress {
     this.done = const {},
     this.muted = false,
     this.quizDay,
-    this.quizStreak = 0,
-    this.quizBest = 0,
     this.quizCorrect = false,
   });
 
@@ -58,22 +56,8 @@ class Progress {
   /// or null if never.
   final String? quizDay;
 
-  /// Days in a row the daily quiz has been answered, as of [quizDay].
-  final int quizStreak;
-
-  /// The longest [quizStreak] there has been.
-  final int quizBest;
-
   /// Whether the answer on [quizDay] was right.
   final bool quizCorrect;
-
-  /// The quiz's streak as it stands on [day]: kept while today's or
-  /// yesterday's puzzle was answered, since today's can still be, and lost
-  /// after a day missed.
-  int quizStreakOn(DateTime day) =>
-      quizDay == dayKey(day) || quizDay == dayKey(_before(day))
-          ? quizStreak
-          : 0;
 
   /// Whether today's puzzle has been answered.
   bool quizAnsweredOn(DateTime day) => quizDay == dayKey(day);
@@ -84,8 +68,6 @@ class Progress {
     Set<Nudge>? done,
     bool? muted,
     String? quizDay,
-    int? quizStreak,
-    int? quizBest,
     bool? quizCorrect,
   }) =>
       Progress(
@@ -94,8 +76,6 @@ class Progress {
         done: done ?? this.done,
         muted: muted ?? this.muted,
         quizDay: quizDay ?? this.quizDay,
-        quizStreak: quizStreak ?? this.quizStreak,
-        quizBest: quizBest ?? this.quizBest,
         quizCorrect: quizCorrect ?? this.quizCorrect,
       );
 
@@ -105,8 +85,6 @@ class Progress {
         'done': [for (final n in done) n.name],
         'muted': muted,
         if (quizDay != null) 'quizDay': quizDay,
-        'quizStreak': quizStreak,
-        'quizBest': quizBest,
         'quizCorrect': quizCorrect,
       });
 
@@ -125,8 +103,6 @@ class Progress {
         },
         muted: m['muted'] == true,
         quizDay: m['quizDay'] as String?,
-        quizStreak: (m['quizStreak'] as num?)?.toInt() ?? 0,
-        quizBest: (m['quizBest'] as num?)?.toInt() ?? 0,
         quizCorrect: m['quizCorrect'] == true,
       );
     } catch (_) {
@@ -138,8 +114,6 @@ class Progress {
 /// A local calendar day as `2026-10-20`, the key the quiz's days are kept by.
 String dayKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-'
     '${d.day.toString().padLeft(2, '0')}';
-
-DateTime _before(DateTime d) => DateTime(d.year, d.month, d.day - 1);
 
 /// The ruleset a "try something new" suggestion points at from [current], or
 /// null when there is no natural next step.
@@ -209,18 +183,11 @@ class ProgressStore extends ChangeNotifier {
       hands: _value.hands + 1, wins: _value.wins + (won ? 1 : 0)));
 
   /// The daily quiz was answered on [day]. Only the first answer of a day
-  /// counts: it extends the streak when yesterday's was answered too, and
-  /// starts a new one otherwise.
+  /// counts.
   void recordQuiz(DateTime day, {required bool correct}) {
     final p = _value;
     if (p.quizAnsweredOn(day)) return;
-    final streak = p.quizStreakOn(day) + 1;
-    _set(p.copyWith(
-      quizDay: dayKey(day),
-      quizStreak: streak,
-      quizBest: streak > p.quizBest ? streak : p.quizBest,
-      quizCorrect: correct,
-    ));
+    _set(p.copyWith(quizDay: dayKey(day), quizCorrect: correct));
   }
 
   /// A suggestion was accepted or dismissed, so it is not offered again.

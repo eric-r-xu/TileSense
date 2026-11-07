@@ -1305,7 +1305,7 @@
   "sichuanFullGame": "Full game · 8 hands",
   "sichuanPractice": "Practice · 4 hands",
   "voidSuitTitle": "Choose your void suit",
-  "voidSuitHint": "You must discard every tile of this suit before any other, and a hand still holding one can't win.",
+  "voidSuitHint": "A hand holding this suit can't win, and any left after a draw incurs a large penalty.",
   "voidSuitWaiting": "Waiting for the other players to choose…",
   "suitMan": "Characters",
   "suitPin": "Dots",
@@ -1320,7 +1320,7 @@
     }
   },
   "voidSuitUnknown": "Void: ?",
-  "voidFirstNotice": "Discard your void suit first",
+  "voidNote": "Can't win holding your void suit; any left after a draw is a large penalty",
   "huOutBadge": "HU",
   "sichuanPayHu": "Hu",
   "sichuanPayKong": "Kong",
@@ -1490,7 +1490,7 @@
   "glossaryTermFlowers": "Flowers",
   "glossaryDefFlowers": "Bonus tiles. When you draw one, you show it and take a replacement from the wall. Each one can add to a winning hand's score.",
   "glossaryTermVoid": "Void suit",
-  "glossaryDefVoid": "You give up one of the three suits at the start. While you hold any tile of it, you must discard those first.",
+  "glossaryDefVoid": "You give up one of the three suits at the start. A hand holding any of it can't win, and any left after a draw incurs a large penalty.",
   "glossaryDefScore": "What a winning hand earns. More means a more valuable hand. Some tables set a minimum a hand must reach before it can win.",
   "glossaryTermRiichi": "Riichi",
   "glossaryDefRiichi": "Declare a closed hand one tile from winning by betting 1,000 points. Your hand is then locked: you can only discard each tile you draw. It earns extra score.",
@@ -1684,14 +1684,6 @@
   "quizLink": "Daily quiz",
   "quizCardToday": "Today's puzzles are ready",
   "quizCardDone": "Done for today. Back tomorrow!",
-  "quizStreak": "{days}-day streak",
-  "@quizStreak": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
   "loadingQuiz": "Loading the daily quiz…",
   "quizDama": "Dama",
   "quizAskRiichi": "That cut leaves you ready. Riichi, or stay quiet (dama)?",

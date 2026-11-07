@@ -477,9 +477,10 @@ class Round {
         s.melds.any((m) => m.low.suit == v);
   }
 
-  /// Whether [seat] still holds a tile of its void suit in its hand, which it
-  /// must discard before anything else.
-  bool mustDiscardVoid(int seat) {
+  /// Whether [seat] still holds a tile of its void suit in its hand. Such a
+  /// hand cannot win, and any left when the hand ends costs the penalty;
+  /// discarding is not restricted by it.
+  bool holdsVoidInHand(int seat) {
     final s = seats[seat];
     final v = s.voidSuit;
     return ruleset.isSichuan &&
@@ -808,9 +809,6 @@ class Round {
   List<Tile> legalDiscards(int seat) {
     if (_flowerSeat != null) return const [];
     final s = seats[seat];
-    if (mustDiscardVoid(seat)) {
-      return [for (final t in s.hand) if (t.type.suit == s.voidSuit) t];
-    }
     if (_locked(s)) {
       // Must discard the drawn tile (tsumogiri) unless it forms a closed kan.
       return s.drawn != null ? [s.drawn!] : s.hand;
@@ -1124,9 +1122,6 @@ class Round {
       }
     }
     if (ruleset.isSichuan) {
-      if (mustDiscardVoid(seat) && tile.type.suit != s.voidSuit) {
-        throw StateError('Discard the void suit first');
-      }
       // The first discard shows the void suit to the table.
       s.voidRevealed = true;
       _discardAfterKong = s.replacementDraw;

@@ -209,8 +209,8 @@ class SichuanGuide {
   static List<Tile> _without(List<Tile> hand, Tile tile) =>
       List<Tile>.of(hand)..remove(tile);
 
-  /// Every distinct discard from [hand] (the void suit first, when the rules
-  /// require it), scored and best first.
+  /// Every distinct discard from [hand] (the void suit only while any is
+  /// held: it cannot win and costs a penalty if left), scored and best first.
   static List<DiscardLine> _lines({
     required List<Tile> hand,
     required List<Meld> melds,
@@ -224,8 +224,8 @@ class SichuanGuide {
     final lines = <DiscardLine>[];
     for (final tile in hand) {
       if (!seen.add(tile.type)) continue;
-      // The void suit goes first: nothing else may be discarded while it is
-      // held.
+      // The void suit goes first: it can never win, and the guide does not
+      // price the penalty for leaving it, so it never advises keeping it.
       if (holdsVoid && tile.type.suit != v) continue;
       final rest = _without(hand, tile);
       final standing = _stand(

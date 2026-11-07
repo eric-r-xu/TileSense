@@ -24,11 +24,10 @@ touches is gated on `Ruleset.isSichuan`. Its flag is an image, not an emoji
 - **13-tile hands**; a complete hand is four sets and a pair, or seven pairs
   (four identical tiles may stand as two of them).
 - **Void suit.** Before the dealer's first draw every seat names one suit to
-  give up. You must discard every tile of it before any other tile, and a
-  hand holding any of it (melds included) cannot win. Your choice is hidden
-  until your first discard shows it. Because the app enforces the order, the
-  sheet's 48-point penalty (still holding the suit having discarded
-  something else) is in the code and tested, but cannot arise in normal play.
+  give up. A hand holding any of it (melds included) cannot win, and any of it
+  left in hand when the hand ends incurs the 48-point penalty to each other
+  seat. Discards are not restricted; the bots still cut the suit first. Your
+  choice is hidden until your first discard shows it.
 - **No chow calls.** Chows are fine inside your own hand; no discard can be
   claimed for one. Pung and kong are claimed as usual.
 - **Bloody battle.** A seat that declares Hu stops playing; the others carry

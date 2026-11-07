@@ -68,15 +68,15 @@ void main() {
   });
 
   group('void suit', () {
-    test('the void suit must be discarded before anything else', () {
+    test('the void suit may be discarded in any order', () {
       final r = fixture();
       setHand(r, 0, '123m 456m 789m 11p 23p', drawn: '9s');
-      expect(r.mustDiscardVoid(0), isTrue);
-      expect(r.legalDiscards(0).map((t) => t.type), [TileType.sou9]);
+      expect(r.holdsVoidInHand(0), isTrue);
+      expect(r.legalDiscards(0), hasLength(14));
       final other = r.seats[0].hand.firstWhere((t) => t.type == TileType.man1);
-      expect(() => r.discard(0, other), throwsStateError);
-      r.discard(0, r.seats[0].drawn!);
+      r.discard(0, other);
       expect(r.seats[0].voidRevealed, isTrue);
+      expect(r.holdsVoidInHand(0), isTrue, reason: 'the 9s is still held');
     });
 
     test('a hand holding its void suit cannot win', () {
@@ -432,11 +432,8 @@ void main() {
   });
 
   group('the 48-point void-suit penalty', () {
-    // discard() refuses to cut anything but the void suit while one is held,
-    // so a seat can never *reach* the end holding void tiles after cutting
-    // something else. These tests pose that end state directly: the seat's
-    // recorded discards (allDiscards) include a non-void tile, as they would
-    // if the rule were not enforced.
+    // These tests pose the end state directly: the seat's recorded discards
+    // (allDiscards) include a non-void tile while it still holds the suit.
     const voidJunk = '147m 258p 369m 14p 7p 2s';
 
     Round penaltyTable() {
@@ -686,8 +683,7 @@ void main() {
               reason: 'seed $seed: nobody calls a chow');
         }
         if (res.winners.length == 3) threeHu++;
-        // The rules make the void-suit penalty unreachable in real play:
-        // discard() refuses anything but the void suit while one is held.
+        // The bots cut their void suit first, so none is ever penalised.
         expect(
             res.sichuanPayments
                 .where((p) => p.kind == SichuanPaymentKind.penalty),

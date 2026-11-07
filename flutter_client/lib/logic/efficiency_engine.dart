@@ -427,6 +427,7 @@ class EfficiencyValueContext {
     this.style = PlayStyle.balanced,
     this.focus = HandFocus.balanced,
     this.strategy = Strategy.points,
+    this.expandedRiichiLookahead = false,
     this.tablePoints = const [25000, 25000, 25000, 25000],
     this.mySeat = 0,
     this.handsRemaining = 8,
@@ -441,6 +442,11 @@ class EfficiencyValueContext {
   });
 
   final List<Meld> melds;
+
+  /// Experiment: evaluate ordinary one-shanten riichi lines as well as lines
+  /// competing with tenpai. Still only corrects the generic estimate downward.
+  /// Off by default until held-out game results justify changing the policy.
+  final bool expandedRiichiLookahead;
 
   /// Sichuan: the suit (0 man, 1 pin, 2 sou) this seat gave up. Its tiles are
   /// dead weight and must be discarded before anything else.
@@ -547,6 +553,7 @@ class EfficiencyValueContext {
         style: style,
         focus: focus,
         strategy: strategy,
+        expandedRiichiLookahead: expandedRiichiLookahead,
         tablePoints: tablePoints,
         mySeat: mySeat,
         handsRemaining: handsRemaining,
@@ -581,6 +588,7 @@ class EfficiencyValueContext {
         style: style ?? this.style,
         focus: focus ?? this.focus,
         strategy: strategy ?? this.strategy,
+        expandedRiichiLookahead: expandedRiichiLookahead,
         tablePoints: tablePoints,
         mySeat: mySeat,
         handsRemaining: handsRemaining,
@@ -630,8 +638,7 @@ enum WinEstimator {
   /// Not ready: a shanten-by-shanten walk towards tenpai and then a win.
   shantenWalk,
 
-  /// One away with a tenpai on offer: each improving draw is followed into the
-  /// tenpai it would really reach.
+  /// One away: each improving draw is followed into the tenpai it would reach.
   tenpaiLookahead,
 }
 
@@ -1089,8 +1096,9 @@ class EfficiencyEngine {
     // worth. The pre-tenpai estimator assumes a typical-width wait at the end,
     // so whenever the tenpai on offer right now was narrower than typical,
     // stepping back out of it scored higher — and Autoplay broke tenpai on
-    // most turns it could have declared riichi. Only needed when there is a
-    // tenpai to be compared with, which keeps the lookahead off most turns.
+    // most turns it could have declared riichi. The baseline only runs this
+    // when tenpai is available; the experiment also evaluates ordinary
+    // one-shanten riichi hands. Other rulesets keep their existing behavior.
     //
     // Walked turn by turn: each draw may reach tenpai, and a tenpai reached
     // later has fewer draws left to win on. Valuing it as if it arrived on the
@@ -1101,7 +1109,11 @@ class EfficiencyEngine {
     final drawsNow = math.max(1, (valueContext.wallTilesRemaining + 3) ~/ 4);
     ({double win, double reached, List<WinTurn> series})? tenpaiLookahead(
         TileEfficiencyResult r) {
-      if (ruleset.isMcr || !hasTenpaiLine || r.shanten != 1 || unseenNow <= 1) return null;
+      final expanded = ruleset.isRiichi && valueContext.expandedRiichiLookahead;
+      if (ruleset.isMcr || (!hasTenpaiLine && !expanded) ||
+          r.shanten != 1 || unseenNow <= 1) {
+        return null;
+      }
       final after = toTrainerCounts(_handAfterDiscard(hand, r.discard));
       // One entry per improving draw: its live copies and the widest wait it
       // leaves the hand on.

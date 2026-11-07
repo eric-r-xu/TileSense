@@ -77,7 +77,7 @@ models:
               config: {where: "round_id is not null", severity: warn}
 
   - name: fct_quiz_answers
-    description: "Grain: one row per daily-quiz answer, replays included (is_first_today marks the one the streak counted)."
+    description: "Grain: one row per daily-quiz answer, replays included (is_first_today marks the day's first)."
     config: {access: public}
     columns:
       - name: event_id

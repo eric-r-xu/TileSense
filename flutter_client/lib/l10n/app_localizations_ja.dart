@@ -2111,7 +2111,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voidSuitTitle => '捨てる色を選ぶ';
 
   @override
-  String get voidSuitHint => 'この色の牌をすべて先に捨てる必要があり、持ったままでは和了できません。';
+  String get voidSuitHint => 'この色の牌を持ったままでは和了できず、流局時に残っていると大きなペナルティです。';
 
   @override
   String get voidSuitWaiting => '他のプレイヤーの選択を待っています…';
@@ -2137,7 +2137,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voidSuitUnknown => '欠け：?';
 
   @override
-  String get voidFirstNotice => '欠けた色の牌を先に捨ててください';
+  String get voidNote => '欠けた色：持ったままでは和了不可、流局時に残ると大きなペナルティ';
 
   @override
   String get huOutBadge => '和了';
@@ -2426,7 +2426,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get glossaryDefVoid =>
-      '最初に3種類の数牌のうち1種類を捨てる色として決めます。その色の牌を持っている間は、先にそれらを捨てなければなりません。';
+      '最初に3種類の数牌のうち1種類を捨てる色として決めます。その色の牌を持ったままでは和了できず、流局時に残っていると大きなペナルティになります。';
 
   @override
   String get glossaryDefScore =>
@@ -2715,11 +2715,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get quizCardDone => '今日の分は完了です。また明日！';
-
-  @override
-  String quizStreak(int days) {
-    return '$days日連続';
-  }
 
   @override
   String get loadingQuiz => 'デイリークイズを読み込み中…';

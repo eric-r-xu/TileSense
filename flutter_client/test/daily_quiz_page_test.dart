@@ -198,13 +198,12 @@ void main() {
     expect(find.byKey(const Key('quizDone')), findsOneWidget);
   });
 
-  testWidgets('the results say how many were right and the streak',
+  testWidgets('the results say how many were right',
       (tester) async {
     await pumpLocalized(
-        tester, QuizResultsPage(right: 4, total: 5, streak: 3, onExit: () {}),
+        tester, QuizResultsPage(right: 4, total: 5, onExit: () {}),
         size: const Size(1600, 820));
     expect(text(tester, 'quizResultsScore'), 'You got 4 of 5 right.');
-    expect(find.text('3-day streak'), findsOneWidget);
   });
 
   testWidgets('a ready hand is two questions: the cut, then riichi or dama',
@@ -309,12 +308,10 @@ void main() {
       'correct': false,
       'riichi_option': false,
       'day': dayKey(DateTime.now()),
-      'streak': 1,
       'first_today': true,
     });
     expect(sent[1]['correct'], isTrue);
     expect(sent[1]['first_today'], isFalse);
-    expect(sent[1]['streak'], 1);
   });
 
   for (final kind in QuizKind.values) {

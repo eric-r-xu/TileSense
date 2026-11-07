@@ -8,6 +8,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/bot.dart';
+import 'package:mahjong_core/hand_parse.dart';
 import 'package:mahjong_core/mjai.dart';
 import 'package:mahjong_core/round.dart';
 import 'package:mahjong_core/tile.dart';
@@ -16,6 +17,8 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/guide_host.dart';
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/game/sfx.dart';
+
+import 'support/riichi_calibration_log.dart';
 
 /// Monte-Carlo check of whether the guide (Autoplay at seat 0) beats three
 /// Saeko bots playing Mortal's moves. Drives the real [GameController], like
@@ -63,11 +66,32 @@ import 'package:tilesense/game/sfx.dart';
 /// three SimpleBots instead of the Saeko bots, to compare the guide and Mortal
 /// on the same easy table. MORTAL_SEED (1000) is the first seed; MORTAL_OUT
 /// writes one CSV row per game and arm.
+/// MORTAL_FIXED_EV=1 pins Balanced / Speed / Points rather than auto dials.
+/// MORTAL_LOOKAHEAD=expanded enables the experimental one-shanten policy.
+/// MORTAL_CALIB=PREFIX writes full public discard snapshots, teacher scores,
+/// all candidate tile types and chosen-action outcomes to PREFIX.SHARD.jsonl.
+/// Set MORTAL_MODEL_ID to the model checksum and MORTAL_ENGINE_ID to the source
+/// revision for dataset provenance; the report refuses missing identifiers.
 void main() {
   final env = Platform.environment;
   final games = int.tryParse(env['MORTAL_GAMES'] ?? '') ?? 0;
 
   test('guide vs Saeko (Mortal) simulation', () async {
+    if (!['baseline', 'expanded']
+        .contains(env['MORTAL_LOOKAHEAD'] ?? 'baseline')) {
+      throw ArgumentError('MORTAL_LOOKAHEAD must be baseline or expanded');
+    }
+    if (env['MORTAL_CALIB'] != null) {
+      for (final key in ['MORTAL_MODEL_ID', 'MORTAL_ENGINE_ID']) {
+        if ((env[key] ?? '').isEmpty) {
+          throw ArgumentError('$key is required for calibration');
+        }
+      }
+      if (env['MORTAL_CALIB'] == env['MORTAL_POS']) {
+        throw ArgumentError(
+            'MORTAL_CALIB and MORTAL_POS need distinct prefixes');
+      }
+    }
     final shards = int.tryParse(env['MORTAL_SHARDS'] ?? '') ?? 10;
     final base = int.tryParse(env['MORTAL_SEED'] ?? '') ?? 1000;
     final port = int.tryParse(env['MORTAL_PORT'] ?? '') ?? 8790;
@@ -83,8 +107,8 @@ void main() {
     ];
     final arms = <List<List<num>>>[];
     for (final name in names) {
-      arms.add(await _runArm(base, games, shards, port, east, name,
-          arms.length, env['MORTAL_POS']));
+      arms.add(await _runArm(base, games, shards, port, east, name, arms.length,
+          env['MORTAL_POS']));
       print('$name arm: ${sw.elapsed.inSeconds}s');
     }
 
@@ -97,7 +121,9 @@ void main() {
       ].join('\n'));
     }
     _report(names, arms);
-  }, skip: games == 0 ? 'set MORTAL_GAMES to run' : false, timeout: Timeout.none);
+  },
+      skip: games == 0 ? 'set MORTAL_GAMES to run' : false,
+      timeout: Timeout.none);
 }
 
 // --- row layout -------------------------------------------------------------
@@ -119,8 +145,7 @@ const _perSeat = [
 ];
 const _single = ['draws', 'fallbacks', 'asks', 'ms'];
 int _seatCol(String name, int seat) => 3 + _perSeat.indexOf(name) * 4 + seat;
-int _singleCol(String name) =>
-    3 + _perSeat.length * 4 + _single.indexOf(name);
+int _singleCol(String name) => 3 + _perSeat.length * 4 + _single.indexOf(name);
 
 /// Where the guide's decisions are compared with Mortal's (guide arm only).
 /// Discards are split by whether another seat has declared riichi.
@@ -129,7 +154,8 @@ final _agreeNames = [
     for (final f in [
       'dis', // discards where both named a tile
       'same', // the same tile
-      'rank1', 'rank2', 'rank3', 'rank4plus', // Mortal's rank of the guide's tile
+      'rank1', 'rank2', 'rank3',
+      'rank4plus', // Mortal's rank of the guide's tile
       'ranked', // how many of those had a rank
       'qgap', // summed gap between Mortal's best tile and the guide's
     ])
@@ -161,7 +187,8 @@ final _header = [
 /// panel's Mortal column, which [_SyncMortal] keeps and later compares with
 /// the move the guide made from the same position.
 class _SyncMortal extends MortalAdvisor {
-  _SyncMortal(this.port, {required this.trackAgreement, this.seed = 0, this.log})
+  _SyncMortal(this.port,
+      {required this.trackAgreement, this.seed = 0, this.log})
       : super('http://unused');
   final int port;
   final bool trackAgreement;
@@ -186,7 +213,8 @@ class _SyncMortal extends MortalAdvisor {
     _traces[events.length] = what;
   }
 
-  void traceTurn(List<MjaiEvent> events, EfficiencyReport report, BotTurn move) =>
+  void traceTurn(
+          List<MjaiEvent> events, EfficiencyReport report, BotTurn move) =>
       _trace(events, _turnJson(report, move));
 
   void traceCall(List<MjaiEvent> events, CallAdvice? advice) =>
@@ -262,8 +290,7 @@ class _SyncMortal extends MortalAdvisor {
         if (turn || call) {
           // A riichi's discard is the next event: wait until it is there.
           if (events[i]['type'] == 'reach' && i + 1 >= events.length) return;
-          final reply =
-              _post(kHumanSeat, events.sublist(0, i), hanchan);
+          final reply = _post(kHumanSeat, events.sublist(0, i), hanchan);
           _compare(events, i, call, reply, mine, theirs, table);
         }
         _done = i + 1;
@@ -278,8 +305,13 @@ class _SyncMortal extends MortalAdvisor {
   }
 
   /// Compares what seat 0 did at event [n] with Mortal's [reply] there.
-  void _compare(List<MjaiEvent> events, int n, bool call,
-      Map<String, Object?> reply, bool mineRiichi, bool theirsRiichi,
+  void _compare(
+      List<MjaiEvent> events,
+      int n,
+      bool call,
+      Map<String, Object?> reply,
+      bool mineRiichi,
+      bool theirsRiichi,
       _Table table) {
     final a = events[n];
     final reaction = reply['reaction'] as Map<String, Object?>?;
@@ -352,9 +384,8 @@ class _SyncMortal extends MortalAdvisor {
                 : 'none';
     _record(events, n, 'turn', table, reply, diff);
     if (tile == null || kan) return;
-    final step = mReach
-        ? reply['riichi_discard'] as Map<String, Object?>?
-        : reaction;
+    final step =
+        mReach ? reply['riichi_discard'] as Map<String, Object?>? : reaction;
     if (step?['type'] != 'dahai') return;
     final ctx = theirsRiichi ? 'threat' : 'calm';
     final mTile = _bare('${step!['pai']}'), gTile = _bare(tile);
@@ -460,10 +491,41 @@ Map<String, double> _decodeQ(Map<String, Object?>? step) {
   var k = 0;
   for (var i = 0; i < _actionNames.length && k < q.length; i++) {
     if (bits >> i & 1 == 0) continue;
-    out[_actionNames[i]] = _round(q[k++], 3);
+    out[_actionNames[i]] = q[k++].toDouble();
   }
   return out;
 }
+
+/// Unrounded features for every candidate represented by the EV engine.
+/// The engine groups red and ordinary fives by tile type; the actual chosen
+/// tile and Nagomi's complete legal action scores retain the red distinction.
+List<Map<String, Object?>> _calibrationCandidates(EfficiencyReport report) => [
+      for (final l in report.lines)
+        {
+          'discard': mjaiTile(Tile(-1, l.discard)),
+          'shanten': l.shanten,
+          'ukeire': l.ukeire,
+          'accepts': [for (final t in l.accepts) mjaiTile(Tile(-1, t))],
+          'winProbability': l.winProbability,
+          'tenpaiProbability': l.shanten == 0
+              ? 1.0
+              : l.winBreakdown?.turns.lastOrNull?.reachedTenpai,
+          'averagePoints': l.averagePoints,
+          'expectedValue': l.expectedValue,
+          'placementExpectedValue': l.placementExpectedValue,
+          'dealInCost': l.dealInCost,
+          'commitmentCost': l.commitmentCost,
+          'riichiLockCost': l.riichiLockCost,
+          'valueTilt': l.valueTilt,
+          'winBonus': l.winBonus,
+          'recommendRiichi': l.recommendRiichi,
+          'recommended': l.recommended,
+          'estimator': l.winBreakdown?.estimator.name,
+          'unseen': l.winBreakdown?.unseen,
+          'draws': l.winBreakdown?.draws,
+          'safetyRating': l.safety?.rating,
+        },
+    ];
 
 /// The guide's EV lines for a turn, as it saw them when it decided.
 Map<String, Object?> _turnJson(EfficiencyReport r, BotTurn move) => {
@@ -508,8 +570,9 @@ Map<String, Object?> _callJson(CallAdvice? advice) => advice == null
               'ev': _round(o.expectedValue),
               'shantenAfter': o.shantenAfter,
               'eligible': o.eligible,
-              'discardAfter':
-                  o.discardAfter == null ? null : mjaiTile(Tile(-1, o.discardAfter!)),
+              'discardAfter': o.discardAfter == null
+                  ? null
+                  : mjaiTile(Tile(-1, o.discardAfter!)),
               'why': o.reason,
             },
         ],
@@ -538,7 +601,8 @@ class _Table {
         _oya = e['oya'] as int;
         _scores = (e['scores'] as List).cast<int>().toList();
         _dora.add('${e['dora_marker']}');
-        _hand.addAll(((e['tehais'] as List)[kHumanSeat] as List).cast<String>());
+        _hand
+            .addAll(((e['tehais'] as List)[kHumanSeat] as List).cast<String>());
       case 'dora':
         _dora.add('${e['dora_marker']}');
       case 'tsumo':
@@ -564,7 +628,10 @@ class _Table {
         if (actor == kHumanSeat) consumed.forEach(_hand.remove);
         final from = _discards[e['target'] as int];
         if (from.isNotEmpty) from.last = '${from.last}^'; // taken by a call
-        _melds[actor!].add({'t': e['type'], 'tiles': [...consumed, '${e['pai']}']});
+        _melds[actor!].add({
+          't': e['type'],
+          'tiles': [...consumed, '${e['pai']}']
+        });
       case 'ankan':
         final consumed = (e['consumed'] as List).cast<String>();
         if (actor == kHumanSeat) consumed.forEach(_hand.remove);
@@ -572,7 +639,9 @@ class _Table {
       case 'kakan':
         if (actor == kHumanSeat) _hand.remove('${e['pai']}');
         final pon = _melds[actor!].lastWhere(
-            (m) => m['t'] == 'pon' && _bare('${(m['tiles'] as List).last}') == _bare('${e['pai']}'),
+            (m) =>
+                m['t'] == 'pon' &&
+                _bare('${(m['tiles'] as List).last}') == _bare('${e['pai']}'),
             orElse: () => <String, Object?>{});
         if (pon.isNotEmpty) {
           pon['t'] = 'kakan';
@@ -589,7 +658,8 @@ class _Table {
         'oya': _oya,
         'scores': _scores,
         'dora': _dora,
-        'hand': ([..._hand]..sort((a, b) => _tileKey(a).compareTo(_tileKey(b)))),
+        'hand': ([..._hand]
+          ..sort((a, b) => _tileKey(a).compareTo(_tileKey(b)))),
         'drawn': _drawn,
         'melds': _melds,
         'discards': _discards,
@@ -651,19 +721,44 @@ List<List<num>> _shard(int base, int games, int shard, int shards, int port,
   final log = pos != null && arm == 'guide'
       ? File('$pos.$shard.jsonl').openSync(mode: FileMode.write)
       : null;
+  final calibrationPrefix = Platform.environment['MORTAL_CALIB'];
+  RandomAccessFile? calibration;
+  if (calibrationPrefix != null && arm == 'guide') {
+    final file = File('$calibrationPrefix.$shard.jsonl');
+    file.parent.createSync(recursive: true);
+    calibration = file.openSync(mode: FileMode.write);
+  }
   try {
     return [
       for (var g = shard; g < games; g += shards)
-        _playGame(base + g, port, east, arm, index, log),
+        _playGame(base + g, port, east, arm, index, log, calibration),
     ];
   } finally {
     log?.closeSync();
+    calibration?.closeSync();
   }
 }
 
 List<num> _playGame(int seed, int port, bool east, String arm, int index,
-    RandomAccessFile? log) {
+    RandomAccessFile? log, RandomAccessFile? calibrationFile) {
   final guide = arm == 'guide';
+  final env = Platform.environment;
+  final calibration = calibrationFile == null
+      ? null
+      : RiichiCalibrationLog(
+          seed: seed,
+          metadata: {
+            'engineId': env['MORTAL_ENGINE_ID'],
+            'modelId': env['MORTAL_MODEL_ID'],
+            'opponents': env['MORTAL_OPP'] == 'simple' ? 'simple' : 'mortal',
+            'gameLength': east ? 'east' : 'hanchan',
+            'policy': env['MORTAL_LOOKAHEAD'] ?? 'baseline',
+            'dials': env['MORTAL_FIXED_EV'] == '1'
+                ? 'balanced/speed/points'
+                : 'auto',
+            'continuation': 'tilesense',
+          },
+        );
   late List<num> row;
   final oldDebugPrint = debugPrint;
   var fallbacks = 0;
@@ -695,12 +790,55 @@ List<num> _playGame(int seed, int port, bool east, String arm, int index,
             ],
       mortal: mortal,
     );
+    game.expandedRiichiLookahead = env['MORTAL_LOOKAHEAD'] == 'expanded';
+    if (Platform.environment['MORTAL_FIXED_EV'] == '1') {
+      game
+        ..playStyle = PlayStyle.balanced
+        ..handFocus = HandFocus.speed
+        ..strategy = Strategy.points;
+    }
     game.setAutoplay(true);
     if (arm == 'control') {
       game.setAutoplayBrain(AutoplayBrain.mortal);
     } else if (guide) {
       game
-        ..traceGuideTurn = mortal.traceTurn
+        ..traceGuideTurn = (events, report, move) {
+          mortal.traceTurn(events, report, move);
+          if (calibration == null || move.discard == null) return;
+          final table = _Table();
+          // The snapshot stores only seat 0's hand and public information.
+          for (final e in mjaiView(events, kHumanSeat)) {
+            table.apply(e);
+          }
+          Map<String, Object?>? teacher;
+          String? teacherError;
+          try {
+            final reply = mortal._post(kHumanSeat, events, !east);
+            teacher = {
+              'reaction': reply['reaction'],
+              'riichiDiscard': reply['riichi_discard'],
+              'q': _decodeQ(reply['reaction'] as Map<String, Object?>?),
+              'qRiichi':
+                  _decodeQ(reply['riichi_discard'] as Map<String, Object?>?),
+            };
+          } catch (e) {
+            teacherError = '$e'; // Missing teacher label, not an EV fallback.
+          }
+          calibration.record(
+            state: {
+              ...table.snapshot(),
+              'wallRemaining': game.round.wall.remaining,
+              'style': game.playStyle.name,
+              'focus': game.handFocus.name,
+              'strategy': game.strategy.name,
+              'chosenRiichi': move.riichi,
+            },
+            candidates: _calibrationCandidates(report),
+            chosenTile: mjaiTile(move.discard!),
+            teacher: teacher,
+            teacherError: teacherError,
+          );
+        }
         ..traceGuideCall = mortal.traceCall;
     } else {
       game.mortalParts = {
@@ -715,6 +853,17 @@ List<num> _playGame(int seed, int port, bool east, String arm, int index,
       if (guard > 100000) throw StateError('seed $seed never finished');
       if (game.phase == GamePhase.roundEnd) {
         final res = game.round.result!;
+        final winnerIndex = res.winners.indexOf(kHumanSeat);
+        calibration?.finishHand(
+          won: winnerIndex >= 0,
+          dealIn: res.kind == RoundEndKind.ron && res.loser == kHumanSeat,
+          finalTenpai: isTenpai(game.round.seats[kHumanSeat].hand,
+              openMelds: game.round.seats[kHumanSeat].melds.length),
+          endKind: res.kind.name,
+          netPoints: res.pointDeltas[kHumanSeat] ?? 0,
+          baseWinPoints:
+              winnerIndex < 0 ? null : res.scores[winnerIndex].points,
+        );
         hands++;
         if (res.kind == RoundEndKind.exhaustiveDraw) r[_singleCol('draws')]++;
         for (var s = 0; s < 4; s++) {
@@ -753,6 +902,11 @@ List<num> _playGame(int seed, int port, bool east, String arm, int index,
       r[_agreeStart + i] = mortal.agree[i];
     }
     row = r;
+    if (calibration != null) {
+      for (final line in calibration.finishGame(fallbacks: fallbacks)) {
+        calibrationFile!.writeStringSync('$line\n');
+      }
+    }
     game.dispose();
   });
   debugPrint = oldDebugPrint;
@@ -870,10 +1024,10 @@ void _diffTable(List<List<num>> a, List<List<num>> b) {
     ];
     final m = _meanSe(diff);
     final z = m.se == 0 ? 0.0 : m.mean / m.se;
-    final digits = const {'win', 'tsumo', 'dealin', 'riichi', 'called'}
-            .contains(col)
-        ? 3
-        : 0;
+    final digits =
+        const {'win', 'tsumo', 'dealin', 'riichi', 'called'}.contains(col)
+            ? 3
+            : 0;
     print('  $label ${_f(m.mean, digits).padLeft(8)}'
         ' ± ${_f(1.96 * m.se, digits)}   p=${_pf(_p(z))}');
   }
@@ -911,7 +1065,8 @@ void _report(List<String> names, List<List<List<num>>> arms) {
   ];
   print(_test('Δ avg placement', d, 0));
   final s = _meanSe(d);
-  print('  (negative = guide places better; per-game SD ${_f(s.se * sqrt(d.length))}, '
+  print(
+      '  (negative = guide places better; per-game SD ${_f(s.se * sqrt(d.length))}, '
       '${_f(pow(2.8 * s.se * sqrt(d.length) / 0.05, 2).toDouble(), 0)} '
       'paired games detect a 0.05 edge at 80% power)');
 
@@ -923,7 +1078,8 @@ void _report(List<String> names, List<List<List<num>>> arms) {
   _diffTable(g, c);
 
   // --- which decisions carry the gap: the guide with some of them Mortal's ---
-  final gap = _mean([for (var i = 0; i < g.length; i++) _place(g[i], 0) - _place(c[i], 0)]);
+  final gap = _mean(
+      [for (var i = 0; i < g.length; i++) _place(g[i], 0) - _place(c[i], 0)]);
   for (var k = 2; k < arms.length; k++) {
     final h = arms[k].where(ok).toList();
     final vsGuide = [
@@ -954,7 +1110,8 @@ void _report(List<String> names, List<List<List<num>>> arms) {
     if (n == 0) continue;
     final ranked = tot('${ctx}_ranked');
     String pct(num x, num of) => '${_f(100 * x / of, 1)}%';
-    print('  discards, ${ctx == 'calm' ? 'no one else in riichi' : 'another seat in riichi'}: '
+    print(
+        '  discards, ${ctx == 'calm' ? 'no one else in riichi' : 'another seat in riichi'}: '
         '$n decisions, guide = Mortal\'s tile ${pct(tot('${ctx}_same'), n)}');
     print('    Mortal\'s rank of the guide\'s tile: '
         '1st ${pct(tot('${ctx}_rank1'), ranked)}, '
@@ -964,11 +1121,14 @@ void _report(List<String> names, List<List<List<num>>> arms) {
         'mean q-gap ${_f(tot('${ctx}_qgap') / ranked, 4)} '
         '(${_f(tot('${ctx}_qgap') / g.length, 3)} per game)');
   }
-  print('  riichi: both ${tot('reachBoth')}, Mortal only ${tot('reachMortalOnly')}, '
+  print(
+      '  riichi: both ${tot('reachBoth')}, Mortal only ${tot('reachMortalOnly')}, '
       'guide only ${tot('reachGuideOnly')}');
-  print('  kan:    both ${tot('kanBoth')}, Mortal only ${tot('kanMortalOnly')}, '
+  print(
+      '  kan:    both ${tot('kanBoth')}, Mortal only ${tot('kanMortalOnly')}, '
       'guide only ${tot('kanGuideOnly')}');
-  print('  calls offered to you (rows: Mortal\'s answer; columns: the guide\'s):');
+  print(
+      '  calls offered to you (rows: Mortal\'s answer; columns: the guide\'s):');
   print('            ${_callNames.take(4).map((n) => n.padLeft(6)).join(' ')}');
   for (final m in _callNames) {
     print('    ${m.padRight(6)}  '
