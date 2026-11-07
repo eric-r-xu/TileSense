@@ -87,20 +87,15 @@ void main() {
       expect(game.round.phase, RoundPhase.discarding);
     });
 
-    test('only the void suit is a legal cut while you hold it', () {
+    test('any tile may be cut while you hold the void suit', () {
       final game = GameController(seed: 7, ruleset: Ruleset.sichuan);
       addTearDown(game.dispose);
       game.humanDeclareVoidSuit(0);
       final me = game.round.seats[kHumanSeat];
-      final holdsVoid = me.hand.any((t) => t.type.suit == 0);
       final other = me.hand.firstWhere((t) => t.type.suit != 0);
       final before = me.hand.length;
       game.humanDiscard(other);
-      if (holdsVoid) {
-        expect(me.hand.length, before, reason: 'a non-void cut is refused');
-      } else {
-        expect(me.hand.length, before - 1);
-      }
+      expect(me.hand.length, before - 1);
     });
 
     test('undo goes back through a discard and keeps every void suit', () {
