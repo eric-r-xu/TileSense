@@ -262,9 +262,33 @@ you do not want; `INTERNET` is harmless and often kept for debugging.
 
 ### Signing (release)
 
-**Not set up.** The release buildType still uses the debug signing config
-(`android/app/build.gradle.kts`), and there is no `android/key.properties`.
-A Play Store build would need both; nothing here is wired for it yet.
+Release builds are signed with an **upload key**. With Play App Signing, Google
+holds the real app-signing key and re-signs what you upload, so a lost upload key
+can be reset through Play support.
+
+- **Keystore:** `~/keystores/tilesense-upload.jks`, alias `upload`, kept outside
+  the repo. The file and its password are backed up in a password manager.
+- **`android/key.properties`** (git-ignored) holds `storePassword`, `keyPassword`,
+  `keyAlias` and an absolute `storeFile` path. Never commit it or paste its
+  contents anywhere.
+- `android/app/build.gradle.kts` reads it and defines `signingConfigs.release`.
+  If the file is absent, release builds fall back to debug signing and print a
+  warning; Play rejects such a bundle.
+
+To create a keystore on a new machine (run in your own terminal, since it
+prompts for a password):
+
+```sh
+mkdir -p ~/keystores
+keytool -genkeypair -v -keystore ~/keystores/tilesense-upload.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Check who signed a bundle (the output is public certificate data):
+
+```sh
+keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
+```
 
 ### Build
 

@@ -370,10 +370,10 @@ flutter build appbundle --release            # -> build/app/outputs/bundle/relea
 flutter build apk --release --split-per-abi  # -> per-ABI APKs for sideloading
 ```
 
-**Not set up yet.** A release build needs a keystore referenced from
-`android/key.properties` and a `signingConfigs.release` block in
-`android/app/build.gradle.kts`; neither exists, and the release build type still
-uses the debug signing config. Release web builds send gameplay telemetry by default; see
+Release signing reads a git-ignored `android/key.properties` that points at your
+upload keystore; without it the build falls back to debug keys, which Play rejects.
+Setup is in [`flutter_client/DEPLOYMENT.md`](flutter_client/DEPLOYMENT.md#signing-release).
+Release web builds send gameplay telemetry by default; see
 [the telemetry documentation](server/README.md#telemetry-ingest).
 
 ### iOS
