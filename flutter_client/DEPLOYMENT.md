@@ -34,7 +34,7 @@ touching `lib/`:
 
 ```sh
 cd flutter_client
-flutter create --org com.tilesense --platforms=web,android,ios .
+flutter create --org com.ericrxu --platforms=web,android,ios .
 flutter pub get
 ```
 
@@ -47,7 +47,7 @@ flutter pub get
 - **Name shown to users**: set in each platform (see below). Keep it consistent,
   e.g. `TileSense`.
 - **Bundle / application id**: pick a reverse-DNS id you control, e.g.
-  `com.tilesense.tilesense`. It must match on Android (`applicationId`) and iOS
+  `com.ericrxu.tilesense`. It must match on Android (`applicationId`) and iOS
   (`PRODUCT_BUNDLE_IDENTIFIER`) if you want one identity across stores, but the
   two stores are otherwise independent.
 
@@ -242,9 +242,9 @@ network. No `Cache-Control` line at all means every play pays a round trip.
 
 ```gradle
 android {
-    namespace = "com.tilesense.tilesense"
+    namespace = "com.ericrxu.tilesense"
     defaultConfig {
-        applicationId = "com.tilesense.tilesense"
+        applicationId = "com.ericrxu.tilesense"
         minSdk = 23          // Flutter's current floor is 21; 23 covers ~99% of devices
         targetSdk = flutter.targetSdkVersion   // keep current for Play submission
         versionCode = flutter.versionCode      // from pubspec "+N"
@@ -313,7 +313,7 @@ open ios/Runner.xcworkspace
 In **Runner ▸ Signing & Capabilities**:
 
 - **Team**: your Apple Developer Program team.
-- **Bundle Identifier**: `com.tilesense.tilesense` (must be registered on the
+- **Bundle Identifier**: `com.ericrxu.tilesense` (must be registered on the
   Apple Developer portal / created automatically when you check
   "Automatically manage signing").
 

@@ -1,4 +1,4 @@
-package com.tilesense.tilesense
+package com.ericrxu.tilesense
 
 import io.flutter.embedding.android.FlutterActivity
 
