@@ -453,6 +453,7 @@ Thank you to the below players whose testing, suggestions and bug reports helped
   - reporting that a new single-player game started from the Menu still showed the last game's final scores.
   - identifying missing chi choices when more than one sequence was available.
   - identifying the score-screen auto-continue countdown resetting to 20 seconds after pressing Resume.
+  - identifying the winner wrongly collecting a riichi deposit when the declaration tile was ronned.
   - suggesting the Auto-Pass calling feature.
   - suggesting UX layout improvements.
 - **Robert K**:

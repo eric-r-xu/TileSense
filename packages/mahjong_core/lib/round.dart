@@ -1689,12 +1689,36 @@ class Round {
     }
   }
 
+  /// A riichi is only in force once its declaration tile has passed: if that
+  /// very tile is ronned, the riichi never happened. The declarer takes the
+  /// 1000 back (it is not left on the table for the winner to collect) and
+  /// carries no riichi into the scoring or the result.
+  void _refundRonnedRiichi(Tile discard, int discarder,
+      {required bool chankan}) {
+    final d = seats[discarder];
+    if (chankan ||
+        !ruleset.isJapanese ||
+        !d.riichi ||
+        d.riichiPondIndex < 0 ||
+        d.riichiPondIndex != d.pond.length - 1 ||
+        d.pond.last.id != discard.id) {
+      return;
+    }
+    d.points += 1000;
+    riichiSticks -= 1;
+    d.riichi = false;
+    d.doubleRiichi = false;
+    d.ippatsu = false;
+    d.riichiPondIndex = -1;
+  }
+
   void _applyRon(List<int> ronners, Tile discard, int discarder,
       {bool chankan = false}) {
     if (ruleset.isSichuan) {
       _applySichuanHu(ronners, discard, discarder, chankan: chankan);
       return;
     }
+    _refundRonnedRiichi(discard, discarder, chankan: chankan);
     // Score each winner; sum deltas. Head-bump is not modelled — all valid
     // ronners win (double/triple ron).
     //
