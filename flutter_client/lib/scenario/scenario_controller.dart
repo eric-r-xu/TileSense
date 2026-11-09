@@ -14,7 +14,9 @@ import '../game/mortal_advisor.dart';
 import '../game/sfx.dart' show Character, kCharacterName;
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/fuzhou_guide.dart' show FuzhouGuide, FuzhouRival;
 import '../logic/sichuan_value.dart' show SichuanRival;
+import 'package:mahjong_core/fuzhou/fuzhou_wall.dart';
 import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/sanma/sanma_wall.dart';
 import 'package:mahjong_core/sichuan/sichuan_wall.dart';
@@ -347,6 +349,11 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       voidSuit: human.voidSuit,
       sichuanRivals:
           ruleset.isSichuan ? SichuanRival.of(round, kHumanSeat) : const [],
+      goldTypes: round.goldTypes,
+      goldLeft:
+          ruleset.isFuzhou ? FuzhouGuide.goldLeft(round, kHumanSeat) : 0,
+      fuzhouRivals:
+          ruleset.isFuzhou ? FuzhouRival.of(round, kHumanSeat) : const [],
     );
 
     if (scenario.isDiscardRead) {
@@ -447,8 +454,13 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       fromOffer = false;
     } else {
       final offered = scenario.offered;
-      // A furiten hand cannot ron whatever it is worth.
-      if (offered == null || round.isFuriten(kHumanSeat)) return null;
+      // A furiten hand cannot ron whatever it is worth, and a Gold on offer
+      // can't be claimed at all.
+      if (offered == null ||
+          round.isFuriten(kHumanSeat) ||
+          (ruleset.isFuzhou && round.isGold(offered.type))) {
+        return null;
+      }
       winTile = offered;
       tsumo = false;
       fromOffer = true;
@@ -575,6 +587,12 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
           : ruleset.isSichuan
           ? SichuanWall.posed(
               remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
+          : ruleset.isFuzhou
+          ? FuzhouWall.posed(
+              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
+              gold: scenario.dora.isEmpty
+                  ? null
+                  : Tile(-100, scenario.dora.first))
           : ruleset.isChineseStyle
               ? HongKongWall.posed(
                   remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
@@ -589,9 +607,15 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
       minimumFaan: scenario.minimumFaan,
       minimumPoints: scenario.minimumPoints,
     );
+    if (ruleset.isFuzhou && scenario.dora.isNotEmpty) {
+      r.goldIndicator = Tile(-100, scenario.dora.first);
+      r.goldTypes = scenario.goldTypes;
+    }
     for (var i = 0; i < 4; i++) {
       final src = scenario.seats[i];
       final dst = r.seats[i];
+      dst.goldDiscarded =
+          ruleset.isFuzhou && src.pond.any((t) => r.isGold(t.type));
       dst.pond = List.of(src.pond);
       dst.allDiscards.addAll(src.pond);
       dst.melds = List.of(src.melds);

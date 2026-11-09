@@ -213,7 +213,7 @@ class ZhHantRulesText extends RulesText {
         const RuleSection('setup', '牌與目標', [
           '四人使用144張牌，含花牌和季牌。',
           '摸牌之間手中保持16張。',
-          '以17張胡牌：五組面子加一對眼，或七個不同的對子加一副刻子。',
+          '以17張胡牌（手中16張加胡的那張）：五組面子加一對眼，或七個不同的對子加一副刻子。',
           '槓仍算一組面子。',
           '花牌自動攤開並補牌。',
         ]),
@@ -364,6 +364,52 @@ class ZhHantRulesText extends RulesText {
       ];
 
   @override
+  List<RuleSection> fuzhou() => const [
+        RuleSection('setup', '牌與目標', [
+          '四人使用144張牌：三門序數牌、風牌、箭牌，以及八張花牌和季節牌。',
+          '摸牌之間手中保持16張。',
+          '以17張胡牌（手中16張加胡的那張）：五組面子加一對將。',
+          '所有風牌、箭牌、花牌和季節牌都算花牌：一拿到就亮出，並從牌牆末端補一張。',
+          '牌牆最後18張不摸；其餘摸完即流局。',
+        ]),
+        RuleSection('gold', '金牌', [
+          '補花結束後，莊家翻開留下的牌中最後一張，即為金牌。',
+          '同一種牌的另外三張都是百搭：可代替手牌中的任意一張牌，每張計1分。',
+          '若翻出花牌或季節牌，則其餘七張花牌和季節牌為金牌。',
+          '金牌不能用來吃、碰、槓，打出的金牌也沒有人能要。',
+          '打出金牌後，本局只能自摸胡牌。',
+          '搶金：翻金時你的16張牌已聽牌，即可在任何人摸牌前直接胡牌。',
+        ]),
+        RuleSection('calls', '鳴牌', [
+          '碰和槓可以要任何一家的牌；吃只能吃上家的牌。',
+          '最後一張打出的牌只能用來胡。',
+          '一張打出的牌只有一人能胡：從打牌者算起順位最近的一家。',
+          _priority,
+        ]),
+        RuleSection('winning', '胡牌', [
+          '沒有起胡分數，沒有立直，也沒有振聽：任何完整的牌型都能胡。',
+          '莊家第一手自摸為天和；閒家胡莊家打出的第一張牌為地和。',
+        ]),
+        RuleSection('scoring', '計分', [
+          '付款 =（底分5＋花分＋金分＋連莊＋槓分）×2，再加特殊牌型分。',
+          '每張花牌1分；每集齊一套（四花、四季，或同一種風牌、箭牌四張）再加6分。',
+          '槓：明槓1分，暗槓2分。',
+          '特殊牌型分在翻倍之後相加。',
+          '三種金牌牌型不疊加。',
+          '點和由放銃者一人支付；自摸由其他三家各付同樣的分數。',
+        ]),
+        RuleSection('game', '莊家與對局長度', [
+          '每人起始500分。',
+          '莊家和牌後繼續坐莊，每連莊一次其牌型加1分；他人和牌或流局則輪莊。',
+          '完整對局為東、南兩圈共八局，練習局為四局。',
+        ]),
+        RuleSection('source', '關於本簡介', [
+          '依據 Mahjong Pros 的《福州麻將新手指南》。',
+          '指南前後矛盾處以其表格為準：平胡為10分。',
+        ]),
+      ];
+
+  @override
   String hongKongDefaultMinimum(int faan, List<int> choices) =>
       '預設起糊：$faan番，開局前可選${choices.join('、')}番。';
   @override
@@ -384,6 +430,7 @@ class ZhHantRulesText extends RulesText {
         'faan' => '全部番種',
         'tai' => '全部台數',
         'sichuanFan' => '全部番種',
+        'fuzhouPoints' => '全部計分項',
         _ => '${id.substring(3)}番番種',
       };
 
@@ -411,6 +458,10 @@ class ZhHantRulesText extends RulesText {
             '未實作原表的立直（10台）和搶花（20台）。',
           ],
         'sichuanFan' => const ['番數相加；0、1、2、3番及以上分別付1、2、4、8分。'],
+        'fuzhouPoints' => const [
+            '前幾項相加後翻倍；特殊牌型分在翻倍之後相加。',
+            '金雀、三金倒和金龍不疊加，只計最高的一項。',
+          ],
         'mcr88' => const [
             '規則附錄1的全部81個番種；計分選取合法的最高總分。',
             '「不計」後列出的番種已包含在內，不再重複計算。',
@@ -440,6 +491,7 @@ class ZhHantRulesText extends RulesText {
       ValueUnit.tai => '$each${p.value}台',
       ValueUnit.fu => p.value == 0 ? '' : '${p.value}符',
       ValueUnit.basicPoints => '基本點${groupDigits(p.value)}',
+      ValueUnit.points => '${p.value}分$each',
     };
   }
 
@@ -473,6 +525,7 @@ class ZhHantRulesText extends RulesText {
         Ruleset.taiwanese => _taiwanese,
         Ruleset.mcr => _mcr,
         Ruleset.sichuan => _sichuan,
+        Ruleset.fuzhou => _fuzhou,
       };
 
   static const _riichi = {
@@ -712,5 +765,23 @@ class ZhHantRulesText extends RulesText {
     'Robbing the Kong': '胡別人加在明刻上的牌。',
     'Shoot after Kong': '胡別人開槓後緊接著打出的牌。',
     'Under the Sea': '胡牌牆最後一張，或其後打出的牌。',
+  };
+
+  static const _fuzhou = {
+    'Base Points': '每手牌都從5分開始。',
+    'Flower Points': '每張亮出的花牌、季節牌、風牌或箭牌。',
+    'Full Bloom': '集齊一套：四花、四季，或同一種風牌、箭牌四張。與花分疊加。',
+    'Gold Points': '胡牌手中每張金牌。',
+    'Dealer Continuation': '莊家每連莊一次，加1分。',
+    'Open Kong': '用別人打出的牌槓成。',
+    'Concealed Kong': '用自己摸到的四張牌槓成。',
+    'All Sequences': '五組順子加一對將；金牌可以代替。',
+    'One Flower': '只亮出一張花牌。',
+    'Golden Pair': '將是兩張金牌。',
+    'Three Gold Knockdown': '胡牌手中有三張金牌。',
+    'Golden Dragon': '三張金牌組成一組刻子。',
+    'Robbing the Gold': '翻金時已聽牌：在任何人摸牌前直接胡這張金牌。',
+    'Blessing of Earth': '閒家胡莊家打出的第一張牌。',
+    'Blessing of Heaven': '莊家第一手自摸。',
   };
 }

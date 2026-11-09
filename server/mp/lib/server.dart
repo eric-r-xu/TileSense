@@ -127,11 +127,14 @@ Handler buildMultiplayerHandler(
       r.loop?.handleReconnect(s);
     }
 
-    /// Whether the client says it can play [ruleset]. MCR, Sichuan and sanma
-    /// need a client that knows them; an older one is asked to update rather
-    /// than being dealt a table it cannot draw.
+    /// Whether the client says it can play [ruleset]. MCR, Sichuan, Fuzhou and
+    /// sanma need a client that knows them; an older one is asked to update
+    /// rather than being dealt a table it cannot draw.
     bool clientSupports(Map<String, dynamic> msg, Ruleset ruleset) {
-      if (!ruleset.isMcr && !ruleset.isSichuan && !ruleset.isSanma) {
+      if (!ruleset.isMcr &&
+          !ruleset.isSichuan &&
+          !ruleset.isFuzhou &&
+          !ruleset.isSanma) {
         return true;
       }
       final supported = msg['supportedRulesets'];
@@ -166,6 +169,7 @@ Handler buildMultiplayerHandler(
             'hongKong' => Ruleset.hongKong,
             'taiwanese' => Ruleset.taiwanese,
             'sichuan' => Ruleset.sichuan,
+            'fuzhou' => Ruleset.fuzhou,
             'sanma' => Ruleset.sanma,
             _ => Ruleset.riichi,
           };

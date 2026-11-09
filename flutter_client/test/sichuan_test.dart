@@ -202,13 +202,13 @@ void main() {
   });
 
   group('the flag', () {
-    test('the PNG ships, is registered, and only Sichuan uses an image', () {
+    test('the PNG ships, is registered, and only sanma, Sichuan and Fuzhou use an image', () {
       expect(File('assets/flags/sichuan.png').existsSync(), isTrue);
       expect(File('pubspec.yaml').readAsStringSync(),
           contains('assets/flags/'));
       expect(Ruleset.sichuan.flagAsset, 'assets/flags/sichuan.png');
       expect(Ruleset.values.where((r) => r.flagAsset != null).toSet(),
-          {Ruleset.sanma, Ruleset.sichuan});
+          {Ruleset.sanma, Ruleset.sichuan, Ruleset.fuzhou});
     });
 
     testWidgets('Sichuan draws its flag image; riichi keeps its emoji',

@@ -20,6 +20,7 @@ extension MahjongTerms on AppLocalizations {
         Ruleset.taiwanese => rulesetTaiwanese,
         Ruleset.mcr => rulesetMcr,
         Ruleset.sichuan => rulesetSichuan,
+        Ruleset.fuzhou => rulesetFuzhou,
       };
 
   /// [rulesetName] for a tooltip, where there is room to say what the rules
@@ -76,8 +77,8 @@ extension MahjongTerms on AppLocalizations {
       Ruleset.hongKong => underFaan(minimumFaan),
       Ruleset.taiwanese => underTai(minimumPoints),
       Ruleset.mcr => underFan(McrRules.minimumPoints),
-      // Sichuan has no minimum, so nothing is ever under it.
-      Ruleset.sichuan => '',
+      // Sichuan and Fuzhou have no minimum, so nothing is ever under it.
+      Ruleset.sichuan || Ruleset.fuzhou => '',
     };
     return s == MinimumShortfall.dead ? '$label · $noWin' : label;
   }
@@ -152,6 +153,7 @@ extension MahjongTerms on AppLocalizations {
       Ruleset.taiwanese => _taiwaneseNames,
       Ruleset.mcr => _mcrNames,
       Ruleset.sichuan => _sichuanNames,
+      Ruleset.fuzhou => _fuzhouNames,
     };
     if (table[name] case final known?) return known(this);
     if (_yakuhai.firstMatch(name) case final m?) {
@@ -197,6 +199,7 @@ extension MahjongTerms on AppLocalizations {
         Ruleset.taiwanese => taiwanese,
         Ruleset.mcr => taiwanese,
         Ruleset.sichuan => taiwanese,
+        Ruleset.fuzhou => taiwanese,
       };
 }
 
@@ -448,4 +451,23 @@ final Map<String, String Function(AppLocalizations)> _limitNames = {
   'Kazoe Yakuman': (l) => l.limitKazoeYakuman,
   'Yakuman': (l) => l.limitYakuman,
   '13+ faan cap': (l) => l.limit13FaanCap,
+};
+
+final Map<String, String Function(AppLocalizations)> _fuzhouNames = {
+  'Base Points': (l) => l.fzBasePoints,
+  'Flower Points': (l) => l.fzFlowerPoints,
+  'Full Bloom': (l) => l.fzFullBloom,
+  'Gold Points': (l) => l.fzGoldPoints,
+  'Dealer Continuation': (l) => l.fzDealerContinuation,
+  'Open Kong': (l) => l.fzOpenKong,
+  'Concealed Kong': (l) => l.fzConcealedKong,
+  'Doubled': (l) => l.fzDoubled,
+  'All Sequences': (l) => l.fzAllSequences,
+  'One Flower': (l) => l.fzOneFlower,
+  'Golden Pair': (l) => l.fzGoldenPair,
+  'Three Gold Knockdown': (l) => l.fzThreeGoldKnockdown,
+  'Golden Dragon': (l) => l.fzGoldenDragon,
+  'Robbing the Gold': (l) => l.fzRobbingTheGold,
+  'Blessing of Heaven': (l) => l.fzBlessingOfHeaven,
+  'Blessing of Earth': (l) => l.fzBlessingOfEarth,
 };

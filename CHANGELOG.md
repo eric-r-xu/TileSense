@@ -9,6 +9,27 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-09 — Fuzhou mahjong
+
+- **Fuzhou is the seventh ruleset**, on the welcome screen's rules picker, the
+  character screen, the online lobby and the Hand Builder, with the city's 福
+  logo as its flag. A 16-tile Fujian game on 144 tiles where every wind and
+  dragon is a flower, one tile type is flipped as the **Gold** (wild: it stands
+  in for any tile, scores a point, can't be called with, and locks a seat that
+  discards one to self-draw wins), with **Robbing the Gold** on the flip. The
+  score is flat and additive: `((5 + flowers + golds + dealer streak + kongs) x 2)
+  + special hands`, with no minimum to win. Rules, and where the source guide is
+  unclear: [`docs/FUZHOU_RULES.md`](docs/FUZHOU_RULES.md). Code:
+  `packages/mahjong_core/lib/fuzhou/`, `flutter_client/lib/logic/fuzhou_guide.dart`.
+- **Guide and bots** count Gold tiles as wilds (`wildShanten`); the guide's win
+  chance is an uncalibrated estimate, noted as such.
+- **Online play** works: the Gold indicator and "discarded a Gold" are public in
+  the snapshot, and older clients are asked to update.
+- **Tiles** that are Gold are drawn on a gold face wherever they show (hand,
+  ponds, flower trays, the Gold indicator on the table).
+- **Rules reader and glossary** have Fuzhou in English, Japanese and both Chinese
+  scripts.
+
 ## 2026-11-06 — Quiz streak removed
 
 - **The daily quiz no longer has a day streak.** The "N-day streak" badge on the

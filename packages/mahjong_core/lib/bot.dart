@@ -8,6 +8,7 @@ library;
 import 'dart:math';
 
 import 'efficiency_calc.dart';
+import 'fuzhou/fuzhou_efficiency.dart';
 import 'hand_parse.dart';
 import 'meld.dart';
 import 'mcr/mcr_efficiency.dart';
@@ -96,6 +97,9 @@ class SimpleBot {
       return _sichuanCall(round, seat, discard, allowed);
     }
     if (round.ruleset.isMcr) return _mcrCall(round, seat, discard, allowed);
+    if (round.ruleset.isFuzhou) {
+      return _fuzhouCall(round, seat, discard, allowed);
+    }
     if (round.ruleset.isChineseStyle) {
       return _decideHongKongCall(round, seat, discard, allowed);
     }
@@ -152,6 +156,87 @@ class SimpleBot {
       if (improves(rest)) return CallType.chi;
     }
     return CallType.none;
+  }
+
+  /// Fuzhou: a kong always pays, and a pung or chow is worth taking when it
+  /// brings the hand closer, the Gold tiles in hand counted as the wilds they
+  /// are (they can't be called with, so they stay put).
+  CallType _fuzhouCall(
+      Round round, int seat, Tile discard, Set<CallType> allowed) {
+    final s = round.seats[seat];
+    final gold = round.goldTypes;
+    final open = s.melds.length;
+    final before = FuzhouEfficiency.shanten(s.hand, openMelds: open, gold: gold);
+    bool improves(List<Tile> rest) =>
+        FuzhouEfficiency.bestAfterDiscard(rest,
+            openMelds: open + 1, gold: gold) <
+        before;
+
+    if (allowed.contains(CallType.kan)) return CallType.kan;
+    if (allowed.contains(CallType.pon)) {
+      final rest = [...s.hand];
+      for (var i = 0; i < 2; i++) {
+        rest.removeAt(rest.indexWhere((t) => t.type == discard.type));
+      }
+      if (improves(rest)) return CallType.pon;
+    }
+    if (allowed.contains(CallType.chi)) {
+      final low = round.chiSequences(seat, discard).first;
+      final rest = [...s.hand];
+      for (var i = 0; i < 3; i++) {
+        final need = TileType.values[low.index + i];
+        if (need == discard.type) continue;
+        rest.removeAt(rest.indexWhere((t) => t.type == need));
+      }
+      if (improves(rest)) return CallType.chi;
+    }
+    return CallType.none;
+  }
+
+  /// Fuzhou discards: the tile that leaves the rest of the hand fewest steps
+  /// from ready, then with the widest acceptance. Gold tiles are wild and
+  /// thrown only if nothing else is left — they lock a seat out of winning off
+  /// discards.
+  Tile _fuzhouDiscard(Round round, int seat) {
+    final s = round.seats[seat];
+    final gold = round.goldTypes;
+    final tiles = round.legalDiscards(seat);
+    final choices = tiles.where((t) => !gold.contains(t.type)).toList();
+    final pool = choices.isEmpty ? tiles : choices;
+
+    final live34 = List<int>.filled(34, 4);
+    for (final o in round.seats) {
+      for (final t in [
+        ...o.pond,
+        ...o.melds.expand((m) => m.tiles),
+        ...o.flowers
+      ]) {
+        if (t.type.isPlayingTile && live34[t.type.index - 1] > 0) {
+          live34[t.type.index - 1]--;
+        }
+      }
+    }
+    for (final t in s.hand) {
+      if (t.type.isPlayingTile && live34[t.type.index - 1] > 0) {
+        live34[t.type.index - 1]--;
+      }
+    }
+    final goldLeft = gold.where((g) => g.isPlayingTile).fold<int>(
+        0, (a, g) => a + (live34[g.index - 1] > 3 ? 3 : live34[g.index - 1]));
+    final lines = FuzhouEfficiency.lines(s.hand,
+        openMelds: s.melds.length,
+        gold: gold,
+        live34: live34,
+        goldLeft: goldLeft);
+    lines.sort((a, b) {
+      final c = a.shanten.compareTo(b.shanten);
+      return c != 0 ? c : b.ukeire.compareTo(a.ukeire);
+    });
+    for (final line in lines) {
+      final pick = pool.where((t) => t.type == line.discard);
+      if (pick.isNotEmpty) return pick.first;
+    }
+    return pool[_rng.nextInt(pool.length)];
   }
 
   /// Sichuan: never call the void suit, always take a kong (it pays), and take
@@ -310,6 +395,7 @@ class SimpleBot {
     final s = round.seats[seat];
     var tiles = List<Tile>.of(round.legalDiscards(seat));
     if (round.ruleset.isSichuan) return _sichuanDiscard(round, seat);
+    if (round.ruleset.isFuzhou) return _fuzhouDiscard(round, seat);
     if (round.ruleset.isMcr) {
       tiles.sort((a,b) => _mcrHandValue(round, s, [...s.hand]..remove(b), s.melds)
           .compareTo(_mcrHandValue(round, s, [...s.hand]..remove(a), s.melds)));

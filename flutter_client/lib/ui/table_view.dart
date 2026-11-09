@@ -30,8 +30,9 @@ const kMinimumShortfallColor = Color(0xffef6c00);
 /// The round/wall status sits on one line dead centre, between the ponds —
 /// see [TableStatusLine].
 /// Which part of the table the scenario builder is currently pointing at.
-/// [kita] is a sanma seat's Norths set aside.
-enum TableArea { pond, melds, dora, kita }
+/// [kita] is a sanma seat's Norths set aside; [gold] is Fuzhou's flipped Gold
+/// indicator.
+enum TableArea { pond, melds, dora, kita, gold }
 
 /// In-place editing hooks. Null in the live game — the table there is a
 /// read-out, never an editor — and supplied only by the scenario builder, which
@@ -58,7 +59,7 @@ class TableEdits {
   final int? seat;
 
   bool isSelected(TableArea a, int s) =>
-      area == a && (a == TableArea.dora || seat == s);
+      area == a && (a == TableArea.dora || a == TableArea.gold || seat == s);
 }
 
 class TableView extends StatelessWidget {
@@ -216,7 +217,12 @@ class TableView extends StatelessWidget {
   static double _pondBoxH(double scale) => 16 + 4 * _pondTileH(scale);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => GoldScope(
+        types: game.round.goldTypes,
+        child: _buildTable(context),
+      );
+
+  Widget _buildTable(BuildContext context) {
     final round = game.round;
     // Seat mapping from the human's perspective: 0 self, 1 right, 2 across, 3 left.
     return Container(
@@ -318,6 +324,14 @@ class TableView extends StatelessWidget {
               top: 0,
               right: 0,
               child: _deadWall(round),
+            ),
+          // Fuzhou has no dora either, but one tile names the wild Gold, face
+          // up once the dealer flips it.
+          if (round.ruleset.isFuzhou)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: _goldIndicator(round),
             ),
         ],
       ),
@@ -464,7 +478,11 @@ class TableView extends StatelessWidget {
   ///
   /// Sanma's Norths set aside as kita sit in the same tray: tiles out of the
   /// hand that count for it.
-  Widget _seatFlowers(Round round, int seat) {
+  ///
+  /// [vertical] stacks them in columns that wrap by the height they are given,
+  /// for the side seats: a horizontal tray under their sideways placard made
+  /// the whole placard column shrink to fit, and with it the player's name.
+  Widget _seatFlowers(Round round, int seat, {bool vertical = false}) {
     // Sichuan is Chinese-style but has no flowers to show or edit.
     if (!_hasTray(round.ruleset)) return const SizedBox.shrink();
     final flowers = round.ruleset.isSanma
@@ -474,7 +492,9 @@ class TableView extends StatelessWidget {
     final tray = flowers.isEmpty
         ? const SizedBox(width: 21, height: 29)
         : Wrap(
+            direction: vertical ? Axis.vertical : Axis.horizontal,
             spacing: 1,
+            runSpacing: 1,
             children: [
               for (final tile in flowers)
                 TileFace(
@@ -486,6 +506,48 @@ class TableView extends StatelessWidget {
           );
     return _selectable(
         round.ruleset.isSanma ? TableArea.kita : TableArea.dora, seat, tray);
+  }
+
+  /// Fuzhou's Gold: the flipped indicator beside a "Gold" label. Every tile of
+  /// that kind is wild (a flipped flower or season makes the other seven
+  /// flowers and seasons wild instead), and the hand shows them on gold. Face
+  /// down until the dealer flips it, and in the builder when none is set.
+  Widget _goldIndicator(Round round) {
+    final tile = round.goldIndicator;
+    return Builder(builder: (context) {
+      final l10n = context.l10n;
+      final flower = tile?.type.isBonus ?? false;
+      return _selectable(
+          TableArea.gold,
+          -1,
+          Tooltip(
+        message: flower ? l10n.fzGoldFlower : l10n.fzGoldTooltip,
+        child: Container(
+          key: const Key('goldIndicator'),
+          padding: const EdgeInsets.fromLTRB(8, 4, 6, 4),
+          decoration: BoxDecoration(
+            color: const Color(0x33caa24e),
+            border: Border.all(color: AppColors.gold),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.fzGold,
+                  style: const TextStyle(
+                      color: AppColors.goldBright,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(width: 6),
+              if (tile == null)
+                const TileFace(faceDown: true, size: TileSize.small)
+              else
+                TileFace(tile: tile, size: TileSize.small, scale: 1.2),
+            ],
+          ),
+        ),
+      ));
+    });
   }
 
   /// The 14-tile dead wall: seven columns, two rows. The upper row shows the
@@ -886,12 +948,16 @@ class TableView extends StatelessWidget {
           quarterTurns: isLeft ? 3 : 1,
           child: _placard(round, seat),
         ),
-        if (_hasTray(round.ruleset)) ...[
-          const SizedBox(height: 4),
-          _seatFlowers(round, seat),
-        ],
       ],
     );
+    // The flowers stand in their own columns beside the placard, wrapping
+    // by the height the seat has, so neither they nor the name shrink.
+    final tray = _hasTray(round.ruleset)
+        ? Padding(
+            padding: EdgeInsets.only(left: isLeft ? 3 : 0, right: isLeft ? 0 : 3),
+            child: _seatFlowers(round, seat, vertical: true),
+          )
+        : null;
     // The hand keeps its full size — the same backs as the across seat's —
     // and the melds stand beside it, down the same column, at the same size
     // as every other opponent's: a call takes three backs out of the hand, so
@@ -952,8 +1018,18 @@ class TableView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: isLeft
-                  ? [flexPlacard, const SizedBox(width: 6), flexInside]
-                  : [flexInside, const SizedBox(width: 6), flexPlacard],
+                  ? [
+                      flexPlacard,
+                      if (tray != null) tray,
+                      const SizedBox(width: 6),
+                      flexInside
+                    ]
+                  : [
+                      flexInside,
+                      const SizedBox(width: 6),
+                      if (tray != null) tray,
+                      flexPlacard
+                    ],
             ),
           ),
         ],
@@ -1023,8 +1099,10 @@ class TableView extends StatelessWidget {
     // `seatLabel` already carries "(you)"/"(bot)" where relevant — the real
     // guest nickname online, the fixed persona name offline.
     // The number follows the current wind, not the fixed character position.
-    final seatNumber =
-        round.ruleset.isChineseStyle ? '${s.wind.index + 1} ' : '';
+    // Fuzhou's flowers are not matched to seats, so it has no number.
+    final seatNumber = round.ruleset.isChineseStyle && !round.ruleset.isFuzhou
+        ? '${s.wind.index + 1} '
+        : '';
     // The Custom Hand & Context Builder (`edits` set) shows just the wind: who
     // sits where is not part of a posed table.
     final name = edits == null ? '${game.seatLabel(seat)}  ' : ' ';

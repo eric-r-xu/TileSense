@@ -17,7 +17,8 @@ void main() {
       expect(r.ronLabel, 'Hu');
       expect(r.totalMelds, 4);
       for (final other
-          in Ruleset.values.where((x) => x != r && x != Ruleset.sanma)) {
+          in Ruleset.values.where((x) =>
+              x != r && x != Ruleset.sanma && x != Ruleset.fuzhou)) {
         expect(other.flagAsset, isNull);
       }
     });

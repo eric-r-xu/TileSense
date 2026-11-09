@@ -18,6 +18,7 @@ import 'package:mahjong_core/mahjong_core.dart';
 
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
+import '../logic/fuzhou_guide.dart';
 import '../logic/sichuan_guide.dart';
 import '../logic/sichuan_value.dart';
 import '../net/guest_identity.dart';
@@ -1410,6 +1411,13 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
             ? SichuanRival.of(round, kHumanSeat)
             : const [],
         kita: seat.kita.length,
+        goldTypes: round.goldTypes,
+        goldLeft: round.ruleset.isFuzhou
+            ? FuzhouGuide.goldLeft(round, kHumanSeat)
+            : 0,
+        fuzhouRivals: round.ruleset.isFuzhou
+            ? FuzhouRival.of(round, kHumanSeat)
+            : const [],
       );
 
   SeatState? _threatOpponent() {

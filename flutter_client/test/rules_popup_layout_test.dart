@@ -12,7 +12,7 @@ void main() {
   preloadDeferredPages();
 
   for (final size in [kDesignSize, const Size(1600, 1128)]) {
-    testWidgets('all six rulesets fit the Rules popup without scrolling, $size',
+    testWidgets('all seven rulesets fit the Rules popup without scrolling, $size',
         (tester) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));

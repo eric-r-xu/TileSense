@@ -165,7 +165,8 @@ class MpClient {
               'hongKong',
               'taiwanese',
               'mcr',
-              'sichuan'
+              'sichuan',
+              'fuzhou'
             ],
         }));
       } catch (_) {

@@ -327,10 +327,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rulesetSubtitleRiichi => '役・ドラ・リーチ';
 
   @override
-  String get rulesetSubtitleHongKong => '翻・花牌・最低0〜3翻';
+  String get rulesetSubtitleHongKong => '最低0〜3翻';
 
   @override
-  String get rulesetSubtitleTaiwanese => '17枚・花牌・最低1〜5台';
+  String get rulesetSubtitleTaiwanese => '16枚・最低1〜5台';
 
   @override
   String welcomeTagline(String rules) {
@@ -2073,7 +2073,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rulesetMcr => '国標麻雀 (MCR)';
 
   @override
-  String get rulesetSubtitleMcr => '番・花牌・最低8番';
+  String get rulesetSubtitleMcr => '最低8番';
 
   @override
   String get mcrFullGame => '全荘 · 16局';
@@ -2099,7 +2099,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rulesetSichuan => '四川麻雀';
 
   @override
-  String get rulesetSubtitleSichuan => '血戦到底・定缺・チーなし';
+  String get rulesetSubtitleSichuan => '定缺・チーなし';
 
   @override
   String get sichuanFullGame => 'フルゲーム · 8局';
@@ -2802,7 +2802,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rulesetSanmaLong => '三麻（三人麻雀）';
 
   @override
-  String get rulesetSubtitleSanma => '三人麻雀：チーなし・北抜き・二〜八萬なし';
+  String get rulesetSubtitleSanma => '3人・二〜八萬なし';
 
   @override
   String get sanmaTooltip =>
@@ -2982,7 +2982,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get builderTourMenuBody =>
-      'メニューには、ランダムとクリア、ルールブック、残り牌数、本場と供託、場風と自風、そしてリーチ・三麻・香港・台湾・MCR・四川を切り替えるルールのダイヤルがあります。このツアーもそこから再生できます。';
+      'メニューには、ランダムとクリア、ルールブック、残り牌数、本場と供託、場風と自風、そしてリーチ・三麻・香港・台湾・MCR・四川・福州を切り替えるルールのダイヤルがあります。このツアーもそこから再生できます。';
 
   @override
   String get builderTourDone => '組み立てを始める';
@@ -2991,7 +2991,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get builderTourMenuLink => 'ビルダーの使い方';
 
   @override
-  String get rulesTileTooltip => '遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川。';
+  String get rulesTileTooltip => '遊ぶ麻雀のルールを選びます：リーチ、三麻、香港、台湾、MCR、四川、福州。';
 
   @override
   String get rulesRead => 'ルールを読む';
@@ -3257,4 +3257,82 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mcrFanMeldedAndConcealedKongs => '明暗槓';
+
+  @override
+  String get rulesetFuzhou => '福州';
+
+  @override
+  String get rulesetSubtitleFuzhou => '16枚・ワイルドの金牌';
+
+  @override
+  String get fzBasePoints => '基本点';
+
+  @override
+  String get fzFlowerPoints => '花点';
+
+  @override
+  String get fzFullBloom => '花揃い';
+
+  @override
+  String get fzGoldPoints => '金点';
+
+  @override
+  String get fzDealerContinuation => '連荘';
+
+  @override
+  String get fzOpenKong => '明槓';
+
+  @override
+  String get fzConcealedKong => '暗槓';
+
+  @override
+  String get fzDoubled => '倍加';
+
+  @override
+  String get fzAllSequences => '平胡';
+
+  @override
+  String get fzOneFlower => '一花';
+
+  @override
+  String get fzGoldenPair => '金雀';
+
+  @override
+  String get fzThreeGoldKnockdown => '三金倒';
+
+  @override
+  String get fzGoldenDragon => '金龍';
+
+  @override
+  String get fzRobbingTheGold => '搶金';
+
+  @override
+  String get fzBlessingOfHeaven => '天和';
+
+  @override
+  String get fzBlessingOfEarth => '地和';
+
+  @override
+  String get fzGold => '金';
+
+  @override
+  String get fzGoldTooltip =>
+      '金牌：この種類の牌はすべてワイルドで、手牌の任意の牌の代わりになります。チー・ポン・カンには使えず、捨てるとツモ和了のみになります。';
+
+  @override
+  String get fzGoldFlower => '金牌：他の7枚の花牌すべて';
+
+  @override
+  String get glossaryUnitPoints => '点';
+
+  @override
+  String get glossaryTermGold => '金牌';
+
+  @override
+  String get glossaryDefGold =>
+      '親が花牌の補充後にめくった1種類の牌はワイルドです。手牌の任意の牌の代わりになり、1枚ごとに1点。チー・ポン・カンには使えず、捨てるとその局はツモ和了のみになります。';
+
+  @override
+  String get glossaryDefFlowersFuzhou =>
+      '風牌・三元牌・花牌・季節牌はすべて花牌です。引いたら見せて、牌山から補充します。1枚1点で、4枚そろうとさらに加点されます。';
 }

@@ -63,6 +63,10 @@ void main() {
     _playToCompletion(Ruleset.hongKong);
   });
 
+  test('fuzhou: four SimpleBots play a full hand to completion', () {
+    _playToCompletion(Ruleset.fuzhou);
+  });
+
   test('taiwanese: four SimpleBots play a full hand to completion', () {
     _playToCompletion(Ruleset.taiwanese);
   });

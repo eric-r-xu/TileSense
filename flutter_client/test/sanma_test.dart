@@ -190,10 +190,10 @@ void main() {
   });
 
   group('the flag', () {
-    test('the PNG ships and only sanma and Sichuan use an image', () {
+    test('the PNG ships and only sanma, Sichuan and Fuzhou use an image', () {
       expect(File('assets/flags/sanma.png').existsSync(), isTrue);
       expect(Ruleset.values.where((r) => r.flagAsset != null).toSet(),
-          {Ruleset.sanma, Ruleset.sichuan});
+          {Ruleset.sanma, Ruleset.sichuan, Ruleset.fuzhou});
     });
 
     testWidgets('says it is three-player mahjong on hover', (tester) async {
@@ -330,7 +330,7 @@ void main() {
       await openPopup(tester, 'rulesTile');
       expect(find.byKey(const Key('ruleset_sanma')), findsOneWidget);
       expect(find.byKey(const Key('rulesetFlag_sanma')), findsWidgets);
-      expect(find.text('3-player riichi: no chi, kita, no 2–8 man'),
+      expect(find.text('3 players, no 2–8 man'),
           findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key('ruleset_sanma')));
       await tester.pump();

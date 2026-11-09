@@ -323,10 +323,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rulesetSubtitleRiichi => '役、宝牌、立直';
 
   @override
-  String get rulesetSubtitleHongKong => '番、花牌、最低0–3番';
+  String get rulesetSubtitleHongKong => '最低0–3番';
 
   @override
-  String get rulesetSubtitleTaiwanese => '17张、花牌、最低1–5台';
+  String get rulesetSubtitleTaiwanese => '16张、最低1–5台';
 
   @override
   String welcomeTagline(String rules) {
@@ -2057,7 +2057,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rulesetMcr => '国标麻将 (MCR)';
 
   @override
-  String get rulesetSubtitleMcr => '番、花牌、最低8番';
+  String get rulesetSubtitleMcr => '最低8番';
 
   @override
   String get mcrFullGame => '全场 · 16局';
@@ -2083,7 +2083,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rulesetSichuan => '四川麻将';
 
   @override
-  String get rulesetSubtitleSichuan => '血战到底、定缺、不能吃';
+  String get rulesetSubtitleSichuan => '定缺、不能吃';
 
   @override
   String get sichuanFullGame => '全场 · 8局';
@@ -2773,7 +2773,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rulesetSanmaLong => '三麻（三人日本麻将）';
 
   @override
-  String get rulesetSubtitleSanma => '三人立直麻将：不能吃、拔北、去掉二至八万';
+  String get rulesetSubtitleSanma => '三人、去掉二至八万';
 
   @override
   String get sanmaTooltip =>
@@ -2951,7 +2951,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get builderTourMenuBody =>
-      '菜单里有随机和清空、规则手册、牌墙数量、本场与立直棒、场风和自风，以及在日本麻将、三人麻将、香港、台湾、国标和四川之间切换的规则转盘。也可以在那里重看这段导览。';
+      '菜单里有随机和清空、规则手册、牌墙数量、本场与立直棒、场风和自风，以及在日本麻将、三人麻将、香港、台湾、国标、四川和福州之间切换的规则转盘。也可以在那里重看这段导览。';
 
   @override
   String get builderTourDone => '开始组牌';
@@ -2960,7 +2960,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get builderTourMenuLink => '手牌构建器怎么用';
 
   @override
-  String get rulesTileTooltip => '选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标或四川。';
+  String get rulesTileTooltip => '选择要玩的麻将规则：日本麻将、三人麻将、香港、台湾、国标、四川或福州。';
 
   @override
   String get rulesRead => '阅读规则';
@@ -3226,6 +3226,83 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mcrFanMeldedAndConcealedKongs => '明暗杠';
+
+  @override
+  String get rulesetFuzhou => '福州';
+
+  @override
+  String get rulesetSubtitleFuzhou => '16张、金牌百搭';
+
+  @override
+  String get fzBasePoints => '底分';
+
+  @override
+  String get fzFlowerPoints => '花分';
+
+  @override
+  String get fzFullBloom => '齐花';
+
+  @override
+  String get fzGoldPoints => '金分';
+
+  @override
+  String get fzDealerContinuation => '连庄';
+
+  @override
+  String get fzOpenKong => '明杠';
+
+  @override
+  String get fzConcealedKong => '暗杠';
+
+  @override
+  String get fzDoubled => '翻倍';
+
+  @override
+  String get fzAllSequences => '平胡';
+
+  @override
+  String get fzOneFlower => '只有一张花';
+
+  @override
+  String get fzGoldenPair => '金雀';
+
+  @override
+  String get fzThreeGoldKnockdown => '三金倒';
+
+  @override
+  String get fzGoldenDragon => '金龙';
+
+  @override
+  String get fzRobbingTheGold => '抢金';
+
+  @override
+  String get fzBlessingOfHeaven => '天和';
+
+  @override
+  String get fzBlessingOfEarth => '地和';
+
+  @override
+  String get fzGold => '金';
+
+  @override
+  String get fzGoldTooltip => '金牌：这种牌全部百搭，可代替手牌中的任意一张牌。不能用于吃、碰、杠；打出金牌后只能自摸胡牌。';
+
+  @override
+  String get fzGoldFlower => '金牌：其余七张花牌皆为金';
+
+  @override
+  String get glossaryUnitPoints => '分';
+
+  @override
+  String get glossaryTermGold => '金牌';
+
+  @override
+  String get glossaryDefGold =>
+      '庄家在补花后翻出的一种牌是百搭：这种牌可代替手牌中的任意一张，每张计1分。不能吃、碰、杠；打出金牌的人只能自摸胡牌。';
+
+  @override
+  String get glossaryDefFlowersFuzhou =>
+      '所有风牌、箭牌、花牌和季节牌都是花牌。摸到时亮出，并从牌墙补一张。每张1分，集齐四张一套另有加分。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3547,10 +3624,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get rulesetSubtitleRiichi => '役、寶牌、立直';
 
   @override
-  String get rulesetSubtitleHongKong => '番、花牌、最低0–3番';
+  String get rulesetSubtitleHongKong => '最低0–3番';
 
   @override
-  String get rulesetSubtitleTaiwanese => '17張、花牌、最低1–5台';
+  String get rulesetSubtitleTaiwanese => '16張、最低1–5台';
 
   @override
   String welcomeTagline(String rules) {
@@ -5281,7 +5358,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get rulesetMcr => '國標麻將 (MCR)';
 
   @override
-  String get rulesetSubtitleMcr => '番、花牌、最低8番';
+  String get rulesetSubtitleMcr => '最低8番';
 
   @override
   String get mcrFullGame => '全場 · 16局';
@@ -5307,7 +5384,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get rulesetSichuan => '四川麻將';
 
   @override
-  String get rulesetSubtitleSichuan => '血戰到底、定缺、不能吃';
+  String get rulesetSubtitleSichuan => '定缺、不能吃';
 
   @override
   String get sichuanFullGame => '全場 · 8局';
@@ -5997,7 +6074,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get rulesetSanmaLong => '三麻（三人日本麻將）';
 
   @override
-  String get rulesetSubtitleSanma => '三人立直麻將：不能吃、拔北、去掉二至八萬';
+  String get rulesetSubtitleSanma => '三人、去掉二至八萬';
 
   @override
   String get sanmaTooltip =>
@@ -6175,7 +6252,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get builderTourMenuBody =>
-      '選單裡有隨機和清空、規則手冊、牌牆數量、本場與立直棒、場風和自風，以及在日本麻將、三人麻將、香港、台灣、國標和四川之間切換的規則轉盤。也可以在那裡重看這段導覽。';
+      '選單裡有隨機和清空、規則手冊、牌牆數量、本場與立直棒、場風和自風，以及在日本麻將、三人麻將、香港、台灣、國標、四川和福州之間切換的規則轉盤。也可以在那裡重看這段導覽。';
 
   @override
   String get builderTourDone => '開始組牌';
@@ -6184,7 +6261,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get builderTourMenuLink => '手牌建構器怎麼用';
 
   @override
-  String get rulesTileTooltip => '選擇要玩的麻將規則：日本麻將、三人麻將、香港、台灣、國標或四川。';
+  String get rulesTileTooltip => '選擇要玩的麻將規則：日本麻將、三人麻將、香港、台灣、國標、四川或福州。';
 
   @override
   String get rulesRead => '閱讀規則';
@@ -6450,4 +6527,81 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get mcrFanMeldedAndConcealedKongs => '明暗槓';
+
+  @override
+  String get rulesetFuzhou => '福州';
+
+  @override
+  String get rulesetSubtitleFuzhou => '16張、金牌百搭';
+
+  @override
+  String get fzBasePoints => '底分';
+
+  @override
+  String get fzFlowerPoints => '花分';
+
+  @override
+  String get fzFullBloom => '齊花';
+
+  @override
+  String get fzGoldPoints => '金分';
+
+  @override
+  String get fzDealerContinuation => '連莊';
+
+  @override
+  String get fzOpenKong => '明槓';
+
+  @override
+  String get fzConcealedKong => '暗槓';
+
+  @override
+  String get fzDoubled => '翻倍';
+
+  @override
+  String get fzAllSequences => '平胡';
+
+  @override
+  String get fzOneFlower => '只有一張花';
+
+  @override
+  String get fzGoldenPair => '金雀';
+
+  @override
+  String get fzThreeGoldKnockdown => '三金倒';
+
+  @override
+  String get fzGoldenDragon => '金龍';
+
+  @override
+  String get fzRobbingTheGold => '搶金';
+
+  @override
+  String get fzBlessingOfHeaven => '天和';
+
+  @override
+  String get fzBlessingOfEarth => '地和';
+
+  @override
+  String get fzGold => '金';
+
+  @override
+  String get fzGoldTooltip => '金牌：這種牌全部百搭，可代替手牌中的任意一張牌。不能用於吃、碰、槓；打出金牌後只能自摸胡牌。';
+
+  @override
+  String get fzGoldFlower => '金牌：其餘七張花牌皆為金';
+
+  @override
+  String get glossaryUnitPoints => '分';
+
+  @override
+  String get glossaryTermGold => '金牌';
+
+  @override
+  String get glossaryDefGold =>
+      '莊家在補花後翻出的一種牌是百搭：這種牌可代替手牌中的任意一張，每張計1分。不能吃、碰、槓；打出金牌的人只能自摸胡牌。';
+
+  @override
+  String get glossaryDefFlowersFuzhou =>
+      '所有風牌、箭牌、花牌和季節牌都是花牌。摸到時亮出，並從牌牆補一張。每張1分，集齊四張一套另有加分。';
 }

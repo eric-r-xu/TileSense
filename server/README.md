@@ -11,7 +11,7 @@ Two Dart services live here:
 
 ## Multiplayer variants
 
-The shared core supports riichi, Sanma, Hong Kong, Taiwanese, MCR and Sichuan.
+The shared core supports riichi, Sanma, Hong Kong, Taiwanese, MCR, Sichuan and Fuzhou.
 Rooms seat four, or three for Sanma; bots fill empty seats. Clients advertise
 `supportedRulesets` on create/join/reconnect so unsupported variants can request
 an update. Sichuan tables continue after individual wins; Sanma skips the empty

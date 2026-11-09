@@ -17,6 +17,10 @@ library;
 
 import 'dart:math';
 
+import 'fuzhou/fuzhou_hand_parse.dart';
+import 'fuzhou/fuzhou_rules.dart';
+import 'fuzhou/fuzhou_scoring.dart';
+import 'fuzhou/fuzhou_wall.dart';
 import 'hand_parse.dart';
 import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_scoring.dart';
@@ -118,6 +122,10 @@ class SeatState {
   /// tile it can never declare ron for the rest of the round. Never cleared.
   bool riichiFuriten = false;
 
+  /// Fuzhou: this seat has thrown a Gold tile, which bars it from winning off
+  /// a discard for the rest of the hand — it may only win by self-draw.
+  bool goldDiscarded = false;
+
   /// Sichuan: the suit (0 man, 1 pin, 2 sou) this seat gave up; null until
   /// declared. It stays hidden from the other seats until [voidRevealed].
   int? voidSuit;
@@ -212,6 +220,8 @@ class Round {
   })  : wall = wall ??
             (ruleset.isSanma
                 ? SanmaWall(seed, rng: shuffleRng)
+                : ruleset.isFuzhou
+                ? FuzhouWall(seed, rng: shuffleRng)
                 : ruleset.isSichuan
                 ? SichuanWall(seed, rng: shuffleRng)
                 : ruleset.isTaiwanese
@@ -240,11 +250,15 @@ class Round {
   void _replaceDealBonuses(int offset) {
     if (offset == 4) {
       turn = dealer;
+      if (ruleset.isFuzhou) {
+        revealGold();
+        if (finished) return;
+      }
       _beginDraw();
       return;
     }
     final seat = seats[(dealer + offset) % 4];
-    final index = seat.hand.indexWhere((t) => t.type.isBonus);
+    final index = seat.hand.indexWhere((t) => isFlowerTile(t.type));
     if (index < 0) {
       seat.hand = sortByType(seat.hand);
       _replaceDealBonuses(offset + 1);
@@ -362,7 +376,9 @@ class Round {
   /// its seven-pairs-and-a-pung alternate), or the 4-meld, 14-tile shape
   /// riichi and Hong Kong share.
   List<TileType> _waitTiles(List<Tile> hand, {required int openMelds}) =>
-      ruleset.isSichuan
+      ruleset.isFuzhou
+          ? waitTilesFuzhou(hand, openMelds: openMelds, goldTypes: goldTypes)
+          : ruleset.isSichuan
           ? waitTilesSichuan(hand, openMelds: openMelds)
           : ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds) : ruleset.isTaiwanese
               ? waitTilesTaiwanese(hand, openMelds: openMelds)
@@ -385,18 +401,70 @@ class Round {
   }
 
   bool _isTenpaiFor(List<Tile> hand, {required int openMelds}) =>
-      ruleset.isSichuan
+      ruleset.isFuzhou
+          ? isTenpaiFuzhou(hand, openMelds: openMelds, goldTypes: goldTypes)
+          : ruleset.isSichuan
           ? isTenpaiSichuan(hand, openMelds: openMelds)
           : ruleset.isMcr ? waitTilesMcr(hand, openMelds: openMelds).isNotEmpty : ruleset.isTaiwanese
               ? isTenpaiTaiwanese(hand, openMelds: openMelds)
               : isTenpai(hand, openMelds: openMelds);
 
-  bool _isAgari(List<int> counts34, {required int meldCount}) =>
+  bool _isAgari(List<Tile> tiles, {required int meldCount}) {
+    if (ruleset.isFuzhou) {
+      return isAgariFuzhouTiles(tiles,
+          openMelds: meldCount, goldTypes: goldTypes);
+    }
+    return _isAgariCounts(toCounts34(tiles), meldCount: meldCount);
+  }
+
+  bool _isAgariCounts(List<int> counts34, {required int meldCount}) =>
       ruleset.isSichuan
           ? isAgariSichuan(counts34, meldCount: meldCount)
           : ruleset.isMcr ? isAgariMcr(counts34, meldCount: meldCount) : ruleset.isTaiwanese
               ? isAgariTaiwanese(counts34, meldCount: meldCount)
               : isAgari(counts34, meldCount: meldCount);
+
+  // --- Gold (Fuzhou) -------------------------------------------------------
+
+  /// Fuzhou: the face-up tile the dealer flipped to name the Gold, once the
+  /// flowers are replaced. Null before that, and under every other ruleset.
+  Tile? goldIndicator;
+
+  /// Fuzhou: the tile types that are wild this hand — see
+  /// [FuzhouRules.goldTypesFor]. Empty until the Gold is flipped.
+  Set<TileType> goldTypes = const {};
+
+  /// Whether [t] is a wild card at this table.
+  bool isGold(TileType t) => goldTypes.contains(t);
+
+  /// Whether a drawn or dealt [t] is a flower to expose and replace: the
+  /// flowers and seasons everywhere, and under Fuzhou every wind and dragon
+  /// too — except a Gold, which stays in hand as a wild.
+  bool isFlowerTile(TileType t) => ruleset.isFuzhou
+      ? FuzhouRules.isFlower(t) && !goldTypes.contains(t)
+      : t.isBonus;
+
+  /// Fuzhou: flips the Gold, then lets the first ready seat in turn from the
+  /// dealer rob it — win on the Gold itself before its first draw. Both are
+  /// part of dealing; nobody has to choose.
+  void revealGold() {
+    final w = wall as FuzhouWall;
+    final tile = w.revealGold();
+    goldIndicator = tile;
+    goldTypes = FuzhouRules.goldTypesFor(tile.type);
+    for (var offset = 0; offset < 4; offset++) {
+      final s = seats[(dealer + offset) % 4];
+      if (_isTenpaiFor(s.hand, openMelds: s.melds.length)) {
+        final score =
+            _score(s, s.hand, tile, isTsumo: true, robbingGold: true);
+        if (!score.valid) continue;
+        turn = s.seat;
+        _finishWin([s.seat], score,
+            winTile: tile, label: 'Robbing the Gold');
+        return;
+      }
+    }
+  }
 
   // --- flowers (Hong Kong) -------------------------------------------------
 
@@ -420,7 +488,7 @@ class Round {
     // Hong Kong's own seventh flower is already an independent win; Taiwanese
     // only scores "All Flowers" at the eighth (and last) one.
     final pauseAt = ruleset.isTaiwanese ? 8 : 7;
-    if (!ruleset.isMcr && seat.flowers.length >= pauseAt) {
+    if (!ruleset.isMcr && !ruleset.isFuzhou && seat.flowers.length >= pauseAt) {
       turn = seat.seat;
       seat.drawn = null;
       _flowerSeat = seat.seat;
@@ -763,7 +831,7 @@ class Round {
         : kita
             ? (wall as SanmaWall).drawKitaReplacement()
             : wall.drawDeadWall();
-    if (tile.type.isBonus) {
+    if (isFlowerTile(tile.type)) {
       if (ruleset.isMcr) seat.replacementDraw = false;
       _exposeFlower(
           seat, tile, () => _drawFor(seat, replacement: true, onTile: onTile));
@@ -831,7 +899,16 @@ class Round {
     if (seat == pendingDiscardSeat) return false;
     if (s.hand.length % 3 != 1) return false;
     if (ruleset.isSichuan && s.out) return false;
-    if (!ruleset.isHongKong && !ruleset.isMcr && !ruleset.isSichuan && _isFuriten(s)) {
+    // A Gold discarded can't be claimed, and a seat that threw one may only
+    // win by self-draw.
+    if (ruleset.isFuzhou && (isGold(discard.type) || s.goldDiscarded)) {
+      return false;
+    }
+    if (!ruleset.isHongKong &&
+        !ruleset.isMcr &&
+        !ruleset.isSichuan &&
+        !ruleset.isFuzhou &&
+        _isFuriten(s)) {
       return false;
     }
     return _winsWith(s, s.hand, discard, isTsumo: false, chankan: chankan);
@@ -841,7 +918,12 @@ class Round {
   /// the UI's furiten marker; the same check gates every seat's [canRon] so no
   /// player — human or bot — can ron off a furiten wait.
   bool isFuriten(int seat) {
-    if (ruleset.isHongKong || ruleset.isMcr || ruleset.isSichuan) return false;
+    if (ruleset.isHongKong ||
+        ruleset.isMcr ||
+        ruleset.isSichuan ||
+        ruleset.isFuzhou) {
+      return false;
+    }
     final s = seats[seat];
     if (_waitTiles(s.hand, openMelds: s.melds.length).isEmpty) return false;
     return _isFuriten(s);
@@ -851,8 +933,8 @@ class Round {
   /// discard — the reason ron never gets offered, shown beside the furiten
   /// marker. Furiten itself is ignored here; [isFuriten] reports that.
   MinimumShortfall minimumShortfall(int seat) {
-    // Sichuan has no minimum to win.
-    if (ruleset.isSichuan) return MinimumShortfall.none;
+    // Sichuan and Fuzhou have no minimum to win.
+    if (ruleset.isSichuan || ruleset.isFuzhou) return MinimumShortfall.none;
     final s = seats[seat];
     if (s.hand.length % 3 != 1) return MinimumShortfall.none;
     final waits = _waitTiles(s.hand, openMelds: s.melds.length);
@@ -917,6 +999,9 @@ class Round {
     if (seat == pendingDiscardSeat) return false;
     // Chinese-style: nothing can be called off the last discard.
     if (ruleset.isChineseStyle && wall.isEmpty) return false;
+    // A Gold can't be claimed, and the Gold tiles in hand are wild, not a
+    // pair of anything.
+    if (ruleset.isFuzhou && isGold(discard.type)) return false;
     final s = seats[seat];
     if (_locked(s)) return false;
     return s.hand.where((t) => t.type == discard.type).length >= 2;
@@ -931,6 +1016,7 @@ class Round {
     if (seat == pendingDiscardSeat) return false;
     if (seat != ruleset.nextSeat(pendingDiscardSeat)) return false;
     if (ruleset.isChineseStyle && wall.isEmpty) return false;
+    if (ruleset.isFuzhou && isGold(discard.type)) return false;
     if (_locked(seats[seat])) return false;
     return chiSequences(seat, discard).isNotEmpty;
   }
@@ -955,8 +1041,10 @@ class Round {
       for (var i = 0; i < 3; i++) {
         final need = TileType.values[low.index + i];
         if (need == type) continue; // the discard supplies this one
-        final index =
-            hand.indexWhere((t) => t.type == need && !used.contains(t.id));
+        // A Gold in hand is wild and can't stand in for a called run.
+        final index = ruleset.isFuzhou && isGold(need)
+            ? -1
+            : hand.indexWhere((t) => t.type == need && !used.contains(t.id));
         if (index < 0) {
           complete = false;
           break;
@@ -972,6 +1060,7 @@ class Round {
     if (seat == pendingDiscardSeat) return false;
     final s = seats[seat];
     if (_locked(s) || !wall.canKan) return false;
+    if (ruleset.isFuzhou && isGold(discard.type)) return false;
     return s.hand.where((t) => t.type == discard.type).length >= 3;
   }
 
@@ -980,6 +1069,7 @@ class Round {
     if (!wall.canKan || _flowerSeat != null || (ruleset.isMcr && s.drawn == null)) return const [];
     final byType = <TileType, int>{};
     for (final t in s.hand) {
+      if (ruleset.isFuzhou && isGold(t.type)) continue;
       byType[t.type] = (byType[t.type] ?? 0) + 1;
     }
     final out =
@@ -1005,14 +1095,18 @@ class Round {
       for (final m in s.melds)
         if (m.kind == MeldKind.triplet) m.low,
     };
-    final handTypes = s.hand.map((t) => t.type).toSet();
+    final handTypes = s.hand
+        .map((t) => t.type)
+        .where((t) => !(ruleset.isFuzhou && isGold(t)))
+        .toSet();
     return ponTypes.where(handTypes.contains).toList();
   }
 
   bool _winsWith(SeatState s, List<Tile> concealed, Tile winTile,
       {required bool isTsumo, bool chankan = false}) {
-    final counts = toCounts34([...concealed, winTile]);
-    if (!_isAgari(counts, meldCount: s.melds.length)) return false;
+    if (!_isAgari([...concealed, winTile], meldCount: s.melds.length)) {
+      return false;
+    }
     final score = _score(s, concealed, winTile,
         isTsumo: isTsumo, dryRun: true, chankan: chankan);
     if (ruleset.isSichuan) {
@@ -1054,7 +1148,7 @@ class Round {
       _registerPassedHu(discard, discarder, chankan: chankan);
       return;
     }
-    if (ruleset.isHongKong || ruleset.isMcr) return;
+    if (ruleset.isHongKong || ruleset.isMcr || ruleset.isFuzhou) return;
     for (var i = 0; i < 4; i++) {
       if (i == discarder || !isActive(i)) continue;
       final s = seats[i];
@@ -1129,6 +1223,7 @@ class Round {
     }
     s.replacementDraw = false;
     s.kongChain = 0;
+    if (ruleset.isFuzhou && isGold(tile.type)) s.goldDiscarded = true;
 
     // Once riichi is declared the hand is frozen: every later discard must be
     // the just-drawn tile (tsumogiri). A concealed kan goes through
@@ -1611,13 +1706,20 @@ class Round {
       ronners.sort((a, b) =>
           ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     }
-    if (ruleset.isMcr && ronners.length > 1) ronners = [ronners.first];
+    // MCR and Fuzhou allow one winner: the seat closest in turn after the
+    // discarder.
+    if ((ruleset.isMcr || ruleset.isFuzhou) && ronners.length > 1) {
+      ronners = [ronners.first];
+    }
     HandScore? firstScore;
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     // Taiwanese has its own dealer-streak bonus (below) in place of honba
     // payments, which mean nothing there — its honba instead counts the
     // dealer's consecutive wins. See TaiwaneseRules.dealerBonus.
-    final honbaPay = (ruleset.isTaiwanese || ruleset.isMcr) ? 0 : honba * 300;
+    final honbaPay =
+        (ruleset.isTaiwanese || ruleset.isMcr || ruleset.isFuzhou)
+            ? 0
+            : honba * 300;
     for (final w in ronners) {
       final s = seats[w];
       final score =
@@ -1685,7 +1787,7 @@ class Round {
   }
 
   void _finishWin(List<int> winners, HandScore score,
-      {int? loser, Tile? winTile, bool flowerWin = false}) {
+      {int? loser, Tile? winTile, bool flowerWin = false, String? label}) {
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     final w = winners.first;
 
@@ -1695,7 +1797,10 @@ class Round {
     final bonus = ruleset.isTaiwanese && seats[w].isDealer
         ? TaiwaneseRules.dealerBonus(honba)
         : 0;
-    final honbaPay = (ruleset.isTaiwanese || ruleset.isMcr) ? 0 : honba * 100;
+    final honbaPay =
+        (ruleset.isTaiwanese || ruleset.isMcr || ruleset.isFuzhou)
+            ? 0
+            : honba * 100;
 
     // Tsumo only (ron goes through _applyRon). Sanma's empty seat pays
     // nothing and nobody covers its share: tsumo loss.
@@ -1724,9 +1829,10 @@ class Round {
       scores: [score],
       winTiles: winTile != null ? {w: winTile} : const {},
       pointDeltas: _handDeltas(),
-      label: ruleset.isChineseStyle
-          ? (flowerWin ? score.yaku.first.name : 'Self Draw')
-          : 'Tsumo',
+      label: label ??
+          (ruleset.isChineseStyle
+              ? (flowerWin ? score.yaku.first.name : 'Self Draw')
+              : 'Tsumo'),
     );
     _postFinish(dealerRepeat: winners.contains(dealer));
   }
@@ -1773,7 +1879,8 @@ class Round {
       label: 'Exhaustive Draw',
     );
     _postFinish(
-        dealerRepeat: ruleset.isChineseStyle || tenpai.contains(dealer));
+        dealerRepeat: (ruleset.isChineseStyle && !ruleset.isFuzhou) ||
+            tenpai.contains(dealer));
   }
 
   void _postFinish({required bool dealerRepeat}) {
@@ -1816,15 +1923,41 @@ class Round {
     final concealed = [...s.hand];
     final at = concealed.indexWhere((t) => t.id == winTile.id);
     if (at >= 0) concealed.removeAt(at);
-    final counts = toCounts34([...concealed, winTile]);
-    if (!_isAgari(counts, meldCount: s.melds.length)) return null;
+    if (!_isAgari([...concealed, winTile], meldCount: s.melds.length)) {
+      return null;
+    }
     return _score(s, concealed, winTile,
         isTsumo: isTsumo, dryRun: true, chankan: chankan);
   }
 
 
   HandScore _score(SeatState s, List<Tile> concealed, Tile winTile,
-      {required bool isTsumo, bool dryRun = false, bool chankan = false}) {
+      {required bool isTsumo,
+      bool dryRun = false,
+      bool chankan = false,
+      bool robbingGold = false}) {
+    if (ruleset.isFuzhou) {
+      final ctx = ScoreContext(
+        roundWind: roundWind,
+        seatWind: s.wind,
+        isTsumo: isTsumo,
+        closed: s.closed,
+        flowers: s.flowers.map((t) => t.type).toList(),
+        // Robbing the Gold is its own win, taken before the first draw.
+        heavenly: !robbingGold && _firstGoAround && _discardsThisRound == 0,
+        earthly: _firstGoAround &&
+            _discardsThisRound == 1 &&
+            pendingDiscardSeat == dealer,
+        chankan: chankan,
+      );
+      return scoreFuzhouHand(concealed, winTile, s.melds, ctx,
+          isDealer: s.isDealer,
+          fuzhou: FuzhouScoreContext(
+            goldTypes: goldTypes,
+            dealerContinuation: s.isDealer ? honba : 0,
+            robbingGold: robbingGold,
+          ));
+    }
     if (ruleset.isSichuan) {
       return scoreSichuanHand(
           concealed,

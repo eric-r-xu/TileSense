@@ -6,9 +6,9 @@
 
 **[Play in your browser](https://app.ericrxu.com/tilesense/)**
 
-TileSense is a mahjong game and trainer for six variants: 🇯🇵 Japanese riichi,
+TileSense is a mahjong game and trainer for seven variants: 🇯🇵 Japanese riichi,
 Sanma (three-player riichi), 🇭🇰 Hong Kong, 🇹🇼 Taiwanese, 🇨🇳 Mahjong Competition
-Rules (MCR), and Sichuan bloody-battle mahjong. Play against bots or friends, or
+Rules (MCR), Sichuan bloody-battle mahjong, and Fuzhou Gold Rush mahjong. Play against bots or friends, or
 pose any hand yourself. In single player, a live guide grades every decision as you make it: how fast each
 discard gets you ready, what it is worth, and what it risks.
 
@@ -86,6 +86,7 @@ the recommended discard or call.
   | Sanma | all | Aggressive | Speed | Points |
   | MCR | all | Balanced | Speed | Points |
   | Sichuan | all | Balanced | Speed | Points |
+  | Fuzhou | all | Balanced | Speed | Points |
   | Hong Kong | all | Balanced | Speed | Points |
   | Taiwanese | all | Balanced | Speed (Balanced at the 5-tai minimum) | Points |
 
@@ -213,6 +214,7 @@ their variant when created. The welcome screen starts on Hong Kong.
 | 🇨🇳 MCR | 144 with flowers, 13-tile hands | **8 points**, flowers excluded | [MCR rules](docs/MCR_RULES.md) | [MCR.pdf](https://app.ericrxu.com/static/MCR.pdf) |
 | <img src="flutter_client/assets/flags/sanma.png" height="14" alt="Sanma"> Sanma (3-player) | 108, no 2–8 man, 13-tile hands | one yaku; kita allowed, no chi, tsumo loss | [Sanma rules](docs/SANMA_RULES.md) | [riichi.wiki/Sanma](https://riichi.wiki/Sanma) (web) |
 | <img src="flutter_client/assets/flags/sichuan.png" height="14" alt="Sichuan"> Sichuan | 108, no honors or flowers, 13-tile hands | none; void suit, no chows, play on after a win | [Sichuan rules](docs/SICHUAN_RULES.md) | [Sichuan.pdf](https://app.ericrxu.com/static/Sichuan.pdf) |
+| <img src="flutter_client/assets/flags/fuzhou.png" height="14" alt="Fuzhou"> Fuzhou | 144, every honor is a flower, 16-tile hands (5 melds and a pair) | none; a flipped Gold tile is wild | [Fuzhou rules](docs/FUZHOU_RULES.md) | [Mahjong Pros guide](https://mahjongpros.com/blogs/how-to-play/beginners-guide-to-fuzhou-mahjong) (web) |
 
 Taiwanese scores flat, additive points and adds a dealer win-streak bonus.
 
@@ -224,10 +226,17 @@ three and bots fill the rest. Mortal plays four-player riichi only, so it sits s
 
 Sichuan is bloody-battle mahjong: each seat gives up a suit, and a win takes that seat out while the others play on. It can be played online too: the server runs the table, and a seat's void suit stays hidden from the others until its first discard.
 
-All six share one engine. `packages/mahjong_core/lib/ruleset.dart` defines
-`riichi`, `sanma`, `hongKong`, `taiwanese`, `mcr` and `sichuan`. Variant-specific
-code lives in the corresponding `sanma/`, `hong_kong/`, `taiwanese/`, `mcr/` and
-`sichuan/` directories; riichi uses the core's top-level modules.
+Fuzhou (福州) is a 16-tile Fujian game where every wind and dragon is a flower and one
+flipped tile type, the Gold, is wild: it stands in for any tile, scores a point, can't be
+called with, and locks a seat that throws one to self-draw wins. A ready hand wins on the
+flip itself (Robbing the Gold). Scoring is flat and additive, with no minimum. It plays
+offline, in the builder and online. Where the source guide is unclear, the choices are in
+[its rules page](docs/FUZHOU_RULES.md).
+
+All seven share one engine. `packages/mahjong_core/lib/ruleset.dart` defines
+`riichi`, `sanma`, `hongKong`, `taiwanese`, `mcr`, `sichuan` and `fuzhou`. Variant-specific
+code lives in the corresponding `sanma/`, `hong_kong/`, `taiwanese/`, `mcr/`, `sichuan/`
+and `fuzhou/` directories; riichi uses the core's top-level modules.
 
 ### Learning and rules references
 

@@ -61,7 +61,8 @@ class MortalAdvice {
   /// discard.
   final String? action;
 
-  /// The tile Mortal would cut (after declaring riichi, if [riichi]).
+  /// The tile Mortal would cut (after declaring riichi, if [riichi]). On a
+  /// sanma kita, its best-scored cut, which the ★ marks while [action] is KITA.
   final String? discard;
   final bool riichi;
 
@@ -88,13 +89,20 @@ class MortalAdvice {
       'nukidora' => 'KITA',
       _ => call ? 'PASS' : null,
     };
+    final ranks = _ranks(discardStep);
+    // A sanma kita is not a discard, but the reply still scores every legal
+    // cut: the best of them gets the ★ so the turn is never starless. (It is
+    // the cut Mortal prefers from the hand as it stands, before the kita.)
+    final bestCut = type == 'nukidora'
+        ? ranks.entries.where((e) => e.value == 1).firstOrNull?.key
+        : null;
     return MortalAdvice._(MortalStatus.ready,
         action: action,
         discard: discardStep?['type'] == 'dahai'
             ? '${discardStep!['pai']}'.replaceFirst('r', '')
-            : null,
+            : bestCut,
         riichi: type == 'reach',
-        ranks: _ranks(discardStep));
+        ranks: ranks);
   }
 
   static String _run(Map<String, Object?> chi) {

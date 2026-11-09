@@ -223,7 +223,7 @@ class EnRulesText extends RulesText {
         const RuleSection('setup', 'Tiles and the goal', [
           'Four players, 144 tiles including flowers and seasons.',
           'Hold 16 tiles between draws.',
-          'Win with 17 tiles: five sets and a pair, or seven different pairs plus a pung.',
+          'Win with 17 tiles (your 16 plus the winning tile): five sets and a pair, or seven different pairs plus a pung.',
           'A kong counts as one set.',
           'Flowers are exposed and replaced automatically.',
         ]),
@@ -376,6 +376,51 @@ class EnRulesText extends RulesText {
       ];
 
   @override
+  List<RuleSection> fuzhou() => const [
+        RuleSection('setup', 'Tiles and the goal', [
+          'Four players, 144 tiles: three suits, winds, dragons, and eight flowers and seasons.',
+          'Hold 16 tiles between draws.',
+          'Win with 17 tiles (your 16 plus the winning tile): five sets and a pair.',
+          'Every wind, dragon, flower and season is a flower: set it aside the moment you hold it and draw a replacement from the end of the wall.',
+          'The last 18 tiles of the wall are never drawn; the hand is a draw when the rest run out.',
+        ]),
+        RuleSection('gold', 'The Gold', [
+          'Once the flowers are replaced, the dealer flips the last of the held-back tiles: the Gold.',
+          'The three other tiles of that kind are wild: each stands in for any tile in your hand and scores a point.',
+          'If a flower or season is flipped, the other seven flowers and seasons are Gold instead.',
+          'A Gold can’t be used to chow, pung or kong, and nobody can claim one you discard.',
+          'Discard a Gold and you may only win by self-draw for the rest of the hand.',
+          'Robbing the Gold: if your 16 tiles are ready when it is flipped, you win at once, before anyone draws.',
+        ]),
+        RuleSection('calls', 'Calls', [
+          'Pung and kong from any player; chow only from the player before you.',
+          _lastDiscard,
+          'Only one player can win on a discard: the closest in turn after the discarder.',
+          _priority,
+        ]),
+        RuleSection('winning', 'Winning', [
+          'There is no minimum score, riichi or furiten: any complete hand wins.',
+          'The dealer’s self-draw on the first turn is Blessing of Heaven; a non-dealer winning on the dealer’s first discard is Blessing of Earth.',
+        ]),
+        RuleSection('scoring', 'Scoring', [
+          'Payout = (5 base + flowers + Golds + the dealer’s streak + kongs) × 2, plus special hands.',
+          'Flowers score 1 each; every complete set (four flowers, four seasons, or four of one wind or dragon) adds 6.',
+          'Kongs score 1 open and 2 concealed.',
+          'Special hands are added after the doubling, and the three Gold hands do not stack.',
+          'A win on a discard is paid by the discarder alone; a self-draw by all three others.',
+        ]),
+        RuleSection('game', 'Dealer and game length', [
+          'Everyone starts with 500 points.',
+          'The dealer stays after winning, each consecutive win adding a point to their hands; a win by anyone else, or a draw, passes the deal.',
+          'A full game is eight hands (East and South), practice is four.',
+        ]),
+        RuleSection('source', 'About this summary', [
+          'Based on Mahjong Pros’ Beginner’s Guide to Fuzhou Mahjong.',
+          'Where the guide contradicts itself, its table wins: All Sequences is 10 points.',
+        ]),
+      ];
+
+  @override
   String hongKongDefaultMinimum(int faan, List<int> choices) =>
       'Default minimum: $faan faan; choose ${choices.join(', ')} before play.';
   @override
@@ -396,6 +441,7 @@ class EnRulesText extends RulesText {
         'faan' => 'Every faan feature',
         'tai' => 'Every scoring pattern',
         'sichuanFan' => 'Every fan',
+        'fuzhouPoints' => 'Every scoring line',
         _ => '${id.substring(3)}-fan patterns',
       };
 
@@ -429,6 +475,10 @@ class EnRulesText extends RulesText {
         'sichuanFan' => const [
             'Fan add together; 0, 1, 2 and 3+ fan pay 1, 2, 4 and 8 points.'
           ],
+        'fuzhouPoints' => const [
+            'The first lines add into the total that is doubled; special hands are added after.',
+            'Golden Pair, Three Gold Knockdown and Golden Dragon do not stack: the highest counts.',
+          ],
         'mcr88' => const [
             'All 81 fan from Appendix 1; the scorer takes the highest legal total.',
             'Fan named after “Not with” are implied and not added again.',
@@ -457,6 +507,7 @@ class EnRulesText extends RulesText {
       ValueUnit.fan || ValueUnit.mcrFan => '${p.value} fan$each',
       ValueUnit.fu => p.value == 0 ? '' : '${p.value} fu',
       ValueUnit.basicPoints => '${groupDigits(p.value)} basic points',
+      ValueUnit.points => '${p.value} points$each',
     };
   }
 
@@ -490,6 +541,7 @@ class EnRulesText extends RulesText {
         Ruleset.taiwanese => _taiwanese,
         Ruleset.mcr => _mcr,
         Ruleset.sichuan => _sichuan,
+        Ruleset.fuzhou => _fuzhou,
       };
 
   static const _riichi = {
@@ -799,5 +851,25 @@ class EnRulesText extends RulesText {
     'Shoot after Kong':
         'Winning on the discard a player makes just after their kong.',
     'Under the Sea': 'Winning on the last wall tile, or the discard after it.',
+  };
+
+  static const _fuzhou = {
+    'Base Points': 'Every hand starts from 5.',
+    'Flower Points': 'Each flower, season, wind or dragon set aside.',
+    'Full Bloom':
+        'A complete set: four flowers, four seasons, or four of one wind or dragon. Stacks with Flower Points.',
+    'Gold Points': 'Each Gold tile in the winning hand.',
+    'Dealer Continuation': 'The dealer’s consecutive wins, one point each.',
+    'Open Kong': 'A kong made with a claimed tile.',
+    'Concealed Kong': 'A kong made from four tiles you drew.',
+    'All Sequences': 'Five sequences and a pair; Golds may stand in.',
+    'One Flower': 'Exactly one flower set aside.',
+    'Golden Pair': 'The pair is two Gold tiles.',
+    'Three Gold Knockdown': 'Three Gold tiles in the winning hand.',
+    'Golden Dragon': 'Three Gold tiles as a set of their own.',
+    'Robbing the Gold':
+        'Ready when the Gold is flipped: you win on it before anyone draws.',
+    'Blessing of Earth': 'A non-dealer wins on the dealer’s first discard.',
+    'Blessing of Heaven': 'The dealer self-draws on the first turn.',
   };
 }
