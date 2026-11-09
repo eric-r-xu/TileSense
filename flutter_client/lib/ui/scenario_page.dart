@@ -14,6 +14,7 @@ import '../l10n/mahjong_terms.dart';
 import '../main.dart' show isPhoneLayout;
 import 'bar_back_button.dart';
 import 'builder_tour.dart';
+import 'package:mahjong_core/fuzhou/fuzhou_rules.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -40,7 +41,7 @@ import 'theme.dart';
 /// same corner of the table. [voidSuit] is Sichuan's give-up suit for the
 /// selected seat.
 /// [kita] is a sanma seat's Norths set aside.
-enum _Slot { hand, pond, melds, dora, offer, voidSuit, kita }
+enum _Slot { hand, pond, melds, dora, offer, voidSuit, kita, gold }
 
 /// What a palette tap builds when the melds slot is selected.
 enum _MeldKind { chi, pon, openKan, closedKan }
@@ -126,6 +127,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
   /// Hong Kong, Taiwanese and MCR show each seat's flowers where riichi shows
   /// the dora; Sichuan has neither.
   bool get _flowers => _hk && !_sichuan;
+  bool get _fuzhou => s.ruleset.isFuzhou;
   bool get _sanma => s.ruleset.isSanma;
 
   void _edit(void Function(Scenario s) change) =>
@@ -142,6 +144,21 @@ class _ScenarioPageState extends State<ScenarioPage> {
       if (type == SanmaRules.kita) {
         _edit((sc) => sc.seats[_slotSeat].kita.add(sc.mint(type)));
       }
+      return;
+    }
+    if (_slot == _Slot.gold) {
+      // Fuzhou's Gold indicator: the one tile the dealer flipped.
+      _edit((sc) => sc.dora
+        ..clear()
+        ..add(type));
+      return;
+    }
+    // Fuzhou: every wind, dragon, flower and season is a flower, kept in hand
+    // only if it is the Gold.
+    if (_fuzhou &&
+        FuzhouRules.isFlower(type) &&
+        (!s.goldTypes.contains(type) || _slot == _Slot.dora)) {
+      _edit((sc) => sc.seats[_slotSeat].flowers.add(sc.mint(type)));
       return;
     }
     if (type.isBonus) {
@@ -162,7 +179,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           sc.offered = sc.mint(type, aka: aka);
         case _Slot.melds:
           _addMeld(sc, type);
-        case _Slot.voidSuit || _Slot.kita:
+        case _Slot.voidSuit || _Slot.kita || _Slot.gold:
           break;
       }
     });
@@ -285,6 +302,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
           _Slot.melds => TableArea.melds,
           _Slot.dora => TableArea.dora,
           _Slot.kita => TableArea.kita,
+          _Slot.gold => TableArea.gold,
           _ => null,
         },
         seat: _slotSeat,
@@ -294,8 +312,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
             TableArea.melds => _Slot.melds,
             TableArea.dora => _Slot.dora,
             TableArea.kita => _Slot.kita,
+            TableArea.gold => _Slot.gold,
           };
-          if (area != TableArea.dora) _slotSeat = seat;
+          if (area != TableArea.dora && area != TableArea.gold) {
+            _slotSeat = seat;
+          }
         }),
         onRemovePondTile: (seat, i) => _edit((sc) {
           final p = sc.seats[seat].pond;
@@ -584,6 +605,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                 Ruleset.taiwanese,
                                 Ruleset.mcr,
                                 Ruleset.sichuan,
+                                Ruleset.fuzhou,
                                 Ruleset.riichi,
                                 Ruleset.sanma
                               ],
@@ -594,9 +616,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
                               // Sanma shares riichi's flag, so it gets 三.
                               label: (r) => r == Ruleset.sanma
                                   ? '三'
-                                  : r.flag.isEmpty
-                                      ? '川'
-                                      : r.flag,
+                                  : r == Ruleset.fuzhou
+                                      ? '福'
+                                      : r.flag.isEmpty
+                                          ? '川'
+                                          : r.flag,
                               tooltip: (r) => context.l10n.rulesetName(r),
                               colour: (_) => AppColors.goldText,
                               onPick: _setRuleset,
@@ -745,9 +769,11 @@ class _ScenarioPageState extends State<ScenarioPage> {
       // A table with nothing on it yet says where to start, rather than
       // scolding that the hand holds 0 tiles.
       _ when s.hand.isEmpty && s.offered == null => (
-          'Tap the tiles below to build your hand. 14 tiles that make a '
-              'complete hand are scored; 13 get a call read, or a discard '
-              'read with a 14th.',
+          'Tap the tiles below to build your hand. '
+              '${s.concealedTarget(withDraw: true)} tiles that make a '
+              'complete hand are scored; '
+              '${s.concealedTarget(withDraw: false)} get a call read, or a '
+              'discard read with one more.',
           Colors.white70
         ),
       (false, _) => (problems.first, const Color(0xffef9a9a)),
@@ -841,6 +867,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
                     : 'Dora (${s.dora.length})',
                 _slot == _Slot.dora,
                 () => setState(() => _slot = _Slot.dora)),
+          if (_fuzhou)
+            chip(
+                'Gold ${s.dora.isEmpty ? '?' : s.dora.first.code}',
+                _slot == _Slot.gold,
+                () => setState(() => _slot = _Slot.gold),
+                key: const Key('builderGold')),
           const VerticalDivider(width: 14, color: Colors.white24),
           for (var seat = 0; seat < 4; seat++)
             // Nobody sits across in sanma.
@@ -999,6 +1031,13 @@ class _ScenarioPageState extends State<ScenarioPage> {
       case _Slot.kita:
         return tiles(s.seats[_slotSeat].kita,
             (i) => _edit((sc) => sc.seats[_slotSeat].kita.removeAt(i)));
+      case _Slot.gold:
+        return s.dora.isEmpty
+            ? const Text(
+                'Tap the tile the dealer flipped: every other tile of that '
+                'kind is wild.',
+                style: TextStyle(color: Colors.white38, fontSize: 11))
+            : tiles([Tile(-1, s.dora.first)], (_) => _edit((sc) => sc.dora.clear()));
       case _Slot.dora when _hk:
         return tiles(s.seats[_slotSeat].flowers,
             (i) => _edit((sc) => sc.seats[_slotSeat].flowers.removeAt(i)));
@@ -1201,8 +1240,15 @@ class _ScenarioPageState extends State<ScenarioPage> {
                 children: [
                   // Hong Kong's flower slot takes flowers and seasons only.
                   if (_flowers && _slot == _Slot.dora)
-                    for (final t in TileType.values.where((t) => t.isBonus))
+                    for (final t in TileType.values.where(
+                        (t) => t.isBonus || (_fuzhou && t.isHonor)))
                       _paletteTile(t)
+                  // Any tile can be flipped as the Gold, a flower included.
+                  else if (_slot == _Slot.gold) ...[
+                    for (var i = 0; i < 34; i++) _paletteTile(typeFrom34(i)),
+                    for (final t in TileType.values.where((t) => t.isBonus))
+                      _paletteTile(t),
+                  ]
                   // A sanma seat sets aside Norths only.
                   else if (_slot == _Slot.kita)
                     _paletteTile(SanmaRules.kita)

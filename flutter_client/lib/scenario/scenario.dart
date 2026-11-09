@@ -10,6 +10,7 @@
 library;
 
 import '../game/game_controller.dart' show kHumanSeat;
+import 'package:mahjong_core/fuzhou/fuzhou_rules.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/ruleset.dart';
@@ -81,8 +82,15 @@ class Scenario {
   final List<Tile> hand = [];
 
   /// Revealed dora indicators — the *indicator*, not the dora itself, exactly
-  /// as the dead wall shows them.
+  /// as the dead wall shows them. Under Fuzhou the one entry is the flipped
+  /// Gold indicator instead (see [goldTypes]); empty until it is set.
   final List<TileType> dora = [TileType.man1];
+
+  /// Fuzhou: the tile types that are wild at this table, read off the Gold
+  /// indicator in [dora]. Empty when none is set yet.
+  Set<TileType> get goldTypes => ruleset.isFuzhou && dora.isNotEmpty
+      ? FuzhouRules.goldTypesFor(dora.first)
+      : const {};
 
   int wallRemaining = 70;
   Wind roundWind = Wind.east;
@@ -189,6 +197,13 @@ class Scenario {
       }
       for (final t in s.kita) {
         bump(t.type);
+      }
+      // Fuzhou's flowers include every wind and dragon, which are real tiles
+      // out of the same four copies.
+      if (ruleset.isFuzhou) {
+        for (final t in s.flowers) {
+          bump(t.type);
+        }
       }
     }
     for (final t in dora) {
@@ -312,6 +327,20 @@ class Scenario {
       if (seats[0].voidSuit == null) {
         out.add('Pick the suit you give up (Void suit).');
       }
+    } else if (ruleset.isFuzhou) {
+      for (final type in TileType.values.where((t) => t.isBonus)) {
+        if (used(type) > 1) out.add('Only one ${type.displayName} exists.');
+      }
+      if (dora.isEmpty) {
+        out.add('Set the Gold tile: tap Gold, then the tile that was flipped.');
+      }
+      // Every wind, dragon, flower and season is a flower, kept in hand only
+      // when it is the Gold.
+      final gold = goldTypes;
+      if (hand.any((t) => FuzhouRules.isFlower(t.type) && !gold.contains(t.type))) {
+        out.add('Winds, dragons, flowers and seasons are flowers: put them '
+            'in the flower area (only a Gold stays in hand).');
+      }
     } else if (ruleset.isChineseStyle) {
       for (final type in TileType.values.where((t) => t.isBonus)) {
         if (used(type) > 1) out.add('Only one ${type.displayName} exists.');
@@ -335,6 +364,9 @@ class Scenario {
   /// less the dead wall.
   int get maxWall => ruleset.isSanma
       ? SanmaRules.wallSize - 14 - 39
+      : ruleset.isFuzhou
+          // 144 less the dealt hands and the 18 held back.
+          ? 144 - 64 - FuzhouRules.deadWallSize
       : ruleset.isSichuan
           ? 56
           : ruleset.isChineseStyle
@@ -361,9 +393,13 @@ class Scenario {
     }
     dora.clear();
     if (ruleset.isJapanese) dora.add(TileType.man1);
+    // Fuzhou: the Gold is the one setting a posed table can't do without, so
+    // it starts unset and the builder asks for it.
     offered = null;
     wallRemaining = ruleset.isSichuan
         ? 40
+        : ruleset.isFuzhou
+            ? 40
         : ruleset.isChineseStyle
             ? 84
             : 70;

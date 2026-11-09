@@ -166,8 +166,9 @@ class _HandViewState extends State<HandView> {
   /// instead, enough that all of them (17 with the drawn tile) still fit the
   /// same band without needing the strip's horizontal scroll to see the
   /// last one.
-  double get _handScale =>
-      game.round.ruleset.isTaiwanese ? _taiwaneseHandScale : _defaultHandScale;
+  double get _handScale => game.round.ruleset.concealedHandSize == 16
+      ? _taiwaneseHandScale
+      : _defaultHandScale;
   static const double _defaultHandScale = 1.65;
   static const double _taiwaneseHandScale = 1.4;
 
@@ -180,7 +181,7 @@ class _HandViewState extends State<HandView> {
   /// `build`) takes over for anything still wider than the available band —
   /// several open melds, say — rather than this ever overflowing it.
   double get _handStripWidth {
-    final resting = game.round.ruleset.isTaiwanese ? 16 : 13;
+    final resting = game.round.ruleset.concealedHandSize;
     final slot = 46 * _handScale + 4;
     return resting * slot + (slot + 14);
   }
@@ -246,7 +247,12 @@ class _HandViewState extends State<HandView> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => GoldScope(
+        types: game.round.goldTypes,
+        child: _buildHand(context),
+      );
+
+  Widget _buildHand(BuildContext context) {
     final round = game.round;
     final seat = round.seats[kHumanSeat];
     final canPlay = game.isHumanTurn;

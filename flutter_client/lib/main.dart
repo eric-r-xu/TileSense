@@ -1992,7 +1992,9 @@ class _WelcomeScreen extends StatelessWidget {
   Widget _rulesetOption(BuildContext context, Ruleset value, String subtitle) {
     final selected = ruleset == value;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      // Room between one style and the next, so each card and its own links
+      // read as a unit.
+      padding: const EdgeInsets.only(bottom: 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -2021,13 +2023,21 @@ class _WelcomeScreen extends StatelessWidget {
                   RulesetFlagLabel(value,
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text(subtitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 13)),
+                  // One line, whatever the language: it shrinks before it
+                  // would wrap.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(subtitle,
+                        maxLines: 1,
+                        softWrap: false,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13)),
+                  ),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 2),
           Wrap(
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -2039,7 +2049,12 @@ class _WelcomeScreen extends StatelessWidget {
                   onPressed: () => showRulesReader(context, value),
                   icon: const Icon(Icons.menu_book, size: 18),
                   label: Text(context.l10n.rulesRead),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.link),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.link,
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ),
               TextButton.icon(
@@ -2050,6 +2065,8 @@ class _WelcomeScreen extends StatelessWidget {
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.link,
                   visualDensity: VisualDensity.compact,
+                  minimumSize: const Size(0, 30),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   textStyle: const TextStyle(
                       fontSize: 14, decoration: TextDecoration.underline),
                 ),
@@ -2101,9 +2118,9 @@ class _WelcomeScreen extends StatelessWidget {
         ],
       );
 
-  /// The styles side by side, so all six show at once instead of one column
-  /// that runs past the popup and scrolls: three across in the popup's full
-  /// width, fewer in a narrower one.
+  /// The styles side by side, so all seven show at once instead of one column
+  /// that runs past the popup and scrolls: four across in the popup's full
+  /// width (two rows), fewer in a narrower one.
   void _showRules(BuildContext context) => _showTitlePopup(
         context,
         key: const Key('rulesPopup'),
@@ -2112,7 +2129,9 @@ class _WelcomeScreen extends StatelessWidget {
         children: [
           LayoutBuilder(builder: (context, c) {
             const gap = 12.0;
-            final columns = c.maxWidth >= 840 ? 3 : (c.maxWidth >= 520 ? 2 : 1);
+            final columns = c.maxWidth >= 900
+                ? 4
+                : (c.maxWidth >= 840 ? 3 : (c.maxWidth >= 520 ? 2 : 1));
             final width = (c.maxWidth - gap * (columns - 1)) / columns;
             final l10n = context.l10n;
             return Wrap(
@@ -2125,6 +2144,7 @@ class _WelcomeScreen extends StatelessWidget {
                   (Ruleset.taiwanese, l10n.rulesetSubtitleTaiwanese),
                   (Ruleset.mcr, l10n.rulesetSubtitleMcr),
                   (Ruleset.sichuan, l10n.rulesetSubtitleSichuan),
+                  (Ruleset.fuzhou, l10n.rulesetSubtitleFuzhou),
                 ])
                   SizedBox(
                     width: width,

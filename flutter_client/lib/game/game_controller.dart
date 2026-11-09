@@ -16,6 +16,7 @@ import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import '../logic/auto_dials.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/progress.dart';
+import '../logic/fuzhou_guide.dart';
 import '../logic/sichuan_guide.dart';
 import '../logic/sichuan_value.dart';
 import 'package:mahjong_core/round.dart';
@@ -923,7 +924,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
     if (ruleset.isMcr) {
       return (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
-    if (ruleset.isTaiwanese) {
+    if (ruleset.isTaiwanese || ruleset.isFuzhou) {
+      // Fuzhou's dealer keeps the deal only by winning (a draw passes it), and
+      // its honba, like Taiwanese's, counts consecutive wins.
       // Taiwanese's honba isn't a payment multiplier (see Round._applyRon) —
       // it counts the dealer's consecutive *wins* for TaiwaneseRules
       // .dealerBonus, so a draw resets it even though the dealer keeps the
@@ -977,7 +980,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
         ? sichuanDealer == _dealer
         : !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
-            ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
+            ? ((ruleset.isChineseStyle && !ruleset.isFuzhou) ||
+                r.tenpaiAtDraw.contains(_dealer))
             : r.winners.contains(_dealer)));
 
     _tel?.roundEnd(
@@ -1976,6 +1980,13 @@ class GameController extends ChangeNotifier implements TableGameHost {
             ? SichuanRival.of(round, kHumanSeat)
             : const [],
         kita: seat.kita.length,
+        goldTypes: round.goldTypes,
+        goldLeft: round.ruleset.isFuzhou
+            ? FuzhouGuide.goldLeft(round, kHumanSeat)
+            : 0,
+        fuzhouRivals: round.ruleset.isFuzhou
+            ? FuzhouRival.of(round, kHumanSeat)
+            : const [],
       );
 
   /// The opponent the guide defends against: whoever is in riichi, or in Hong

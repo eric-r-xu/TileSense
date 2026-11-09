@@ -564,6 +564,7 @@ class _OnlineLobbyPageState extends State<OnlineLobbyPage> {
             Ruleset.taiwanese,
             Ruleset.mcr,
             Ruleset.sichuan,
+            Ruleset.fuzhou,
           ])
             (r, Key('onlineRuleset_${r.name}'), context.l10n.rulesetFlagLabel(r)),
         ],

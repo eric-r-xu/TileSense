@@ -800,7 +800,10 @@ class TableLoop {
         ? sichuanDealer == _dealer
         : !ruleset.isMcr && (r.kind == RoundEndKind.abortiveDraw ||
         (isExhaustiveDraw
-            ? (ruleset.isChineseStyle || r.tenpaiAtDraw.contains(_dealer))
+            // Every Chinese-style game repeats the dealer on a draw but
+            // Fuzhou, where a drawn hand passes the deal.
+            ? ((ruleset.isChineseStyle && !ruleset.isFuzhou) ||
+                r.tenpaiAtDraw.contains(_dealer))
             : r.winners.contains(_dealer)));
 
     _tel?.roundEnd(
@@ -908,7 +911,9 @@ class TableLoop {
     if (ruleset.isMcr) {
       return (dealer: next, roundNumber: roundNumber + 1, honba: 0);
     }
-    if (ruleset.isTaiwanese) {
+    // Fuzhou: the dealer keeps the deal by winning, each consecutive win
+    // adding a point to their next hand; a non-dealer win or a draw passes it.
+    if (ruleset.isTaiwanese || ruleset.isFuzhou) {
       final nextHonba = (dealerKept && !exhaustiveDraw) ? honba + 1 : 0;
       return dealerKept
           ? (dealer: dealer, roundNumber: roundNumber, honba: nextHonba)

@@ -36,7 +36,12 @@ void main() {
         buildRoundFromSnapshot(wire, mySeat: 0).seats[0].riichiPondIndex, -1);
   });
 
-  for (final ruleset in [Ruleset.riichi, Ruleset.hongKong, Ruleset.taiwanese]) {
+  for (final ruleset in [
+    Ruleset.riichi,
+    Ruleset.hongKong,
+    Ruleset.taiwanese,
+    Ruleset.fuzhou
+  ]) {
     test(
         '${ruleset.name}: round-trips a live snapshot through JSON for every viewer',
         () {

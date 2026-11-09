@@ -16,6 +16,8 @@
 /// the real game and is always sent in full.
 library;
 
+import 'fuzhou/fuzhou_rules.dart';
+import 'fuzhou/fuzhou_wall.dart';
 import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_wall.dart';
 import 'meld.dart';
@@ -235,6 +237,9 @@ Map<String, dynamic> roundSnapshotToJson(
     },
     // A ron-only window on a North set aside as kita, not a discard.
     if (round.kitaPending) 'kitaPending': true,
+    // The face-up Gold indicator is public once the dealer has flipped it.
+    if (round.goldIndicator != null)
+      'goldIndicator': tileToJson(round.goldIndicator!),
     'doraIndicators': [
       for (final d in round.wall.doraIndicators()) d.name,
     ],
@@ -292,6 +297,7 @@ Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       ],
       'flowers': tilesToJson(s.flowers),
       if (round.ruleset.isSanma) 'kita': tilesToJson(s.kita),
+      if (round.ruleset.isFuzhou) 'goldDiscarded': s.goldDiscarded,
       'riichi': s.riichi,
       'riichiPondIndex': s.riichiPondIndex,
       'doubleRiichi': s.doubleRiichi,
@@ -344,7 +350,11 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     for (final d in (json['uraDoraIndicators'] as List? ?? const []))
       TileType.values.byName(d as String)
   ];
-  final TileWall wall = ruleset.isSanma
+  final goldJson = json['goldIndicator'] as Map<String, dynamic>?;
+  final goldIndicator = goldJson == null ? null : tileFromJson(goldJson);
+  final TileWall wall = ruleset.isFuzhou
+      ? FuzhouWall.posed(remaining: wallRemaining, gold: goldIndicator)
+      : ruleset.isSanma
       ? SanmaWall.posed(
           remaining: wallRemaining,
           dora: dora,
@@ -410,6 +420,7 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     ];
     seat.flowers = tilesFromJson(sj['flowers'] as List);
     seat.kita = tilesFromJson(sj['kita'] as List? ?? const []);
+    seat.goldDiscarded = sj['goldDiscarded'] as bool? ?? false;
     seat.riichi = sj['riichi'] as bool;
     seat.riichiPondIndex = sj['riichiPondIndex'] as int? ?? -1;
     seat.doubleRiichi = sj['doubleRiichi'] as bool;
@@ -429,6 +440,10 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     ]);
   }
 
+  if (goldIndicator != null) {
+    round.goldIndicator = goldIndicator;
+    round.goldTypes = FuzhouRules.goldTypesFor(goldIndicator.type);
+  }
   round.turn = localSeat(json['turn'] as int);
   round.kitaPending = json['kitaPending'] as bool? ?? false;
   round.phase = RoundPhase.values.byName(json['phase'] as String);

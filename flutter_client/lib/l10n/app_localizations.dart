@@ -674,13 +674,13 @@ abstract class AppLocalizations {
   /// No description provided for @rulesetSubtitleHongKong.
   ///
   /// In en, this message translates to:
-  /// **'faan, flowers, 0–3 faan minimum'**
+  /// **'0–3 faan minimum'**
   String get rulesetSubtitleHongKong;
 
   /// No description provided for @rulesetSubtitleTaiwanese.
   ///
   /// In en, this message translates to:
-  /// **'17 tiles, flowers, 1–5 tai minimum'**
+  /// **'16 tiles, 1–5 tai minimum'**
   String get rulesetSubtitleTaiwanese;
 
   /// No description provided for @welcomeTagline.
@@ -3842,7 +3842,7 @@ abstract class AppLocalizations {
   /// No description provided for @rulesetSubtitleMcr.
   ///
   /// In en, this message translates to:
-  /// **'fan, flowers, 8 fan minimum'**
+  /// **'8 fan minimum'**
   String get rulesetSubtitleMcr;
 
   /// No description provided for @mcrFullGame.
@@ -3884,7 +3884,7 @@ abstract class AppLocalizations {
   /// No description provided for @rulesetSubtitleSichuan.
   ///
   /// In en, this message translates to:
-  /// **'bloody battle, void suit, no chows'**
+  /// **'void suit, no chows'**
   String get rulesetSubtitleSichuan;
 
   /// No description provided for @sichuanFullGame.
@@ -5084,7 +5084,7 @@ abstract class AppLocalizations {
   /// No description provided for @rulesetSubtitleSanma.
   ///
   /// In en, this message translates to:
-  /// **'3-player riichi: no chi, kita, no 2–8 man'**
+  /// **'3 players, no 2–8 man'**
   String get rulesetSubtitleSanma;
 
   /// No description provided for @sanmaTooltip.
@@ -5396,7 +5396,7 @@ abstract class AppLocalizations {
   /// No description provided for @builderTourMenuBody.
   ///
   /// In en, this message translates to:
-  /// **'Menu has Random and Clear, the rulebook, the wall count, honba and sticks, the round and seat wind, and the Rules dial to switch between riichi, sanma, Hong Kong, Taiwanese, MCR and Sichuan. You can replay this tour from there.'**
+  /// **'Menu has Random and Clear, the rulebook, the wall count, honba and sticks, the round and seat wind, and the Rules dial to switch between riichi, sanma, Hong Kong, Taiwanese, MCR, Sichuan and Fuzhou. You can replay this tour from there.'**
   String get builderTourMenuBody;
 
   /// No description provided for @builderTourDone.
@@ -5414,7 +5414,7 @@ abstract class AppLocalizations {
   /// No description provided for @rulesTileTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.'**
+  /// **'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR, Sichuan or Fuzhou.'**
   String get rulesTileTooltip;
 
   /// No description provided for @rulesRead.
@@ -5944,6 +5944,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Melded and Concealed Kongs'**
   String get mcrFanMeldedAndConcealedKongs;
+
+  /// No description provided for @rulesetFuzhou.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuzhou'**
+  String get rulesetFuzhou;
+
+  /// No description provided for @rulesetSubtitleFuzhou.
+  ///
+  /// In en, this message translates to:
+  /// **'16 tiles, wild Gold tile'**
+  String get rulesetSubtitleFuzhou;
+
+  /// No description provided for @fzBasePoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Base Points'**
+  String get fzBasePoints;
+
+  /// No description provided for @fzFlowerPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Flower Points'**
+  String get fzFlowerPoints;
+
+  /// No description provided for @fzFullBloom.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Bloom'**
+  String get fzFullBloom;
+
+  /// No description provided for @fzGoldPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold Points'**
+  String get fzGoldPoints;
+
+  /// No description provided for @fzDealerContinuation.
+  ///
+  /// In en, this message translates to:
+  /// **'Dealer Continuation'**
+  String get fzDealerContinuation;
+
+  /// No description provided for @fzOpenKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Kong'**
+  String get fzOpenKong;
+
+  /// No description provided for @fzConcealedKong.
+  ///
+  /// In en, this message translates to:
+  /// **'Concealed Kong'**
+  String get fzConcealedKong;
+
+  /// No description provided for @fzDoubled.
+  ///
+  /// In en, this message translates to:
+  /// **'Doubled'**
+  String get fzDoubled;
+
+  /// No description provided for @fzAllSequences.
+  ///
+  /// In en, this message translates to:
+  /// **'All Sequences'**
+  String get fzAllSequences;
+
+  /// No description provided for @fzOneFlower.
+  ///
+  /// In en, this message translates to:
+  /// **'One Flower'**
+  String get fzOneFlower;
+
+  /// No description provided for @fzGoldenPair.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Pair'**
+  String get fzGoldenPair;
+
+  /// No description provided for @fzThreeGoldKnockdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Three Gold Knockdown'**
+  String get fzThreeGoldKnockdown;
+
+  /// No description provided for @fzGoldenDragon.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Dragon'**
+  String get fzGoldenDragon;
+
+  /// No description provided for @fzRobbingTheGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Robbing the Gold'**
+  String get fzRobbingTheGold;
+
+  /// No description provided for @fzBlessingOfHeaven.
+  ///
+  /// In en, this message translates to:
+  /// **'Blessing of Heaven'**
+  String get fzBlessingOfHeaven;
+
+  /// No description provided for @fzBlessingOfEarth.
+  ///
+  /// In en, this message translates to:
+  /// **'Blessing of Earth'**
+  String get fzBlessingOfEarth;
+
+  /// No description provided for @fzGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get fzGold;
+
+  /// No description provided for @fzGoldTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold: every tile of this kind is wild and can stand in for any tile in your hand. It can\'t be chowed, punged or konged, and if you discard one you may only win by self-draw.'**
+  String get fzGoldTooltip;
+
+  /// No description provided for @fzGoldFlower.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold: the other seven flowers and seasons'**
+  String get fzGoldFlower;
+
+  /// No description provided for @glossaryUnitPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get glossaryUnitPoints;
+
+  /// No description provided for @glossaryTermGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get glossaryTermGold;
+
+  /// No description provided for @glossaryDefGold.
+  ///
+  /// In en, this message translates to:
+  /// **'One tile kind, flipped by the dealer after the flowers are replaced, is wild: its tiles stand in for any tile in your hand and each scores a point. They can\'t be chowed, punged or konged, and a seat that discards one may only win by self-draw.'**
+  String get glossaryDefGold;
+
+  /// No description provided for @glossaryDefFlowersFuzhou.
+  ///
+  /// In en, this message translates to:
+  /// **'Every wind, dragon, flower and season is a flower. When you draw one, you show it and take a replacement from the wall. Each scores a point, and a full set of four scores more.'**
+  String get glossaryDefFlowersFuzhou;
 }
 
 class _AppLocalizationsDelegate

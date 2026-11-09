@@ -331,10 +331,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesetSubtitleRiichi => 'yaku, dora, riichi';
 
   @override
-  String get rulesetSubtitleHongKong => 'faan, flowers, 0–3 faan minimum';
+  String get rulesetSubtitleHongKong => '0–3 faan minimum';
 
   @override
-  String get rulesetSubtitleTaiwanese => '17 tiles, flowers, 1–5 tai minimum';
+  String get rulesetSubtitleTaiwanese => '16 tiles, 1–5 tai minimum';
 
   @override
   String welcomeTagline(String rules) {
@@ -2114,7 +2114,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesetMcr => 'MCR';
 
   @override
-  String get rulesetSubtitleMcr => 'fan, flowers, 8 fan minimum';
+  String get rulesetSubtitleMcr => '8 fan minimum';
 
   @override
   String get mcrFullGame => 'Full game · 16 hands';
@@ -2140,7 +2140,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesetSichuan => 'Sichuan';
 
   @override
-  String get rulesetSubtitleSichuan => 'bloody battle, void suit, no chows';
+  String get rulesetSubtitleSichuan => 'void suit, no chows';
 
   @override
   String get sichuanFullGame => 'Full game · 8 hands';
@@ -2873,8 +2873,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesetSanmaLong => 'Sanma (3-player riichi mahjong)';
 
   @override
-  String get rulesetSubtitleSanma =>
-      '3-player riichi: no chi, kita, no 2–8 man';
+  String get rulesetSubtitleSanma => '3 players, no 2–8 man';
 
   @override
   String get sanmaTooltip =>
@@ -3060,7 +3059,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get builderTourMenuBody =>
-      'Menu has Random and Clear, the rulebook, the wall count, honba and sticks, the round and seat wind, and the Rules dial to switch between riichi, sanma, Hong Kong, Taiwanese, MCR and Sichuan. You can replay this tour from there.';
+      'Menu has Random and Clear, the rulebook, the wall count, honba and sticks, the round and seat wind, and the Rules dial to switch between riichi, sanma, Hong Kong, Taiwanese, MCR, Sichuan and Fuzhou. You can replay this tour from there.';
 
   @override
   String get builderTourDone => 'Start building';
@@ -3070,7 +3069,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rulesTileTooltip =>
-      'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR or Sichuan.';
+      'Choose which mahjong rules to play: Riichi, Sanma, Hong Kong, Taiwanese, MCR, Sichuan or Fuzhou.';
 
   @override
   String get rulesRead => 'Read rules';
@@ -3339,4 +3338,82 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mcrFanMeldedAndConcealedKongs => 'Melded and Concealed Kongs';
+
+  @override
+  String get rulesetFuzhou => 'Fuzhou';
+
+  @override
+  String get rulesetSubtitleFuzhou => '16 tiles, wild Gold tile';
+
+  @override
+  String get fzBasePoints => 'Base Points';
+
+  @override
+  String get fzFlowerPoints => 'Flower Points';
+
+  @override
+  String get fzFullBloom => 'Full Bloom';
+
+  @override
+  String get fzGoldPoints => 'Gold Points';
+
+  @override
+  String get fzDealerContinuation => 'Dealer Continuation';
+
+  @override
+  String get fzOpenKong => 'Open Kong';
+
+  @override
+  String get fzConcealedKong => 'Concealed Kong';
+
+  @override
+  String get fzDoubled => 'Doubled';
+
+  @override
+  String get fzAllSequences => 'All Sequences';
+
+  @override
+  String get fzOneFlower => 'One Flower';
+
+  @override
+  String get fzGoldenPair => 'Golden Pair';
+
+  @override
+  String get fzThreeGoldKnockdown => 'Three Gold Knockdown';
+
+  @override
+  String get fzGoldenDragon => 'Golden Dragon';
+
+  @override
+  String get fzRobbingTheGold => 'Robbing the Gold';
+
+  @override
+  String get fzBlessingOfHeaven => 'Blessing of Heaven';
+
+  @override
+  String get fzBlessingOfEarth => 'Blessing of Earth';
+
+  @override
+  String get fzGold => 'Gold';
+
+  @override
+  String get fzGoldTooltip =>
+      'Gold: every tile of this kind is wild and can stand in for any tile in your hand. It can\'t be chowed, punged or konged, and if you discard one you may only win by self-draw.';
+
+  @override
+  String get fzGoldFlower => 'Gold: the other seven flowers and seasons';
+
+  @override
+  String get glossaryUnitPoints => 'Points';
+
+  @override
+  String get glossaryTermGold => 'Gold';
+
+  @override
+  String get glossaryDefGold =>
+      'One tile kind, flipped by the dealer after the flowers are replaced, is wild: its tiles stand in for any tile in your hand and each scores a point. They can\'t be chowed, punged or konged, and a seat that discards one may only win by self-draw.';
+
+  @override
+  String get glossaryDefFlowersFuzhou =>
+      'Every wind, dragon, flower and season is a flower. When you draw one, you show it and take a replacement from the wall. Each scores a point, and a full set of four scores more.';
 }

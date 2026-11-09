@@ -3,6 +3,11 @@ library;
 
 export 'bot.dart';
 export 'efficiency_calc.dart';
+export 'fuzhou/fuzhou_efficiency.dart';
+export 'fuzhou/fuzhou_hand_parse.dart';
+export 'fuzhou/fuzhou_rules.dart';
+export 'fuzhou/fuzhou_scoring.dart';
+export 'fuzhou/fuzhou_wall.dart';
 export 'hand_parse.dart';
 export 'hong_kong/hong_kong_rules.dart';
 export 'hong_kong/hong_kong_safety.dart';

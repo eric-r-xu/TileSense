@@ -220,7 +220,7 @@ class JaRulesText extends RulesText {
         const RuleSection('setup', '牌と目標', [
           '4人で、花牌・季節牌を含む144枚を使います。',
           'ツモの合間は16枚を持ちます。',
-          '17枚で和了り、5面子1雀頭か、異なる7対子と刻子1つです。',
+          '17枚（手牌16枚＋和了牌）で和了り、5面子1雀頭か、異なる7対子と刻子1つです。',
           'カンも1面子と数えます。',
           '花牌は自動で晒して補充します。',
         ]),
@@ -371,6 +371,56 @@ class JaRulesText extends RulesText {
       ];
 
   @override
+  List<RuleSection> fuzhou() => const [
+        RuleSection('setup', '牌と目標', [
+          '4人で144枚：数牌3種、風牌、三元牌、そして花牌・季節牌8枚を使います。',
+          'ツモの合間は16枚を持ちます。',
+          '17枚（手牌16枚＋和了牌）で、5組の面子と雀頭を作って和了します。',
+          '風牌・三元牌・花牌・季節牌はすべて花牌です。',
+          '手にしたらすぐ脇に出し、牌山の末尾から1枚補充します。',
+          '牌山の最後の18枚は引かず、残りを引き終えたら流局です。',
+        ]),
+        RuleSection('gold', '金牌', [
+          '花牌の補充が終わったら、親が取り置いた牌の最後の1枚をめくります。',
+          'これが金牌です。',
+          '同じ種類の残り3枚はワイルドです。',
+          '手牌の任意の牌の代わりになり、1枚ごとに1点です。',
+          '花牌・季節牌がめくれたときは、残り7枚の花牌・季節牌が金牌になります。',
+          '金牌はチー・ポン・カンに使えず、捨てても誰も取れません。',
+          '金牌を捨てると、その局はツモ和了のみになります。',
+          '搶金：金牌をめくった時点で16枚が聴牌なら、誰かがツモる前に即和了できます。',
+        ]),
+        RuleSection('calls', '鳴き', [
+          'ポンとカンは誰からでも、チーは上家からだけ取れます。',
+          _lastDiscard,
+          '1つの捨て牌で和了れるのは1人だけで、放銃者に近い順です。',
+          _priority,
+        ]),
+        RuleSection('winning', '和了', [
+          '最低点・リーチ・フリテンはなく、完成形なら和了できます。',
+          '親の第一ツモでのツモ和了は天和、子が親の第一打で和了すると地和です。',
+        ]),
+        RuleSection('scoring', '点数計算', [
+          '支払い＝（基本点5＋花＋金＋連荘＋槓）×2＋特殊役の点。',
+          '花は1枚1点で、4枚そろい（花4種、季節4種、または同じ風牌・三元牌4枚）ごとに6点加わります。',
+          '槓は明槓1点、暗槓2点です。',
+          '特殊役は2倍にしたあとで加算します。',
+          '金の3つの役は重なりません。',
+          'ロンは放銃者のみ、ツモは他の3人が同じ点数を払います。',
+        ]),
+        RuleSection('game', '親と対局の長さ', [
+          '持ち点は各500点から始まります。',
+          '親は和了すると続投し、連荘ごとにその手が1点加わります。',
+          '他の人の和了や流局では親が移ります。',
+          'フルゲームは東・南の8局、練習は4局です。',
+        ]),
+        RuleSection('source', 'この概要について', [
+          'Mahjong Pros の「福州麻雀入門ガイド」に基づきます。',
+          'ガイド内で食い違う点は表を優先し、平胡は10点です。',
+        ]),
+      ];
+
+  @override
   String hongKongDefaultMinimum(int faan, List<int> choices) =>
       '標準の最低翻数：$faan翻（対局前に${choices.join('・')}翻から選べます）。';
   @override
@@ -391,6 +441,7 @@ class JaRulesText extends RulesText {
         'faan' => '役一覧',
         'tai' => '台数一覧',
         'sichuanFan' => '番種一覧',
+        'fuzhouPoints' => '点数一覧',
         _ => '${id.substring(3)}番の番種',
       };
 
@@ -418,6 +469,10 @@ class JaRulesText extends RulesText {
             'シートにあるリーチ（10台）と搶花（20台）は実装していません。',
           ],
         'sichuanFan' => const ['番は足し合わせ、0、1、2、3番以上でそれぞれ1、2、4、8点を払います。'],
+        'fuzhouPoints' => const [
+            '最初の項目は足し合わせて2倍にし、特殊役は2倍のあとで加算します。',
+            '金雀・三金倒・金龍は重ならず、最も高いものだけが数えられます。',
+          ],
         'mcr88' => const [
             '規則の付録1にある81の番種すべてで、採点は合法な最高点を選びます。',
             '「不計」の後の番種は含まれているため重ねて数えません。',
@@ -444,6 +499,7 @@ class JaRulesText extends RulesText {
       ValueUnit.fan || ValueUnit.mcrFan => '$each${p.value}番',
       ValueUnit.fu => p.value == 0 ? '' : '${p.value}符',
       ValueUnit.basicPoints => '基本点${groupDigits(p.value)}点',
+      ValueUnit.points => '${p.value}点$each',
     };
   }
 
@@ -477,6 +533,7 @@ class JaRulesText extends RulesText {
         Ruleset.taiwanese => _taiwanese,
         Ruleset.mcr => _mcr,
         Ruleset.sichuan => _sichuan,
+        Ruleset.fuzhou => _fuzhou,
       };
 
   static const _riichi = {
@@ -716,5 +773,23 @@ class JaRulesText extends RulesText {
     'Robbing the Kong': '明刻に加えられた牌で和了。',
     'Shoot after Kong': 'カンした人が直後に捨てた牌で和了。',
     'Under the Sea': '山の最後の牌、またはその後の捨て牌で和了。',
+  };
+
+  static const _fuzhou = {
+    'Base Points': 'どの手も5点から始まります。',
+    'Flower Points': '脇に出した花牌・季節牌・風牌・三元牌1枚ごと。',
+    'Full Bloom': '4枚そろい：花4種、季節4種、または同じ風牌・三元牌4枚。花点と重なります。',
+    'Gold Points': '和了形に含まれる金牌1枚ごと。',
+    'Dealer Continuation': '親の連荘1回につき1点。',
+    'Open Kong': '捨て牌を使った槓。',
+    'Concealed Kong': '自分で引いた4枚で作った槓。',
+    'All Sequences': '順子5組と雀頭。金牌が代わりになれます。',
+    'One Flower': '脇に出した花牌がちょうど1枚。',
+    'Golden Pair': '雀頭が金牌2枚。',
+    'Three Gold Knockdown': '和了形に金牌が3枚。',
+    'Golden Dragon': '金牌3枚で1つの刻子。',
+    'Robbing the Gold': '金牌がめくれた時点で聴牌：誰かが引く前に和了します。',
+    'Blessing of Earth': '子が親の第一打で和了。',
+    'Blessing of Heaven': '親が第一ツモで和了。',
   };
 }

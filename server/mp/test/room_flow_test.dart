@@ -113,6 +113,7 @@ void main() {
   taiwaneseRoomMain();
   mcrRoomMain();
   sichuanRoomMain();
+  fuzhouRoomMain();
   sanmaRoomMain();
   test('two humans + two bots play a full hand with no hand leakage, then continue',
       () async {
@@ -1169,6 +1170,7 @@ const _allRulesets = [
   'taiwanese',
   'mcr',
   'sichuan',
+  'fuzhou',
 ];
 
 /// A seat's Sichuan play for a test client: names the suit a bot would, then
@@ -1653,6 +1655,102 @@ StreamSubscription<void> _sanmaAutoplay(TestClient client) {
       'tileId': round.legalDiscards(0).first.id,
       'riichi': false,
     });
+  });
+}
+
+/// Fuzhou rooms: 16-tile hands, flowers (honors too), and a flipped Gold.
+void fuzhouRoomMain() {
+  test('Fuzhou rooms need a client that lists Fuzhou support', () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final current = await TestClient.connect(server.port);
+    final old = await TestClient.connect(server.port);
+    addTearDown(current.close);
+    addTearDown(old.close);
+
+    old.send({
+      'type': 'create_room',
+      'guestId': 'guest-old',
+      'name': 'Old',
+      'ruleset': 'fuzhou',
+      'supportedRulesets': [
+        'riichi',
+        'hongKong',
+        'taiwanese',
+        'mcr',
+        'sichuan',
+        'sanma'
+      ],
+    });
+    expect((await old.waitFor((m) => m['type'] == 'error'))['code'],
+        'update_required');
+    expect(manager.roomCount, 0);
+
+    current.send({
+      'type': 'create_room',
+      'guestId': 'guest-new',
+      'name': 'New',
+      'ruleset': 'fuzhou',
+      'supportedRulesets': _allRulesets,
+    });
+    final created = await current.waitFor((m) => m['type'] == 'room_state');
+    expect(created['ruleset'], 'fuzhou');
+    final code = created['code'] as String;
+    expect(manager.find(code)?.ruleset, Ruleset.fuzhou);
+
+    // The old client can neither join nor reconnect to it.
+    old.log.clear();
+    old.send({'type': 'join_room', 'roomCode': code, 'guestId': 'guest-old'});
+    expect((await old.waitFor((m) => m['type'] == 'error'))['code'],
+        'update_required');
+    expect(manager.find(code)!.seatIndexForGuest('guest-old'), isNull);
+  });
+
+  test('a Fuzhou room flips the Gold for every seat and plays a hand through',
+      () async {
+    final manager = RoomManager();
+    final server = await _startServer(manager);
+    addTearDown(server.close);
+    final a = await TestClient.connect(server.port);
+    addTearDown(a.close);
+    a.send({
+      'type': 'create_room',
+      'guestId': 'guest-a',
+      'name': 'Alice',
+      'ruleset': 'fuzhou',
+      'hanchan': false,
+      'supportedRulesets': _allRulesets,
+    });
+    await a.waitFor((m) => m['type'] == 'room_state');
+    a.send({'type': 'start_game'});
+
+    final first = await a.waitFor(
+        (m) => m['type'] == 'state' || m['type'] == 'round_result',
+        timeout: const Duration(seconds: 10));
+    final roundJson = first['round'] as Map<String, dynamic>;
+    expect(roundJson['ruleset'], 'fuzhou');
+    expect(roundJson['goldIndicator'], isNotNull,
+        reason: 'the Gold is public as soon as it is flipped');
+    final mirror = buildRoundFromSnapshot(roundJson,
+        mySeat: first['yourSeat'] as int);
+    expect(mirror.goldTypes, isNotEmpty);
+    // Nobody's hand leaks, and everyone holds 16 tiles (17 on the dealer's
+    // turn) unless the Gold was robbed off the deal.
+    for (final sj in roundJson['seats'] as List) {
+      final seat = sj as Map<String, dynamic>;
+      if (seat['seat'] != first['yourSeat'] && first['type'] == 'state') {
+        expect(seat.containsKey('hand'), isFalse);
+      }
+    }
+
+    final sub = _autoplay(a);
+    addTearDown(sub.cancel);
+    final result = await a.waitFor((m) => m['type'] == 'round_result',
+        timeout: const Duration(seconds: 30));
+    final deltas =
+        (result['round']['result']['pointDeltas'] as Map).values.cast<int>();
+    expect(deltas.fold<int>(0, (x, y) => x + y), 0);
   });
 }
 

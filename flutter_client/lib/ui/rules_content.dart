@@ -75,7 +75,7 @@ class RuleSection {
 }
 
 /// How a catalogue group's values read: each [RulesText] words them.
-enum ValueUnit { han, faan, tai, fan, mcrFan, fu, basicPoints }
+enum ValueUnit { han, faan, tai, fan, mcrFan, fu, basicPoints, points }
 
 /// How a catalogue group's names are found.
 enum NameSource {
@@ -142,6 +142,9 @@ List<CatalogueGroup> scoringCatalogue(Ruleset ruleset) => switch (ruleset) {
       Ruleset.sichuan => const [
           CatalogueGroup('sichuanFan', ValueUnit.fan, _sichuanFan),
         ],
+      Ruleset.fuzhou => const [
+          CatalogueGroup('fuzhouPoints', ValueUnit.points, _fuzhouPoints),
+        ],
     };
 
 /// Null minimums mean the reader was opened before a table was configured.
@@ -162,6 +165,7 @@ List<RuleSection> rulesSections(Ruleset ruleset,
         : text.taiwaneseTableMinimum(minimumPoints)),
     Ruleset.mcr => text.mcr(),
     Ruleset.sichuan => text.sichuan(),
+    Ruleset.fuzhou => text.fuzhou(),
   };
   final catalogue = [
     for (final group in scoringCatalogue(ruleset))
@@ -537,4 +541,22 @@ const _sichuanFan = [
   ScoringPattern('Robbing the Kong', 1),
   ScoringPattern('Shoot after Kong', 1),
   ScoringPattern('Under the Sea', 1),
+];
+
+const _fuzhouPoints = [
+  ScoringPattern('Base Points', 5),
+  ScoringPattern('Flower Points', 1, each: true),
+  ScoringPattern('Full Bloom', 6, each: true),
+  ScoringPattern('Gold Points', 1, each: true),
+  ScoringPattern('Dealer Continuation', 1, each: true),
+  ScoringPattern('Open Kong', 1, each: true),
+  ScoringPattern('Concealed Kong', 2, each: true),
+  ScoringPattern('All Sequences', 10, example: '123m 456m 789m 123p 456p 99s'),
+  ScoringPattern('One Flower', 15),
+  ScoringPattern('Golden Pair', 20),
+  ScoringPattern('Three Gold Knockdown', 30),
+  ScoringPattern('Golden Dragon', 40),
+  ScoringPattern('Robbing the Gold', 50),
+  ScoringPattern('Blessing of Earth', 40),
+  ScoringPattern('Blessing of Heaven', 50),
 ];

@@ -24,7 +24,8 @@ String yakuValue(AppLocalizations l10n, YakuResult y, Ruleset r) =>
 String _yakuFormat(
     AppLocalizations l10n, YakuResult y, Ruleset r, String name) {
   if (r.isMcr) return l10n.yakuLineMcr(name, y.han);
-  if (r.isTaiwanese) {
+  // Fuzhou counts flat points the same way Taiwanese does.
+  if (r.isTaiwanese || r.isFuzhou) {
     return y.faan == 1
         ? l10n.yakuLineTaiOne(name, y.faan)
         : l10n.yakuLineTaiMany(name, y.faan);
@@ -49,7 +50,7 @@ String scoreTotalLine(AppLocalizations l10n, HandScore score, Ruleset r) {
   // Taiwanese's pattern total and payout are the same flat number — see
   // taiwanese_scoring.dart — so there is nothing to show twice the way
   // "faan — chips" or "han fu — points" show two different scales.
-  if (r.isTaiwanese) {
+  if (r.isTaiwanese || r.isFuzhou) {
     return score.points == 1
         ? l10n.scorePointOne(score.points)
         : l10n.scorePointMany(score.points);

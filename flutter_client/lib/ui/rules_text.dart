@@ -30,6 +30,7 @@ abstract class RulesText {
   List<RuleSection> taiwanese(String minimum);
   List<RuleSection> mcr();
   List<RuleSection> sichuan();
+  List<RuleSection> fuzhou();
 
   String hongKongDefaultMinimum(int faan, List<int> choices);
   String hongKongTableMinimum(int faan);

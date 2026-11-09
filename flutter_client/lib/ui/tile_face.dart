@@ -16,6 +16,24 @@ double phoneTileBoost(BuildContext context) =>
 double teachingTileScale(BuildContext context) =>
     1.65 * phoneTileBoost(context);
 
+/// Which tile types are wild (Fuzhou's Gold) for every [TileFace] below it:
+/// those faces are drawn on gold instead of cream, so a Gold reads as one at a
+/// glance wherever it shows — hand, pond, flower tray or the Gold indicator.
+/// Outside a Fuzhou table there is no scope and nothing changes.
+class GoldScope extends InheritedWidget {
+  const GoldScope({super.key, required this.types, required super.child});
+
+  final Set<TileType> types;
+
+  static Set<TileType> of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<GoldScope>()?.types ??
+      const {};
+
+  @override
+  bool updateShouldNotify(GoldScope old) =>
+      old.types.length != types.length || !old.types.containsAll(types);
+}
+
 /// A single mahjong tile face: the tile artwork on a cream tile, with a small
 /// red index in the top-right corner (number for suits, letter for honours).
 /// `null` [tile] with [faceDown] renders a back.
@@ -97,6 +115,9 @@ class TileFace extends StatelessWidget {
   //   • the green dragon, the whole bamboo (sou) suit, and 1-pin → bamboo-green
   //   • everything else → near-black (unchanged from before)
   static const Color _backColor = Color(0xff1f7a86);
+
+  /// The face of a wild (Gold) tile.
+  static const Color _goldFace = Color(0xfff2d36b);
   static const Color _topViewWhite = Color(0xfff7f5ec);
   static const Color _ink = Colors.black87;
   static const Color _red = Color(0xffc62828);
@@ -216,12 +237,13 @@ class TileFace extends StatelessWidget {
     } else {
       final t = _type!;
       final hc = highlightColor;
+      final wild = GoldScope.of(context).contains(t);
+      final plain = wild ? _goldFace : const Color(0xffeae7d7);
       final baseColor = hc != null
-          ? Color.alphaBlend(
-              hc.withValues(alpha: 0.22), const Color(0xffeae7d7))
+          ? Color.alphaBlend(hc.withValues(alpha: 0.22), plain)
           : highlight
               ? const Color(0xfffff6d8)
-              : const Color(0xffeae7d7);
+              : plain;
       face = Container(
         width: dims.$1,
         height: dims.$2,
@@ -234,10 +256,12 @@ class TileFace extends StatelessWidget {
           border: Border.all(
             color: borderColorOverride ??
                 hc ??
-                (highlight ? const Color(0xffd39e2e) : const Color(0xff403d35)),
+                (highlight || wild
+                    ? const Color(0xffd39e2e)
+                    : const Color(0xff403d35)),
             width: (borderColorOverride != null || hc != null)
                 ? 3
-                : (highlight ? 2 : 1),
+                : (highlight || wild ? 2 : 1),
           ),
           borderRadius: BorderRadius.circular(dims.$1 * 0.14),
         ),

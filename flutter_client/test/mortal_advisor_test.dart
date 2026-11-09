@@ -99,6 +99,24 @@ void main() {
     expect(advice.discard, isNull);
   });
 
+  test('a sanma kita still stars its best-scored cut', () {
+    final advice = MortalAdvice.fromReply({
+      'reaction': {
+        'type': 'nukidora',
+        'actor': 0,
+        'pai': 'N',
+        'meta': {
+          'q_values': [0.1, 0.9, 0.5],
+          'mask_bits': (1 << 0) | (1 << 8) | (1 << 30), // 1m 9m N
+        },
+      },
+      'riichi_discard': null,
+    }, call: false);
+    expect(advice.action, 'KITA');
+    expect(advice.discard, '9m');
+    expect(advice.rankOf(TileType.man9), 1);
+  });
+
   group('the guide panel', () {
     // Tenpai: cut 9s. Mortal would declare riichi on that cut, and ranks 3p
     // and 4p behind it.

@@ -40,6 +40,7 @@ List<GlossaryEntry> glossaryEntries(AppLocalizations l10n, Ruleset ruleset) {
     Ruleset.riichi || Ruleset.sanma => l10n.glossaryUnitHan,
     Ruleset.hongKong => l10n.glossaryUnitFaan,
     Ruleset.taiwanese => l10n.glossaryUnitTai,
+    Ruleset.fuzhou => l10n.glossaryUnitPoints,
     _ => l10n.glossaryUnitFan,
   };
   return [
@@ -60,7 +61,10 @@ List<GlossaryEntry> glossaryEntries(AppLocalizations l10n, Ruleset ruleset) {
           'dragons', l10n.glossaryTermDragons, l10n.glossaryDefDragons),
     ],
     if (flowers)
-      GlossaryEntry('flowers', l10n.glossaryTermFlowers, l10n.glossaryDefFlowers),
+      GlossaryEntry('flowers', l10n.glossaryTermFlowers,
+          r.isFuzhou ? l10n.glossaryDefFlowersFuzhou : l10n.glossaryDefFlowers),
+    if (r.isFuzhou)
+      GlossaryEntry('gold', l10n.glossaryTermGold, l10n.glossaryDefGold),
     if (sichuan)
       GlossaryEntry('void', l10n.glossaryTermVoid, l10n.glossaryDefVoid),
     GlossaryEntry('score', scoreUnit, l10n.glossaryDefScore),

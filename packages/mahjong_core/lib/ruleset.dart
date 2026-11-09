@@ -1,16 +1,18 @@
 /// Which mahjong rules a table plays: Japanese riichi, its three-player
-/// variant sanma, Hong Kong, Taiwanese, MCR, or Sichuan.
+/// variant sanma, Hong Kong, Taiwanese, MCR, Sichuan, or Fuzhou.
 ///
 /// The round, guide, bots and UI are shared. Each asks the ruleset only where
 /// the games actually differ — how a hand scores, what the wall holds, which
 /// declarations exist and how a game is paced — and the Hong Kong-only pieces
 /// live under `hong_kong/`, the Taiwanese-only pieces under `taiwanese/`, the
-/// Sichuan-only pieces under `sichuan/`.
+/// Sichuan-only pieces under `sichuan/`, the Fuzhou-only pieces under
+/// `fuzhou/`.
 /// Hong Kong and Taiwanese share the same discard-based flow (flowers, no
 /// riichi, no furiten, nothing callable off the last discard) — see
 /// [isChineseStyle] — and differ mainly in scoring vocabulary and payment.
 library;
 
+import 'fuzhou/fuzhou_rules.dart';
 import 'hong_kong/hong_kong_rules.dart';
 import 'scoring.dart';
 import 'sanma/sanma_rules.dart';
@@ -58,6 +60,16 @@ enum Ruleset {
     flagAsset: 'assets/flags/sichuan.png',
     unit: 'points',
     rulesUrl: 'https://app.ericrxu.com/static/Sichuan.pdf',
+  ),
+  fuzhou(
+    label: 'Fuzhou',
+    // No emoji: Fuzhou is a city, drawn from [flagAsset] (its 福 logo). Left
+    // empty so plain-text labels read just "Fuzhou".
+    flag: '',
+    flagAsset: 'assets/flags/fuzhou.png',
+    unit: 'points',
+    rulesUrl:
+        'https://mahjongpros.com/blogs/how-to-play/beginners-guide-to-fuzhou-mahjong',
   );
 
   const Ruleset({
@@ -94,6 +106,7 @@ enum Ruleset {
   bool get isTaiwanese => this == Ruleset.taiwanese;
   bool get isRiichi => this == Ruleset.riichi;
   bool get isSichuan => this == Ruleset.sichuan;
+  bool get isFuzhou => this == Ruleset.fuzhou;
 
   /// Sanma: riichi for three players (see `sanma/sanma_rules.dart`).
   bool get isSanma => this == Ruleset.sanma;
@@ -169,12 +182,16 @@ enum Ruleset {
   /// Sichuan shares that table flow too (no riichi, no furiten, nothing
   /// callable off the last discard) but has no flowers, and its wins do not end
   /// the hand — see `Round`'s Sichuan paths.
-  bool get isChineseStyle => isHongKong || isTaiwanese || isMcr || isSichuan;
+  ///
+  /// Fuzhou shares it as well, with flowers (every honor is one too) and a
+  /// 16-tile hand like Taiwanese, and no minimum to win.
+  bool get isChineseStyle =>
+      isHongKong || isTaiwanese || isMcr || isSichuan || isFuzhou;
 
   Ruleset get next => Ruleset.values[(index + 1) % Ruleset.values.length];
 
   /// Each seat's score at the start of a game.
-  int get startingPoints => isSanma ? SanmaRules.startingPoints : isMcr ? 0 : isSichuan ? SichuanRules.startingPoints : isHongKong
+  int get startingPoints => isSanma ? SanmaRules.startingPoints : isMcr ? 0 : isFuzhou ? FuzhouRules.startingPoints : isSichuan ? SichuanRules.startingPoints : isHongKong
       ? HongKongRules.startingChips
       : isTaiwanese
           ? TaiwaneseRules.startingChips
@@ -188,8 +205,8 @@ enum Ruleset {
       (fullGame ? (isMcr ? 4 : 2) : 1) * playerCount;
 
   /// Melds in a complete hand, beside its pair: 4 (a 14-tile hand) for riichi
-  /// and Hong Kong, 5 (17 tiles) for Taiwanese.
-  int get totalMelds => isTaiwanese ? 5 : 4;
+  /// and Hong Kong, 5 (17 tiles) for Taiwanese and Fuzhou.
+  int get totalMelds => (isTaiwanese || isFuzhou) ? 5 : 4;
 
   /// Concealed tiles a closed hand holds between draws: 13, or Taiwanese's 16.
   int get concealedHandSize => totalMelds * 3 + 1;
@@ -203,7 +220,7 @@ enum Ruleset {
   String get chiLabel => isChineseStyle ? 'Chow' : 'Chi';
   String get ponLabel => isChineseStyle ? 'Pung' : 'Pon';
   String get kanLabel => isChineseStyle ? 'Kong' : 'Kan';
-  String get ronLabel => (isTaiwanese || isMcr || isSichuan) ? 'Hu' : (isHongKong ? 'Win' : 'Ron');
+  String get ronLabel => (isTaiwanese || isMcr || isSichuan || isFuzhou) ? 'Hu' : (isHongKong ? 'Win' : 'Ron');
   String get tsumoLabel => isChineseStyle ? 'Self-pick' : 'Tsumo';
 
   /// A hand's distance from ready, in this game's vocabulary.
@@ -223,7 +240,7 @@ enum Ruleset {
   /// there already clears that bar — so its threshold sits a tier higher, at
   /// the sheet's 10-Point patterns, the first tier that reads as a genuinely
   /// strong hand rather than just a legal one.
-  bool isBigHand(HandScore score) => isSichuan ? score.han >= 3 : isMcr ? score.han >= 24 : isTaiwanese
+  bool isBigHand(HandScore score) => isFuzhou ? score.han >= 60 : isSichuan ? score.han >= 3 : isMcr ? score.han >= 24 : isTaiwanese
       ? score.han >= 10
       : isHongKong
           ? score.han >= 5

@@ -231,6 +231,24 @@ class TileEfficiencyCalculator {
     return _shanten(hand, clamped > 0, -2, totalMelds);
   }
 
+  /// Shanten of a Fuzhou hand: [naturals] (a 38-slot count array of the tiles
+  /// that are not Gold) plus [wilds] Gold tiles standing in for any tile, with
+  /// [openMelds] calls already made. Each wild lowers the plain shanten of
+  /// the natural tiles by one, down to the lowest a hand of that size can be:
+  /// -1 for a complete 3n+2 hand, 0 for a ready 3n+1 one.
+  int wildShanten(List<int> naturals,
+      {required int openMelds, required int wilds, int totalMelds = 5}) {
+    final hand = List<int>.of(naturals);
+    for (var i = 0; i < openMelds; i++) {
+      hand[31] += 3;
+    }
+    final plain = _standardShanten(hand, totalMelds: totalMelds);
+    final size = _countTiles(naturals) + wilds;
+    final floor = size % 3 == 2 ? -1 : 0;
+    final result = plain - wilds;
+    return result < floor ? floor : result;
+  }
+
   _UkeireResult _calculateUkeire(
     List<int> hand,
     List<int> remainingTiles,

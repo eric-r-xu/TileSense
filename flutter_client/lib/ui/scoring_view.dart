@@ -169,7 +169,12 @@ class _ScoringViewState extends State<ScoringView> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => GoldScope(
+        types: game.round.goldTypes,
+        child: _buildScore(context),
+      );
+
+  Widget _buildScore(BuildContext context) {
     if (!_revealed) return const SizedBox.shrink();
     final round = game.round;
     final r = round.result!;
@@ -444,11 +449,15 @@ class _ScoringViewState extends State<ScoringView> {
         const SizedBox(height: 12),
         if (round.ruleset.isSichuan)
           const SizedBox.shrink()
-        else if (hk)
+        else if (hk) ...[
           _indicatorRow(context.l10n.flowersSeasons,
               w.flowers.map((t) => t.type).toList(),
-              indicators: false)
-        else ...[
+              indicators: false),
+          // Fuzhou: the tile that made the Gold wild this hand.
+          if (round.goldIndicator != null)
+            _indicatorRow(context.l10n.fzGold, [round.goldIndicator!.type],
+                indicators: false),
+        ] else ...[
           _indicatorRow(context.l10n.yakuDora, doraInd),
           if (uraInd.isNotEmpty)
             _indicatorRow(context.l10n.yakuUraDora, uraInd),

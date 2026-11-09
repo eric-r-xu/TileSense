@@ -27,6 +27,7 @@ import 'package:mahjong_core/taiwanese/taiwanese_scoring.dart';
 import 'package:mahjong_core/tile.dart';
 
 import 'placement_utility.dart';
+import 'fuzhou_guide.dart';
 import 'sichuan_guide.dart';
 import 'sichuan_value.dart';
 
@@ -439,6 +440,9 @@ class EfficiencyValueContext {
     this.voidSuit,
     this.sichuanRivals = const [],
     this.kita = 0,
+    this.goldTypes = const {},
+    this.goldLeft = 0,
+    this.fuzhouRivals = const [],
   });
 
   final List<Meld> melds;
@@ -459,6 +463,13 @@ class EfficiencyValueContext {
 
   /// Sanma: Norths you have set aside as kita, each a dora on any win.
   final int kita;
+
+  /// Fuzhou: the tile types that are wild this hand, how many Gold tiles are
+  /// still unseen, and what the table shows of each other seat. Empty before
+  /// the Gold is flipped.
+  final Set<TileType> goldTypes;
+  final int goldLeft;
+  final List<FuzhouRival> fuzhouRivals;
 
   /// Which game's scoring, safety and vocabulary apply.
   final Ruleset ruleset;
@@ -967,6 +978,12 @@ class EfficiencyEngine {
     List<RiichiThreat> otherThreats = const [],
     List<Meld> opponentMelds = const [],
   }) {
+    if (valueContext.ruleset.isFuzhou) {
+      return FuzhouGuide.analyze(
+          hand: hand,
+          visibleCounts34: visibleCounts34,
+          context: valueContext);
+    }
     if (valueContext.ruleset.isSichuan) {
       return SichuanGuide.analyze(
           hand: hand,
@@ -1441,6 +1458,14 @@ class EfficiencyEngine {
     List<RiichiThreat> otherThreats = const [],
     List<Meld> opponentMelds = const [],
   }) {
+    if (context.ruleset.isFuzhou) {
+      return FuzhouGuide.adviseCall(
+          hand: hand,
+          offered: offered,
+          available: available,
+          visibleCounts34: visibleCounts34,
+          context: context);
+    }
     if (context.ruleset.isSichuan) {
       return SichuanGuide.adviseCall(
           hand: hand,
@@ -1663,6 +1688,14 @@ class EfficiencyEngine {
     bool opponentRiichi = false,
     bool opponentIsDealer = false,
   }) {
+    if (context.ruleset.isFuzhou) {
+      return FuzhouGuide.adviseKan(
+          hand: hand,
+          kanType: kanType,
+          visibleCounts34: visibleCounts34,
+          context: context,
+          concealed: true);
+    }
     if (context.ruleset.isSichuan) {
       return SichuanGuide.adviseKan(
           hand: hand,
@@ -1731,6 +1764,14 @@ class EfficiencyEngine {
     List<TileType> passedDiscardsAfterRiichi = const [],
     List<Meld> opponentMelds = const [],
   }) {
+    if (context.ruleset.isFuzhou) {
+      return FuzhouGuide.adviseKan(
+          hand: hand,
+          kanType: kanType,
+          visibleCounts34: visibleCounts34,
+          context: context,
+          concealed: false);
+    }
     if (context.ruleset.isSichuan) {
       return SichuanGuide.adviseKan(
           hand: hand,
@@ -1824,6 +1865,10 @@ class EfficiencyEngine {
     required Tile drawn,
     required EfficiencyValueContext context,
   }) {
+    if (context.ruleset.isFuzhou) {
+      return FuzhouGuide.adviseTsumo(
+          hand: hand, drawn: drawn, context: context);
+    }
     if (context.ruleset.isSichuan) {
       return SichuanGuide.adviseTsumo(
           hand: hand, drawn: drawn, context: context);
