@@ -6,6 +6,7 @@ deploy.env
 .idea/
 __pycache__/
 *.pyc
+flutter_client/scripts/
 flutter_client/tools/audio_sources/
 mortal_sidecar/.venv/
 mortal_sidecar/libriichi.so
