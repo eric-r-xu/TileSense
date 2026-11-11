@@ -6094,6 +6094,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every wind, dragon, flower and season is a flower. When you draw one, you show it and take a replacement from the wall. Each scores a point, and a full set of four scores more.'**
   String get glossaryDefFlowersFuzhou;
+
+  /// No description provided for @playStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get playStart;
+
+  /// No description provided for @playPass.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass'**
+  String get playPass;
+
+  /// No description provided for @playRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi'**
+  String get playRiichi;
+
+  /// No description provided for @playKita.
+  ///
+  /// In en, this message translates to:
+  /// **'Kita'**
+  String get playKita;
+
+  /// No description provided for @playPlayOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Play on'**
+  String get playPlayOn;
+
+  /// No description provided for @playReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get playReset;
+
+  /// No description provided for @playEditHand.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit hand'**
+  String get playEditHand;
+
+  /// No description provided for @playNewWall.
+  ///
+  /// In en, this message translates to:
+  /// **'New wall'**
+  String get playNewWall;
+
+  /// No description provided for @playSameWall.
+  ///
+  /// In en, this message translates to:
+  /// **'Same wall'**
+  String get playSameWall;
+
+  /// No description provided for @playAbort.
+  ///
+  /// In en, this message translates to:
+  /// **'Abort (9 kinds)'**
+  String get playAbort;
+
+  /// No description provided for @playStatusTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn: tap a tile to discard it. {count} left in the wall.'**
+  String playStatusTurn(int count);
+
+  /// No description provided for @playStatusRiichi.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi: tap the tile to discard.'**
+  String get playStatusRiichi;
+
+  /// No description provided for @playStatusCall.
+  ///
+  /// In en, this message translates to:
+  /// **'{seat} discarded {tile}: call it, or pass.'**
+  String playStatusCall(String seat, String tile);
+
+  /// No description provided for @playStatusFlower.
+  ///
+  /// In en, this message translates to:
+  /// **'A flower completed your hand: win, or play on.'**
+  String get playStatusFlower;
+
+  /// No description provided for @playStatusWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for {seat}…'**
+  String playStatusWaiting(String seat);
+
+  /// No description provided for @playStatusYouWin.
+  ///
+  /// In en, this message translates to:
+  /// **'You win! {result}'**
+  String playStatusYouWin(String result);
+
+  /// No description provided for @playStatusWon.
+  ///
+  /// In en, this message translates to:
+  /// **'{seat} won: {result}'**
+  String playStatusWon(String seat, String result);
 }
 
 class _AppLocalizationsDelegate

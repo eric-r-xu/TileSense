@@ -9,6 +9,7 @@
 /// first.
 library;
 
+import 'e2e_id.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
@@ -108,16 +109,19 @@ class BuilderTourOverlay extends StatelessWidget {
           body: l10n.builderTourGuideBody,
           extra: Align(
             alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              key: const Key('builderTourSample'),
-              onPressed: onSample,
-              icon: const Icon(Icons.casino),
-              label: Text(l10n.builderTourSample,
-                  style: const TextStyle(fontSize: 16)),
-              style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.goldText,
-                  side: const BorderSide(color: AppColors.gold),
-                  minimumSize: const Size(0, 48)),
+            child: e2eId(
+              'builderTourSample',
+              OutlinedButton.icon(
+                key: const Key('builderTourSample'),
+                onPressed: onSample,
+                icon: const Icon(Icons.casino),
+                label: Text(l10n.builderTourSample,
+                    style: const TextStyle(fontSize: 16)),
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.goldText,
+                    side: const BorderSide(color: AppColors.gold),
+                    minimumSize: const Size(0, 48)),
+              ),
             ),
           ),
         ),

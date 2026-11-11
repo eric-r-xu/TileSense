@@ -2211,5 +2211,63 @@
   "glossaryUnitPoints": "Points",
   "glossaryTermGold": "Gold",
   "glossaryDefGold": "One tile kind, flipped by the dealer after the flowers are replaced, is wild: its tiles stand in for any tile in your hand and each scores a point. They can't be chowed, punged or konged, and a seat that discards one may only win by self-draw.",
-  "glossaryDefFlowersFuzhou": "Every wind, dragon, flower and season is a flower. When you draw one, you show it and take a replacement from the wall. Each scores a point, and a full set of four scores more."
+  "glossaryDefFlowersFuzhou": "Every wind, dragon, flower and season is a flower. When you draw one, you show it and take a replacement from the wall. Each scores a point, and a full set of four scores more.",
+  "playStart": "Play",
+  "playPass": "Pass",
+  "playRiichi": "Riichi",
+  "playKita": "Kita",
+  "playPlayOn": "Play on",
+  "playReset": "Reset",
+  "playEditHand": "Edit hand",
+  "playNewWall": "New wall",
+  "playSameWall": "Same wall",
+  "playAbort": "Abort (9 kinds)",
+  "playStatusTurn": "Your turn: tap a tile to discard it. {count} left in the wall.",
+  "@playStatusTurn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playStatusRiichi": "Riichi: tap the tile to discard.",
+  "playStatusCall": "{seat} discarded {tile}: call it, or pass.",
+  "@playStatusCall": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      },
+      "tile": {
+        "type": "String"
+      }
+    }
+  },
+  "playStatusFlower": "A flower completed your hand: win, or play on.",
+  "playStatusWaiting": "Waiting for {seat}…",
+  "@playStatusWaiting": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      }
+    }
+  },
+  "playStatusYouWin": "You win! {result}",
+  "@playStatusYouWin": {
+    "placeholders": {
+      "result": {
+        "type": "String"
+      }
+    }
+  },
+  "playStatusWon": "{seat} won: {result}",
+  "@playStatusWon": {
+    "placeholders": {
+      "seat": {
+        "type": "String"
+      },
+      "result": {
+        "type": "String"
+      }
+    }
+  }
 }

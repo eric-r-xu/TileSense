@@ -3416,4 +3416,66 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get glossaryDefFlowersFuzhou =>
       'Every wind, dragon, flower and season is a flower. When you draw one, you show it and take a replacement from the wall. Each scores a point, and a full set of four scores more.';
+
+  @override
+  String get playStart => 'Play';
+
+  @override
+  String get playPass => 'Pass';
+
+  @override
+  String get playRiichi => 'Riichi';
+
+  @override
+  String get playKita => 'Kita';
+
+  @override
+  String get playPlayOn => 'Play on';
+
+  @override
+  String get playReset => 'Reset';
+
+  @override
+  String get playEditHand => 'Edit hand';
+
+  @override
+  String get playNewWall => 'New wall';
+
+  @override
+  String get playSameWall => 'Same wall';
+
+  @override
+  String get playAbort => 'Abort (9 kinds)';
+
+  @override
+  String playStatusTurn(int count) {
+    return 'Your turn: tap a tile to discard it. $count left in the wall.';
+  }
+
+  @override
+  String get playStatusRiichi => 'Riichi: tap the tile to discard.';
+
+  @override
+  String playStatusCall(String seat, String tile) {
+    return '$seat discarded $tile: call it, or pass.';
+  }
+
+  @override
+  String get playStatusFlower =>
+      'A flower completed your hand: win, or play on.';
+
+  @override
+  String playStatusWaiting(String seat) {
+    return 'Waiting for $seat…';
+  }
+
+  @override
+  String playStatusYouWin(String result) {
+    return 'You win! $result';
+  }
+
+  @override
+  String playStatusWon(String seat, String result) {
+    return '$seat won: $result';
+  }
 }

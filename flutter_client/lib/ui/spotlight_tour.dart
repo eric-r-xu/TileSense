@@ -7,6 +7,7 @@
 /// "has this device seen it" flag.
 library;
 
+import 'e2e_id.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
@@ -214,26 +215,32 @@ class _SpotlightTourState extends State<SpotlightTour> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (!last)
-                  TextButton(
-                    key: Key('${widget.keyPrefix}Skip'),
-                    onPressed: _finish,
-                    style: TextButton.styleFrom(
-                        foregroundColor: Colors.white60,
-                        minimumSize: const Size(88, 48)),
-                    child: Text(l10n.tourSkip,
-                        style: const TextStyle(fontSize: 16)),
+                  e2eId(
+                    '${widget.keyPrefix}Skip',
+                    TextButton(
+                      key: Key('${widget.keyPrefix}Skip'),
+                      onPressed: _finish,
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white60,
+                          minimumSize: const Size(88, 48)),
+                      child: Text(l10n.tourSkip,
+                          style: const TextStyle(fontSize: 16)),
+                    ),
                   ),
                 const SizedBox(width: 8),
-                ElevatedButton(
-                  key: Key('${widget.keyPrefix}Next'),
-                  onPressed: _next,
-                  style: AppButtons.primary(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 12),
+                e2eId(
+                  '${widget.keyPrefix}Next',
+                  ElevatedButton(
+                    key: Key('${widget.keyPrefix}Next'),
+                    onPressed: _next,
+                    style: AppButtons.primary(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 12),
+                    ),
+                    child: Text(last ? widget.doneLabel : l10n.tourNext,
+                        style: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.bold)),
                   ),
-                  child: Text(last ? widget.doneLabel : l10n.tourNext,
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

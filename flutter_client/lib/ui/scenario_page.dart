@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
+import '../game/guide_host.dart';
 import '../l10n/mahjong_terms.dart';
 import '../main.dart' show isPhoneLayout;
 import 'bar_back_button.dart';
@@ -17,18 +18,22 @@ import 'builder_tour.dart';
 import 'package:mahjong_core/fuzhou/fuzhou_rules.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/meld.dart';
+import 'package:mahjong_core/round.dart' show CallType;
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
 import 'package:mahjong_core/tile.dart';
+import '../scenario/play_out.dart';
 import '../scenario/scenario.dart';
 import '../scenario/scenario_controller.dart';
+import 'e2e_id.dart';
 import 'efficiency_overlay.dart';
 import 'language_button.dart';
 import '../l10n/l10n.dart';
 import 'phone_menu.dart';
 import 'score_text.dart';
 import 'scenario_win_panel.dart';
+import 'scoring_view.dart';
 import 'ruleset_flag.dart';
 import 'rules_reader.dart';
 import 'table_view.dart';
@@ -76,6 +81,12 @@ class _ScenarioPageState extends State<ScenarioPage> {
   _MeldKind _meldKind = _MeldKind.pon;
   bool _aka = false;
 
+  /// A hand being played out from the posed table, or null while editing.
+  PlayOutSession? _play;
+
+  /// The next discard declares riichi.
+  bool _riichiArmed = false;
+
   // The builder tour is up: over a first visit, or on request from the Menu.
   bool _touring = BuilderTour.shouldAutoShow;
   final _tour = BuilderTourTargets();
@@ -113,12 +124,47 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   @override
   void dispose() {
+    _play?.dispose();
     _c.removeListener(_onControllerChanged);
     _c.dispose();
     super.dispose();
   }
 
   Scenario get s => _c.scenario;
+
+  /// What the table draws from: the hand being played, else the posed one.
+  GuideHost get _host {
+    final p = _play;
+    if (p != null) return p;
+    return _c;
+  }
+
+  /// Whether the posed hand can be played out: a complete, legal table with
+  /// no tile on offer (that is the call read, a different question).
+  bool get _canPlay => s.problems().isEmpty && s.offered == null;
+
+  void _startPlay() {
+    if (!_canPlay) return;
+    // The hand being replaced (New wall, from its results) is let go of once
+    // nothing is listening to it.
+    final old = _play;
+    if (old != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    }
+    setState(() {
+      _riichiArmed = false;
+      _play = PlayOutSession(_c, seed: DateTime.now().microsecondsSinceEpoch)
+        // The results screen's Continue deals a fresh wall.
+        ..onContinue = _startPlay;
+    });
+  }
+
+  void _stopPlay() => setState(() {
+        _play?.dispose();
+        _play = null;
+        _riichiArmed = false;
+      });
+
   // Named for Hong Kong, the first Chinese-style ruleset this app had, but
   // true for Taiwanese too — see [Ruleset.isChineseStyle].
   bool get _hk => s.ruleset.isChineseStyle;
@@ -342,7 +388,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
       appBar: _appBar(),
       body: SafeArea(
         child: AnimatedBuilder(
-          animation: _c,
+          animation: Listenable.merge([_c, if (_play != null) _play!]),
           builder: (context, _) => Stack(
             children: [
               Column(
@@ -351,13 +397,13 @@ class _ScenarioPageState extends State<ScenarioPage> {
                     child: KeyedSubtree(
                       key: _tour.table,
                       child: TableView(
-                        game: _c,
-                        edits: _tableEdits(),
+                        game: _host,
+                        edits: _play == null ? _tableEdits() : null,
                         acrossInBar: true,
                       ),
                     ),
                   ),
-                  _editor(),
+                  _play == null ? _editor() : _playBar(_play!),
                 ],
               ),
               Positioned.fill(
@@ -369,7 +415,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
                         top: TableView.guidePanelTop,
                         child: KeyedSubtree(
                           key: _tour.guide,
-                          child: _c.win?.wins ?? false
+                          child: _play == null && (_c.win?.wins ?? false)
                               ? ScenarioWinPanel(
                                   controller: _c,
                                   onEdit: _edit,
@@ -380,8 +426,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
                                       8,
                                 )
                               : EfficiencyOverlay(
-                                  game: _c,
-                                  report: _c.report,
+                                  game: _host,
+                                  report: _host.report,
                                   maxHeight: c.maxHeight -
                                       TableView.guidePanelTop -
                                       _editorHeight -
@@ -394,6 +440,9 @@ class _ScenarioPageState extends State<ScenarioPage> {
                   ),
                 ),
               ),
+              // The result of a hand played out covers the table.
+              if (_play != null && _play!.finished)
+                Positioned.fill(child: _playResult(_play!)),
             ],
           ),
         ),
@@ -430,8 +479,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
         onPressed: widget.onExit,
       ),
       title: TableBarTitle(
-        game: _c,
-        edits: _tableEdits(),
+        game: _host,
+        edits: _play == null ? _tableEdits() : null,
         height: barHeight,
         // The leading width plus the titleSpacing above.
         titleStart: BarBackButton.leadingWidth + 8,
@@ -475,6 +524,8 @@ class _ScenarioPageState extends State<ScenarioPage> {
 
   /// Switching rules clears the table, so the palette goes back to your hand.
   void _setRuleset(Ruleset r) => setState(() {
+        _play?.dispose();
+        _play = null;
         _slot = _Slot.hand;
         _slotSeat = kHumanSeat;
         _aka = false;
@@ -734,7 +785,26 @@ class _ScenarioPageState extends State<ScenarioPage> {
     final band = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        KeyedSubtree(key: _tour.status, child: _statusLine()),
+        Row(
+          children: [
+            Expanded(
+                child: KeyedSubtree(key: _tour.status, child: _statusLine())),
+            const SizedBox(width: 8),
+            e2eId(
+                'builderPlay',
+                FilledButton.icon(
+                  key: const Key('builderPlay'),
+                  onPressed: _canPlay ? _startPlay : null,
+                  icon: const Icon(Icons.play_arrow, size: 18),
+                  label: Text(context.l10n.playStart),
+                  style: FilledButton.styleFrom(
+                    minimumSize: Size(0, _phone ? 64 : 30),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    textStyle: TextStyle(fontSize: _phone ? 20 : 12),
+                  ),
+                )),
+          ],
+        ),
         const SizedBox(height: 4),
         _slotChips(),
         const SizedBox(height: 4),
@@ -759,6 +829,259 @@ class _ScenarioPageState extends State<ScenarioPage> {
         ],
       ),
     );
+  }
+
+  /// The band under the table while a hand is played out: what to do next,
+  /// your tiles (tap one to discard it), and the actions on offer.
+  Widget _playBar(PlayOutSession p) {
+    final human = p.round.seats[kHumanSeat];
+    final drawn = human.drawn;
+    final rest = [
+      for (final t in human.hand)
+        if (drawn == null || t.id != drawn.id) t
+    ]..sort((a, b) => a.type.index.compareTo(b.type.index));
+    final tiles = [...rest, if (drawn != null) drawn];
+    // What the guide would discard; the same green the live game uses.
+    final best = {
+      if (p.humanToDiscard)
+        for (final l in p.report.lines)
+          if (l.recommended) l.discard
+    };
+
+    final call = p.humanCall;
+    final l10n = context.l10n;
+    final r = s.ruleset;
+    p.seatNames = [
+      l10n.seatYou,
+      l10n.seatRight,
+      l10n.seatAcross,
+      l10n.seatLeft,
+    ];
+    final (text, color) = p.finished
+        ? (
+            p.humanWon
+                ? l10n.playStatusYouWin(
+                    '${l10n.resultLabel(p.result!.label, r)}'
+                    '${p.result!.score == null ? "" : " — ${scoreTotalLine(l10n, p.result!.score!, r)}"}')
+                : p.result!.winners.isEmpty
+                    ? l10n.resultLabel(p.result!.label, r)
+                    : l10n.playStatusWon(
+                        p.result!.winners.map(p.seatLabel).join(', '),
+                        l10n.resultLabel(p.result!.label, r)),
+            p.humanWon ? const Color(0xffa5d6a7) : const Color(0xffffcc80)
+          )
+        : call != null
+            ? (
+                l10n.playStatusCall(p.seatLabel(p.round.pendingDiscardSeat),
+                    p.offeredTile?.type.code ?? ''),
+                Colors.white70
+              )
+            : p.flowerWinPending
+                ? (l10n.playStatusFlower, Colors.white70)
+                : p.humanToDiscard
+                    ? (
+                        _riichiArmed
+                            ? l10n.playStatusRiichi
+                            : l10n.playStatusTurn(p.round.wall.remaining) +
+                                (p.guideNote == null ? '' : ' ${p.guideNote}'),
+                        Colors.white70
+                      )
+                    : p.botsToMove
+                        ? (
+                            l10n.playStatusWaiting(p.seatLabel(p.actingSeat!)),
+                            Colors.white54
+                          )
+                        : ('', Colors.white70);
+
+    Widget action(String label, VoidCallback? onTap,
+        {Key? key, bool primary = false}) {
+      final button = (primary ? FilledButton.new : OutlinedButton.new)(
+        key: key,
+        onPressed: onTap,
+        style: (primary ? FilledButton.styleFrom : OutlinedButton.styleFrom)(
+          minimumSize: Size(0, _phone ? 64 : 30),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          textStyle: TextStyle(fontSize: _phone ? 20 : 12),
+        ),
+        child: Text(label),
+      );
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: key is ValueKey<String> ? e2eId(key.value, button) : button,
+      );
+    }
+
+    final gameActions = <Widget>[
+      if (call != null) ...[
+        if (call.types.contains(CallType.ron))
+          action(l10n.callLabel(CallType.ron, r), () => p.answerCall(CallType.ron),
+              key: const Key('playRon'), primary: true),
+        if (call.types.contains(CallType.kan))
+          action(l10n.callLabel(CallType.kan, r), () => p.answerCall(CallType.kan)),
+        if (call.types.contains(CallType.pon))
+          action(l10n.callLabel(CallType.pon, r), () => p.answerCall(CallType.pon),
+              key: const Key('playPon')),
+        if (call.types.contains(CallType.chi))
+          if (p.chiRuns.length <= 1)
+            action(l10n.callLabel(CallType.chi, r), () => p.answerCall(CallType.chi),
+                key: const Key('playChi'))
+          else
+            for (final low in p.chiRuns)
+              action('${l10n.callLabel(CallType.chi, r)} ${low.code}',
+                  () => p.answerCall(CallType.chi, chiLow: low)),
+        action(l10n.playPass, () => p.answerCall(CallType.none),
+            key: const Key('playPass')),
+      ],
+      if (p.canTsumo)
+        action(l10n.tsumoLabel(r), p.tsumo,
+            key: const Key('playTsumo'), primary: true),
+      if (p.flowerWinPending) action(l10n.playPlayOn, p.passFlowerWin),
+      if (p.canKita) action(l10n.playKita, p.kita),
+      for (final t in p.addedKans)
+        action('${l10n.callLabel(CallType.kan, r)} ${t.code}',
+            () => p.addKan(t)),
+      if (p.canKyuushu) action(l10n.playAbort, p.kyuushu),
+      for (final t in p.closedKans)
+        action('${l10n.callLabel(CallType.kan, r)} ${t.code}',
+            () => p.closedKan(t)),
+      if (p.canRiichi)
+        action(_riichiArmed ? '${l10n.playRiichi} ✓' : l10n.playRiichi,
+            () => setState(() => _riichiArmed = !_riichiArmed),
+            key: const Key('playRiichi')),
+    ];
+    // Always in reach on the right; the choices to the left of them scroll if
+    // there are more than fit.
+    final pinned = <Widget>[
+      action(l10n.playReset, () {
+        setState(() => _riichiArmed = false);
+        p.reset();
+      }, key: const Key('playReset')),
+      action(l10n.playEditHand, _stopPlay, key: const Key('playStop')),
+    ];
+
+    return Container(
+      height: _editorHeight,
+      width: double.infinity,
+      color: const Color(0xff052726),
+      padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          e2eId(
+            'playStatus',
+            Text(text,
+                key: const Key('playStatus'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: _phone ? 18 : 11, color: color)),
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final (i, t) in tiles.indexed)
+                      e2eId(
+                          'playTile_$i',
+                          Padding(
+                            padding: EdgeInsets.only(
+                                right: t.id == drawn?.id ? 0 : 3,
+                                left: t.id == drawn?.id ? 10 : 0),
+                            child: InkWell(
+                              key: Key('playTile${t.id}'),
+                              onTap: p.humanToDiscard &&
+                                      (!_riichiArmed || p.riichiOk(t))
+                                  ? () {
+                                      p.discard(t, riichi: _riichiArmed);
+                                      setState(() => _riichiArmed = false);
+                                    }
+                                  : null,
+                              child: TileFace(
+                                  tile: t,
+                                  size: TileSize.normal,
+                                  highlight: t.id == drawn?.id ||
+                                      best.contains(t.type),
+                                  highlightColor: best.contains(t.type)
+                                      ? const Color(0xff66bb6a)
+                                      : null,
+                                  dimmed: _riichiArmed && !p.riichiOk(t),
+                                  scale: _phone ? 2.0 : 1.25),
+                            ),
+                          )),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Clear of the corner the fullscreen button and a raised phone case
+          // cover, as the editor band keeps its Menu button clear of it.
+          Padding(
+            padding: EdgeInsets.only(right: _phone ? 150 : 60),
+            child: Row(children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: gameActions),
+                ),
+              ),
+              ...pinned,
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The result of a played-out hand: the live game's own results screen
+  /// (winner, hand, dora, yaku, the point transfers), with the choices a
+  /// builder has in place of the next hand.
+  Widget _playResult(PlayOutSession p) {
+    ButtonStyle outlined() => OutlinedButton.styleFrom(
+          foregroundColor: AppColors.gold,
+          side: const BorderSide(color: AppColors.gold),
+          minimumSize: const Size(150, 52),
+        );
+    final view = ScoringView(
+      key: ValueKey(p),
+      game: p,
+      autoContinue: false,
+      showPortrait: false,
+      continueLabel: context.l10n.playNewWall,
+      extraActions: [
+        OutlinedButton(
+          key: const Key('playResultReplay'),
+          style: outlined(),
+          onPressed: () {
+            setState(() => _riichiArmed = false);
+            p.reset();
+          },
+          child: Text(context.l10n.playSameWall,
+              style: const TextStyle(fontSize: 18)),
+        ),
+        OutlinedButton(
+          key: const Key('playResultEdit'),
+          style: outlined(),
+          onPressed: _stopPlay,
+          child: Text(context.l10n.playEditHand,
+              style: const TextStyle(fontSize: 18)),
+        ),
+      ],
+    );
+    // Laid out as it is for a whole screen, then shrunk to the room the
+    // builder leaves it, so the buttons are never below the fold.
+    return LayoutBuilder(builder: (context, c) {
+      const designHeight = 1000.0;
+      final scale = (c.maxHeight / designHeight).clamp(0.1, 1.0);
+      if (scale >= 1) return view;
+      return FittedBox(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+            width: c.maxWidth / scale, height: designHeight, child: view),
+      );
+    });
   }
 
   Widget _statusLine() {
