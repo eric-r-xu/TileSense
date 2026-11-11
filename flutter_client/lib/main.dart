@@ -2270,6 +2270,7 @@ class _WelcomeScreen extends StatelessWidget {
                           ),
                           _TitleButton(
                             key: const Key('openBuilder'),
+                            id: 'builderTile',
                             onPressed: onBuild,
                             // A red dragon tile: you set the tiles out yourself.
                             icon: const Text('🀄',

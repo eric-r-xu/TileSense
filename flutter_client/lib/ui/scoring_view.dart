@@ -25,8 +25,27 @@ class ScoringView extends StatefulWidget {
     required this.game,
     this.onGameEnd,
     this.continueLock = Duration.zero,
+    this.autoContinue = true,
+    this.continueLabel,
+    this.extraActions = const [],
+    this.showPortrait = true,
   });
   final TableGameHost game;
+
+  /// Whether the panel deals on by itself after a countdown. Off where there
+  /// is no next hand to hurry to (the Hand Builder's play-out): the countdown
+  /// and Pause are left out.
+  final bool autoContinue;
+
+  /// Replaces "Continue" on the button that moves on, when set.
+  final String? continueLabel;
+
+  /// More buttons after Continue (and Pause).
+  final List<Widget> extraActions;
+
+  /// Whether the winner's character portrait shows above their hand. Off in
+  /// the Hand Builder, which has no characters.
+  final bool showPortrait;
 
   /// How long Continue stays disabled once the panel shows. Online, any
   /// player's Continue deals the next hand for everyone, so this gives the
@@ -126,7 +145,11 @@ class _ScoringViewState extends State<ScoringView> {
 
   void _startCountdown({bool keepRemaining = false}) {
     _timer?.cancel();
-    if (!_autoEnabled || game.phase == GamePhase.gameEnd) return;
+    if (!widget.autoContinue ||
+        !_autoEnabled ||
+        game.phase == GamePhase.gameEnd) {
+      return;
+    }
     if (!keepRemaining || _secondsLeft <= 0) {
       _secondsLeft = _autoContinueSeconds;
     }
@@ -199,7 +222,7 @@ class _ScoringViewState extends State<ScoringView> {
             ? l10n.scoreNext
             : locked
                 ? l10n.scoreContinueLocked(_lockLeft)
-                : l10n.scoreContinue;
+                : widget.continueLabel ?? l10n.scoreContinue;
     final title = l10n.resultLabel(r.label, round.ruleset);
 
     return Stack(
@@ -286,7 +309,7 @@ class _ScoringViewState extends State<ScoringView> {
                               child: Text(label,
                                   style: const TextStyle(fontSize: 18)),
                             ),
-                            if (!gameOver) ...[
+                            if (!gameOver && widget.autoContinue) ...[
                               const SizedBox(width: 16),
                               OutlinedButton(
                                 key: const Key('scorePause'),
@@ -301,9 +324,13 @@ class _ScoringViewState extends State<ScoringView> {
                                     style: const TextStyle(fontSize: 18)),
                               ),
                             ],
+                            for (final a in widget.extraActions) ...[
+                              const SizedBox(width: 16),
+                              a,
+                            ],
                           ],
                         ),
-                        if (!gameOver)
+                        if (!gameOver && widget.autoContinue)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
@@ -378,25 +405,27 @@ class _ScoringViewState extends State<ScoringView> {
         w.riichi ? round.wall.uraDoraIndicators() : const <TileType>[];
     return Column(
       children: [
-        // The winner's portrait, so who won reads at a glance. Only wins get
-        // here — a draw has no winner to show.
-        Container(
-          key: const Key('scoreWinnerPortrait'),
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xff0c4747),
-            border: Border.all(color: AppColors.goldBright, width: 2),
+        if (widget.showPortrait) ...[
+          // The winner's portrait, so who won reads at a glance. Only wins get
+          // here — a draw has no winner to show.
+          Container(
+            key: const Key('scoreWinnerPortrait'),
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xff0c4747),
+              border: Border.all(color: AppColors.goldBright, width: 2),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Image.asset(
+              kCharacterPortrait[game.characterForSeat(seat)]!,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Image.asset(
-            kCharacterPortrait[game.characterForSeat(seat)]!,
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.medium,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          ),
-        ),
+        ],
         const SizedBox(height: 4),
         Text(
           '${w.wind.kanji} ${game.seatLabel(seat)}',

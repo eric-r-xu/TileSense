@@ -3335,4 +3335,65 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get glossaryDefFlowersFuzhou =>
       '風牌・三元牌・花牌・季節牌はすべて花牌です。引いたら見せて、牌山から補充します。1枚1点で、4枚そろうとさらに加点されます。';
+
+  @override
+  String get playStart => 'プレイ';
+
+  @override
+  String get playPass => 'パス';
+
+  @override
+  String get playRiichi => 'リーチ';
+
+  @override
+  String get playKita => '北抜き';
+
+  @override
+  String get playPlayOn => '続行';
+
+  @override
+  String get playReset => 'リセット';
+
+  @override
+  String get playEditHand => '手牌を編集';
+
+  @override
+  String get playNewWall => '新しい牌山';
+
+  @override
+  String get playSameWall => '同じ牌山';
+
+  @override
+  String get playAbort => '流局（九種九牌）';
+
+  @override
+  String playStatusTurn(int count) {
+    return 'あなたの番：切る牌をタップ。牌山の残りは$count枚。';
+  }
+
+  @override
+  String get playStatusRiichi => 'リーチ：切る牌をタップ。';
+
+  @override
+  String playStatusCall(String seat, String tile) {
+    return '$seatが$tileを切りました：鳴くか、パスしてください。';
+  }
+
+  @override
+  String get playStatusFlower => '花牌で和了できます：和了するか、続行してください。';
+
+  @override
+  String playStatusWaiting(String seat) {
+    return '$seatの番を待っています…';
+  }
+
+  @override
+  String playStatusYouWin(String result) {
+    return '和了！ $result';
+  }
+
+  @override
+  String playStatusWon(String seat, String result) {
+    return '$seatの和了：$result';
+  }
 }

@@ -9,6 +9,46 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-11 — Play out a hand in the Hand Builder
+
+- **Play** in the Hand Builder plays the posed hand out. Press it once the table
+  is legal (no tile on offer) and the builder deals real tiles to the three
+  opponents from the tiles nobody has seen, builds a wall of the rest (as long as
+  the Wall setting says), and starts at your seat. You draw, tap a tile to
+  discard it, and answer calls (Ron, Pon, Kan, Chi with the run to take, Pass),
+  Tsumo, Riichi, concealed and added Kan, Kita, Kyuushu and a flower win, as the
+  rules allow. The opponents play as the same bots as single player, one move at
+  a time (about 0.7 s apart, "Waiting for Right…") rather than all at once. It ends on a win, or when
+  the wall runs out, and then shows the live game's own results screen: the
+  winner's hand, the dora (and ura after a riichi win), each yaku with its
+  value, and who paid whom (no character portrait: the builder has no
+  characters). It has no auto-continue countdown. **New wall** deals
+  another, **Same wall** replays this one, and **Edit hand** returns to the table
+  you posed.
+- **Every ruleset plays out**, not only Riichi: Sanma, Hong Kong, Taiwanese, MCR,
+  Sichuan and Fuzhou each deal their own tile set, hand size and flowers (Sichuan
+  names a void suit for any seat the builder left blank).
+- **The guide stays on** while you play. Each of your turns is read as the builder
+  reads a posed hand, so the panel shows the discard table, the call advice for a
+  tile on offer, kan advice and the safety read against a riichi opponent, and the
+  guide's best discard is marked green in your hand. Mortal is not asked.
+- **Red fives and Sanma dora:** the red five of each suit that is not already on
+  your table is among the tiles dealt, and a Sanma table starts with as many dora
+  indicators showing as you posed (up to the three its dead wall holds).
+- **Reset** deals the same wall again, so a line of play can be tried a second
+  way; **Edit hand** goes back to the table you posed, untouched.
+- Under the hood: `Wall.playable` and `Round.beginPosedPlay` in `mahjong_core`
+  let a posed round be played on (the posed `Round` and its walls are unchanged);
+  `ScenarioController.buildPlayRound` and `PlayOutSession`
+  (`flutter_client/lib/scenario/play_out.dart`) deal and drive it, copying the
+  live round into a `Scenario` for the guide at each decision.
+- `ScoringView` takes three optional settings for this (`autoContinue`,
+  `continueLabel`, `extraActions`); the live game's use of it is unchanged.
+- **Languages and phones:** the play bar, its status line and the results screen
+  are in English, Japanese and both Chinese forms, with the app's own call words
+  and seat names. On a phone the choices scroll sideways if there are more than
+  fit, with Reset and Edit hand always in reach.
+
 ## 2026-11-09 — Fuzhou mahjong
 
 - **Fuzhou is the seventh ruleset**, on the welcome screen's rules picker, the

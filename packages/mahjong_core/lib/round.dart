@@ -298,6 +298,20 @@ class Round {
     phase = RoundPhase.discarding;
   }
 
+  /// Starts play on a posed round whose [wall] holds real tiles (see
+  /// `Wall.playable`): seat 0 is next to act. Fourteen tiles in hand means the
+  /// seat has already drawn and must discard; otherwise it draws first.
+  void beginPosedPlay() {
+    turn = 0;
+    final s = seats[0];
+    if (s.hand.length % 3 == 2) {
+      s.drawn = s.hand.last;
+      phase = RoundPhase.discarding;
+    } else {
+      _beginDraw();
+    }
+  }
+
   final TileWall wall;
   final Ruleset ruleset;
 

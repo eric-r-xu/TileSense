@@ -3303,6 +3303,67 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get glossaryDefFlowersFuzhou =>
       '所有风牌、箭牌、花牌和季节牌都是花牌。摸到时亮出，并从牌墙补一张。每张1分，集齐四张一套另有加分。';
+
+  @override
+  String get playStart => '开打';
+
+  @override
+  String get playPass => '过';
+
+  @override
+  String get playRiichi => '立直';
+
+  @override
+  String get playKita => '拔北';
+
+  @override
+  String get playPlayOn => '继续';
+
+  @override
+  String get playReset => '重置';
+
+  @override
+  String get playEditHand => '编辑手牌';
+
+  @override
+  String get playNewWall => '新牌墙';
+
+  @override
+  String get playSameWall => '同一牌墙';
+
+  @override
+  String get playAbort => '流局（九种九牌）';
+
+  @override
+  String playStatusTurn(int count) {
+    return '轮到你：点一张牌打出。牌墙剩余 $count 张。';
+  }
+
+  @override
+  String get playStatusRiichi => '立直：点要打出的牌。';
+
+  @override
+  String playStatusCall(String seat, String tile) {
+    return '$seat打出了 $tile：可以鸣牌，或选择过。';
+  }
+
+  @override
+  String get playStatusFlower => '花牌已使你和牌：和牌，或继续。';
+
+  @override
+  String playStatusWaiting(String seat) {
+    return '等待$seat…';
+  }
+
+  @override
+  String playStatusYouWin(String result) {
+    return '你和牌了！$result';
+  }
+
+  @override
+  String playStatusWon(String seat, String result) {
+    return '$seat和牌：$result';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -6604,4 +6665,65 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get glossaryDefFlowersFuzhou =>
       '所有風牌、箭牌、花牌和季節牌都是花牌。摸到時亮出，並從牌牆補一張。每張1分，集齊四張一套另有加分。';
+
+  @override
+  String get playStart => '開打';
+
+  @override
+  String get playPass => '過';
+
+  @override
+  String get playRiichi => '立直';
+
+  @override
+  String get playKita => '拔北';
+
+  @override
+  String get playPlayOn => '繼續';
+
+  @override
+  String get playReset => '重置';
+
+  @override
+  String get playEditHand => '編輯手牌';
+
+  @override
+  String get playNewWall => '新牌牆';
+
+  @override
+  String get playSameWall => '同一牌牆';
+
+  @override
+  String get playAbort => '流局（九種九牌）';
+
+  @override
+  String playStatusTurn(int count) {
+    return '輪到你：點一張牌打出。牌牆剩餘 $count 張。';
+  }
+
+  @override
+  String get playStatusRiichi => '立直：點要打出的牌。';
+
+  @override
+  String playStatusCall(String seat, String tile) {
+    return '$seat打出了 $tile：可以鳴牌，或選擇過。';
+  }
+
+  @override
+  String get playStatusFlower => '花牌已使你和牌：和牌，或繼續。';
+
+  @override
+  String playStatusWaiting(String seat) {
+    return '等待$seat…';
+  }
+
+  @override
+  String playStatusYouWin(String result) {
+    return '你和牌了！$result';
+  }
+
+  @override
+  String playStatusWon(String seat, String result) {
+    return '$seat和牌：$result';
+  }
 }

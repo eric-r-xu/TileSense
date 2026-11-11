@@ -386,8 +386,11 @@ class EnRulesText extends RulesText {
         ]),
         RuleSection('gold', 'The Gold', [
           'Once the flowers are replaced, the dealer flips the last of the held-back tiles: the Gold.',
-          'The three other tiles of that kind are wild: each stands in for any tile in your hand and scores a point.',
-          'If a flower or season is flipped, the other seven flowers and seasons are Gold instead.',
+          'The flipped tile is only the indicator and nobody can hold it, so the Golds are the three other tiles of that kind: three, not four.',
+          'Each Gold is wild: it stands in for any tile in your hand and scores a point.',
+          'If a flower or season is flipped, all the other flowers and seasons, whatever their number, are Gold instead: seven Golds, since each one exists once.',
+          'If a wind or dragon is flipped, the three others of that kind are Gold.',
+          'Flipping a flower does not make the winds and dragons Gold.',
           'A Gold can’t be used to chow, pung or kong, and nobody can claim one you discard.',
           'Discard a Gold and you may only win by self-draw for the rest of the hand.',
           'Robbing the Gold: if your 16 tiles are ready when it is flipped, you win at once, before anyone draws.',

@@ -6,6 +6,8 @@
 /// hands the same inputs to the same [EfficiencyEngine].
 library;
 
+import 'dart:math' show Random;
+
 import 'package:flutter/foundation.dart';
 
 import '../game/game_controller.dart';
@@ -20,6 +22,7 @@ import 'package:mahjong_core/fuzhou/fuzhou_wall.dart';
 import 'package:mahjong_core/sanma/sanma_rules.dart';
 import 'package:mahjong_core/sanma/sanma_wall.dart';
 import 'package:mahjong_core/sichuan/sichuan_wall.dart';
+import 'package:mahjong_core/taiwanese/taiwanese_wall.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_wall.dart';
 import 'package:mahjong_core/meld.dart';
 import 'package:mahjong_core/round.dart';
@@ -573,33 +576,38 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
   }
 
   /// Build the [Round] the table widgets render, straight from [scenario].
-  Round _poseRound() {
+  Round _poseRound({TileWall? playWall}) {
     final r = Round.posed(
       dealer: scenario.dealer,
       roundWind: scenario.roundWind,
       honba: scenario.honba,
       riichiSticks: scenario.riichiSticks,
-      wall: ruleset.isSanma
-          ? SanmaWall.posed(
-              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
-              dora: scenario.dora,
-            )
-          : ruleset.isSichuan
-          ? SichuanWall.posed(
-              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
-          : ruleset.isFuzhou
-          ? FuzhouWall.posed(
-              remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
-              gold: scenario.dora.isEmpty
-                  ? null
-                  : Tile(-100, scenario.dora.first))
-          : ruleset.isChineseStyle
-              ? HongKongWall.posed(
-                  remaining: scenario.wallRemaining.clamp(0, scenario.maxWall))
-              : Wall.posed(
+      wall: playWall ??
+          (ruleset.isSanma
+              ? SanmaWall.posed(
                   remaining: scenario.wallRemaining.clamp(0, scenario.maxWall),
                   dora: scenario.dora,
-                ),
+                )
+              : ruleset.isSichuan
+                  ? SichuanWall.posed(
+                      remaining:
+                          scenario.wallRemaining.clamp(0, scenario.maxWall))
+                  : ruleset.isFuzhou
+                      ? FuzhouWall.posed(
+                          remaining:
+                              scenario.wallRemaining.clamp(0, scenario.maxWall),
+                          gold: scenario.dora.isEmpty
+                              ? null
+                              : Tile(-100, scenario.dora.first))
+                      : ruleset.isChineseStyle
+                          ? HongKongWall.posed(
+                              remaining: scenario.wallRemaining
+                                  .clamp(0, scenario.maxWall))
+                          : Wall.posed(
+                              remaining: scenario.wallRemaining
+                                  .clamp(0, scenario.maxWall),
+                              dora: scenario.dora,
+                            )),
       startingPoints: scenario.hasScores || ruleset.isSanma
           ? List.of(scenario.points)
           : List.filled(4, ruleset.startingPoints),
@@ -651,6 +659,111 @@ class ScenarioController extends ChangeNotifier implements GuideHost {
     final offered = scenario.offered;
     if (offered != null) r.seats[scenario.offeredFrom].pond.add(offered);
     return r;
+  }
+
+  /// A round to play the posed hand out on, under whichever rules the table
+  /// is posed for: the posed table with real tiles in the opponents' hands
+  /// and a wall of the tiles nobody has seen, trimmed to
+  /// [Scenario.wallRemaining]. The same [rng] seed always deals the same wall,
+  /// which is what lets a play-out be replayed.
+  Round buildPlayRound(Random rng) {
+    final r = ruleset;
+    final counts = scenario.visibleCounts34();
+    var id = 1000;
+
+    // Every tile this game has that nobody has seen yet.
+    //
+    // Riichi and Sanma play one red five per suit; the one in each suit not
+    // already on the table is among the tiles left (the first of that kind).
+    final plain = <Tile>[
+      for (var t = 0; t < (r.isSichuan ? 27 : 34); t++)
+        if (!r.isSanma || SanmaRules.inWall(typeFrom34(t)))
+          for (var k = counts[t]; k < kCopiesPerTile; k++)
+            Tile(id++, typeFrom34(t),
+                aka: k == counts[t] &&
+                    r.isJapanese &&
+                    typeFrom34(t).isSuit &&
+                    typeFrom34(t).number == 5 &&
+                    !scenario.akaUsed(typeFrom34(t))),
+    ];
+    final flowers = <Tile>[
+      if (r.isChineseStyle && !r.isSichuan)
+        for (final t in TileType.values.where((t) => t.isBonus))
+          if (!scenario.seats.any((s) => s.flowers.any((f) => f.type == t)))
+            Tile(id++, t),
+    ];
+    plain.shuffle(rng);
+
+    // Opponents are dealt ordinary tiles; any flower stays in the wall for
+    // someone to draw and expose.
+    final hands = <int, List<Tile>>{};
+    for (final i in r.activeSeats) {
+      if (i == kHumanSeat) continue;
+      final n = r.concealedHandSize - scenario.seats[i].melds.length * 3;
+      hands[i] = plain.sublist(plain.length - n);
+      plain.length -= n;
+    }
+    final pool = [...plain, ...flowers]..shuffle(rng);
+
+    // The wall: the live tiles the scenario asked for, plus the hidden part
+    // of the dead wall where the rules keep one.
+    final dora = scenario.dora;
+    final TileWall wall;
+    if (r.isSanma) {
+      // 14 dead tiles: the replacement draws, and the rest as dora/ura pairs.
+      final pairs = (14 - SanmaRules.replacementDraws) ~/ 2;
+      final replacements = [
+        for (var i = 0; i < SanmaRules.replacementDraws; i++) pool.removeLast(),
+      ];
+      final indicators = <Tile>[];
+      for (var i = 0; i < pairs; i++) {
+        indicators.add(i < dora.length && dora[i] != TileType.blank
+            ? Tile(-100 - i, dora[i])
+            : pool.removeLast());
+        indicators.add(pool.removeLast());
+      }
+      _trim(pool, scenario.wallRemaining);
+      wall = SanmaWall.fromTiles(
+          live: pool,
+          replacements: replacements,
+          indicators: indicators,
+          // As many showing as were posed, up to the pairs the dead wall has.
+          revealed: dora.length.clamp(1, pairs));
+    } else if (r.isChineseStyle) {
+      _trim(pool, scenario.wallRemaining);
+      wall = r.isSichuan
+          ? SichuanWall.fromTiles(pool)
+          : r.isFuzhou
+              ? FuzhouWall.fromTiles(pool,
+                  gold: dora.isEmpty ? null : Tile(-100, dora.first))
+              : r.isTaiwanese
+                  ? TaiwaneseWall.fromTiles(pool)
+                  : HongKongWall.fromTiles(pool);
+    } else {
+      _trim(pool, scenario.wallRemaining + 14 - dora.length.clamp(0, 5));
+      wall = Wall.playable(unseen: pool, dora: dora, rng: rng);
+    }
+
+    final round = _poseRound(playWall: wall);
+    for (final e in hands.entries) {
+      round.seats[e.key].hand = sortByType(e.value);
+    }
+    for (var i = 0; i < 4; i++) {
+      if (!r.seatIsActive(i)) round.seats[i].hand = [];
+    }
+    if (r.isSichuan) {
+      // Every seat has named its void suit by now; those the builder left
+      // blank take the one the guide would.
+      for (final s in round.seats) {
+        s.voidSuit ??= round.suggestVoidSuit(s.seat);
+      }
+    }
+    round.beginPosedPlay();
+    return round;
+  }
+
+  static void _trim(List<Tile> pool, int keep) {
+    if (pool.length > keep) pool.length = keep < 0 ? 0 : keep;
   }
 
   /// Apply an edit and re-score in one step.

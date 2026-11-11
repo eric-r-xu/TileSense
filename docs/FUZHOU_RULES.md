@@ -46,12 +46,22 @@ callable off the last discard except to win. Its flag is an image, the city's
 Once everyone's flowers are replaced, the dealer flips the last of the held-back
 tiles. That tile *type* is the **Gold**:
 
-- The three other tiles of that type are **wild**: each stands in for any tile
-  in your hand and scores a point in a winning hand. (The fourth is the face-up
-  indicator, which nobody can hold.)
-- **If a flower or season is flipped**, the other seven flowers and seasons are
-  Gold instead, as the guide says. If a wind or dragon is flipped, the three
-  others of that kind are Gold.
+- Every Gold is **wild**: it stands in for any tile in your hand and scores a
+  point in a winning hand.
+- **How many Golds there are depends on what is flipped.** The flipped tile
+  itself is only the face-up indicator, which nobody can hold, so it is never
+  one of the Golds:
+
+  | Flipped tile | Which tiles are Gold | How many |
+  |---|---|---|
+  | A suit tile (say 5 pin) | The other **three** 5 pin | 3 (not 4: the fourth is the indicator) |
+  | A wind or dragon (say East) | The other **three** East | 3 |
+  | A flower or season (say Plum) | **All the other flowers and seasons**, whatever their number: Orchid, Chrysanthemum, Bamboo, Spring, Summer, Autumn and Winter | 7 (each exists once; the flipped one is the indicator) |
+
+  When a flower or season is flipped, the winds and dragons do **not** become
+  Gold: they are flowers in this game, but only the eight flowers and seasons
+  count as "the other flowers" here. This is as the guide says ("the other seven
+  flowers and seasons"); the code is `FuzhouRules.goldTypesFor`.
 - A Gold is **not** exposed as a flower: it stays in hand as a wild, whatever
   it is. (The guide lets a player declare a Gold flower for flower points
   instead; keeping the wild is always worth more, so the app never declares

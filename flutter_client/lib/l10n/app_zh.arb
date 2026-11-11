@@ -998,5 +998,22 @@
   "glossaryUnitPoints": "分",
   "glossaryTermGold": "金牌",
   "glossaryDefGold": "庄家在补花后翻出的一种牌是百搭：这种牌可代替手牌中的任意一张，每张计1分。不能吃、碰、杠；打出金牌的人只能自摸胡牌。",
-  "glossaryDefFlowersFuzhou": "所有风牌、箭牌、花牌和季节牌都是花牌。摸到时亮出，并从牌墙补一张。每张1分，集齐四张一套另有加分。"
+  "glossaryDefFlowersFuzhou": "所有风牌、箭牌、花牌和季节牌都是花牌。摸到时亮出，并从牌墙补一张。每张1分，集齐四张一套另有加分。",
+  "playStart": "开打",
+  "playPass": "过",
+  "playRiichi": "立直",
+  "playKita": "拔北",
+  "playPlayOn": "继续",
+  "playReset": "重置",
+  "playEditHand": "编辑手牌",
+  "playNewWall": "新牌墙",
+  "playSameWall": "同一牌墙",
+  "playAbort": "流局（九种九牌）",
+  "playStatusTurn": "轮到你：点一张牌打出。牌墙剩余 {count} 张。",
+  "playStatusRiichi": "立直：点要打出的牌。",
+  "playStatusCall": "{seat}打出了 {tile}：可以鸣牌，或选择过。",
+  "playStatusFlower": "花牌已使你和牌：和牌，或继续。",
+  "playStatusWaiting": "等待{seat}…",
+  "playStatusYouWin": "你和牌了！{result}",
+  "playStatusWon": "{seat}和牌：{result}"
 }

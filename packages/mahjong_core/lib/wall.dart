@@ -66,6 +66,32 @@ class Wall implements TileWall {
     ]);
   }
 
+  /// A wall a posed table can be played out on: the tiles nobody has seen
+  /// ([unseen], shuffled by [rng]) fill the live wall and the hidden slots of
+  /// the dead wall, and [dora] are the indicators already showing. Unlike
+  /// [Wall.posed], drawing from it hands back real tiles.
+  Wall.playable({
+    required List<Tile> unseen,
+    required List<TileType> dora,
+    required Random rng,
+  }) : _rng = rng {
+    final bag = List.of(unseen)..shuffle(rng);
+    final shown = dora.length.clamp(1, 5);
+    for (var i = 0; i < 14; i++) {
+      final slot = i - 4;
+      if (slot >= 0 &&
+          slot.isEven &&
+          slot ~/ 2 < dora.length &&
+          slot ~/ 2 < 5) {
+        _dead.add(Tile(-100 - slot ~/ 2, dora[slot ~/ 2]));
+      } else {
+        _dead.add(bag.removeLast());
+      }
+    }
+    _doraRevealed = dora.isEmpty ? 0 : shown;
+    _live.addAll(bag);
+  }
+
   final Random _rng;
 
   /// Live wall, drawn from the end.

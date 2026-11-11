@@ -34,12 +34,15 @@ class SanmaWall implements TileWall {
 
   /// Deterministic wall for rule fixtures: [live] in draw order (the first
   /// entry dealt or drawn first), then the eight [replacements] in order, and
-  /// [indicators] as dora/ura pairs (dora first).
+  /// [indicators] as dora/ura pairs (dora first). [revealed] is how many
+  /// dora indicators already show before any kan (one, as dealt, unless a
+  /// posed table says otherwise).
   SanmaWall.fromTiles({
     required List<Tile> live,
     List<Tile> replacements = const [],
     List<Tile> indicators = const [],
-  }) {
+    int revealed = 1,
+  }) : _baseDora = revealed {
     _live.addAll(live.reversed);
     _replacements.addAll(replacements);
     _indicators.addAll(indicators);
@@ -78,6 +81,9 @@ class SanmaWall implements TileWall {
 
   /// The indicators a posed wall shows, however many kans it allows.
   int? _posedDora;
+
+  /// Indicators showing before any kan.
+  int _baseDora = 1;
 
   /// Replacement draws still to take, for [SanmaWall.posed] on the client.
   int get replacementsLeft => _replacements.length - _replacementsTaken;
@@ -143,7 +149,7 @@ class SanmaWall implements TileWall {
   }
 
   int get _doraRevealed =>
-      _posedDora ?? min(1 + _kans, _indicators.length ~/ 2);
+      _posedDora ?? min(_baseDora + _kans, _indicators.length ~/ 2);
 
   @override
   List<TileType> doraIndicators() =>
