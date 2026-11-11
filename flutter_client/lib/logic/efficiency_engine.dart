@@ -3136,7 +3136,12 @@ class EfficiencyEngine {
       reason = opponentRiichi
           ? 'Riichi — no qualifying damaten here, and the value still '
               'clears the added risk of the live opponent riichi.'
-          : 'Riichi — the only way to guarantee a yaku on this wait.';
+          : everyDamaRon
+              // Toitoi, yakuhai, etc. already cover every wait: riichi is
+              // for the extra value, not for a yaku.
+              ? 'Riichi — you already have a yaku on every wait, but '
+                  'damaten is too cheap; riichi adds the value.'
+              : 'Riichi — the only way to guarantee a yaku on this wait.';
     } else if (everyDamaRon) {
       plan = context.closed ? 'DAMATEN' : 'OPEN YAKU';
       selectedPoints = damaPoints;

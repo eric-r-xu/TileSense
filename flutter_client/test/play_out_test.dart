@@ -85,7 +85,15 @@ void main() {
         session.finished || session.humanToDiscard || session.humanCall != null,
         isTrue);
 
-    await tester.tap(find.byKey(const Key('playStop')));
+    if (session.finished) {
+      // A bot won in those few turns: the results screen covers the bar, and
+      // has its own way back to the table.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.ensureVisible(find.byKey(const Key('playResultEdit')));
+      await tester.tap(find.byKey(const Key('playResultEdit')));
+    } else {
+      await tester.tap(find.byKey(const Key('playStop')));
+    }
     await tester.pump();
     expect(find.byKey(const Key('playStatus')), findsNothing);
     expect(tester.widget<TableView>(find.byType(TableView)).game,
