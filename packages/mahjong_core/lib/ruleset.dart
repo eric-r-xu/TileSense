@@ -204,6 +204,35 @@ enum Ruleset {
   int handsPerGame({required bool fullGame}) =>
       (fullGame ? (isMcr ? 4 : 2) : 1) * playerCount;
 
+  /// The prevailing wind for a zero-based hand index, excluding repeats.
+  /// Four-player riichi can reach West during a hanchan extension.
+  Wind roundWindFor(int roundNumber) => isRiichi || isMcr
+      ? Wind.values[(roundNumber ~/ playerCount).clamp(0, 3)]
+      : (roundNumber < playerCount ? Wind.east : Wind.south);
+
+  /// Whether a match ends after settling points and rotating the dealer.
+  /// [roundNumber] is the next hand's zero-based index (unchanged on a repeat).
+  /// Riichi hanchan extend through West while nobody has 30,000 points;
+  /// dealer repeats take priority, including at West 4. Deposits on the table
+  /// are excluded from [points]. Other game lengths retain their schedule.
+  bool gameEndsAfterRound({
+    required bool fullGame,
+    required int roundNumber,
+    required bool dealerKept,
+    required List<int> points,
+  }) {
+    if (isJapanese && points.any((p) => p < 0)) return true;
+    final scheduledHands = handsPerGame(fullGame: fullGame);
+    if (roundNumber < scheduledHands || (dealerKept && !isSichuan)) {
+      return false;
+    }
+    if (isRiichi && fullGame) {
+      return roundNumber >= scheduledHands + playerCount ||
+          points.any((p) => p >= 30000);
+    }
+    return true;
+  }
+
   /// Melds in a complete hand, beside its pair: 4 (a 14-tile hand) for riichi
   /// and Hong Kong, 5 (17 tiles) for Taiwanese and Fuzhou.
   int get totalMelds => (isTaiwanese || isFuzhou) ? 5 : 4;

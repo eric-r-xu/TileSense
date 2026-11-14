@@ -494,7 +494,11 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     // Sichuan has no round wind: its hands are simply numbered.
     final played = round.ruleset.isSichuan
         ? _handInWind - 1
-        : (round.roundWind == Wind.east ? 0 : 4) + _handInWind - 1;
+        : (round.ruleset.isRiichi
+                ? round.roundWind.index * 4
+                : (round.roundWind == Wind.east ? 0 : 4)) +
+            _handInWind -
+            1;
     return max(1, ruleset.handsPerGame(fullGame: hanchan) - played);
   }
 
