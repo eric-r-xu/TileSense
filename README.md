@@ -24,7 +24,8 @@ multiplayer server (`server/mp/`) and the telemetry ingest (`server/`).
 
 - **Single player** against three bots (two in Sanma), with each variant’s
   legal calls, wins and draw settlements. Full games cover East and South,
-  except MCR, which plays all four winds; East-only games are also available.
+  except MCR, which plays all four winds; riichi hanchan can extend into West
+  if nobody reaches 30,000 points. East-only games are also available.
   Seat **Saeko** and, under riichi, she plays Mortal's moves (see below);
   every other bot plays the same simple rulebook.
 - **Play Online**: all six variants in private rooms for up to four people

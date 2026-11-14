@@ -144,6 +144,9 @@ class EnRulesText extends RulesText {
                 : const [
                     'A full game (hanchan) is East and South, four hands each; East-only is four hands.',
                     'The dealer repeats after winning, or when ready at an exhaustive draw.',
+                    'If nobody has 30,000 points when South 4 passes the dealership, hanchan extends into West.',
+                    'In West, the game ends when the dealer passes with someone at 30,000 or more, or when West 4 passes the dealership.',
+                    'Dealer repeats take priority, including at West 4.',
                   ]),
         RuleSection('source', 'About this summary', [
           'A quick guide to TileSense’s rules; the lists above cover every yaku, fu rule and limit the scorer counts.',

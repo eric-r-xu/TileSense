@@ -144,7 +144,6 @@ class TableLoop {
   final Duration _afterCallPace;
 
   Ruleset get ruleset => room.ruleset;
-  int get _handsPerGame => ruleset.handsPerGame(fullGame: room.hanchan);
 
   late Round round;
   final Map<int, SimpleBot> _bots = {};
@@ -215,7 +214,7 @@ class TableLoop {
   /// Hands per round wind: one per player, so three in sanma.
   int get _handsPerWind => ruleset.playerCount;
 
-  Wind get _roundWind => ruleset.isMcr ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)] : (_roundNumber < _handsPerWind ? Wind.east : Wind.south);
+  Wind get _roundWind => ruleset.roundWindFor(_roundNumber);
 
   /// The hand's number shown to players: 1-4 within the round wind (1-3 in
   /// sanma), except in Sichuan, which has no round wind and simply counts its
@@ -838,9 +837,12 @@ class TableLoop {
     _honba = rot.honba;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
-    final tobi = ruleset.isJapanese && _points.any((p) => p < 0);
-    final gameOver = tobi ||
-        (_roundNumber >= _handsPerGame && (!dealerKept || ruleset.isSichuan));
+    final gameOver = ruleset.gameEndsAfterRound(
+      fullGame: room.hanchan,
+      roundNumber: _roundNumber,
+      dealerKept: dealerKept,
+      points: _points,
+    );
 
     _broadcastRoundResult(gameOver: gameOver);
 

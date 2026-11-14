@@ -692,11 +692,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
   int get dealerRepeat => _dealerRepeat;
   int get riichiSticks => _riichiSticks;
 
-  /// East for hands 1-4, South for 5-8 — hanchan, same for both rulesets.
+  /// East for hands 1-4, South for 5-8, and West for a riichi extension.
   /// Sanma has three hands a wind, one per player.
-  Wind get roundWind => ruleset.isMcr
-      ? Wind.values[(_roundNumber ~/ 4).clamp(0, 3)]
-      : (_roundNumber < ruleset.playerCount ? Wind.east : Wind.south);
+  Wind get roundWind => ruleset.roundWindFor(_roundNumber);
 
   /// 1-4 within the current round wind (1-3 in sanma).
   @override
@@ -1017,11 +1015,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _dealerRepeat = dealerKept ? _dealerRepeat + 1 : 0;
     _points = [for (var i = 0; i < 4; i++) round.seats[i].points];
 
-    // Riichi ends the game when anyone goes below zero; Hong Kong plays on.
-    final tobi = ruleset.isJapanese && _points.any((p) => p < 0);
-    if (tobi ||
-        (_roundNumber >= _handsPerGame &&
-            (!dealerKept || ruleset.isSichuan))) {
+    if (ruleset.gameEndsAfterRound(
+      fullGame: hanchan,
+      roundNumber: _roundNumber,
+      dealerKept: dealerKept,
+      points: _points,
+    )) {
       phase = GamePhase.gameEnd;
       _tel?.matchEnd(
         matchId: _matchId,

@@ -16,7 +16,7 @@ simplified or left out, as listed below. This is a trainer, not a ruleset arbite
 - 14 tiles form the dead wall: four kan replacements and the dora / ura-dora indicators. The other 122 are the live wall. A kan's replacement comes from the dead wall and shortens the live wall by one. At most four kans are made per hand.
 - Chi only from the player on your left. Ron takes priority over pon/kan, then chi. Added kans can be robbed (chankan); closed kans cannot.
 - **Multiple ron** is allowed: every seat that can ron wins, each paid separately by the discarder. There is no head bump.
-- The game ends after the last scheduled hand unless the dealer repeats it, or at once when anyone falls **below zero** (tobi). There is no West-round extension, no uma or oka, and the dealer keeps playing the last hand for as long as they repeat.
+- A hanchan extends into **West** if nobody has **30,000 points** when South 4 passes the dealership. In West, it ends when a hand passes the dealership with someone at 30,000 or more, or when West 4 passes the dealership regardless of scores. Dealer repeats take priority, including at West 4; there is no automatic dealer-top stopping. East-only games retain their four-dealership schedule. Any game ends at once when anyone falls **below zero** (tobi). There is no uma or oka.
 
 ## Riichi and furiten
 
