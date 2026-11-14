@@ -1,0 +1,945 @@
+{
+  "scope": "completed self-draw scoring and scalar normalization; not future EV",
+  "cases": [
+    {
+      "name": "pinfu",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.020999999716877937,
+        0.07000000029802322
+      ],
+      "independent_ev_scalars": [
+        0.021,
+        0.07
+      ],
+      "independent_points": 2100,
+      "passed": true
+    },
+    {
+      "name": "pinfu",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.014999999664723873,
+        0.05000000074505806
+      ],
+      "independent_ev_scalars": [
+        0.015,
+        0.05
+      ],
+      "independent_points": 1500,
+      "passed": true
+    },
+    {
+      "name": "edge_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.014999999664723873,
+        0.05000000074505806
+      ],
+      "independent_ev_scalars": [
+        0.015,
+        0.05
+      ],
+      "independent_points": 1500,
+      "passed": true
+    },
+    {
+      "name": "edge_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.010999999940395355,
+        0.036666665226221085
+      ],
+      "independent_ev_scalars": [
+        0.011,
+        0.03666666666666667
+      ],
+      "independent_points": 1100,
+      "passed": true
+    },
+    {
+      "name": "double_wind_pair",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.020999999716877937,
+        0.07000000029802322
+      ],
+      "independent_ev_scalars": [
+        0.021,
+        0.07
+      ],
+      "independent_points": 2100,
+      "passed": true
+    },
+    {
+      "name": "double_wind_pair",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.014999999664723873,
+        0.05000000074505806
+      ],
+      "independent_ev_scalars": [
+        0.015,
+        0.05
+      ],
+      "independent_points": 1500,
+      "passed": true
+    },
+    {
+      "name": "seven_pairs",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.18000000715255737,
+        0.6000000238418579
+      ],
+      "independent_ev_scalars": [
+        0.18,
+        0.6
+      ],
+      "independent_points": 18000,
+      "passed": true
+    },
+    {
+      "name": "seven_pairs",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.11999999731779099,
+        0.4000000059604645
+      ],
+      "independent_ev_scalars": [
+        0.12,
+        0.4
+      ],
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "name": "ambiguous",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.09600000083446503,
+        0.3199999928474426
+      ],
+      "independent_ev_scalars": [
+        0.096,
+        0.32
+      ],
+      "independent_points": 9600,
+      "passed": true
+    },
+    {
+      "name": "ambiguous",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.052000001072883606,
+        0.1733333319425583
+      ],
+      "independent_ev_scalars": [
+        0.052,
+        0.17333333333333334
+      ],
+      "independent_points": 5200,
+      "passed": true
+    },
+    {
+      "name": "three_suits",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.11999999731779099,
+        0.4000000059604645
+      ],
+      "independent_ev_scalars": [
+        0.12,
+        0.4
+      ],
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "name": "three_suits",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.07999999821186066,
+        0.2666666805744171
+      ],
+      "independent_ev_scalars": [
+        0.08,
+        0.26666666666666666
+      ],
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "name": "straight",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.07800000160932541,
+        0.25999999046325684
+      ],
+      "independent_ev_scalars": [
+        0.078,
+        0.26
+      ],
+      "independent_points": 7800,
+      "passed": true
+    },
+    {
+      "name": "straight",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.03999999910593033,
+        0.13333334028720856
+      ],
+      "independent_ev_scalars": [
+        0.04,
+        0.13333333333333333
+      ],
+      "independent_points": 4000,
+      "passed": true
+    },
+    {
+      "name": "duplicate_sequences",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.18000000715255737,
+        0.6000000238418579
+      ],
+      "independent_ev_scalars": [
+        0.18,
+        0.6
+      ],
+      "independent_points": 18000,
+      "passed": true
+    },
+    {
+      "name": "duplicate_sequences",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.11999999731779099,
+        0.4000000059604645
+      ],
+      "independent_ev_scalars": [
+        0.12,
+        0.4
+      ],
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "name": "outside",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.11999999731779099,
+        0.4000000059604645
+      ],
+      "independent_ev_scalars": [
+        0.12,
+        0.4
+      ],
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "name": "outside",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.07999999821186066,
+        0.2666666805744171
+      ],
+      "independent_ev_scalars": [
+        0.08,
+        0.26666666666666666
+      ],
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "name": "terminal_outside",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.11699999868869781,
+        0.38999998569488525
+      ],
+      "independent_ev_scalars": [
+        0.117,
+        0.39
+      ],
+      "independent_points": 11700,
+      "passed": true
+    },
+    {
+      "name": "terminal_outside",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.07900000363588333,
+        0.2633333206176758
+      ],
+      "independent_ev_scalars": [
+        0.079,
+        0.2633333333333333
+      ],
+      "independent_points": 7900,
+      "passed": true
+    },
+    {
+      "name": "half_flush",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.23999999463558197,
+        0.800000011920929
+      ],
+      "independent_ev_scalars": [
+        0.24,
+        0.8
+      ],
+      "independent_points": 24000,
+      "passed": true
+    },
+    {
+      "name": "half_flush",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.11999999731779099,
+        0.4000000059604645
+      ],
+      "independent_ev_scalars": [
+        0.12,
+        0.4
+      ],
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "name": "red_five",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.029999999329447746,
+        0.10000000149011612
+      ],
+      "independent_ev_scalars": [
+        0.03,
+        0.1
+      ],
+      "independent_points": 3000,
+      "passed": true
+    },
+    {
+      "name": "red_five",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.019999999552965164,
+        0.06666667014360428
+      ],
+      "independent_ev_scalars": [
+        0.02,
+        0.06666666666666667
+      ],
+      "independent_points": 2000,
+      "passed": true
+    },
+    {
+      "name": "four_concealed_pair_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "four_concealed_pair_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "four_concealed_triplet_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "four_concealed_triplet_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "orphan_thirteen_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "orphan_thirteen_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "orphan_single_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "orphan_single_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "nine_gates_pure_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "nine_gates_pure_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "nine_gates_other_wait",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "nine_gates_other_wait",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "three_dragons",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "three_dragons",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    },
+    {
+      "name": "green_and_concealed",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.9599999785423279,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.96,
+        1.0
+      ],
+      "independent_points": 96000,
+      "passed": true
+    },
+    {
+      "name": "green_and_concealed",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.6399999856948853,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.64,
+        1.0
+      ],
+      "independent_points": 64000,
+      "passed": true
+    },
+    {
+      "name": "terminals_and_concealed",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.9599999785423279,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.96,
+        1.0
+      ],
+      "independent_points": 96000,
+      "passed": true
+    },
+    {
+      "name": "terminals_and_concealed",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.6399999856948853,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.64,
+        1.0
+      ],
+      "independent_points": 64000,
+      "passed": true
+    },
+    {
+      "name": "winds_honors_concealed",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        1.0,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        1.0,
+        1.0
+      ],
+      "independent_points": 144000,
+      "passed": true
+    },
+    {
+      "name": "winds_honors_concealed",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.9599999785423279,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.96,
+        1.0
+      ],
+      "independent_points": 96000,
+      "passed": true
+    },
+    {
+      "name": "dragons_honors_concealed",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        1.0,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        1.0,
+        1.0
+      ],
+      "independent_points": 144000,
+      "passed": true
+    },
+    {
+      "name": "dragons_honors_concealed",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.9599999785423279,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.96,
+        1.0
+      ],
+      "independent_points": 96000,
+      "passed": true
+    },
+    {
+      "name": "initial_self_draw",
+      "dealer": true,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.47999998927116394,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.48,
+        1.0
+      ],
+      "independent_points": 48000,
+      "passed": true
+    },
+    {
+      "name": "initial_self_draw",
+      "dealer": false,
+      "oracle_can_agari": true,
+      "oracle_ev_scalars": [
+        0.3199999928474426,
+        1.0
+      ],
+      "independent_ev_scalars": [
+        0.32,
+        1.0
+      ],
+      "independent_points": 32000,
+      "passed": true
+    }
+  ],
+  "frozen_completed_cases": [
+    {
+      "source": 0,
+      "case": 24,
+      "independent_points": 3000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 71,
+      "independent_points": 5200,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 108,
+      "independent_points": 1500,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 118,
+      "independent_points": 2700,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 134,
+      "independent_points": 3000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 145,
+      "independent_points": 2700,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 148,
+      "independent_points": 4000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 150,
+      "independent_points": 2000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 163,
+      "independent_points": 4000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 172,
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 180,
+      "independent_points": 11700,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 185,
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 190,
+      "independent_points": 11700,
+      "passed": true
+    },
+    {
+      "source": 0,
+      "case": 195,
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 16,
+      "independent_points": 2000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 19,
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 33,
+      "independent_points": 2000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 38,
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 50,
+      "independent_points": 5200,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 102,
+      "independent_points": 2700,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 105,
+      "independent_points": 16000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 137,
+      "independent_points": 5200,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 139,
+      "independent_points": 2000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 142,
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 160,
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 164,
+      "independent_points": 12000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 170,
+      "independent_points": 7800,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 176,
+      "independent_points": 7800,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 179,
+      "independent_points": 8000,
+      "passed": true
+    },
+    {
+      "source": 1,
+      "case": 182,
+      "independent_points": 2700,
+      "passed": true
+    }
+  ],
+  "frozen_sources": [
+    {
+      "frames_sha256": "fe0db1f00cd3a4406b059f38d86ef47b8a42a56eac39ff1d9bcf27a70c7003ed",
+      "cases_sha256": "86e23c3600ed956917e7449b26e65f5efce545060e5e8d345fbe1e12a106dbea",
+      "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493"
+    },
+    {
+      "frames_sha256": "f968127d2363da7b221e8082bde4e865bd76044f6770d8029e8143614fe11d3f",
+      "cases_sha256": "9499bad5a1485ce3f2d28de389b0dfd2a93ee3cb40df9e476ff526a5be1e5dab",
+      "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493"
+    }
+  ],
+  "passed": true,
+  "migration_ready": false,
+  "oracle": {
+    "binary_sha256": "b6a9538b70ccb04c73f44ec9da325a39def7c5fbfaca11cac62c9537975eaffd",
+    "expected_source_commit": "6c6dfe803401e573f802f36437840b9136f62d90",
+    "binary_source_linkage": "existing local build; source linkage not independently attested"
+  },
+  "probe_sha256": "f2f2d6d7316f6ea3d727b1b11c9eb8bab2c81fc8455bca51cd76af731096e5ac",
+  "implementation_sha256": {
+    "__init__.py": "a6fc2625e958b2f464cc742583b62c888f0274ca5db177ccd789026e9a2f579a",
+    "actions.py": "13e5811d9a6a47198e446ee9001007866bfb255a9867d6c9c1c75ae2bd6cb838",
+    "efficiency.py": "f94bf6976a8a50c2436f51d12c3134dfc0ed4f5e0617b8e5745aae3124438104",
+    "hand.py": "61f2c674e4504735ce8969c19ab071ae3ad17609c6384390ab106e9ffd76ffd0",
+    "legality.py": "6399d66465d6c37e13894aa8765dc3ee9ff6b8289172d3f017fda0def9ecbd0f",
+    "observation.py": "ca5682e2c668e7db46b4112a774e9d795dce7ae461ca72a9ea0dc56c15f4db62",
+    "runtime.py": "27997c83bed77ae5a59c01a605b336a5965f6ef0184d2270981b18dda2298442",
+    "scoring.py": "c5af5c24e9de24aa4c82694e995d34559a61a794d22931cf901194b26f8b4e90",
+    "state.py": "4d1ab219bba55fdb68e15d8ed77cda55922e5ee9113f9766a03714457bcb92ba",
+    "visibility.py": "57bd32748071d3bbf539a84d9aa663d34b416d4f6981161742fe75c4c3be4086",
+    "yaku.py": "fb195fac8a8dec4928103688cad08ff883c4bd839ad494e72f4b4f4d05d9e7cc"
+  },
+  "limitations": [
+    "synthetic prefixes isolate scoring and do not constitute legal full-game replay",
+    "scalar clipping cannot distinguish all hand values above normalization bounds",
+    "future EV assumptions, ron-only edge cases and liability settlement are not certified"
+  ]
+}

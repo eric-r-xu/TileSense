@@ -1,0 +1,23 @@
+{
+  "scope": "one-shanten analytical probability diagnostic only",
+  "diagnostic_only": true,
+  "migration_ready": false,
+  "reference_cases": 210,
+  "positions": 47,
+  "discard_or_response_candidates": 99,
+  "horizon_comparisons": 1683,
+  "max_abs_difference": 4.3159226781330773e-07,
+  "differences_over_1e_7": 133,
+  "differences_over_1e_6": 0,
+  "formula": "1 - product(1 - live / (unseen - elapsed - turn)) over remaining own draws",
+  "frames_sha256": "fe0db1f00cd3a4406b059f38d86ef47b8a42a56eac39ff1d9bcf27a70c7003ed",
+  "cases_sha256": "86e23c3600ed956917e7449b26e65f5efce545060e5e8d345fbe1e12a106dbea",
+  "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+  "probe_sha256": "b26e3841e5ebdd8b48678fd483855bb6bf2e22229bc3e1462178de9766261d54",
+  "limitations": [
+    "uses oracle observations only as expected outputs",
+    "float64 analytical calculation; pinned float32 operation order is unresolved",
+    "does not test two/three-shanten search, winning probabilities or score EV",
+    "does not mark any probability/EV row implemented"
+  ]
+}

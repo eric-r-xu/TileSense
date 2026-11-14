@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+  "engine_commit": "6c6dfe803401e573f802f36437840b9136f62d90",
+  "decisions": 128,
+  "replayed_games": [
+    {
+      "file": "2026101200gm-00a9-0000-062293fc.json.gz",
+      "sha256": "c7cd7e1fb1b0ea9f106cd06d908ffcf2b105ac5ee17ff48cc53135203088a92f"
+    }
+  ],
+  "fixture_sha256": "fd30087b4aacba7dca52d2b2ab8f522692457eae4c4c4618c745ba4f15915595",
+  "candidates": [
+    {
+      "candidate": "g16000.pth",
+      "sha256": "3b183a91d68796d2ae78730d1a799977b8845ec76cf3fa25514163b612925fdf",
+      "max_abs_legal_q_difference": 0.29070377349853516,
+      "same_action_fraction": 1.0,
+      "matches_replay_fixture": false,
+      "can_resume_original_training": false
+    },
+    {
+      "candidate": "g2000.pth",
+      "sha256": "f1da4a6510a8d277c7002e8bbc8c24337e1874550ddf3720b9287d55a6f1f72d",
+      "max_abs_legal_q_difference": 0.6290764808654785,
+      "same_action_fraction": 0.9765625,
+      "matches_replay_fixture": false,
+      "can_resume_original_training": false
+    },
+    {
+      "candidate": "g23033.pth",
+      "sha256": "e8c8a46b6e651ccb3292a87c25156ebbe5f6d336155e9947b226b9bd71503469",
+      "max_abs_legal_q_difference": 8.58306884765625e-06,
+      "same_action_fraction": 1.0,
+      "matches_replay_fixture": true,
+      "can_resume_original_training": false
+    },
+    {
+      "candidate": "g4000.pth",
+      "sha256": "b1afb43a0be516d6eaf268c2c18a9ad2c9a8be4a36236c5757a48fbdfcf5ffcd",
+      "max_abs_legal_q_difference": 0.4461650848388672,
+      "same_action_fraction": 0.984375,
+      "matches_replay_fixture": false,
+      "can_resume_original_training": false
+    },
+    {
+      "candidate": "g8000.pth",
+      "sha256": "30eb3b0a19dba862b9208f28f83f64d7f3c2ea83e05ea589fb55ba288afda38e",
+      "max_abs_legal_q_difference": 0.3030853271484375,
+      "same_action_fraction": 1.0,
+      "matches_replay_fixture": false,
+      "can_resume_original_training": false
+    }
+  ],
+  "limitation": "numerical agreement on a replay fixture; not byte-level export provenance or an estimate of playing strength"
+}

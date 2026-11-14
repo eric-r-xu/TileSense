@@ -1,0 +1,88 @@
+{
+  "format_version": 1,
+  "scope": "oracle fixtures only; not a migrated library",
+  "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+  "oracle_binary_sha256": "b6a9538b70ccb04c73f44ec9da325a39def7c5fbfaca11cac62c9537975eaffd",
+  "oracle_inference": "mortal_sidecar.export_onnx.OnnxEngine",
+  "oracle_code_sha256": "295bf15fd257a5e1b48ffb58370b2adca892b13469a850294ef1e8365e6fd1f5",
+  "cases": 217,
+  "by_kind": {
+    "riichi": 32,
+    "discard": 32,
+    "pass": 32,
+    "pon": 32,
+    "agari": 32,
+    "chi": 32,
+    "kan": 12,
+    "kan_selection": 12,
+    "abortive_draw": 1
+  },
+  "games": [
+    {
+      "file": "2026101201gm-00a9-0000-4e504227.json.gz",
+      "sha256": "d3c6eb6e0fa1ca474f2918ecbf93ce0e86c3fe1fba256f087be20cc19ddacdf0"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-5284b867.json.gz",
+      "sha256": "76e81585cbec960d747302bb1e6de931204014c2df078362b56be267180a0903"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-654bcff7.json.gz",
+      "sha256": "50be42da1693a71e23542466fee8fbb117dcb0ca9a20be90187846da84eb9179"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-65d74c78.json.gz",
+      "sha256": "1d390c7be7d517ccedd92206815625bcfc9ecd9f4c542bf4256251573805cd4d"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-68f067e1.json.gz",
+      "sha256": "421f97cd290fb85073a6aed6e677112374a35e0337e02cffcfc08016c1f7a677"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-6acb58c6.json.gz",
+      "sha256": "53b6df18977a457087ee4035221e6f5a5210bd7cb12ee67944b733e08782c077"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-c27e4ecc.json.gz",
+      "sha256": "1375ca8129a25bff90ab88328d245a5ec5d091e5fb3d2a4e1bf98e4ddedc9664"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-d278d89b.json.gz",
+      "sha256": "1fd9514dc9c55771d8d414ba1ae4bffb800574551abbe9776a576f2119fcb7d3"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-d708e7c5.json.gz",
+      "sha256": "1b47c3a1fc410872c9f5e0108ac64acf4f034715fea8cee67fd2f3190d543717"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-de20b12d.json.gz",
+      "sha256": "20c74cb266465b05946b7834f07fa693f3cd55998a835d870f07edfb56c6db6d"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-e3d3798d.json.gz",
+      "sha256": "bfb3087e8905525a6246c90957d2473acbe14fccd0265044cc9e62d31e67afdc"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-e78b46e8.json.gz",
+      "sha256": "0a6f2ead880989ec16ea05c6fbb000ebf86446a1db34bf0940f5b744cbb1c8e2"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-f4814e06.json.gz",
+      "sha256": "dd38347a45da3fb4d4370ac417515731840e518f59e7351a4a52b0e24e2da4e2"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-fdef9afd.json.gz",
+      "sha256": "cd1ec82ed56691478cba33c37d3b42cbc80e0e56f1d32e9a7d0491e93f3736ac"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-fe537b48.json.gz",
+      "sha256": "5f8986f6d7e4040a0f54b950419ba45da4e37f12f1d87208d0cf890e435a0de7"
+    },
+    {
+      "file": "2026101202gm-00a9-0000-0aa173b6.json.gz",
+      "sha256": "7f67052518e3724e734e3e6b3ae9e8bd4cea8f2cd7f754b67b6cd98b3a247daa"
+    }
+  ],
+  "frames_sha256": "f968127d2363da7b221e8082bde4e865bd76044f6770d8029e8143614fe11d3f",
+  "cases_sha256": "9499bad5a1485ce3f2d28de389b0dfd2a93ee3cb40df9e476ff526a5be1e5dab"
+}

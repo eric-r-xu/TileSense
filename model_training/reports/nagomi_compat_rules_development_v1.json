@@ -1,0 +1,175 @@
+{
+  "scope": "independent hand/legality parity; not complete encoder or win-guard parity",
+  "counts": {
+    "event_seat_updates": 130492,
+    "stored_shanten_checks": 127564,
+    "waits_checks": 127564,
+    "furiten_checks": 127564,
+    "decision_positions": 19807,
+    "feature_row_comparisons": 17792446,
+    "kan_selection_positions": 207
+  },
+  "mismatches": {},
+  "missing_actions": {},
+  "extra_actions": {},
+  "examples": [],
+  "games": [
+    {
+      "file": "2026101200gm-00a9-0000-062293fc.json.gz",
+      "sha256": "c7cd7e1fb1b0ea9f106cd06d908ffcf2b105ac5ee17ff48cc53135203088a92f"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-1396e87a.json.gz",
+      "sha256": "9bfcbe2694bc087d5171b4572e7641c974f753d9829919108fe1e183edc146b6"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-1510b707.json.gz",
+      "sha256": "ff771973c3a9ea051b9fe4c05bd094f7027b886bf2e4d9bdba5356ad402420b5"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-32b15b4a.json.gz",
+      "sha256": "7e8863e85cedf682b32f8096140edd9541984040283eb3fa270edd802ecb9e86"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-3925cd99.json.gz",
+      "sha256": "39305acacea6179a2f58fcf4a96526c62dcc1d5339ff46a291952e5ef415bf43"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-393772a0.json.gz",
+      "sha256": "999d7b670fe5e40a9f8c6a56394b779ad33ca81853a7414115ecc753733f49b3"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-39e5c8e0.json.gz",
+      "sha256": "fbcb390d39a1de7a6e65d2f666a33821d29975f3c60ce8763c41f7b01ea0463e"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-4102b973.json.gz",
+      "sha256": "65fa8528f58a30feeb8aee39fa143f6a766915f691863ff4459b9f955b033d33"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-4706de71.json.gz",
+      "sha256": "46db1abd72b0dffb922ecd3425ca35aa83e4509a7cf7bda731de22e97a4347c1"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-52dc61c0.json.gz",
+      "sha256": "74a55dfbfca299ee06e6eb33b15146cebaf29b064eb86e820d972f281fad0b96"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-56b7b16c.json.gz",
+      "sha256": "6ece3ca7fe97c62bc27320ee00571abf2eee558bcaf58a06b0e4d54d2bd214de"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-5bfed8c8.json.gz",
+      "sha256": "6bf1cedb5df6ca10f8f41dfccfae61df93e035e928d0d44ffb53cb834a4298ce"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-6386ef83.json.gz",
+      "sha256": "923075012064e6c713b38079a2f0584222d7f9e6e21d1b38925fcf6fad9ff223"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-6420a054.json.gz",
+      "sha256": "b1028a0fe216a7a1ed19976eb2eb382f128a1d672e0f73847b4a17d5beb5278a"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-658e93b7.json.gz",
+      "sha256": "8d50d624db371570e573c560c76afe6058810b0a83d35faef1bfd6b32d3f116b"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-69aafa6a.json.gz",
+      "sha256": "f2821f75a7c7a3e9904935663777800796632d05ec178e9b14eeed797f743ca3"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-6ace4c33.json.gz",
+      "sha256": "d01cb703feaaf822887ee24e16cedf78e28cc4e6ebf977893ebdcfd91bee74b0"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-6b8c7690.json.gz",
+      "sha256": "75834b067363076052b81b830d170320fd44b4d8c9125cf1245172314bbad828"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-6d2d72c8.json.gz",
+      "sha256": "e7bbfd519821244b72caf889d59484bef13d564f84a7b40fc9a5e77e90691b38"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-749a911e.json.gz",
+      "sha256": "e9fbb1508a215a0812863a559698f75e56a24cf6b09866f365cea4bd67fcc35f"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-76cda1d1.json.gz",
+      "sha256": "5bb78385cd5e19dc1bbbbdd30751fd321e41dff92165889d84313d816d67c2f3"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-8779ef70.json.gz",
+      "sha256": "55706f70c3df022d538177e7cd31e98d8b01b4d4d8f934304671fb6cf7e25514"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-9324792a.json.gz",
+      "sha256": "a7cc9a41b15167fd5e0783aed71d3ae97b18d5d78bdfe0ae6f038840d935d012"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-c544c058.json.gz",
+      "sha256": "ccefb25c6242964b8e07bf20a0ef6b2f0228b21d9a0aafff8c25dc83c58abd1e"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-cb3d5d8c.json.gz",
+      "sha256": "0ee52cf5a1d68bab749fee4b4ee97d717d60ad5c9ce9de84dc49d9ff42148a6f"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-dfea76f7.json.gz",
+      "sha256": "35368766db7776c3b960de680f3c030eceb86d7d751b57779a06a06768f15288"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-ea4587d0.json.gz",
+      "sha256": "ddbe07cf1a73a00d6c4f1e520d268fffe3bb8e1272e19d5cf834040a1efdc5a3"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-f569680c.json.gz",
+      "sha256": "7502d41e009f0bd776ab100887acdb61e965852d0753d4782807ba51c3046e66"
+    },
+    {
+      "file": "2026101200gm-00a9-0000-fc3ade00.json.gz",
+      "sha256": "078be136b415e6930a01d4df08e05881e442dca43bf90db8344440ee3824771d"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-1eedfd30.json.gz",
+      "sha256": "c712437aaceb358bfee53e8817e81e4610a8d4c708d3edb238ab46088ea17095"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-334572d4.json.gz",
+      "sha256": "50f6116ad82a58901b9f952c3f5e454a861b32ff14f0f97da302fe61bfeec5b7"
+    },
+    {
+      "file": "2026101201gm-00a9-0000-4e4a81f1.json.gz",
+      "sha256": "f71ac32096506624da8e5e75eb0bc93f63464aa9bf5a325876f357ed55e61d5b"
+    }
+  ],
+  "feature_mismatches_by_row": {},
+  "passed": true,
+  "seconds": 89.19434095796896,
+  "implementation_sha256": {
+    "__init__.py": "a6fc2625e958b2f464cc742583b62c888f0274ca5db177ccd789026e9a2f579a",
+    "actions.py": "13e5811d9a6a47198e446ee9001007866bfb255a9867d6c9c1c75ae2bd6cb838",
+    "hand.py": "61f2c674e4504735ce8969c19ab071ae3ad17609c6384390ab106e9ffd76ffd0",
+    "legality.py": "6399d66465d6c37e13894aa8765dc3ee9ff6b8289172d3f017fda0def9ecbd0f",
+    "observation.py": "611f2ba5a73887e139ed72b0c8e7ef76485247c1edd5f6d288fd6e9f12114589",
+    "runtime.py": "27997c83bed77ae5a59c01a605b336a5965f6ef0184d2270981b18dda2298442",
+    "state.py": "a52d01d0a5a72211b552a0feb044d3abe98ac7583588715163823cc71073cc3d",
+    "visibility.py": "57bd32748071d3bbf539a84d9aa663d34b416d4f6981161742fe75c4c3be4086",
+    "yaku.py": "fb195fac8a8dec4928103688cad08ff883c4bd839ad494e72f4b4f4d05d9e7cc"
+  },
+  "oracle": {
+    "binary_sha256": "b6a9538b70ccb04c73f44ec9da325a39def7c5fbfaca11cac62c9537975eaffd",
+    "expected_source_commit": "6c6dfe803401e573f802f36437840b9136f62d90",
+    "binary_source_linkage": "existing local build; source linkage not independently attested"
+  },
+  "limitations": [
+    "four-player hanchan only",
+    "no independent win guard, han/fu or EV scoring"
+  ],
+  "feature_comparison": {
+    "atol": 1e-07,
+    "rtol": 0,
+    "includes_kan_phase": true
+  },
+  "migration_ready": false
+}

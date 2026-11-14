@@ -9,6 +9,7 @@ import 'package:mahjong_core/tile.dart' show Wind;
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/net/online_availability.dart';
 import 'package:tilesense/ui/character_select_page.dart';
 import 'package:tilesense/ui/scenario_page.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -24,6 +25,9 @@ String _name(WidgetTester tester, int seat) =>
     tester.widget<Text>(find.byKey(Key('seatCharacterName_$seat'))).data!;
 
 void main() {
+  // These tests exercise the web-only Play Online button.
+  setUpAll(() => playOnlineOverride = true);
+
   preloadDeferredPages();
 
   test('randomSeatCharacters draws four distinct characters', () {

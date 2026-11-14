@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/net/online_availability.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
 
@@ -15,6 +16,9 @@ import 'helpers.dart';
 /// there), fixed once a game is under way, and the game it deals lays out as
 /// cleanly as the one it left.
 void main() {
+  // These tests exercise the web-only Play Online button.
+  setUpAll(() => playOnlineOverride = true);
+
   preloadDeferredPages();
 
   String labelOf(WidgetTester tester, Key key) => tester

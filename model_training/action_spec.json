@@ -1,0 +1,26 @@
+{
+  "schema_id": "mjai-actions-v1",
+  "source": "Mortal libriichi action IDs; retained for adapter compatibility",
+  "rulesets": {
+    "nagomi": {"players": 4, "action_count": 46},
+    "sanma": {"players": 3, "action_count": 47}
+  },
+  "actions": {
+    "0..33": "discard tile type; also tile choice during kan selection",
+    "34..36": "red 5m, 5p, 5s discard or kan tile choice",
+    "37": "riichi",
+    "38..40": "chi variants; always masked in sanma",
+    "41": "pon",
+    "42": "kan decision; a separate masked selection may follow",
+    "43": "agari",
+    "44": "abortive draw",
+    "45": "pass",
+    "46": "kita; sanma only"
+  },
+  "constraints": [
+    "The rules engine generates legal masks and decodes selected IDs.",
+    "Every decision supplied to the network must have at least one legal action.",
+    "Riichi and kan selection require explicit adapter integration tests.",
+    "Action IDs are not mjai JSON event types and do not encode every event field."
+  ]
+}

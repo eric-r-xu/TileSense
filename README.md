@@ -27,7 +27,8 @@ multiplayer server (`server/mp/`) and the telemetry ingest (`server/`).
   except MCR, which plays all four winds; East-only games are also available.
   Seat **Saeko** and, under riichi, she plays Mortal's moves (see below);
   every other bot plays the same simple rulebook.
-- **Play Online**: all six variants in private rooms for up to four people
+- **Play Online** (web version only; the iOS and Android apps are fully
+  offline): all six variants in private rooms for up to four people
   (three in Sanma), with bots filling any
   empty seat. There is no guide or Auto-Play online, by design: nobody gets help
   the others don't.

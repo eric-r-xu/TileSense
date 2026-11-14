@@ -1,0 +1,80 @@
+{
+  "scope": "component parity, not independent end-to-end policy parity",
+  "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+  "reference_cases": 217,
+  "reference_games": 16,
+  "case_kinds": {
+    "riichi": 32,
+    "discard": 32,
+    "pass": 32,
+    "pon": 32,
+    "agari": 32,
+    "chi": 32,
+    "kan": 12,
+    "kan_selection": 12,
+    "abortive_draw": 1
+  },
+  "runtime_with_oracle_inputs": {
+    "same_action_fraction": 1.0,
+    "q_close_cases": 217,
+    "max_legal_q_difference": 9.5367431640625e-07
+  },
+  "independent_features": {
+    "implemented_rows": 717,
+    "row_case_comparisons": 155589,
+    "row_case_mismatches": 0,
+    "mismatches_by_row": {},
+    "max_abs_difference": 0.0,
+    "complete_observation_cases": 0,
+    "missing_groups": {
+      "computed_state_and_probability_planes_717_1011": 217
+    }
+  },
+  "decoder_given_oracle_argmax": {
+    "abortive_draw": {
+      "cases": 1,
+      "semantic_matches": 1
+    },
+    "agari": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "chi": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "discard": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "kan": {
+      "cases": 12,
+      "semantic_matches": 12
+    },
+    "pass": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "pon": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "riichi": {
+      "cases": 32,
+      "semantic_matches": 32
+    }
+  },
+  "decoder_failures": {},
+  "migration_ready": false,
+  "remaining": [
+    "computed observation planes 717\u20131011",
+    "independent legal masks and win guard",
+    "full reaction and riichi/kan-chain parity"
+  ],
+  "limitations": [
+    "runtime parity uses oracle observations/masks; not a migrated feature pipeline",
+    "decoder comparison uses oracle argmax; no independent legality certification",
+    "consumed tile order is normalized; tile identity/redness is retained",
+    "only Nagomi four-player hanchan fixtures captured; not sanma or East-only"
+  ]
+}

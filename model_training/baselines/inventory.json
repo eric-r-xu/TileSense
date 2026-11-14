@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "hardware": {
+    "machine": "arm64",
+    "system": "Darwin",
+    "memory_bytes": 17179869184,
+    "chip": "Apple M4"
+  },
+  "baselines": {
+    "base_298k": {
+      "manifest": "mortal_sidecar/model.json",
+      "url": "https://github.com/eric-r-xu/TileSense/releases/download/mortal-298k-onnx-v1/mortal_298k.onnx",
+      "sha256": "b9e6bdad70c47dd8f2a392f4cdb57471c7f94f4c6b9ad2ee10fa2e8c9530f7d1",
+      "mortal_repo": "https://github.com/eric-r-xu/Mortal.git",
+      "mortal_commit": "6c6dfe803401e573f802f36437840b9136f62d90",
+      "local_sha256": "b9e6bdad70c47dd8f2a392f4cdb57471c7f94f4c6b9ad2ee10fa2e8c9530f7d1",
+      "matches_release_manifest": true
+    },
+    "sanma": {
+      "manifest": "mortal_sidecar/model_sanma.json",
+      "url": "https://github.com/eric-r-xu/TileSense/releases/download/mortal-sanma-104k-onnx-v1/mortal_sanma.onnx",
+      "sha256": "e9863274c2972d15742fd3f46718bd2dff8ccc82e7a676aff25b44cbb63658c1",
+      "mortal_repo": "https://github.com/eric-r-xu/Mortal.git",
+      "mortal_commit": "6832fd1520658d810a5fa0a563e32fd16a703987",
+      "cargo_features": "sanma",
+      "local_sha256": "e9863274c2972d15742fd3f46718bd2dff8ccc82e7a676aff25b44cbb63658c1",
+      "matches_release_manifest": true
+    },
+    "nagomi": {
+      "manifest": "mortal_sidecar/model_nagomi.json",
+      "url": "https://github.com/eric-r-xu/TileSense/releases/download/mortal-nagomi-ft-onnx-v1/mortal_nagomi.onnx",
+      "sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+      "mortal_repo": "https://github.com/eric-r-xu/Mortal.git",
+      "mortal_commit": "6c6dfe803401e573f802f36437840b9136f62d90",
+      "local_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+      "matches_release_manifest": true
+    }
+  },
+  "datasets": {
+    "sanma": {
+      "counts": {
+        "train": 31888,
+        "val": 1670
+      },
+      "split_manifest_sha256": "7efb046b0d9c6a7d60322cfdb3a14958f9f93a5055a339f0432555422f82edf5",
+      "issues": [],
+      "passed": true,
+      "validation_scope": "JSON structure, seat counts, completion, game IDs and gameplay hashes; not rules-engine replay validation",
+      "test_usage_history": "unverified",
+      "test_present": false
+    },
+    "nagomi": {
+      "counts": {
+        "train": 23033,
+        "val": 3362,
+        "test": 3073
+      },
+      "split_manifest_sha256": "b2dc4404fed7541f124b91b28f52be217dea455a7cde0a1c9bcda559939e4dad",
+      "issues": [],
+      "passed": true,
+      "validation_scope": "JSON structure, seat counts, completion, game IDs and gameplay hashes; not rules-engine replay validation",
+      "test_usage_history": "unverified",
+      "test_present": true
+    }
+  },
+  "passed": true
+}

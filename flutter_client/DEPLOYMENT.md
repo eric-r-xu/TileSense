@@ -290,6 +290,21 @@ Check who signed a bundle (the output is public certificate data):
 keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab
 ```
 
+### Store builds are fully offline
+
+The Play Store and App Store builds make **no network connections**, which is
+what the privacy policy and the stores' privacy disclosures say. Keep it so:
+
+- Play Online is hidden outside the web (`lib/net/online_availability.dart`), and
+  the release manifest has no `INTERNET` permission. Do not add one.
+- Web telemetry is inert off the web.
+- Mortal is off unless a build passes `--dart-define=MORTAL_URL=…` (or
+  `MORTAL_SANMA_URL`, `MORTAL_NAGOMI_URL`). **Never pass those to a store
+  build**; on mobile, Saeko and Nagomi play the built-in rulebook instead.
+
+If any of this changes, update `web/privacy.html` and the store privacy forms
+first.
+
 ### Build
 
 ```sh

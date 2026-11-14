@@ -4,6 +4,7 @@ import 'package:mahjong_core/ruleset.dart';
 import 'package:tilesense/game/online_game_controller.dart';
 import 'package:tilesense/game/sfx.dart' show Character, kCharacterName;
 import 'package:tilesense/main.dart' show TileSenseApp, kDesignSize;
+import 'package:tilesense/net/online_availability.dart';
 import 'package:tilesense/net/guest_identity.dart';
 import 'package:tilesense/ui/character_picker.dart';
 import 'package:tilesense/ui/online_game_page.dart';
@@ -17,6 +18,9 @@ import 'lobby_helpers.dart';
 /// with no scrolling, and the name field is meant to track whichever
 /// character is selected until the player types their own.
 void main() {
+  // These tests exercise the web-only Play Online button.
+  setUpAll(() => playOnlineOverride = true);
+
   preloadDeferredPages();
   Future<void> pump(WidgetTester tester, OnlineGameController game) async {
     await tester.binding.setSurfaceSize(kDesignSize);

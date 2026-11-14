@@ -1,0 +1,211 @@
+{
+  "purpose": "bounded real-data imitation overfit; not a release model",
+  "config": {
+    "ruleset": "sanma",
+    "architecture_id": "tilesense-hybrid-v0",
+    "observation_schema_id": "tilesense-visible-v1",
+    "action_schema_id": "mjai-actions-v1",
+    "tile_features": 20,
+    "context_features": 40,
+    "history_length": 128,
+    "width": 128,
+    "layers": 2,
+    "heads": 4
+  },
+  "device": "mps",
+  "torch_version": "2.15.0",
+  "parameters": 529603,
+  "updates": 20,
+  "samples": 64,
+  "initial_train": {
+    "loss": 2.4583654403686523,
+    "accuracy": 0.140625
+  },
+  "final_train": {
+    "loss": 0.0647416040301323,
+    "accuracy": 1.0
+  },
+  "validation": {
+    "loss": 2.8091580867767334,
+    "accuracy": 0.265625
+  },
+  "overfit_passed": true,
+  "train_seconds": 0.7161969580338337,
+  "examples_per_second": 1787.217867434075,
+  "extraction_seconds": 1.1469932079780847,
+  "mps_memory": {
+    "allocated_bytes_at_end": 11582464,
+    "driver_allocated_bytes_at_end": 1144307712,
+    "scope": "snapshot after training; not a peak measurement"
+  },
+  "checkpoint_restoration_exact": true,
+  "onnx_synthetic_parity": {
+    "batch_sizes_checked": [
+      1,
+      3
+    ],
+    "max_legal_q_difference": 1.1920928955078125e-06,
+    "file_bytes": 2145587
+  },
+  "onnx_real_parity": {
+    "decisions": 8,
+    "max_legal_q_difference": 2.384185791015625e-06,
+    "same_action_fraction": 1.0
+  },
+  "local_integration": {
+    "validated_fixtures": 8,
+    "results": [
+      {
+        "logged_label": 46,
+        "reaction_type": "nukidora",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 0,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 8,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 28,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 26,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 32,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 18,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      },
+      {
+        "logged_label": 17,
+        "reaction_type": "dahai",
+        "network_decisions": 1
+      }
+    ],
+    "scope": "local decoded reactions on validation prefixes; not complete games"
+  },
+  "provenance": {
+    "purpose": "bounded real-data imitation overfit; not a release model",
+    "seed": 7,
+    "engine": {
+      "binary_sha256": "feb1352ab1d426a9b69bdd71e157751609e72670f51400d1e3f0ba8f615c45d5",
+      "expected_source_commit": "6832fd1520658d810a5fa0a563e32fd16a703987",
+      "binary_source_linkage": "existing local build; source linkage not independently attested"
+    },
+    "train": {
+      "games": [
+        {
+          "split": "train",
+          "file": "2026060100gm-00b9-0000-08751dc8.json.gz",
+          "sha256": "e425e7e93b05b60ba165e85b43365052e0ee95d1dd1beb4c1f45abc4d25f745e"
+        },
+        {
+          "split": "train",
+          "file": "2026060100gm-00b9-0000-1d340912.json.gz",
+          "sha256": "3af429ff2631345ea784263aa0e6fc49f061815b66932f80e05497e7285f9c3a"
+        }
+      ],
+      "seat_event_updates": 5046,
+      "available_nonforced_samples": 764,
+      "selected_samples": 64,
+      "label_counts": {
+        "27": 4,
+        "31": 2,
+        "32": 6,
+        "17": 3,
+        "10": 2,
+        "29": 2,
+        "9": 2,
+        "18": 3,
+        "28": 5,
+        "21": 4,
+        "33": 4,
+        "26": 2,
+        "46": 5,
+        "20": 2,
+        "0": 3,
+        "11": 1,
+        "25": 6,
+        "24": 1,
+        "8": 2,
+        "16": 1,
+        "15": 1,
+        "37": 1,
+        "43": 1,
+        "42": 1
+      }
+    },
+    "validation": {
+      "games": [
+        {
+          "split": "val",
+          "file": "2026060100gm-00b9-0000-13e6ad66.json.gz",
+          "sha256": "e63b747eed50ed91f88e6bcfa18a4eb9d89610d0cd0f2cea956842c377561abf"
+        }
+      ],
+      "seat_event_updates": 1680,
+      "available_nonforced_samples": 260,
+      "selected_samples": 64,
+      "label_counts": {
+        "29": 5,
+        "22": 1,
+        "13": 2,
+        "16": 1,
+        "10": 4,
+        "46": 4,
+        "12": 5,
+        "28": 5,
+        "27": 5,
+        "18": 2,
+        "37": 4,
+        "33": 2,
+        "26": 4,
+        "43": 2,
+        "25": 1,
+        "8": 2,
+        "21": 1,
+        "0": 4,
+        "41": 1,
+        "11": 1,
+        "31": 3,
+        "32": 1,
+        "9": 2,
+        "20": 1,
+        "17": 1
+      }
+    },
+    "source_sha256": {
+      "model_training/__init__.py": "784bee9054a26497f0b90ed8a9a35ae264476b41fa4a7c4b5f7474521921f5bb",
+      "model_training/audit.py": "320eb575af5c0beb174dae762596bc71387ecc61d9e579b55372de780c350818",
+      "model_training/checkpoint.py": "8099d09b98d605f1c8ed21dbdeb7d27bd0b50d24a54bb3e1a00a62733980514a",
+      "model_training/data.py": "cd918d2b136d238971c2bb9b6da96ac36b4c5e07c343397aefa49ea52f8c1b0a",
+      "model_training/encoding.py": "1b0da85c43a71e4f3fdff76bd67d93e4fcdb9b5570708da21fca4bd6b4f402d0",
+      "model_training/inference.py": "5b00722116f5ff57d152affb6b0d2fb692ba272c1c94e88d0e0d77533b614146",
+      "model_training/model.py": "77c3eda8b10c6f19b2c0de21c18fe9447f065850a7b61c3395082b838715cc69",
+      "model_training/real_smoke.py": "9d8d9d1d6e6b9469efbd5b2d60a40e5a11fc130d5039ccc92a194e408fe9d7a5",
+      "model_training/smoke.py": "bbfbe2116dc1594b0c481954e11eac7db092c20a66d201e62eb5dc5548a09c99",
+      "model_training/verify_nagomi.py": "641a37516e4c704e9a2ce7baaa6aa9ff555644150234fa65962e28365bebf1a3"
+    },
+    "objective": "cross entropy on immediately logged nonforced self-actions; no rank/return/teacher loss"
+  },
+  "limitations": [
+    "tiny sample; validation metrics are not strength estimates",
+    "pass, delayed and interrupted action labels are excluded",
+    "rank head and action-value calibration are not trained by imitation",
+    "local adapter only; no production deployment"
+  ]
+}

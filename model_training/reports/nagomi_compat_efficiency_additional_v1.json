@@ -1,0 +1,99 @@
+{
+  "scope": "component parity, not independent end-to-end policy parity",
+  "model_sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+  "reference_cases": 217,
+  "frames_sha256": "f968127d2363da7b221e8082bde4e865bd76044f6770d8029e8143614fe11d3f",
+  "cases_sha256": "9499bad5a1485ce3f2d28de389b0dfd2a93ee3cb40df9e476ff526a5be1e5dab",
+  "implementation_sha256": {
+    "__init__.py": "a6fc2625e958b2f464cc742583b62c888f0274ca5db177ccd789026e9a2f579a",
+    "actions.py": "13e5811d9a6a47198e446ee9001007866bfb255a9867d6c9c1c75ae2bd6cb838",
+    "efficiency.py": "f94bf6976a8a50c2436f51d12c3134dfc0ed4f5e0617b8e5745aae3124438104",
+    "hand.py": "61f2c674e4504735ce8969c19ab071ae3ad17609c6384390ab106e9ffd76ffd0",
+    "legality.py": "6399d66465d6c37e13894aa8765dc3ee9ff6b8289172d3f017fda0def9ecbd0f",
+    "observation.py": "ca5682e2c668e7db46b4112a774e9d795dce7ae461ca72a9ea0dc56c15f4db62",
+    "runtime.py": "27997c83bed77ae5a59c01a605b336a5965f6ef0184d2270981b18dda2298442",
+    "state.py": "a52d01d0a5a72211b552a0feb044d3abe98ac7583588715163823cc71073cc3d",
+    "visibility.py": "57bd32748071d3bbf539a84d9aa663d34b416d4f6981161742fe75c4c3be4086",
+    "yaku.py": "fb195fac8a8dec4928103688cad08ff883c4bd839ad494e72f4b4f4d05d9e7cc"
+  },
+  "reference_games": 16,
+  "case_kinds": {
+    "riichi": 32,
+    "discard": 32,
+    "pass": 32,
+    "pon": 32,
+    "agari": 32,
+    "chi": 32,
+    "kan": 12,
+    "kan_selection": 12,
+    "abortive_draw": 1
+  },
+  "runtime_with_oracle_inputs": {
+    "same_action_fraction": 1.0,
+    "q_close_cases": 217,
+    "max_legal_q_difference": 9.5367431640625e-07
+  },
+  "independent_features": {
+    "implemented_rows": 959,
+    "row_case_comparisons": 208103,
+    "row_case_mismatches": 0,
+    "mismatches_by_row": {},
+    "max_abs_difference": 0.0,
+    "complete_observation_cases": 0,
+    "missing_groups": {
+      "maximum_ev_planes_889_890": 217,
+      "probability_and_ev_horizons_961_1011": 217
+    }
+  },
+  "independent_masks": {
+    "compared": 217,
+    "exact_matches": 217
+  },
+  "decoder_given_oracle_argmax": {
+    "abortive_draw": {
+      "cases": 1,
+      "semantic_matches": 1
+    },
+    "agari": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "chi": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "discard": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "kan": {
+      "cases": 12,
+      "semantic_matches": 12
+    },
+    "pass": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "pon": {
+      "cases": 32,
+      "semantic_matches": 32
+    },
+    "riichi": {
+      "cases": 32,
+      "semantic_matches": 32
+    }
+  },
+  "decoder_failures": {},
+  "migration_ready": false,
+  "remaining": [
+    "probability/EV observation planes 889\u2013890 and 961\u20131011",
+    "independent win guard",
+    "full reaction and riichi/kan-chain parity"
+  ],
+  "limitations": [
+    "runtime parity uses oracle observations/masks; not a migrated feature pipeline",
+    "decoder uses oracle argmax; win guard and chained reactions are not exercised",
+    "consumed tile order is normalized; tile identity/redness is retained",
+    "only Nagomi four-player hanchan fixtures captured; not sanma or East-only"
+  ]
+}

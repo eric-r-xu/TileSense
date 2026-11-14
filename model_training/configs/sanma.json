@@ -1,0 +1,12 @@
+{
+  "ruleset": "sanma",
+  "architecture_id": "tilesense-hybrid-v0",
+  "observation_schema_id": "tilesense-visible-v1",
+  "action_schema_id": "mjai-actions-v1",
+  "tile_features": 20,
+  "context_features": 40,
+  "history_length": 128,
+  "width": 128,
+  "layers": 2,
+  "heads": 4
+}

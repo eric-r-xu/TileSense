@@ -1,0 +1,22 @@
+{
+  "sanma": {
+    "file": "mortal_sidecar/mortal_sanma.pth",
+    "sha256": "b41e0972f4e8e7a0a6c5e73ec3aaca5f677a44f7e4435b785881396bebfe2a13",
+    "steps": 104000,
+    "observation_version": 5,
+    "resnet": {
+      "conv_channels": 192,
+      "num_blocks": 40
+    },
+    "env": {
+      "gamma": 1,
+      "pts": [
+        4.0,
+        2.0,
+        0.0
+      ],
+      "game_length": 6
+    },
+    "can_resume_original_training": true
+  }
+}

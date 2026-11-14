@@ -5,6 +5,7 @@ import 'package:tilesense/game/online_game_controller.dart';
 import 'package:tilesense/l10n/app_language.dart';
 import 'package:tilesense/l10n/l10n.dart';
 import 'package:tilesense/main.dart' show TileSenseApp, kDesignSize;
+import 'package:tilesense/net/online_availability.dart';
 import 'package:tilesense/ui/feature_loader.dart';
 import 'package:tilesense/ui/online_game_page.dart';
 import 'package:tilesense/ui/online_lobby_page.dart';
@@ -17,6 +18,9 @@ import 'loading_helpers.dart';
 /// language there switches that screen in place, with nothing overflowing.
 /// A new screen added without the picker fails here.
 void main() {
+  // These tests exercise the web-only Play Online button.
+  setUpAll(() => playOnlineOverride = true);
+
   preloadDeferredPages();
   // The app's own controller is process-wide: leave it on English for the
   // next test, whatever this one picked.

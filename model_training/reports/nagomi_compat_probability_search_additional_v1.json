@@ -1,0 +1,117 @@
+{
+  "scope": "test a pure tenpai-maximization hypothesis; not migrated probability features",
+  "diagnostic_only": true,
+  "migration_ready": false,
+  "reference_cases": 217,
+  "candidate_vectors": 345,
+  "horizon_comparisons": 5865,
+  "max_abs_difference": 0.07969132002161339,
+  "candidate_vectors_over_1e_6": 98,
+  "by_shanten": {
+    "0": {
+      "candidate_vectors": 83,
+      "max_abs_difference": 0.0,
+      "candidate_vectors_over_1e_6": 0
+    },
+    "1": {
+      "candidate_vectors": 89,
+      "max_abs_difference": 3.9573927668179465e-07,
+      "candidate_vectors_over_1e_6": 0
+    },
+    "2": {
+      "candidate_vectors": 97,
+      "max_abs_difference": 0.07969132002161339,
+      "candidate_vectors_over_1e_6": 43
+    },
+    "3": {
+      "candidate_vectors": 76,
+      "max_abs_difference": 0.01680336047351351,
+      "candidate_vectors_over_1e_6": 55
+    }
+  },
+  "hypothesis_supported": false,
+  "counterexamples": [
+    {
+      "case": 125,
+      "discard": null,
+      "shanten": 2,
+      "max_abs_difference": 0.07969132002161339
+    },
+    {
+      "case": 116,
+      "discard": null,
+      "shanten": 2,
+      "max_abs_difference": 0.05418227094501146
+    },
+    {
+      "case": 107,
+      "discard": null,
+      "shanten": 2,
+      "max_abs_difference": 0.047726584060548916
+    },
+    {
+      "case": 149,
+      "discard": null,
+      "shanten": 2,
+      "max_abs_difference": 0.031086142201176573
+    },
+    {
+      "case": 1,
+      "discard": null,
+      "shanten": 2,
+      "max_abs_difference": 0.02988277509627424
+    },
+    {
+      "case": 93,
+      "discard": 32,
+      "shanten": 2,
+      "max_abs_difference": 0.020621471687898824
+    },
+    {
+      "case": 13,
+      "discard": null,
+      "shanten": 2,
+      "max_abs_difference": 0.019124290128901045
+    },
+    {
+      "case": 52,
+      "discard": null,
+      "shanten": 3,
+      "max_abs_difference": 0.01680336047351351
+    },
+    {
+      "case": 21,
+      "discard": 15,
+      "shanten": 2,
+      "max_abs_difference": 0.01462904924026602
+    },
+    {
+      "case": 163,
+      "discard": null,
+      "shanten": 3,
+      "max_abs_difference": 0.014298118552747874
+    }
+  ],
+  "frames_sha256": "f968127d2363da7b221e8082bde4e865bd76044f6770d8029e8143614fe11d3f",
+  "cases_sha256": "9499bad5a1485ce3f2d28de389b0dfd2a93ee3cb40df9e476ff526a5be1e5dab",
+  "probe_sha256": "edc130ea39c0fdfe2e4ade3d5e083c196df0b07373de12f75fa8b9ebeb972f8f",
+  "implementation_sha256": {
+    "__init__.py": "a6fc2625e958b2f464cc742583b62c888f0274ca5db177ccd789026e9a2f579a",
+    "actions.py": "13e5811d9a6a47198e446ee9001007866bfb255a9867d6c9c1c75ae2bd6cb838",
+    "efficiency.py": "f94bf6976a8a50c2436f51d12c3134dfc0ed4f5e0617b8e5745aae3124438104",
+    "hand.py": "61f2c674e4504735ce8969c19ab071ae3ad17609c6384390ab106e9ffd76ffd0",
+    "legality.py": "6399d66465d6c37e13894aa8765dc3ee9ff6b8289172d3f017fda0def9ecbd0f",
+    "observation.py": "ca5682e2c668e7db46b4112a774e9d795dce7ae461ca72a9ea0dc56c15f4db62",
+    "runtime.py": "27997c83bed77ae5a59c01a605b336a5965f6ef0184d2270981b18dda2298442",
+    "scoring.py": "c5af5c24e9de24aa4c82694e995d34559a61a794d22931cf901194b26f8b4e90",
+    "state.py": "4d1ab219bba55fdb68e15d8ed77cda55922e5ee9113f9766a03714457bcb92ba",
+    "visibility.py": "57bd32748071d3bbf539a84d9aa663d34b416d4f6981161742fe75c4c3be4086",
+    "yaku.py": "fb195fac8a8dec4928103688cad08ff883c4bd839ad494e72f4b4f4d05d9e7cc"
+  },
+  "limitations": [
+    "assumes future discards maximize tenpai probability independently of score",
+    "does not establish the reference search objective or EV assumptions",
+    "float64 arithmetic; agreement within a diagnostic tolerance is not exact parity",
+    "probability/EV rows remain unknown and cannot be scored"
+  ]
+}

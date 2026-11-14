@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/main.dart';
+import 'package:tilesense/net/online_availability.dart';
 import 'package:tilesense/telemetry/telemetry.dart' show persistentClientId;
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -11,6 +12,9 @@ import 'package:tilesense/ui/table_view.dart';
 /// The whole UI is one fixed canvas scaled to fit, so everything about how it
 /// meets the device — display cutouts, pinch zoom — is decided in one place.
 void main() {
+  // These tests exercise the web-only Play Online button.
+  setUpAll(() => playOnlineOverride = true);
+
   preloadDeferredPages();
 
   group('display cutouts', () {

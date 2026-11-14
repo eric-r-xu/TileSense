@@ -1,0 +1,186 @@
+{
+  "scope": "revealed winning-hand scoring; not future EV or policy parity",
+  "counts": {
+    "wins": 269,
+    "ron": 165,
+    "riichi_wins": 112,
+    "hand_total_exact": 269,
+    "settlement_vector_exact": 269,
+    "self_draws": 104,
+    "ippatsu_wins": 25,
+    "double_riichi_wins": 2,
+    "multiple_ron_followups": 4
+  },
+  "yaku_counts": {
+    "riichi": 112,
+    "bonus": 181,
+    "half_flush": 18,
+    "value_triplet": 103,
+    "closed_self_draw": 56,
+    "last_tile": 4,
+    "seven_pairs": 10,
+    "pinfu": 48,
+    "duplicate_sequence": 11,
+    "ippatsu": 25,
+    "outside_hand": 4,
+    "all_simples": 53,
+    "three_suit_sequences": 14,
+    "all_triplets": 2,
+    "three_concealed_triplets": 1,
+    "terminal_outside_hand": 1,
+    "straight": 4,
+    "full_flush": 1
+  },
+  "examples": [],
+  "passed": true,
+  "implementation_sha256": {
+    "__init__.py": "a6fc2625e958b2f464cc742583b62c888f0274ca5db177ccd789026e9a2f579a",
+    "actions.py": "13e5811d9a6a47198e446ee9001007866bfb255a9867d6c9c1c75ae2bd6cb838",
+    "efficiency.py": "f94bf6976a8a50c2436f51d12c3134dfc0ed4f5e0617b8e5745aae3124438104",
+    "hand.py": "61f2c674e4504735ce8969c19ab071ae3ad17609c6384390ab106e9ffd76ffd0",
+    "legality.py": "6399d66465d6c37e13894aa8765dc3ee9ff6b8289172d3f017fda0def9ecbd0f",
+    "observation.py": "ca5682e2c668e7db46b4112a774e9d795dce7ae461ca72a9ea0dc56c15f4db62",
+    "runtime.py": "27997c83bed77ae5a59c01a605b336a5965f6ef0184d2270981b18dda2298442",
+    "scoring.py": "c5af5c24e9de24aa4c82694e995d34559a61a794d22931cf901194b26f8b4e90",
+    "state.py": "4d1ab219bba55fdb68e15d8ed77cda55922e5ee9113f9766a03714457bcb92ba",
+    "visibility.py": "57bd32748071d3bbf539a84d9aa663d34b416d4f6981161742fe75c4c3be4086",
+    "yaku.py": "fb195fac8a8dec4928103688cad08ff883c4bd839ad494e72f4b4f4d05d9e7cc"
+  },
+  "games": [
+    {
+      "file": "2026101203gm-00a9-0000-24348571.json.gz",
+      "sha256": "1f6c358625cc36b535b7e9948978145309353f53d0c62c092505d65197a7b4f6"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-2cdfc94a.json.gz",
+      "sha256": "6496a731abe8b1874d0c0233a2b7ac8cb2aefe1acd0730b55b3e75396006c298"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-96476112.json.gz",
+      "sha256": "64e4adf66a519a75199224028ba8c3874431a8c25861317a442cc9cc62179e73"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-970fbed0.json.gz",
+      "sha256": "64be4003bb5d58ef760c647b8d4d37b9d89d9808f127e587e9a6dee80f81ca0b"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-998c95af.json.gz",
+      "sha256": "0f92b9baba18a92d71664b838180093c91f88f55db27f25d187aeb3880fa7507"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-9e865454.json.gz",
+      "sha256": "8388b02b859eab6f8efc0354a59639cd841889c5864aac607e65d641fd2149eb"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-9f6cba84.json.gz",
+      "sha256": "ca0541b1a16ec8f712552395256f25ef153f73b617dd6d5c41ea076492f9b968"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-e5669b90.json.gz",
+      "sha256": "19c8b967409baddad026fa8f42adf45c8f3678f25a1adcd2cdcf40e0d9c6257a"
+    },
+    {
+      "file": "2026101203gm-00a9-0000-fcf48165.json.gz",
+      "sha256": "00d082c6290efa7c0bea7e91b05892bd4891995ce275d989db0348783ca202dc"
+    },
+    {
+      "file": "2026101204gm-00a9-0000-1ae9bb6b.json.gz",
+      "sha256": "3d835d77cb712ec36df2736c8ec898122d323bcecef77a6caeaa336c559b2722"
+    },
+    {
+      "file": "2026101204gm-00a9-0000-727d7772.json.gz",
+      "sha256": "22ce346e35a4516f47c572c131efbaf2c0d097c6a7442d52d3ed2a8c20ff9af2"
+    },
+    {
+      "file": "2026101204gm-00a9-0000-8bf1aee8.json.gz",
+      "sha256": "a82e752eb8d86f70498c376d93cdf53e69b24510f1231c1b65b769ea2b25dc86"
+    },
+    {
+      "file": "2026101204gm-00a9-0000-8d6a8f23.json.gz",
+      "sha256": "c1e4c3a85bc8da933e954b755e46b67ceb908e7b8dc197dddb942aca1b79ad9b"
+    },
+    {
+      "file": "2026101205gm-00a9-0000-2ad7d5f9.json.gz",
+      "sha256": "ad065bf0456104dcc1c8c6a2d4b43d3d7a62d1273b0b2f9d770e95e296234629"
+    },
+    {
+      "file": "2026101205gm-00a9-0000-3192fff5.json.gz",
+      "sha256": "fe5f25d98c2474b1798424e63d9ab5f7ccc7d1579848ec007fe1ba5620a5d219"
+    },
+    {
+      "file": "2026101205gm-00a9-0000-5c97ed3a.json.gz",
+      "sha256": "dfacc19bc573c0b8096ebfc997f9554283402aea84d684d5bf675eb54d3a559b"
+    },
+    {
+      "file": "2026101205gm-00a9-0000-6f54d5d3.json.gz",
+      "sha256": "5980066e1c1172bc8de49d78dac45bbba543f984a4764a05ab4fd8440d2aae3a"
+    },
+    {
+      "file": "2026101205gm-00a9-0000-9e3a8801.json.gz",
+      "sha256": "66e59c4c15ec4209a1ed5bd9a008525a4334ed0f8c3c34648ffb9a161893a706"
+    },
+    {
+      "file": "2026101206gm-00a9-0000-41abd309.json.gz",
+      "sha256": "749f05d4d91e27157b9374750b637052ab4d30fe3914aa213209dcbf875feb34"
+    },
+    {
+      "file": "2026101206gm-00a9-0000-53b5447b.json.gz",
+      "sha256": "83398681564454bfaa438e28934a23fd86693042bf3887ea13a5aede77cf8028"
+    },
+    {
+      "file": "2026101206gm-00a9-0000-73cd1d0a.json.gz",
+      "sha256": "7a8687c4ca6b75c1816fd1ace538ec26479174e4c0e378bac407473712c956fb"
+    },
+    {
+      "file": "2026101206gm-00a9-0000-d3664f22.json.gz",
+      "sha256": "e7b88241c930ce18fb4b19acc6e9dd78122350eac56b36ff8173cb9e27b8f32a"
+    },
+    {
+      "file": "2026101206gm-00a9-0000-dc29bab7.json.gz",
+      "sha256": "99c09884b359c331fb21ea76ee3f87787faeeda49ee3a397cad7407f68f1849a"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-06d65e3e.json.gz",
+      "sha256": "4cc462301679f67a80f2325f23db615455b5d6106aa745878e7f7b04240d78e3"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-1aa1b210.json.gz",
+      "sha256": "32d2b33137040edcf3090492acb5fb4f634046ee749d8c6003292f4560b150f1"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-4f6d4c72.json.gz",
+      "sha256": "9cdfac9d14f92abc1ab9e8e0c0404beb5e8af933b129ca054fff2067ba55eec7"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-66a4fd5c.json.gz",
+      "sha256": "8bf4817eab066a3a2d3fe1eaed19f8c73d8b61af8ca4902467e1a421786e138f"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-81cebf7e.json.gz",
+      "sha256": "34ce8d03d95bb2cf01ac75a1d8ff4bad304055fff9be7a6bf300db42c5737356"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-8a866287.json.gz",
+      "sha256": "d88b85022af9f4f19808cbb24cf11dcc2fb12f405a9ab670d33d643268b58742"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-8baed686.json.gz",
+      "sha256": "ec8009ab039320a77f37c3af7d58f2a55bbc6953f4b000e004a052bbffbf9f1b"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-8f6eb385.json.gz",
+      "sha256": "f940143f8bb3008cfa1546b5101ff3934e15c5853331162fd081cdf9a0e4a113"
+    },
+    {
+      "file": "2026101207gm-00a9-0000-9cf571d2.json.gz",
+      "sha256": "0d015cceb665dded646b1e901eb31cf29f8fd0e2047136ccc42d469102a5093c"
+    }
+  ],
+  "migration_ready": false,
+  "settlement_convention": "honba once, to the first recorded winner; deposits from recorded delta sum",
+  "limitations": [
+    "recorded ura indicators are outcome-only information",
+    "liability settlement is not implemented; vector differences are reported",
+    "this does not implement the remaining probability/EV rows or win guard"
+  ]
+}

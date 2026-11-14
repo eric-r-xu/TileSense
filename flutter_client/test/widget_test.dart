@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:tilesense/main.dart';
+import 'package:tilesense/net/online_availability.dart';
 import 'package:tilesense/ui/efficiency_overlay.dart';
 import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -10,6 +11,9 @@ import 'package:tilesense/ui/tile_face.dart';
 import 'loading_helpers.dart';
 
 void main() {
+  // These tests exercise the web-only Play Online button.
+  setUpAll(() => playOnlineOverride = true);
+
   preloadDeferredPages();
 
   testWidgets('app boots to the table with the efficiency guide off by default',

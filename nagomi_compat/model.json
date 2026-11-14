@@ -1,0 +1,9 @@
+{
+  "model_id": "nagomi-ft-onnx-v1",
+  "url": "https://github.com/eric-r-xu/TileSense/releases/download/mortal-nagomi-ft-onnx-v1/mortal_nagomi.onnx",
+  "sha256": "4244fa1a9a83d84f75838658c27ca88d96f3bc63dbab6769a245008a07f78493",
+  "observation_shape": [1012, 34],
+  "actions": 46,
+  "precision": "float32",
+  "provenance": "Existing Nagomi weights, retained unchanged; independent adapter code is not independently trained weights."
+}

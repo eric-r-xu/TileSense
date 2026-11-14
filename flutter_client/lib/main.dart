@@ -23,6 +23,7 @@ import 'logic/efficiency_engine.dart' show HandFocus, PlayStyle, Strategy;
 import 'logic/progress.dart';
 import 'logic/quiz_rules.dart';
 import 'net/guest_identity.dart';
+import 'net/online_availability.dart';
 import 'package:mahjong_core/hong_kong/hong_kong_rules.dart';
 import 'package:mahjong_core/ruleset.dart';
 import 'package:mahjong_core/taiwanese/taiwanese_rules.dart';
@@ -2239,15 +2240,17 @@ class _WelcomeScreen extends StatelessWidget {
                             title: context.l10n.singlePlayer,
                             subtitle: context.l10n.singlePlayerSubtitle,
                           ),
-                          _TitleButton(
-                            key: const Key('playOnline'),
-                            onPressed: onPlayOnline,
-                            // A globe: play with anyone, anywhere.
-                            icon: const Text('🌐',
-                                key: Key('playOnlineEmoji'),
-                                style: TextStyle(fontSize: 28)),
-                            title: context.l10n.playOnline,
-                          ),
+                          // Web only: the iOS and Android apps are offline.
+                          if (playOnlineAvailable)
+                            _TitleButton(
+                              key: const Key('playOnline'),
+                              onPressed: onPlayOnline,
+                              // A globe: play with anyone, anywhere.
+                              icon: const Text('🌐',
+                                  key: Key('playOnlineEmoji'),
+                                  style: TextStyle(fontSize: 28)),
+                              title: context.l10n.playOnline,
+                            ),
                           _TitleButton(
                             key: const Key('openBuilder'),
                             onPressed: onBuild,
@@ -2311,7 +2314,7 @@ class _WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (rejoinCode case final code?) ...[
+                    if (rejoinCode case final code? when playOnlineAvailable) ...[
                       const SizedBox(height: 14),
                       // Back into an online game left by accident; the bot
                       // that played your seat meanwhile hands it back.
