@@ -289,6 +289,8 @@ Map<String, dynamic> _seatToJson(Round round, SeatState s, bool revealed) => {
       'handCount': s.hand.length,
       'hasDrawn': s.drawn != null,
       if (revealed && s.drawn != null) 'drawnId': s.drawn!.id,
+      if (revealed && s.kuikaeForbidden.isNotEmpty)
+        'kuikaeForbidden': [for (final t in s.kuikaeForbidden) t.name],
       'pond': tilesToJson(s.pond),
       'melds': [
         for (final m in s.melds)
@@ -413,6 +415,10 @@ Round buildRoundFromSnapshot(Map<String, dynamic> json, {required int mySeat}) {
     }
     seat.hand = hand;
     seat.drawn = drawn;
+    seat.kuikaeForbidden.addAll([
+      for (final t in sj['kuikaeForbidden'] as List? ?? const [])
+        TileType.values.byName(t as String),
+    ]);
     seat.pond = tilesFromJson(sj['pond'] as List);
     seat.melds = [
       for (final m in sj['melds'] as List)

@@ -12,6 +12,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'package:mahjong_core/efficiency_calc.dart';
+import 'package:mahjong_core/kuikae.dart';
 import 'package:mahjong_core/mcr/mcr_efficiency.dart';
 import 'package:mahjong_core/mcr/mcr_scoring.dart';
 import 'package:mahjong_core/mcr/mcr_strategy.dart';
@@ -970,6 +971,7 @@ class EfficiencyEngine {
     required List<int> visibleCounts34,
     required bool canRiichi,
     required EfficiencyValueContext valueContext,
+    Set<TileType> forbiddenDiscards = const {},
     List<Tile>? defenseHand,
     List<TileType> opponentDiscards = const [],
     List<TileType> passedDiscardsAfterRiichi = const [],
@@ -1075,6 +1077,7 @@ class EfficiencyEngine {
     // Deduplicate by tile type (multiple copies of the same tile in hand).
     final byType = <TileType, TileEfficiencyResult>{};
     for (final r in raw) {
+      if (forbiddenDiscards.contains(r.discard)) continue;
       final t = r.discard;
       final existing = byType[t];
       if (existing == null || r.ukeire > existing.ukeire) byType[t] = r;
@@ -1540,6 +1543,7 @@ class EfficiencyEngine {
       if (consumed.length == 2) {
         options.add(_meldCallAdvice(
           action: GuidedAction.pon,
+          calledTile: offered.type,
           hand: hand,
           consumed: consumed,
           meld: Meld(
@@ -1567,6 +1571,7 @@ class EfficiencyEngine {
       for (final candidate in _chiCandidates(hand, offered)) {
         final advice = _meldCallAdvice(
           action: GuidedAction.chi,
+          calledTile: offered.type,
           hand: hand,
           consumed: candidate.consumed,
           meld: candidate.meld,
@@ -1891,6 +1896,7 @@ class EfficiencyEngine {
 
   ActionAdvice _meldCallAdvice({
     required GuidedAction action,
+    required TileType calledTile,
     required List<Tile> hand,
     required List<Tile> consumed,
     required Meld meld,
@@ -1913,6 +1919,10 @@ class EfficiencyEngine {
 
     final report = analyze(
       hand: concealedAfter,
+      forbiddenDiscards: ruleset.isJapanese
+          ? kuikaeForbiddenDiscards(calledTile,
+              chiLow: action == GuidedAction.chi ? meld.low : null)
+          : const {},
       visibleCounts34: visibleCounts34,
       canRiichi: contextAfter.closed && !context.inRiichi,
       valueContext: contextAfter,

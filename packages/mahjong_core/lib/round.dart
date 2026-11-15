@@ -22,6 +22,7 @@ import 'fuzhou/fuzhou_rules.dart';
 import 'fuzhou/fuzhou_scoring.dart';
 import 'fuzhou/fuzhou_wall.dart';
 import 'hand_parse.dart';
+import 'kuikae.dart';
 import 'hong_kong/hong_kong_rules.dart';
 import 'hong_kong/hong_kong_scoring.dart';
 import 'hong_kong/hong_kong_wall.dart';
@@ -103,6 +104,9 @@ class SeatState {
 
   /// The tile drawn this turn (null once discarded).
   Tile? drawn;
+
+  /// Japanese pon/chi restrictions, cleared by the caller's next discard.
+  final Set<TileType> kuikaeForbidden = {};
 
   /// Tiles this seat has discarded, used for furiten. Unlike [pond] this keeps
   /// tiles that were later called away, so own-discard furiten still applies.
@@ -858,6 +862,7 @@ class Round {
     // A fresh draw ends temporary (non-riichi) furiten; permanent riichi
     // furiten is untouched.
     seat.tempFuriten = false;
+    seat.kuikaeForbidden.clear();
     seat.drawn = tile;
     seat.hand = [...sortByType(seat.hand), tile];
     phase = RoundPhase.discarding;
@@ -895,7 +900,9 @@ class Round {
       // Must discard the drawn tile (tsumogiri) unless it forms a closed kan.
       return s.drawn != null ? [s.drawn!] : s.hand;
     }
-    return s.hand;
+    return ruleset.isJapanese && s.kuikaeForbidden.isNotEmpty
+        ? s.hand.where((t) => !s.kuikaeForbidden.contains(t.type)).toList()
+        : s.hand;
   }
 
   bool canTsumo(int seat) {
@@ -1018,6 +1025,10 @@ class Round {
     if (ruleset.isFuzhou && isGold(discard.type)) return false;
     final s = seats[seat];
     if (_locked(s)) return false;
+    // A fourth copy cannot be thrown straight back after pon; do not offer
+    // a call when every remaining tile would be forbidden.
+    if (ruleset.isJapanese &&
+        !s.hand.any((t) => t.type != discard.type)) return false;
     return s.hand.where((t) => t.type == discard.type).length >= 2;
   }
 
@@ -1065,7 +1076,14 @@ class Round {
         }
         used.add(hand[index].id);
       }
-      if (complete) out.add(low);
+      if (complete) {
+        final forbidden = kuikaeForbiddenDiscards(type, chiLow: low);
+        if (!ruleset.isJapanese ||
+            hand.any((t) =>
+                !used.contains(t.id) && !forbidden.contains(t.type))) {
+          out.add(low);
+        }
+      }
     }
     return out;
   }
@@ -1080,6 +1098,7 @@ class Round {
 
   List<TileType> closedKanTypes(int seat) {
     final s = seats[seat];
+    if (ruleset.isJapanese && s.kuikaeForbidden.isNotEmpty) return const [];
     if (!wall.canKan || _flowerSeat != null || (ruleset.isMcr && s.drawn == null)) return const [];
     final byType = <TileType, int>{};
     for (final t in s.hand) {
@@ -1104,6 +1123,7 @@ class Round {
   /// but this trainer keeps riichi hands fixed for simplicity.
   List<TileType> addedKanTypes(int seat) {
     final s = seats[seat];
+    if (ruleset.isJapanese && s.kuikaeForbidden.isNotEmpty) return const [];
     if (_locked(s) || !wall.canKan || _flowerSeat != null || (ruleset.isMcr && s.drawn == null)) return const [];
     final ponTypes = {
       for (final m in s.melds)
@@ -1215,6 +1235,9 @@ class Round {
   void discard(int seat, Tile tile, {bool declareRiichi = false}) {
     assert(phase == RoundPhase.discarding && seat == turn);
     final s = current;
+    if (ruleset.isJapanese && s.kuikaeForbidden.contains(tile.type)) {
+      throw StateError('Kuikae: discard another tile after calling');
+    }
     if (_flowerSeat != null) {
       throw StateError('Choose flower win or continue first');
     }
@@ -1263,6 +1286,7 @@ class Round {
     }
 
     s.hand.remove(tile);
+    s.kuikaeForbidden.clear();
     s.hand = sortByType(s.hand);
     s.drawn = null;
     s.pond.add(tile);
@@ -1430,6 +1454,9 @@ class Round {
 
   void closedKan(int seat, TileType type) {
     assert(seat == turn && phase == RoundPhase.discarding);
+    if (ruleset.isJapanese && current.kuikaeForbidden.isNotEmpty) {
+      throw StateError('Discard after calling before declaring a kan');
+    }
     if (ruleset.isChineseStyle) {
       if (seat != turn || phase != RoundPhase.discarding) {
         throw StateError('Not this seat’s kong turn');
@@ -1469,6 +1496,9 @@ class Round {
   /// [resolveCalls]'s `_chankanPending` branch.
   void addKan(int seat, TileType type) {
     assert(seat == turn && phase == RoundPhase.discarding);
+    if (ruleset.isJapanese && current.kuikaeForbidden.isNotEmpty) {
+      throw StateError('Discard after calling before declaring a kan');
+    }
     if (ruleset.isChineseStyle) {
       if (seat != turn || phase != RoundPhase.discarding) {
         throw StateError('Not this seat’s kong turn');
@@ -1562,6 +1592,7 @@ class Round {
     final w = wall;
     if (w is! SanmaWall || !w.canKita) return false;
     final s = seats[seat];
+    if (s.kuikaeForbidden.isNotEmpty) return false;
     if (_locked(s)) return s.drawn?.type == SanmaRules.kita;
     return s.hand.any((t) => t.type == SanmaRules.kita);
   }
@@ -1644,6 +1675,11 @@ class Round {
       calledFromSeatOffset: (discarder - seat + 4) % 4,
       tiles: [...taken, discard],
     ));
+    if (ruleset.isJapanese) {
+      s.kuikaeForbidden
+        ..clear()
+        ..addAll(kuikaeForbiddenDiscards(discard.type, chiLow: low));
+    }
     for (final o in seats) {
       o.ippatsu = false;
     }
@@ -1679,6 +1715,11 @@ class Round {
       calledFromSeatOffset: offset,
       tiles: [...taken, discard],
     ));
+    if (ruleset.isJapanese && !kan) {
+      s.kuikaeForbidden
+        ..clear()
+        ..addAll(kuikaeForbiddenDiscards(discard.type));
+    }
     if (kan) {
       _recordKong(seat, SichuanKongKind.melded, discard.type,
           discarder: discarder);

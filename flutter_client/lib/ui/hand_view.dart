@@ -295,8 +295,11 @@ class _HandViewState extends State<HandView> {
     Widget tileButton(Tile tile, {bool separated = false}) {
       final isDrawn = drawn != null && tile.id == drawn.id;
       final isVoidTile = voidFirst && tile.type.suit == seat.voidSuit;
+      final kuikaeBlocked =
+          round.ruleset.isJapanese && seat.kuikaeForbidden.contains(tile.type);
       final tappable = canPlay &&
           (!riichiLocked || isDrawn) &&
+          !kuikaeBlocked &&
           !round.canFlowerWin(kHumanSeat);
       final isTop = tappable && topTypes.contains(tile.type);
       final Color? hc = isTop
@@ -345,7 +348,7 @@ class _HandViewState extends State<HandView> {
                   scale: _handScale,
                   highlightColor: hc,
                   borderColorOverride: border,
-                  dimmed: (riichiLocked && !isDrawn),
+                  dimmed: (riichiLocked && !isDrawn) || kuikaeBlocked,
                   hovered: _hoveredTileId == tile.id,
                 ),
               ),

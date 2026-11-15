@@ -9,6 +9,7 @@ export 'fuzhou/fuzhou_rules.dart';
 export 'fuzhou/fuzhou_scoring.dart';
 export 'fuzhou/fuzhou_wall.dart';
 export 'hand_parse.dart';
+export 'kuikae.dart';
 export 'hong_kong/hong_kong_rules.dart';
 export 'hong_kong/hong_kong_safety.dart';
 export 'hong_kong/hong_kong_scoring.dart';

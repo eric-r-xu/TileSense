@@ -865,8 +865,8 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
         round.phase != RoundPhase.discarding) {
       return;
     }
-    // Sichuan: the void suit goes first, so nothing else is a legal cut.
-    if (round.ruleset.isSichuan &&
+    // Match the server's Japanese call and Sichuan void-suit restrictions.
+    if ((round.ruleset.isJapanese || round.ruleset.isSichuan) &&
         !round.legalDiscards(kHumanSeat).contains(tile)) {
       return;
     }
@@ -913,6 +913,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     s.hand.removeAt(i);
     s.drawn = null;
     s.pond.add(tile);
+    s.kuikaeForbidden.clear();
     if (declareRiichi) s.riichiPondIndex = s.pond.length - 1;
     // Nobody is to act until the server answers: this hides your turn's
     // buttons and turns away a second tap.
@@ -1328,6 +1329,7 @@ class OnlineGameController extends ChangeNotifier implements TableGameHost {
     final riichiOpp = _threatOpponent();
     report = _efficiency.analyze(
       hand: human.hand,
+      forbiddenDiscards: human.kuikaeForbidden,
       visibleCounts34: _visibleCounts(),
       canRiichi: round.canRiichi(kHumanSeat),
       valueContext: _efficiencyValueContext(human),
