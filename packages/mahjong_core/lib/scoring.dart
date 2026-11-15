@@ -543,8 +543,8 @@ int _calcFu(
     fu += 2;
   }
 
-  // Open hand with 20 fu (kuipinfu shape) stays at 20.
-  if (fu == 20 && !ctx.closed && !ctx.isTsumo) return 20;
+  // An open ron with no fu beyond the base (kuipinfu shape) scores 30 fu.
+  if (fu == 20 && !ctx.closed && !ctx.isTsumo) return 30;
 
   return ((fu + 9) ~/ 10) * 10;
 }

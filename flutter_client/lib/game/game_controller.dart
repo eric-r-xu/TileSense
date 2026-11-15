@@ -1500,8 +1500,9 @@ class GameController extends ChangeNotifier implements TableGameHost {
         round.phase != RoundPhase.discarding) {
       return;
     }
-    // Sichuan: the void suit goes first, so nothing else is a legal cut.
-    if (ruleset.isSichuan && !round.legalDiscards(kHumanSeat).contains(tile)) {
+    // Japanese calls restrict the next discard; Sichuan must shed its void suit.
+    if ((ruleset.isJapanese || ruleset.isSichuan) &&
+        !round.legalDiscards(kHumanSeat).contains(tile)) {
       return;
     }
     Sfx.i.play(declareRiichi ? SfxKind.riichi : SfxKind.discard);
@@ -1932,6 +1933,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
     final riichiOpp = _threatOpponent();
     report = _efficiency.analyze(
       hand: human.hand,
+      forbiddenDiscards: human.kuikaeForbidden,
       visibleCounts34: _visibleCounts(),
       canRiichi: round.canRiichi(kHumanSeat),
       valueContext: _efficiencyValueContext(human),

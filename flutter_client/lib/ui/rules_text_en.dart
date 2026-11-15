@@ -52,12 +52,15 @@ class EnRulesText extends RulesText {
                 ? const [
                     _drawDiscard,
                     'Pon and kan are allowed; chi is not.',
+                    'After pon, discard a different tile type before declaring a kan or setting North aside.',
                     'A kan draws a replacement from the dead wall.',
                     'Pon and open kan make the hand open, which changes the yaku it can score.',
                   ]
                 : const [
                     _drawDiscard,
                     'Chi takes a sequence from the player before you; pon takes a triplet, kan a quad.',
+                    'After chi or pon, you cannot immediately discard the called tile type (kuikae).',
+                    'After chi, the alternate tile completing the same two-tile sequence is also forbidden.',
                     _winFirst,
                     'A kan draws a replacement from the dead wall.',
                     'Chi, pon and open kan make the hand open, which changes the yaku it can score.',
@@ -623,7 +626,7 @@ class EnRulesText extends RulesText {
     'fuWait':
         'Not added when the winning tile could also complete a two-sided wait.',
     'fuRounding':
-        'Round up to the next 10. An open ron with only the base fu stays at 20 (standard rules score 30).',
+        'Round up to the next 10. An open ron with only the base fu scores 30.',
     'Mangan':
         '5 han, or fewer han with enough fu to reach 2,000 basic points. No rounding up to mangan.',
     'Haneman': '6–7 han.',

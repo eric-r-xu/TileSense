@@ -22,6 +22,7 @@ with these changes.
 ## Play
 
 - **No chi.** Pon and kan are called as usual.
+- **Kuikae is forbidden after pon.** Your next discard cannot be the called tile type, including red and ordinary copies. You must discard before declaring a kan or setting North aside.
 - **Kita (pei nuki, 北抜き).** On your turn you may set a North aside instead
   of keeping it. It counts as one dora, and again for every dora (or, after a
   riichi win, ura dora) indicator that points to North. You then draw a

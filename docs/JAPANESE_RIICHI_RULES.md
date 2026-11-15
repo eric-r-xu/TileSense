@@ -15,6 +15,7 @@ simplified or left out, as listed below. This is a trainer, not a ruleset arbite
 - Everyone starts on **25,000 points**. A full game is a **hanchan** — East and South, 8 dealerships — or East only as an option.
 - 14 tiles form the dead wall: four kan replacements and the dora / ura-dora indicators. The other 122 are the live wall. A kan's replacement comes from the dead wall and shortens the live wall by one. At most four kans are made per hand.
 - Chi only from the player on your left. Ron takes priority over pon/kan, then chi. Added kans can be robbed (chankan); closed kans cannot.
+- **Kuikae is forbidden.** Immediately after chi or pon, you cannot discard the called tile type, including a red or ordinary copy. After chi, you also cannot discard the other tile that completes a sequence with the same two tiles used from your hand (for example, call 1p with 2p–3p, then discard 4p). The restriction ends after one legal discard; you must discard before declaring another kan. Calls that leave no legal discard are not offered.
 - **Multiple ron** is allowed: every seat that can ron wins, each paid separately by the discarder. There is no head bump.
 - A hanchan extends into **West** if nobody has **30,000 points** when South 4 passes the dealership. In West, it ends when a hand passes the dealership with someone at 30,000 or more, or when West 4 passes the dealership regardless of scores. Dealer repeats take priority, including at West 4; there is no automatic dealer-top stopping. East-only games retain their four-dealership schedule. Any game ends at once when anyone falls **below zero** (tobi). There is no uma or oka.
 
@@ -82,7 +83,7 @@ exception).
 
 - 20 fu base, +10 for a closed ron, +2 for a tsumo. Pinfu is 30 fu on ron and 20 on tsumo. Chiitoitsu is 25.
 - Triplets: 2 open simple, 4 closed simple or open terminal/honour, 8 closed terminal/honour; kans ×4. A yakuhai pair +2 (a double-wind pair +4). A kanchan, penchan or tanki wait +2 — unless the winning tile can also be read as a two-sided wait.
-- Fu round up to the next 10, except that an open hand winning by ron with nothing beyond base fu stays at 20 (standard rules score it as 30).
+- Fu round up to the next 10; an open hand winning by ron with nothing beyond base fu scores **30 fu**, not 20. Seven pairs remains fixed at 25 fu.
 - Basic points = fu × 2^(han + 2), then limits: **mangan** 2,000 at 5 han or once basic reaches 2,000 (no kiriage mangan), **haneman** 3,000 at 6–7, **baiman** 4,000 at 8–10, **sanbaiman** 6,000 at 11–12, **kazoe yakuman** 8,000 at 13+.
 - **Ron**: the discarder pays 4× basic, or 6× to the dealer. **Tsumo**: a dealer collects 2× basic from each seat; a non-dealer collects 2× from the dealer and 1× from the others. Each payment rounds up to 100.
 

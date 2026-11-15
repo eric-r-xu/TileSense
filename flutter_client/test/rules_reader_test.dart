@@ -328,6 +328,14 @@ void main() {
         size: const Size(390, 700));
     await tester.enterText(find.byKey(const Key('rulesSearch')), '  NORTH  ');
     await tester.pump();
+    // The call restrictions also mention North, so the kita section can be
+    // below the first screen of matching sections.
+    await tester.scrollUntilVisible(find.byKey(const Key('rule_kita')), 150,
+        scrollable: find
+            .descendant(
+                of: find.byKey(const Key('rulesList')),
+                matching: find.byType(Scrollable))
+            .first);
     expect(find.byKey(const Key('rule_kita')), findsOneWidget);
     expect(find.byKey(const Key('rule_setup')), findsNothing);
     await tester.enterText(find.byKey(const Key('rulesSearch')), 'zzzzz');
