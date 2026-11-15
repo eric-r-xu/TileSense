@@ -1777,14 +1777,10 @@ class Round {
     // Score each winner; sum deltas. Head-bump is not modelled — all valid
     // ronners win (double/triple ron).
     //
-    // Hong Kong and Taiwanese order the winners by turn distance before
-    // scoring, so the first score and the result pages follow that order.
-    // Their honba and sticks are always zero, so the payments below are
-    // unchanged from the ordinary discarder-pays rule.
-    if (ruleset.isChineseStyle) {
-      ronners.sort((a, b) =>
-          ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
-    }
+    // Nearest winner first: Japanese honba and riichi sticks go only to
+    // that seat, while every winner still receives their hand's payment.
+    ronners.sort((a, b) =>
+        ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     // MCR and Fuzhou allow one winner: the seat closest in turn after the
     // discarder.
     if ((ruleset.isMcr || ruleset.isFuzhou) && ronners.length > 1) {
@@ -1804,13 +1800,15 @@ class Round {
       final score =
           _score(s, s.hand, discard, isTsumo: false, chankan: chankan);
       firstScore ??= score;
-      deltas[w] = deltas[w]! + score.points + honbaPay;
+      final winnerHonba =
+          ruleset.isJapanese && w != ronners.first ? 0 : honbaPay;
+      deltas[w] = deltas[w]! + score.points + winnerHonba;
       if (ruleset.isMcr) {
         for (var i = 0; i < 4; i++) {
           if (i != w) deltas[i] = deltas[i]! - (i == discarder ? score.han + 8 : 8);
         }
       } else {
-        deltas[discarder] = deltas[discarder]! - score.points - honbaPay;
+        deltas[discarder] = deltas[discarder]! - score.points - winnerHonba;
       }
     }
     // Taiwanese dealer-streak bonus: on a ron, paid only by the discarder —
@@ -1831,8 +1829,6 @@ class Round {
       }
     }
     // riichi sticks go to the first ronner (closest in turn order after discarder)
-    ronners.sort(
-        (a, b) => ((a - discarder + 4) % 4).compareTo((b - discarder + 4) % 4));
     deltas[ronners.first] = deltas[ronners.first]! + riichiSticks * 1000;
 
     for (final e in deltas.entries) {

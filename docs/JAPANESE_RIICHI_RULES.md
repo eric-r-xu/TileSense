@@ -89,7 +89,7 @@ exception).
 
 ## Honba, sticks and draws
 
-- **Honba** add 300 to a ron (from the discarder, to each winner) or 100 from each payer on a tsumo. A honba is added when the dealer repeats or on an exhaustive draw, and reset when the dealership passes after a win.
+- **Honba** add 300 to a ron (from the discarder) or 100 from each payer on a tsumo. On a multiple ron, only the winner nearest the discarder in turn order receives the honba payment; every winner still receives their hand's points. A honba is added when the dealer repeats or on an exhaustive draw, and reset when the dealership passes after a win.
 - **Riichi sticks** on the table go to the winner — on a multiple ron, the winner nearest the discarder in turn order. After a draw they carry to the next hand.
 - **Exhaustive draw**: tenpai seats share 3,000 points from the noten seats (1,000 / 1,500 / 3,000 each, depending on the split); nothing moves if everyone or no one is tenpai. The dealer repeats if tenpai.
 - Pon and chi are still offered on the last discard of the hand.
