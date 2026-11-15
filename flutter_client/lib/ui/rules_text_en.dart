@@ -125,6 +125,7 @@ class EnRulesText extends RulesText {
                 ? const [
                     'Han and fu set the points; limit hands and yakuman go above the table.',
                     'On ron, the discarder pays.',
+                    'On multiple ron, honba and riichi deposits go only to the nearest winner in turn order after the discarder.',
                     'On tsumo, the two opponents pay their four-player shares; nobody covers the empty seat (tsumo loss).',
                     'At an exhaustive draw, not-ready players pay ready players 2,000 points in total.',
                     'The only abortive draw is nine terminals.',
@@ -132,7 +133,7 @@ class EnRulesText extends RulesText {
                 : const [
                     'Han and fu set the points; limit hands and yakuman go above the table.',
                     'On ron, the discarder pays; on tsumo, every opponent pays, with the dealer’s share larger.',
-                    'Honba add to each payment, and the winner collects riichi deposits.',
+                    'Honba increase payments; on multiple ron, honba and riichi deposits go only to the nearest winner in turn order after the discarder.',
                     'At an exhaustive draw, not-ready players pay ready players 3,000 points in total.',
                     'Rare fu cases and some double-yakuman rules are approximated.',
                   ]),
