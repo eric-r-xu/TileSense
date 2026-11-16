@@ -964,7 +964,8 @@ class GameController extends ChangeNotifier implements TableGameHost {
     _autoplayThisHand = false;
 
     // Apply honba / dealer rotation. The dealer keeps their seat (renchan) on a
-    // win of their own or, at an exhaustive draw, on being tenpai.
+    // win of their own or, at an exhaustive draw, on being tenpai. Nagashi
+    // recipients do not override the draw's tenpai-based dealer continuation.
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
     // An abortive draw (e.g. kyuushu kyuuhai) is a void hand — the dealer
     // always repeats, whoever they are, no tenpai check involved.

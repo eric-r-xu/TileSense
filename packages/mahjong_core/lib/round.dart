@@ -7,9 +7,9 @@
 /// Sanma adds kita, setting a North aside as a dora — see [declareKita].
 ///
 /// Riichi adds riichi, furiten, dora, honba, riichi sticks and tenpai payments
-/// at an exhaustive draw. Hong Kong adds flowers and seasons (with the seventh
-/// and eighth flower wins), first-turn blessings and kong-replacement chains,
-/// and ends a drawn hand with no payments.
+/// or nagashi mangan at an exhaustive draw. Hong Kong adds flowers and seasons
+/// (with the seventh and eighth flower wins), first-turn blessings and
+/// kong-replacement chains, and ends a drawn hand with no payments.
 ///
 /// The general engine is adapted from OpenRiichi:
 /// https://github.com/FluffyStuff/OpenRiichi
@@ -172,14 +172,17 @@ class RoundResult {
   });
 
   final RoundEndKind kind;
+
+  /// Winning seats, or nagashi recipients at an exhaustive draw.
   final List<int> winners;
   final int? loser;
 
   /// The first winner's score (kept for existing callers).
   final HandScore? score;
 
-  /// One [HandScore] per entry in [winners], in the same order — used to page
-  /// through every hand on a multiple ron.
+  /// For completed hands, one [HandScore] per entry in [winners], in the same
+  /// order — used to page through every hand on a multiple ron. Empty for a
+  /// nagashi draw settlement.
   final List<HandScore> scores;
 
   /// The winning tile for each winner seat.
@@ -187,6 +190,12 @@ class RoundResult {
   final Map<int, int> pointDeltas;
   final List<int> tenpaiAtDraw;
   final String label;
+
+  /// Nagashi recipients are listed in [winners], but this remains a draw:
+  /// dealer continuation depends on tenpai, and there is no winning hand,
+  /// winning tile or han/fu score. The existing result codec carries it as-is.
+  bool get isNagashiMangan =>
+      kind == RoundEndKind.exhaustiveDraw && winners.isNotEmpty;
 
   /// Sichuan: every Hu of the hand in order, and every payment line (Hu,
   /// kong, ready, penalty) behind [pointDeltas].
@@ -1925,13 +1934,37 @@ class Round {
       }
     }
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
+    // Riichi and sanma use the draw-style nagashi settlement. A closed
+    // hand qualifies only if every discard is a terminal/honor and none was
+    // called away. allDiscards retains called tiles while pond does not, so
+    // their lengths catch even an early call without extra mutable state.
+    final nagashi = <int>[
+      if (ruleset.isJapanese)
+        for (final s in activeSeats)
+          if (s.closed &&
+              s.allDiscards.isNotEmpty &&
+              s.allDiscards.length == s.pond.length &&
+              s.allDiscards.every((t) => t.type.isTerminalOrHonor))
+            s.seat,
+    ];
+    // Each qualifier receives an independent mangan tsumo payment, including
+    // payments from other qualifiers. Sanma's empty seat pays nothing (tsumo
+    // loss). No honba bonus or riichi-stick award.
+    for (final w in nagashi) {
+      for (var i = 0; i < 4; i++) {
+        if (i == w || !isActive(i)) continue;
+        final payment = (w == dealer || i == dealer) ? 4000 : 2000;
+        deltas[i] = deltas[i]! - payment;
+        deltas[w] = deltas[w]! + payment;
+      }
+    }
     // Hong Kong pays nothing at a draw.
     final noten = [
       if (ruleset.isJapanese)
         for (var i = 0; i < 4; i++)
           if (isActive(i)) i
     ].where((i) => !tenpai.contains(i)).toList();
-    if (tenpai.isNotEmpty && noten.isNotEmpty) {
+    if (nagashi.isEmpty && tenpai.isNotEmpty && noten.isNotEmpty) {
       final pot = ruleset.isSanma ? SanmaRules.notenPot : 3000;
       final gain = pot ~/ tenpai.length;
       final loss = pot ~/ noten.length;
@@ -1948,10 +1981,10 @@ class Round {
     phase = RoundPhase.finished;
     result = RoundResult(
       kind: RoundEndKind.exhaustiveDraw,
-      winners: const [],
+      winners: nagashi,
       pointDeltas: _handDeltas(),
       tenpaiAtDraw: tenpai,
-      label: 'Exhaustive Draw',
+      label: nagashi.isEmpty ? 'Exhaustive Draw' : 'Nagashi Mangan',
     );
     _postFinish(
         dealerRepeat: (ruleset.isChineseStyle && !ruleset.isFuzhou) ||

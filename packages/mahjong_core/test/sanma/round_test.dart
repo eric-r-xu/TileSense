@@ -254,7 +254,8 @@ void main() {
 
   test('an exhaustive draw moves 2,000 between tenpai and noten', () {
     final r = fixture(live: const []);
-    setHand(r, 0, '123p 456p 789p 111s 2s', drawn: '9m');
+    // A middle-tile discard keeps this an ordinary draw, not nagashi mangan.
+    setHand(r, 0, '123p 456p 789p 111s 2s', drawn: '5s');
     setHand(r, 1, _junkA);
     setHand(r, 3, _junkB);
     expect(r.wall.remaining, 0);
@@ -262,6 +263,7 @@ void main() {
     if (r.phase == RoundPhase.callOffer) r.resolveCalls(const {});
     final res = r.result!;
     expect(res.kind, RoundEndKind.exhaustiveDraw);
+    expect(res.isNagashiMangan, isFalse);
     expect(res.tenpaiAtDraw, [0]);
     expect(res.pointDeltas[0], 2000);
     expect(res.pointDeltas[1], -1000);

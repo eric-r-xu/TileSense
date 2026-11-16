@@ -846,6 +846,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resultExhaustiveDraw => '流局';
 
   @override
+  String get resultNagashiMangan => '流し満貫';
+
+  @override
+  String get nagashiSettlement => '聴牌料の代わりに満貫払い。本場分は加算せず、リーチ棒は持ち越します。';
+
+  @override
   String get resultMultipleWins => '一炮多響';
 
   @override

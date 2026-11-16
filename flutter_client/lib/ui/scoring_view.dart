@@ -265,6 +265,8 @@ class _ScoringViewState extends State<ScoringView> {
                               fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 14),
+                        if (r.isNagashiMangan)
+                          _nagashiBlock(round, winners[page]),
                         if (winners.isNotEmpty &&
                             scoreFor(page) != null &&
                             scoreFor(page)!.valid)
@@ -494,6 +496,30 @@ class _ScoringViewState extends State<ScoringView> {
       ],
     );
   }
+
+  /// The discards earned this payment; there is no completed winning hand.
+  Widget _nagashiBlock(Round round, int seat) => Column(
+        key: const Key('scoreNagashi'),
+        children: [
+          Text('${round.seats[seat].wind.kanji} ${game.seatLabel(seat)}',
+              style: const TextStyle(color: Colors.white70, fontSize: 17)),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 2,
+            runSpacing: 4,
+            children: [
+              for (final t in round.seats[seat].pond)
+                TileFace(tile: t, size: TileSize.normal, scale: _tileScale),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(context.l10n.nagashiSettlement,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 16)),
+          const SizedBox(height: 12),
+        ],
+      );
 
   /// One line of dora / ura-dora indicator tiles, labelled. Empty when there
   /// are no indicators to show yet (never happens for dora; ura only when the

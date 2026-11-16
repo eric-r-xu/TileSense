@@ -263,6 +263,8 @@
   "taiWinWithin5To10Discards": "五至十巡內胡牌",
   "resultKyuushuKyuuhaiNineTerminalsHonors": "九種九牌",
   "resultExhaustiveDraw": "荒牌流局",
+  "resultNagashiMangan": "流局滿貫",
+  "nagashiSettlement": "以滿貫支付代替聽牌罰符。不加本場獎勵，立直棒留到下一局。",
   "resultMultipleWins": "一炮多響",
   "resultRobbingAKong": "搶槓",
   "resultWinOnDiscard": "放槍和牌",

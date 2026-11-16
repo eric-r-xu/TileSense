@@ -36,6 +36,7 @@ with these changes.
   less than the same hand by ron.
 - **Exhaustive draw:** 2,000 moves between noten and tenpai players (1,000
   from each noten player, shared by the tenpai ones).
+- **Nagashi mangan:** the same closed-hand, terminal/honor-only, unclaimed-discard conditions as four-player riichi apply; concealed kans and kita are allowed. Mangan payments replace the 2,000-point tenpai/noten settlement. With tsumo loss, a dealer receives 4,000 from each opponent (8,000 total), and a non-dealer receives 4,000 from the dealer and 2,000 from the other opponent (6,000 total). Multiple qualifiers settle independently; the empty seat never qualifies or pays. No honba bonus is paid, riichi sticks carry forward, and honba increases. Dealer tenpai determines continuation, even if another player qualifies.
 - **Abortive draws:** kyuushu kyuuhai only.
 
 ## In TileSense

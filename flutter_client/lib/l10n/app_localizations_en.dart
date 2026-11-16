@@ -854,6 +854,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resultExhaustiveDraw => 'Exhaustive Draw';
 
   @override
+  String get resultNagashiMangan => 'Nagashi Mangan';
+
+  @override
+  String get nagashiSettlement =>
+      'Mangan payments replace tenpai payments. No honba bonus; riichi sticks carry forward.';
+
+  @override
   String get resultMultipleWins => 'Multiple Wins';
 
   @override

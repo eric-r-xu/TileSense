@@ -408,6 +408,8 @@
   "taiWinWithin5To10Discards": "Win Within 5 to 10 Discards",
   "resultKyuushuKyuuhaiNineTerminalsHonors": "Kyuushu Kyuuhai — nine terminals/honors",
   "resultExhaustiveDraw": "Exhaustive Draw",
+  "resultNagashiMangan": "Nagashi Mangan",
+  "nagashiSettlement": "Mangan payments replace tenpai payments. No honba bonus; riichi sticks carry forward.",
   "resultMultipleWins": "Multiple Wins",
   "resultRobbingAKong": "Robbing a Kong",
   "resultWinOnDiscard": "Win on Discard",

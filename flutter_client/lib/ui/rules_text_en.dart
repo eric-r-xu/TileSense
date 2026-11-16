@@ -128,6 +128,10 @@ class EnRulesText extends RulesText {
                     'On multiple ron, honba and riichi deposits go only to the nearest winner in turn order after the discarder.',
                     'On tsumo, the two opponents pay their four-player shares; nobody covers the empty seat (tsumo loss).',
                     'At an exhaustive draw, not-ready players pay ready players 2,000 points in total.',
+                    'A closed hand with only uncalled terminal/honor discards receives nagashi mangan at an exhaustive draw (concealed kans allowed; tenpai not required).',
+                    'Each qualifier receives mangan tsumo payments instead of tenpai payments.',
+                    'No honba bonus; riichi sticks carry forward, honba increases, and the dealer repeats exactly when tenpai.',
+                    'Nagashi payments use tsumo loss: 8,000 total for the dealer, 6,000 for a non-dealer; kita does not disqualify the hand.',
                     'The only abortive draw is nine terminals.',
                   ]
                 : const [
@@ -135,6 +139,9 @@ class EnRulesText extends RulesText {
                     'On ron, the discarder pays; on tsumo, every opponent pays, with the dealer’s share larger.',
                     'Honba increase payments; on multiple ron, honba and riichi deposits go only to the nearest winner in turn order after the discarder.',
                     'At an exhaustive draw, not-ready players pay ready players 3,000 points in total.',
+                    'A closed hand with only uncalled terminal/honor discards receives nagashi mangan at an exhaustive draw (concealed kans allowed; tenpai not required).',
+                    'Each qualifier receives mangan tsumo payments instead of tenpai payments.',
+                    'No honba bonus; riichi sticks carry forward, honba increases, and the dealer repeats exactly when tenpai.',
                     'Rare fu cases and some double-yakuman rules are approximated.',
                   ]),
         RuleSection(
@@ -463,7 +470,7 @@ class EnRulesText extends RulesText {
           ],
         'yakuman' => const [
             'Each yakuman is 8,000 basic points, and they stack.',
-            'Not implemented: Tenhou, Chiihou, Renhou, Suukantsu and nagashi mangan.',
+            'Not implemented: Tenhou, Chiihou, Renhou and Suukantsu.',
           ],
         'dora' => const [
             'Bonus han count only with a yaku, and never add to yakuman.'

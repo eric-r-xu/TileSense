@@ -1679,6 +1679,18 @@ abstract class AppLocalizations {
   /// **'Exhaustive Draw'**
   String get resultExhaustiveDraw;
 
+  /// No description provided for @resultNagashiMangan.
+  ///
+  /// In en, this message translates to:
+  /// **'Nagashi Mangan'**
+  String get resultNagashiMangan;
+
+  /// No description provided for @nagashiSettlement.
+  ///
+  /// In en, this message translates to:
+  /// **'Mangan payments replace tenpai payments. No honba bonus; riichi sticks carry forward.'**
+  String get nagashiSettlement;
+
   /// No description provided for @resultMultipleWins.
   ///
   /// In en, this message translates to:
