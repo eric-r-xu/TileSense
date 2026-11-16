@@ -17,9 +17,14 @@ Rooms seat four, or three for Sanma; bots fill empty seats. Clients advertise
 an update. Sichuan tables continue after individual wins; Sanma skips the empty
 seat in turn order and client seat mapping.
 
-Online players have no guide or Auto-Play. A Saeko bot in four-player riichi can
-use Mortal when the server has `MORTAL_URL` configured, falling back to
-`SimpleBot` if a decision fails. Other variants use `SimpleBot`.
+Online players have no guide or Auto-Play. In riichi and sanma the bot seats
+are filled with Saeko, then (four-player only) Nagomi, then whoever is left,
+and every bot-filled seat plays Mortal when the server is configured for it:
+Saeko on the stock 298k (`MORTAL_URL`), every other four-player bot, Nagomi
+included, on the 298k fine-tuned on Tenhou Phoenix hanchan logs
+(`MORTAL_NAGOMI_URL`, falling back to Saeko's), and every sanma bot on the sanma
+Mortal (`MORTAL_SANMA_URL`). A bot falls back to `SimpleBot` if a decision
+fails. Other variants use `SimpleBot`.
 
 ## Telemetry ingest
 

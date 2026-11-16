@@ -170,7 +170,7 @@ void main() {
       expect(ended, hands, reason: 'the game stalled');
     }
 
-    testWidgets('only Saeko asks Mortal, and a failing Mortal falls back',
+    testWidgets('every bot asks Mortal, and a failing Mortal falls back',
         (tester) async {
       Sfx.i.enabled = false;
       final mortal = _FakeMortal(); // always fails: SimpleBot plays her
@@ -178,9 +178,11 @@ void main() {
           GameController(seed: 7, seatCharacters: seats, mortal: mortal);
       try {
         await playHands(tester, game);
-        // Seat 0 is you: the guide column asks about your first turn. Of
-        // the bots, only Saeko (seat 1) asks.
-        expect(mortal.asked.difference({kHumanSeat}), {1});
+        // Seat 0 is you: the guide column asks about your first turn. Every
+        // bot (seats 1-3) asks, whoever it shows: Saeko on this Mortal, the
+        // others on the fine-tune, which this app was not built with, so it
+        // is this Mortal that answers for them too.
+        expect(mortal.asked.difference({kHumanSeat}), {1, 2, 3});
       } finally {
         game.dispose();
         Sfx.i.enabled = true;
@@ -224,9 +226,11 @@ void main() {
           GameController(seed: 7, seatCharacters: seats, mortal: mortal);
       try {
         await playHands(tester, game);
-        // Seat 0 is you: the guide column asks about your first turn. Of
-        // the bots, only Saeko (seat 1) asks.
-        expect(mortal.asked.difference({kHumanSeat}), {1});
+        // Seat 0 is you: the guide column asks about your first turn. Every
+        // bot (seats 1-3) asks, whoever it shows: Saeko on this Mortal, the
+        // others on the fine-tune, which this app was not built with, so it
+        // is this Mortal that answers for them too.
+        expect(mortal.asked.difference({kHumanSeat}), {1, 2, 3});
       } finally {
         game.dispose();
         Sfx.i.enabled = true;
@@ -237,7 +241,8 @@ void main() {
         (tester) async {
       Sfx.i.enabled = false;
       final mortal = _FakeMortal();
-      // Seat 2 is sanma's empty seat; Saeko sits on the left, seat 3.
+      // Seat 2 is sanma's empty seat; Saeko sits on the left, seat 3, and
+      // Grant on the right, seat 1: both bots play the sanma Mortal.
       final game = GameController(
           seed: 7,
           seatCharacters: const [
@@ -251,8 +256,8 @@ void main() {
       try {
         expect(game.mortalAvailable, isTrue);
         await playHands(tester, game);
-        // You are mjai seat 0; Saeko's seat 3 is mjai seat 2.
-        expect(mortal.asked.difference({kHumanSeat}), {2});
+        // You are mjai seat 0; the bots' seats 1 and 3 are mjai seats 1 and 2.
+        expect(mortal.asked.difference({kHumanSeat}), {1, 2});
         expect(mortal.players, {3});
       } finally {
         game.dispose();

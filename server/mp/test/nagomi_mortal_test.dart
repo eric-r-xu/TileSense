@@ -6,7 +6,9 @@ import 'package:tilesense_mp/table_loop.dart';
 
 /// A bot Nagomi plays the fine-tuned model from her own sidecar in four-player
 /// riichi (hanchan or East only), falls back to Saeko's Mortal and then to
-/// SimpleBot, and stays on SimpleBot in sanma. Saeko keeps the server's Mortal.
+/// SimpleBot. Every other bot seat but Saeko's plays it too; Saeko keeps the
+/// server's Mortal. Sanma has no such model: all its bots play the sanma
+/// Mortal.
 void main() {
   /// A room with a human and a bot Nagomi; [TableLoop.start]
   /// seats Saeko (the first bot it fills) and one more bot.
@@ -66,7 +68,9 @@ void main() {
     return nagomi;
   }
 
-  test('Nagomi asks her own Mortal; Saeko asks the server\'s', () async {
+  test(
+      'Saeko asks the server\'s Mortal; every other bot, Nagomi among them, '
+      'asks the fine-tuned one', () async {
     final room = roomWithNagomi();
     final nagomiAsked = <int>{}, saekoAsked = <int>{};
     final loop = loopFor(room, mortal: (seat, events, {hanchan = true}) {
@@ -76,10 +80,17 @@ void main() {
       nagomiAsked.add(seat);
       return tsumogiri(seat, events);
     });
-    final nagomiSeat = await playOut(loop);
+    await playOut(loop);
     final saekoSeat = room.seats.indexWhere((s) => s?.character == 'saeko');
+    final nagomiSeat = room.seats.indexWhere((s) => s?.character == 'nagomi');
+    final others = {
+      for (var i = 0; i < 4; i++)
+        if (i != saekoSeat && (room.seats[i]?.filledByBot ?? false)) i
+    };
 
-    expect(nagomiAsked, {nagomiSeat});
+    expect(others, hasLength(2), reason: 'Nagomi and one more bot');
+    expect(nagomiAsked, others);
+    expect(nagomiAsked, contains(nagomiSeat));
     expect(saekoAsked, {saekoSeat});
   });
 
@@ -135,23 +146,26 @@ void main() {
     expect(loop.round.seats[nagomiSeat].allDiscards, isNotEmpty);
   });
 
-  test('sanma: Nagomi has no model and never asks Mortal', () async {
+  test('sanma: Nagomi has no model; every bot plays the sanma Mortal',
+      () async {
     final room = roomWithNagomi(ruleset: Ruleset.sanma);
     var nagomiCalls = 0;
-    final saekoAsked = <int>{};
+    final asked = <int>{};
     final loop = loopFor(room, mortal: (seat, events, {hanchan = true}) {
-      saekoAsked.add(seat);
+      asked.add(seat);
       return tsumogiri(seat, events);
     }, nagomi: (seat, events, {hanchan = true}) async {
       nagomiCalls++;
       return {'reaction': null};
     });
-    final nagomiSeat = await playOut(loop);
+    await playOut(loop);
 
     expect(nagomiCalls, 0);
-    final nagomiMjaiSeat = Ruleset.sanma.activeSeats.indexOf(nagomiSeat);
-    expect(saekoAsked, isNotEmpty);
-    expect(saekoAsked, isNot(contains(nagomiMjaiSeat)));
+    final bots = [
+      for (var i = 0; i < 4; i++)
+        if (room.seats[i]?.filledByBot ?? false) i
+    ];
+    expect(asked, {for (final b in bots) Ruleset.sanma.activeSeats.indexOf(b)});
   });
 
   test('MortalClient.maybe reads MORTAL_NAGOMI_URL only for Nagomi', () {

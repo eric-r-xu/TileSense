@@ -37,6 +37,40 @@ void main() {
         reason: 'the draw should not be the same four every time');
   });
 
+  test('under riichi the bot seats are Saeko and Nagomi, the human neither',
+      () {
+    for (var seed = 0; seed < 50; seed++) {
+      final picks = randomSeatCharacters(Random(seed), Ruleset.riichi);
+      expect(picks, hasLength(4));
+      expect(
+          picks.sublist(1)..sort((a, b) => a.index - b.index),
+          ([Character.saeko, Character.nagomi, Character.nagomi]
+            ..sort((a, b) => a.index - b.index)));
+      expect(picks[0], isNot(anyOf(Character.saeko, Character.nagomi)));
+    }
+    expect({
+      for (var s = 0; s < 50; s++)
+        randomSeatCharacters(Random(s), Ruleset.riichi)[1]
+    }, hasLength(greaterThan(1)), reason: 'which bot sits where is random');
+  });
+
+  test('under sanma both bots are Saeko, on the two seats that play', () {
+    expect(botSeatCharacters(Ruleset.sanma), {
+      1: Character.saeko,
+      3: Character.saeko,
+    });
+    final picks = randomSeatCharacters(Random(3), Ruleset.sanma);
+    expect([picks[1], picks[3]], [Character.saeko, Character.saeko]);
+    expect(picks[0], isNot(Character.saeko));
+  });
+
+  test('other rulesets draw four distinct characters as before', () {
+    for (final r in [Ruleset.hongKong, Ruleset.taiwanese, Ruleset.mcr]) {
+      expect(botSeatCharacters(r), isEmpty);
+      expect(randomSeatCharacters(Random(1), r).toSet(), hasLength(4));
+    }
+  });
+
   test('seat winds follow the dealer round the table', () {
     // Dealer at seat 0: you are East, then South/West/North counter-clockwise.
     expect([for (var s = 0; s < 4; s++) seatStartingWind(s, 0)],

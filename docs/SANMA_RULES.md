@@ -44,7 +44,10 @@ with these changes.
 - The guide treats the 2–8 man as out of play, counts kita as dora, and always
   sets a North aside. It plays Aggressive · Speed · Points throughout: the
   placement model is built for four seats.
-- Mortal plays four-player riichi only, so a sanma table has no Mortal column
-  and no Saeko-on-Mortal. There is no daily quiz for sanma yet: riichi's
-  puzzles are four-player tables, so they are not offered in its place.
-- Online rooms seat three; bots fill the seats nobody takes.
+- Both bots are Saeko offline, playing the sanma Mortal; Nagomi's fine-tune is
+  four-player only, so she is not seated by default and every sanma bot,
+  whatever it shows, plays the sanma Mortal. There is no daily quiz for sanma
+  yet: riichi's puzzles are four-player tables, so they are not offered in its
+  place.
+- Online rooms seat three; bots fill the seats nobody takes, Saeko first, and
+  all of them play the sanma Mortal.

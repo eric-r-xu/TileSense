@@ -9,6 +9,17 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-16 — Saeko and Nagomi bots on Mortal in riichi and sanma
+
+- Riichi and sanma bot seats now default to Saeko and Nagomi, offline (four-player:
+  Saeko, Nagomi, Nagomi; sanma: two Saekos) and online (Saeko, then Nagomi, then
+  whoever is left, as rooms keep characters unique).
+- Every bot seat plays Mortal, whatever character it shows. Four-player: Saeko on
+  the stock 298k, everyone else on the 298k fine-tuned on Tenhou Phoenix hanchan
+  logs (Saeko's Mortal, then `SimpleBot`, if that fails). Sanma: the sanma Mortal.
+  Before, only the Saeko seat (and Nagomi's) played Mortal; other bot characters
+  played `SimpleBot`.
+
 ## 2026-11-16 — Red fives on the result screen
 
 - Riichi and Sanma winning-hand and tenpai reveals retain red fives in called

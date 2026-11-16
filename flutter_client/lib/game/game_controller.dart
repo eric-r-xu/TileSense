@@ -242,11 +242,12 @@ class GameController extends ChangeNotifier implements TableGameHost {
     return mortal.ask(mjaiSeat, events, hanchan: hanchan);
   }
 
-  /// Whether [seat] is a bot showing Nagomi in a riichi game.
+  /// Whether [seat] is a bot on Nagomi's fine-tuned model: every bot seat in
+  /// four-player riichi but one showing Saeko, who plays the stock 298k.
   bool _isNagomiBot(int seat) =>
       ruleset.isRiichi &&
       seat != kHumanSeat &&
-      _characterForSeat(seat) == Character.nagomi;
+      _characterForSeat(seat) != Character.saeko;
 
   @override
   bool get mortalAvailable => _mortal != null;
@@ -1735,18 +1736,22 @@ class GameController extends ChangeNotifier implements TableGameHost {
 
   // --- Saeko on Mortal ---------------------------------------------------
 
-  /// Whether Mortal plays [seat]: a bot seat showing Saeko, in a riichi or
-  /// sanma game, in an app built with that game's Mortal; or showing Nagomi in
-  /// a riichi game, on her own Mortal or else Saeko's. Every other character,
-  /// and either under Hong Kong or Taiwanese rules, stays on [SimpleBot].
-  /// (Online, the server plays its bot Saeko and Nagomi on Mortal:
-  /// server/mp/lib/table_loop.dart.)
+  /// Whether Mortal plays [seat]: every bot seat in a riichi or sanma game, in
+  /// an app built with that game's Mortal. In four-player riichi a bot showing
+  /// Saeko plays the stock 298k and every other bot plays Nagomi's fine-tuned
+  /// model (else Saeko's Mortal); in sanma they all play the sanma Mortal.
+  /// Whatever character a seat shows, it is on Mortal, though riichi and
+  /// sanma seat Saeko and Nagomi by default (see `botSeatCharacters`). Under
+  /// Hong Kong or Taiwanese rules every bot stays on [SimpleBot]. (Online,
+  /// the server does the same: server/mp/lib/table_loop.dart.)
   bool _playsMortal(int seat) =>
       seat != kHumanSeat &&
-      switch (_characterForSeat(seat)) {
-        Character.saeko => _mortal != null,
-        Character.nagomi =>
-          ruleset.isRiichi && (_mortalNagomi != null || _mortal != null),
+      switch (ruleset) {
+        Ruleset.riichi =>
+          _isNagomiBot(seat)
+              ? (_mortalNagomi != null || _mortal != null)
+              : _mortal != null,
+        Ruleset.sanma => _mortal != null,
         _ => false,
       };
 
@@ -1869,7 +1874,7 @@ class GameController extends ChangeNotifier implements TableGameHost {
           .then<Object?>((answer) => answer, onError: (Object e) {
         debugPrint(seat == kHumanSeat
             ? 'Mortal fell back to the guide for your seat: $e'
-            : '${_characterForSeat(seat) == Character.nagomi ? 'Nagomi' : 'Saeko'}'
+            : '${_isNagomiBot(seat) ? 'Nagomi' : 'Saeko'}'
                 ' (Mortal) fell back to SimpleBot: $e');
         return null;
       }).then((answer) {
