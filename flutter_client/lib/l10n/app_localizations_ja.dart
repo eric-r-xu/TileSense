@@ -846,6 +846,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resultExhaustiveDraw => '流局';
 
   @override
+  String scoreBonusesTo(String player) {
+    return '$playerへの加算点';
+  }
+
+  @override
+  String get scoreHonbaPayout => '本場分の受取額';
+
+  @override
+  String get scoreRiichiStickPayout => '供託リーチ棒の受取額';
+
+  @override
   String get resultNagashiMangan => '流し満貫';
 
   @override

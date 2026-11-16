@@ -1679,6 +1679,24 @@ abstract class AppLocalizations {
   /// **'Exhaustive Draw'**
   String get resultExhaustiveDraw;
 
+  /// No description provided for @scoreBonusesTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonuses paid to {player}'**
+  String scoreBonusesTo(String player);
+
+  /// No description provided for @scoreHonbaPayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Honba payout'**
+  String get scoreHonbaPayout;
+
+  /// No description provided for @scoreRiichiStickPayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Riichi stick payout'**
+  String get scoreRiichiStickPayout;
+
   /// No description provided for @resultNagashiMangan.
   ///
   /// In en, this message translates to:

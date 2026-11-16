@@ -638,9 +638,14 @@ class _ScoringViewState extends State<ScoringView> {
   /// hand to itemize, so its payments get the stage alone.
   Widget _details(Round round, RoundResult r, HandScore? score) {
     return LayoutBuilder(builder: (context, c) {
+      final winner = r.winners.isEmpty
+          ? null
+          : r.winners[_page.clamp(0, r.winners.length - 1)];
       final payments = _card(
         key: const Key('scorePayments'),
         children: [
+          if (round.ruleset.isJapanese && winner != null)
+            _japaneseBonuses(r, winner),
           _transfers(round, r),
           if (round.ruleset.isSichuan) _sichuanPayments(round, r),
         ],
@@ -663,6 +668,47 @@ class _ScoringViewState extends State<ScoringView> {
         ],
       );
     });
+  }
+
+  /// Bonuses belong to the winner on this page. On multiple ron, only the
+  /// nearest winner receives them; on nagashi, the draw awards neither.
+  Widget _japaneseBonuses(RoundResult result, int winner) {
+    final l10n = context.l10n;
+    Widget row(Key key, String label, int points) => Padding(
+          key: key,
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                  child: Text(label,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 17))),
+              const SizedBox(width: 12),
+              Text('+${l10n.scorePointMany(points)}',
+                  style:
+                      const TextStyle(color: AppColors.goldText, fontSize: 17)),
+            ],
+          ),
+        );
+    return Padding(
+      key: const Key('scoreJapaneseBonuses'),
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.scoreBonusesTo(game.seatLabel(winner)),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold)),
+          row(const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout,
+              result.honbaPayouts[winner] ?? 0),
+          row(const Key('scoreRiichiStickPayout'), l10n.scoreRiichiStickPayout,
+              result.riichiStickPayouts[winner] ?? 0),
+        ],
+      ),
+    );
   }
 
   /// A subtly raised block, so the itemized rows read as one unit.
