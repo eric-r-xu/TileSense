@@ -330,6 +330,7 @@ final Map<String, String Function(AppLocalizations)> _resultNames = {
   'Kyuushu Kyuuhai — nine terminals/honors': (l) =>
       l.resultKyuushuKyuuhaiNineTerminalsHonors,
   'Exhaustive Draw': (l) => l.resultExhaustiveDraw,
+  'Nagashi Mangan': (l) => l.resultNagashiMangan,
   'Multiple Wins': (l) => l.resultMultipleWins,
   'Robbing a Kong': (l) => l.resultRobbingAKong,
   'Win on Discard': (l) => l.resultWinOnDiscard,

@@ -263,6 +263,8 @@
   "taiWinWithin5To10Discards": "5〜10巡以内の和了",
   "resultKyuushuKyuuhaiNineTerminalsHonors": "九種九牌",
   "resultExhaustiveDraw": "流局",
+  "resultNagashiMangan": "流し満貫",
+  "nagashiSettlement": "聴牌料の代わりに満貫払い。本場分は加算せず、リーチ棒は持ち越します。",
   "resultMultipleWins": "一炮多響",
   "resultRobbingAKong": "搶槓",
   "resultWinOnDiscard": "出銃和了",

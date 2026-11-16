@@ -790,6 +790,7 @@ class TableLoop {
 
   Future<void> _handleRoundEnd() async {
     final r = round.result!;
+    // Nagashi remains a draw: dealer tenpai takes priority over its recipients.
     final isExhaustiveDraw = r.kind == RoundEndKind.exhaustiveDraw;
     // Sichuan names its next dealer itself (see `RoundResult.nextDealer`).
     final sichuanDealer = ruleset.isSichuan ? (r.nextDealer ?? _dealer) : null;

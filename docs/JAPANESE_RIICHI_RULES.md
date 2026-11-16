@@ -66,7 +66,7 @@ Daisangen, Shousuushii, Daisuushii (double), Tsuuiisou, Chinroutou, Ryuuiisou
 Poutou (closed). 13 or more han is **kazoe yakuman**. Suuankou tanki and the
 nine-sided Chuuren are not doubled.
 
-**Not implemented:** Tenhou, Chiihou, Renhou, Suukantsu and nagashi mangan; the
+**Not implemented:** Tenhou, Chiihou, Renhou and Suukantsu; the
 four-wind, four-riichi and four-kan abortive draws.
 
 **Seven pairs** currently scores only its own 2 han plus dora: it does not add
@@ -92,6 +92,7 @@ exception).
 - **Honba** add 300 to a ron (from the discarder) or 100 from each payer on a tsumo. On a multiple ron, only the winner nearest the discarder in turn order receives the honba payment; every winner still receives their hand's points. A honba is added when the dealer repeats or on an exhaustive draw, and reset when the dealership passes after a win.
 - **Riichi sticks** on the table go to the winner — on a multiple ron, the winner nearest the discarder in turn order. After a draw they carry to the next hand.
 - **Exhaustive draw**: tenpai seats share 3,000 points from the noten seats (1,000 / 1,500 / 3,000 each, depending on the split); nothing moves if everyone or no one is tenpai. The dealer repeats if tenpai.
+- **Nagashi mangan (riichi and Sanma)**: at an exhaustive draw, a closed hand with at least one discard qualifies if every discard is a terminal or honor and none was called away. Concealed kans are allowed; tenpai is not required. Each qualifier receives an independent mangan tsumo payment (dealer: 4,000 from each opponent; non-dealer: 4,000 from the dealer and 2,000 from each other opponent), including payments from other qualifiers. These replace all tenpai/noten payments. There is no honba bonus; riichi sticks carry forward and honba increases by one. The dealer repeats exactly when tenpai, even if someone else qualifies; a noten dealer passes the deal even if they qualify. This is a draw settlement, not a completed-hand yaku, and uses tsumo loss in Sanma: only the two active opponents pay (see [SANMA_RULES.md](SANMA_RULES.md)).
 - Pon and chi are still offered on the last discard of the hand.
 
 ## Guide

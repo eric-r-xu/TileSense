@@ -9,6 +9,19 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-16 — Nagashi mangan in riichi and Sanma
+
+- A closed hand whose discards are all terminals/honors and were never called
+  receives mangan tsumo payments at an exhaustive draw. Concealed kans are
+  allowed; tenpai is not required. Multiple qualifiers settle independently.
+  Sanma uses tsumo loss: only the two active opponents pay (8,000 total for
+  the dealer, 6,000 for a non-dealer); kita does not disqualify the hand.
+- These payments replace tenpai/noten payments, without honba bonuses or a
+  riichi-stick award. Sticks carry forward and honba increases. Dealer tenpai
+  determines continuation, including when another player receives nagashi.
+- Offline and online results show the qualifying discards and point transfers,
+  with rules and result text in all four supported languages.
+
 ## 2026-11-11 — Play out a hand in the Hand Builder
 
 - **Play** in the Hand Builder plays the posed hand out. Press it once the table

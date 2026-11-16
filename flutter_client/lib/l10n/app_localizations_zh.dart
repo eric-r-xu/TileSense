@@ -841,6 +841,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resultExhaustiveDraw => '荒牌流局';
 
   @override
+  String get resultNagashiMangan => '流局满贯';
+
+  @override
+  String get nagashiSettlement => '以满贯支付代替听牌罚符。不加本场奖励，立直棒留到下一局。';
+
+  @override
   String get resultMultipleWins => '一炮多响';
 
   @override
@@ -4201,6 +4207,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get resultExhaustiveDraw => '荒牌流局';
+
+  @override
+  String get resultNagashiMangan => '流局滿貫';
+
+  @override
+  String get nagashiSettlement => '以滿貫支付代替聽牌罰符。不加本場獎勵，立直棒留到下一局。';
 
   @override
   String get resultMultipleWins => '一炮多響';
