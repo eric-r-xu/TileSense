@@ -841,6 +841,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resultExhaustiveDraw => '荒牌流局';
 
   @override
+  String scoreBonusesTo(String player) {
+    return '支付给$player的奖励';
+  }
+
+  @override
+  String get scoreHonbaPayout => '本场收入';
+
+  @override
+  String get scoreRiichiStickPayout => '立直棒收入';
+
+  @override
   String get resultNagashiMangan => '流局满贯';
 
   @override
@@ -4207,6 +4218,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get resultExhaustiveDraw => '荒牌流局';
+
+  @override
+  String scoreBonusesTo(String player) {
+    return '支付給$player的獎勵';
+  }
+
+  @override
+  String get scoreHonbaPayout => '本場收入';
+
+  @override
+  String get scoreRiichiStickPayout => '立直棒收入';
 
   @override
   String get resultNagashiMangan => '流局滿貫';

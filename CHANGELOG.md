@@ -20,6 +20,15 @@ approximate wherever a batch of work spanned more than a day.
   Before, only the Saeko seat (and Nagomi's) played Mortal; other bot characters
   played `SimpleBot`.
 
+## 2026-11-16 — Honba and riichi-stick payout breakdown
+
+- Riichi and Sanma results itemize honba and riichi-stick awards separately
+  for the winner on each page, in all four languages. Sanma tsumo includes
+  only the two active opponents' honba payments. Multiple ron awards both
+  bonuses only to the nearest winner; nagashi awards neither.
+- The result records the actual awards before deposits are cleared, and
+  multiplayer snapshots preserve those amounts and remap their recipients.
+
 ## 2026-11-16 — Red fives on the result screen
 
 - Riichi and Sanma winning-hand and tenpai reveals retain red fives in called

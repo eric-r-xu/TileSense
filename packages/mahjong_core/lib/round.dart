@@ -166,6 +166,8 @@ class RoundResult {
     this.scores = const [],
     this.winTiles = const {},
     this.tenpaiAtDraw = const [],
+    this.honbaPayouts = const {},
+    this.riichiStickPayouts = const {},
     this.sichuanHu = const [],
     this.sichuanPayments = const [],
     this.nextDealer,
@@ -190,6 +192,12 @@ class RoundResult {
   final Map<int, int> pointDeltas;
   final List<int> tenpaiAtDraw;
   final String label;
+
+  /// Japanese rules: points actually awarded to each winner from honba and
+  /// riichi deposits, separately from the hand's value and any deposit they
+  /// paid earlier in this hand. Draws (including nagashi) award neither.
+  final Map<int, int> honbaPayouts;
+  final Map<int, int> riichiStickPayouts;
 
   /// Nagashi recipients are listed in [winners], but this remains a draw:
   /// dealer continuation depends on tenpai, and there is no winning hand,
@@ -1838,7 +1846,8 @@ class Round {
       }
     }
     // riichi sticks go to the first ronner (closest in turn order after discarder)
-    deltas[ronners.first] = deltas[ronners.first]! + riichiSticks * 1000;
+    final stickPay = riichiSticks * 1000;
+    deltas[ronners.first] = deltas[ronners.first]! + stickPay;
 
     for (final e in deltas.entries) {
       seats[e.key].points += e.value;
@@ -1850,6 +1859,12 @@ class Round {
     result = RoundResult(
       kind: RoundEndKind.ron,
       winners: ronners,
+      honbaPayouts: {
+        if (ruleset.isJapanese && honbaPay > 0) ronners.first: honbaPay,
+      },
+      riichiStickPayouts: {
+        if (ruleset.isJapanese && stickPay > 0) ronners.first: stickPay,
+      },
       loser: discarder,
       score: firstScore,
       scores: [
@@ -1898,7 +1913,8 @@ class Round {
       deltas[w] = deltas[w]! + pay;
     }
 
-    deltas[w] = deltas[w]! + riichiSticks * 1000;
+    final stickPay = riichiSticks * 1000;
+    deltas[w] = deltas[w]! + stickPay;
     for (final e in deltas.entries) {
       seats[e.key].points += e.value;
     }
@@ -1908,6 +1924,13 @@ class Round {
     result = RoundResult(
       kind: RoundEndKind.tsumo,
       winners: winners,
+      honbaPayouts: {
+        if (ruleset.isJapanese && honbaPay > 0)
+          w: honbaPay * (ruleset.playerCount - 1),
+      },
+      riichiStickPayouts: {
+        if (ruleset.isJapanese && stickPay > 0) w: stickPay,
+      },
       loser: loser,
       score: score,
       scores: [score],
