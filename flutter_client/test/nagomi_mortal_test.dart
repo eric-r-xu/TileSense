@@ -5,9 +5,11 @@ import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/mortal_advisor.dart';
 import 'package:tilesense/game/sfx.dart';
 
-/// Offline riichi: the Nagomi bot plays the fine-tuned model from her own
-/// sidecar, falls back to Saeko's Mortal and then SimpleBot, and stays on
-/// SimpleBot in sanma and under Hong Kong rules. Saeko keeps her Mortal.
+/// Offline riichi: every bot but Saeko, Nagomi among them, plays the
+/// fine-tuned model from her own sidecar, falls back to Saeko's Mortal and
+/// then SimpleBot. In sanma, where there is no such model, every bot plays
+/// the sanma Mortal; under Hong Kong rules they all stay on SimpleBot. Saeko
+/// keeps the stock 298k.
 
 /// A Mortal that records who asks and either plays the tile just drawn and
 /// passes every call (when [works]) or fails like a sidecar that is down.
@@ -45,7 +47,8 @@ void main() {
     Character.nagomi,
     Character.astaroth,
   ];
-  const saekoSeat = 1, nagomiSeat = 2;
+  // Seat 3 shows neither Saeko nor Nagomi, yet plays Nagomi's model.
+  const saekoSeat = 1, nagomiSeat = 2, otherBotSeat = 3;
 
   /// Plays [game] until [hands] hands have ended, failing if it stalls.
   Future<void> playHands(WidgetTester tester, GameController game,
@@ -64,17 +67,19 @@ void main() {
     expect(ended, hands, reason: 'the game stalled');
   }
 
-  testWidgets('Nagomi asks her own Mortal; Saeko and your seat ask Saeko\'s',
-      (tester) async {
+  testWidgets(
+      'Saeko asks the 298k; every other bot asks the fine-tune; your seat '
+      'only gets the 298k\'s advice', (tester) async {
     Sfx.i.enabled = false;
     final saeko = _Mortal(), nagomi = _Mortal();
     final game = GameController(
         seed: 7, seatCharacters: seats, mortal: saeko, nagomiMortal: nagomi);
     try {
       await playHands(tester, game);
-      expect(nagomi.asked, {nagomiSeat});
+      expect(nagomi.asked, {nagomiSeat, otherBotSeat});
       expect(saeko.asked, contains(saekoSeat));
       expect(saeko.asked, isNot(contains(nagomiSeat)));
+      expect(saeko.asked, isNot(contains(otherBotSeat)));
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
@@ -89,8 +94,8 @@ void main() {
         seed: 7, seatCharacters: seats, mortal: saeko, nagomiMortal: nagomi);
     try {
       await playHands(tester, game);
-      expect(nagomi.asked, {nagomiSeat});
-      expect(saeko.asked, contains(nagomiSeat));
+      expect(nagomi.asked, {nagomiSeat, otherBotSeat});
+      expect(saeko.asked, containsAll([nagomiSeat, otherBotSeat]));
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
@@ -104,7 +109,7 @@ void main() {
     final game = GameController(seed: 7, seatCharacters: seats, mortal: saeko);
     try {
       await playHands(tester, game);
-      expect(saeko.asked, containsAll([saekoSeat, nagomiSeat]));
+      expect(saeko.asked, containsAll([saekoSeat, nagomiSeat, otherBotSeat]));
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
@@ -121,8 +126,8 @@ void main() {
       // The hand has to finish (playHands fails on a stall) with both her
       // Mortal and Saeko's tried for her seat and both failing.
       await playHands(tester, game);
-      expect(nagomi.asked, {nagomiSeat});
-      expect(saeko.asked, contains(nagomiSeat));
+      expect(nagomi.asked, {nagomiSeat, otherBotSeat});
+      expect(saeko.asked, containsAll([nagomiSeat, otherBotSeat]));
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
@@ -137,7 +142,7 @@ void main() {
         GameController(seed: 7, seatCharacters: seats, nagomiMortal: nagomi);
     try {
       await playHands(tester, game);
-      expect(nagomi.asked, {nagomiSeat});
+      expect(nagomi.asked, {nagomiSeat, otherBotSeat});
     } finally {
       game.dispose();
       Sfx.i.enabled = true;
@@ -165,7 +170,8 @@ void main() {
     }
   });
 
-  testWidgets('sanma: Nagomi has no model and never asks hers', (tester) async {
+  testWidgets('sanma: Nagomi has no model; every bot asks the sanma Mortal',
+      (tester) async {
     Sfx.i.enabled = false;
     final nagomi = _Mortal(), sanma = _Mortal();
     // Seat 2 is sanma's empty seat; Nagomi sits on the left, seat 3.
@@ -183,7 +189,8 @@ void main() {
     try {
       await playHands(tester, game);
       expect(nagomi.asked, isEmpty);
-      expect(sanma.asked.difference({kHumanSeat}), isEmpty);
+      // mjai seats 0-2 are the players, in seat order: you, right, left.
+      expect(sanma.asked, containsAll([1, 2]));
     } finally {
       game.dispose();
       Sfx.i.enabled = true;

@@ -1081,7 +1081,8 @@ class _GamePageState extends State<GamePage> {
 
   /// A fresh random seating for the next single-player game; the
   /// character-select page still lets the player change any of it.
-  void _rerollCharacters() => _characters.setAll(0, randomSeatCharacters());
+  void _rerollCharacters() =>
+      _characters.setAll(0, randomSeatCharacters(null, _selectedRuleset));
   Ruleset _selectedRuleset = Ruleset.hongKong;
   final List<Character> _characters = randomSeatCharacters();
   int _startingDealer = 0;
@@ -1425,12 +1426,19 @@ class _GamePageState extends State<GamePage> {
           startingDealer: _startingDealer,
           onStartingDealer: (seat) => setState(() => _startingDealer = seat),
           onRandomize: () => setState(() {
-            _characters.setAll(0, randomSeatCharacters());
+            _characters.setAll(
+                0, randomSeatCharacters(null, _selectedRuleset));
             _startingDealer = randomStartingDealer();
           }),
           advanceLabel: context.l10n.start,
           ruleset: _selectedRuleset,
-          onRuleset: (r) => setState(() => _selectedRuleset = r),
+          onRuleset: (r) => setState(() {
+            // Riichi and sanma seat Saeko and Nagomi, the bots on Mortal.
+            if (r.isJapanese && r != _selectedRuleset) {
+              botSeatCharacters(r).forEach((s, c) => _characters[s] = c);
+            }
+            _selectedRuleset = r;
+          }),
           soundOn: Sfx.i.enabled,
           onSoundOn: (on) => setState(() {
             Sfx.i.enabled = on;

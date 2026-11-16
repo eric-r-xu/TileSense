@@ -43,11 +43,42 @@ String seatPositionName(AppLocalizations l10n, int seat) => switch (seat) {
       _ => l10n.seatLeft,
     };
 
+/// The characters bot seats show by default under riichi, by seat: Saeko,
+/// Nagomi and Nagomi in four-player (Saeko plays Mortal's 298k, Nagomi the
+/// 298k fine-tuned on Tenhou Phoenix hanchan logs; any other bot plays the
+/// fine-tune too, so a second Nagomi stands for the third), and two Saekos in
+/// sanma, where only the sanma Mortal exists. Empty for every other ruleset.
+/// Which of them sits where is random; offline, seats may repeat a character.
+Map<int, Character> botSeatCharacters(Ruleset ruleset, [Random? random]) {
+  final picks = switch (ruleset) {
+    Ruleset.riichi => [Character.saeko, Character.nagomi, Character.nagomi],
+    Ruleset.sanma => [Character.saeko, Character.saeko],
+    _ => null,
+  };
+  if (picks == null) return const {};
+  picks.shuffle(random);
+  final seats = [
+    for (final s in ruleset.activeSeats)
+      if (s != 0) s
+  ];
+  return {for (var i = 0; i < seats.length; i++) seats[i]: picks[i]};
+}
+
 /// A fresh draw of four distinct characters, in random order — which changes
 /// who each seat plays as, and so where every character sits, in one go.
-List<Character> randomSeatCharacters([Random? random]) {
+/// Under riichi or sanma ([ruleset]) the bot seats are [botSeatCharacters]
+/// instead, and the human's and any empty seat draw from the rest.
+List<Character> randomSeatCharacters([Random? random, Ruleset? ruleset]) {
   final pool = List.of(kSelectableCharacters)..shuffle(random);
-  return pool.take(4).toList();
+  final bots = ruleset == null
+      ? const <int, Character>{}
+      : botSeatCharacters(ruleset, random);
+  if (bots.isEmpty) return pool.take(4).toList();
+  final rest = [
+    for (final c in pool)
+      if (!bots.values.contains(c)) c
+  ];
+  return [for (var s = 0; s < 4; s++) bots[s] ?? rest.removeLast()];
 }
 
 /// A random seat to deal first — i.e. a random wind for the human to start on.

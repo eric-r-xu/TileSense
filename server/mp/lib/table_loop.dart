@@ -238,14 +238,21 @@ class TableLoop {
         ruleset.seatIsActive(i) ? ruleset.startingPoints : 0
     ];
     _shuffleSeats();
-    // Under riichi or sanma the first bot is Saeko, who plays on Mortal,
-    // unless a player already has her.
-    var wantSaeko = ruleset.isJapanese;
+    // Bot seats under riichi are Saeko, then (four-player only: she has no
+    // sanma model) Nagomi, unless a player already has that character; any
+    // further bot seat gets whatever is unclaimed, as rooms keep characters
+    // unique. Every bot-filled seat plays on Mortal regardless: see
+    // [_wantsMortal] and [_usesNagomiModel].
+    final preferred = [
+      if (ruleset.isJapanese) 'saeko',
+      if (ruleset.isRiichi) 'nagomi',
+    ];
     for (final i in _playedSeats) {
       if (room.seats[i] == null) {
+        final taken = {for (final s in room.seats) s?.character};
+        final want = preferred.where((c) => !taken.contains(c));
         final character =
-            room.resolveCharacter(wantSaeko ? 'saeko' : null, _rng);
-        wantSaeko = false;
+            room.resolveCharacter(want.isEmpty ? null : want.first, _rng);
         room.seats[i] = Seat(
           guestId: 'bot-$i',
           name: Room.characterName[character]!,
@@ -321,8 +328,7 @@ class TableLoop {
       minimumFaan: room.minimumFaan,
       minimumPoints: room.minimumPoints,
     );
-    _mjai = ruleset.isJapanese &&
-            room.seats.any((s) => _isMortalCharacter(s?.character))
+    _mjai = ruleset.isJapanese && _playedSeats.any(_canPlayMortal)
         ? MjaiRecorder(round, kyoku: (_roundNumber % _handsPerWind) + 1)
         : null;
     _discardSerial = 0;
@@ -503,23 +509,36 @@ class TableLoop {
 
   // --- Saeko on Mortal -----------------------------------------------------
 
-  /// Whether [character] plays on Mortal at this table: Saeko in a riichi or
-  /// sanma game, Nagomi in a four-player riichi game (hanchan or East only),
-  /// each on a server run with a Mortal for her.
-  bool _isMortalCharacter(String? character) => switch (character) {
-        'saeko' => _mortal != null,
-        'nagomi' =>
-          !ruleset.isSanma && (_nagomiMortal != null || _mortal != null),
-        _ => false,
-      };
+  /// Whether [seat] is meant to play on Mortal: every bot-filled seat in a
+  /// riichi or sanma game, and a Saeko seat (or Nagomi's, four-player only)
+  /// that a player has been converted out of. A seat a human lost to a
+  /// timeout under any other character stays on [SimpleBot].
+  bool _wantsMortal(int seat) {
+    final s = room.seats[seat];
+    if (s == null || !ruleset.isJapanese) return false;
+    return s.filledByBot ||
+        s.character == 'saeko' ||
+        (!ruleset.isSanma && s.character == 'nagomi');
+  }
 
-  /// Whether Mortal plays [seat]: a bot seat showing Saeko or Nagomi, as in
-  /// single player. A timed-out human Saeko's (or Nagomi's) one-off move
-  /// stays on [SimpleBot].
+  /// Whether [seat] plays Nagomi's fine-tuned model (the Phoenix-hanchan
+  /// fine-tune of the 298k) rather than Saeko's Mortal: every four-player
+  /// riichi seat but Saeko's, so the bot-filled seats beyond Saeko and Nagomi
+  /// play it too. Sanma has no such model; everyone there is on its Mortal.
+  bool _usesNagomiModel(int seat) =>
+      !ruleset.isSanma && room.seats[seat]?.character != 'saeko';
+
+  /// Whether [seat] wants Mortal and this server has the model for it.
+  bool _canPlayMortal(int seat) =>
+      _wantsMortal(seat) &&
+      (_usesNagomiModel(seat)
+          ? (_nagomiMortal != null || _mortal != null)
+          : _mortal != null);
+
+  /// Whether Mortal plays [seat] now: a bot seat that [_canPlayMortal]. A
+  /// timed-out human's one-off move stays on [SimpleBot].
   bool _playsMortal(int seat) =>
-      _mjai != null &&
-      _bots.containsKey(seat) &&
-      _isMortalCharacter(room.seats[seat]?.character);
+      _mjai != null && _bots.containsKey(seat) && _canPlayMortal(seat);
 
   /// Brings [_mjai] up to date with the round. It must see every action
   /// separately to keep them in order, so this runs at every broadcast (each
@@ -543,7 +562,7 @@ class TableLoop {
     _syncMjai();
     final mjai = _mjai;
     if (mjai == null) return fallback();
-    final nagomi = room.seats[seat]?.character == 'nagomi';
+    final nagomi = _usesNagomiModel(seat);
     final chain = <(String, MortalAsk)>[
       if (nagomi && _nagomiMortal != null) ('Nagomi', _nagomiMortal),
       if (_mortal != null) (nagomi ? "Nagomi (on Saeko's Mortal)" : 'Saeko', _mortal),

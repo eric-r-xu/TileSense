@@ -13,14 +13,19 @@ how that compares to how your own seat plays. Based on
   the characters (Grant, Hubert and Astaroth are just the defaults, and
   offline seats may repeat one), but the character is only a portrait and a
   voice, not a strategy.
-- **Except Saeko under riichi, in a Mortal build.** Built with `MORTAL_URL`,
-  a bot seat showing Saeko plays the moves of
+- **Except under riichi and sanma, in a Mortal build.** Built with
+  `MORTAL_URL`, every bot seat plays the moves of
   [Mortal](https://github.com/Equim-chan/Mortal), a deep-learning mahjong AI,
-  seeing only what her seat can see. Any decision Mortal can't answer (the
-  sidecar is down or slow, or it names a move the table doesn't offer) falls
-  back to `SimpleBot`. Every other character and Saeko under the other five
-  variants stay on `SimpleBot`. Online Saeko can also use Mortal when the multiplayer server
-  has `MORTAL_URL` configured.
+  seeing only what its seat can see. In four-player riichi a seat showing
+  Saeko plays the stock 298k; every other bot, Nagomi included, plays the 298k
+  fine-tuned on Tenhou Phoenix hanchan logs (`MORTAL_NAGOMI_URL`; Saeko's
+  Mortal if that is missing or fails). In sanma every bot plays the sanma
+  Mortal (`MORTAL_SANMA_URL`). Riichi and sanma seat Saeko and Nagomi on the
+  bot seats by default (online: Saeko, then Nagomi, then whoever is left). Any
+  decision Mortal can't answer (the sidecar is down or slow, or it names a
+  move the table doesn't offer) falls back to `SimpleBot`. The other four
+  variants stay on `SimpleBot`. Online bots use Mortal the same way when the
+  multiplayer server has the URLs configured.
 - **Your seat is played by the guide, never by that rulebook.** Whether you're
   tapping tiles yourself or you've flipped Autoplay on, your seat's decisions
   come from the efficiency / expected-value / safety analysis. The opponents

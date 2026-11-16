@@ -26,8 +26,9 @@ multiplayer server (`server/mp/`) and the telemetry ingest (`server/`).
   legal calls, wins and draw settlements. Full games cover East and South,
   except MCR, which plays all four winds; riichi hanchan can extend into West
   if nobody reaches 30,000 points. East-only games are also available.
-  Seat **Saeko** and, under riichi, she plays Mortal's moves (see below);
-  every other bot plays the same simple rulebook.
+  Under riichi and sanma the bots default to **Saeko** and **Nagomi** and all
+  play Mortal's moves (see below); every other ruleset's bots play the same
+  simple rulebook.
 - **Play Online**: all six variants in private rooms for up to four people
   (three in Sanma), with bots filling any
   empty seat. There is no guide or Auto-Play online, by design: nobody gets help
@@ -100,10 +101,13 @@ How the guide measures up against the bots, and how the bots play, is in
 
 ### Mortal (optional)
 
-In four-player riichi, the **Saeko** bot plays
-[Mortal](https://github.com/Equim-chan/Mortal)'s moves, seeing only what her
-seat can see; if Mortal can't answer a decision, she plays it like the other
-bots.
+In riichi, every bot plays [Mortal](https://github.com/Equim-chan/Mortal)'s
+moves, seeing only what its seat can see; if Mortal can't answer a decision, it
+plays it like the other bots. Four-player seats default to Saeko, Nagomi and
+Nagomi: **Saeko** plays the stock 298k model, and **Nagomi** (and any other bot
+seat) plays the 298k fine-tuned on Tenhou Phoenix hanchan logs. In sanma both
+bots are Saeko, on the sanma Mortal. Online, bot seats are Saeko, then Nagomi,
+then whoever is left, with the same models.
 
 The guide also adds a **Mortal bot** column: what Mortal, an open-source
 deep-learning mahjong AI, would do in your seat, seeing only what your seat can
