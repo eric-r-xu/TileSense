@@ -9,6 +9,13 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-16 — Red fives on the result screen
+
+- Riichi and Sanma winning-hand and tenpai reveals retain red fives in called
+  melds and kans. The result screen now renders the physical meld tiles,
+  preserving their red-five flags, with a fallback for posed melds that only
+  know tile types. Aka dora scoring already counted these tiles correctly.
+
 ## 2026-11-16 — Nagashi mangan in riichi and Sanma
 
 - A closed hand whose discards are all terminals/honors and were never called

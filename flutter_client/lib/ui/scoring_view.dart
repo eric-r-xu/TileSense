@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mahjong_core/game_timing.dart';
+import 'package:mahjong_core/meld.dart';
 
 import '../game/call_callout.dart';
 import '../game/guide_host.dart';
@@ -465,13 +466,10 @@ class _ScoringViewState extends State<ScoringView> {
               ],
               for (final m in w.melds) ...[
                 const SizedBox(width: 8),
-                for (final ty in m.types)
+                for (final face in _meldFaces(m, scale: _winnerTileScale))
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
-                    child: TileFace(
-                        type: ty,
-                        size: TileSize.normal,
-                        scale: _winnerTileScale),
+                    child: face,
                   ),
               ],
             ],
@@ -496,6 +494,14 @@ class _ScoringViewState extends State<ScoringView> {
       ],
     );
   }
+
+  /// Physical tiles retain red-five identity; posed melds may only know types.
+  Iterable<TileFace> _meldFaces(Meld meld, {required double scale}) =>
+      meld.tiles.isNotEmpty
+          ? sortByType(meld.tiles).map(
+              (tile) => TileFace(tile: tile, size: TileSize.normal, scale: scale))
+          : meld.types.map(
+              (type) => TileFace(type: type, size: TileSize.normal, scale: scale));
 
   /// The discards earned this payment; there is no completed winning hand.
   Widget _nagashiBlock(Round round, int seat) => Column(
@@ -598,8 +604,7 @@ class _ScoringViewState extends State<ScoringView> {
               TileFace(tile: t, size: TileSize.normal, scale: _tileScale),
             for (final m in s.melds) ...[
               const SizedBox(width: 10),
-              for (final ty in m.types)
-                TileFace(type: ty, size: TileSize.normal, scale: _tileScale),
+              ..._meldFaces(m, scale: _tileScale),
             ],
           ],
         ),
