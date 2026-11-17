@@ -645,7 +645,7 @@ class _ScoringViewState extends State<ScoringView> {
         key: const Key('scorePayments'),
         children: [
           if (round.ruleset.isJapanese && winner != null)
-            _japaneseBonuses(r, winner),
+            _japaneseBonuses(round, r, winner),
           _transfers(round, r),
           if (round.ruleset.isSichuan) _sichuanPayments(round, r),
         ],
@@ -670,10 +670,14 @@ class _ScoringViewState extends State<ScoringView> {
     });
   }
 
-  /// Bonuses belong to the winner on this page. On multiple ron, only the
-  /// nearest winner receives them; on nagashi, the draw awards neither.
-  Widget _japaneseBonuses(RoundResult result, int winner) {
+  /// What the winner on this page collected: the hand's own value, then
+  /// honba and riichi sticks. On multiple ron, only the nearest winner
+  /// receives the bonuses; on nagashi, the draw awards neither and there is
+  /// no hand value to show. The lines sum to the winner's change below.
+  Widget _japaneseBonuses(Round round, RoundResult result, int winner) {
     final l10n = context.l10n;
+    final honba = result.honbaPayouts[winner] ?? 0;
+    final sticks = result.riichiStickPayouts[winner] ?? 0;
     Widget row(Key key, String label, int points) => Padding(
           key: key,
           padding: const EdgeInsets.symmetric(vertical: 5),
@@ -697,15 +701,18 @@ class _ScoringViewState extends State<ScoringView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.scoreBonusesTo(game.seatLabel(winner)),
+          Text(l10n.scorePaidTo(game.seatLabel(winner)),
               style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.bold)),
-          row(const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout,
-              result.honbaPayouts[winner] ?? 0),
+          if (result.kind == RoundEndKind.ron ||
+              result.kind == RoundEndKind.tsumo)
+            row(const Key('scoreHandValue'), l10n.scoreHandValue,
+                _shownDelta(round, result, winner) - honba - sticks),
+          row(const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout, honba),
           row(const Key('scoreRiichiStickPayout'), l10n.scoreRiichiStickPayout,
-              result.riichiStickPayouts[winner] ?? 0),
+              sticks),
         ],
       ),
     );
@@ -785,11 +792,22 @@ class _ScoringViewState extends State<ScoringView> {
             label: '${round.seats[i].wind.kanji} ${game.seatLabel(i)}',
             winner: r.winners.contains(i),
             after: round.seats[i].points,
-            delta: r.pointDeltas[i] ?? 0,
+            delta: _shownDelta(round, r, i),
           ),
       ],
     );
   }
+
+  /// A seat's change as shown: the hand's net change with any riichi deposit
+  /// it put down this hand added back. The deposit already left the seat's
+  /// score at declaration (the table showed it), and it reappears in the
+  /// winner's riichi stick payout — counting it here too would make the
+  /// itemized lines not add up to the change. So "before" reads as the score
+  /// just before the hand ended. A deposit refunded because the declaration
+  /// tile was ronned clears [SeatState.riichi], so it is not added back.
+  int _shownDelta(Round round, RoundResult r, int seat) =>
+      (r.pointDeltas[seat] ?? 0) +
+      (round.ruleset.isJapanese && round.seats[seat].riichi ? 1000 : 0);
 
   Widget _transferRow({
     required String label,

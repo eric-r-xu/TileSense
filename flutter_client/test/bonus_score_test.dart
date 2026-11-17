@@ -14,7 +14,10 @@ import 'package:tilesense/ui/scoring_view.dart';
 import 'helpers.dart';
 
 Round fixture(Ruleset ruleset,
-    {String outcome = 'tsumo', int honba = 2, int sticks = 3}) {
+    {String outcome = 'tsumo',
+    int honba = 2,
+    int sticks = 3,
+    Set<int> riichi = const {}}) {
   final round = Round.posed(
     dealer: 0,
     roundWind: Wind.east,
@@ -31,6 +34,13 @@ Round fixture(Ruleset ruleset,
   );
   for (final s in round.activeSeats) {
     s.hand = parseTiles('19m 1258p 147s EWBG');
+  }
+  // Riichi declared earlier this hand: the deposit has already left the
+  // seat's score and joined the sticks on the table.
+  for (final i in riichi) {
+    round.seats[i].riichi = true;
+    round.seats[i].points -= 1000;
+    round.riichiSticks += 1;
   }
   if (outcome == 'draw' || outcome == 'nagashi') {
     if (outcome == 'nagashi') {
@@ -121,8 +131,16 @@ void main() {
           await showResult(tester, fixture(ruleset), locale: locale, size: size,
               (game) async {
             final l10n = lookupAppLocalizations(locale);
-            expect(find.text(l10n.scoreBonusesTo(game.seatLabel(1))),
+            expect(find.text(l10n.scorePaidTo(game.seatLabel(1))),
                 findsOneWidget);
+            // Tsumo: the dealer's share plus each other active seat's.
+            final score = game.round.result!.score!;
+            expectRow(
+                const Key('scoreHandValue'),
+                l10n.scoreHandValue,
+                score.dealerPays +
+                    score.nonDealerPays * (ruleset.playerCount - 2),
+                l10n);
             expectRow(const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout,
                 ruleset.isSanma ? 400 : 600, l10n);
             expectRow(const Key('scoreRiichiStickPayout'),
@@ -146,7 +164,7 @@ void main() {
           final l10n = lookupAppLocalizations(const Locale('en'));
           expect(
               find.text(l10n
-                  .scoreBonusesTo(game.seatLabel(round.result!.winners[0]))),
+                  .scorePaidTo(game.seatLabel(round.result!.winners[0]))),
               findsOneWidget);
           expectRow(
               const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout, 600, l10n);
@@ -157,7 +175,7 @@ void main() {
           await tester.pump();
           expect(
               find.text(l10n
-                  .scoreBonusesTo(game.seatLabel(round.result!.winners[1]))),
+                  .scorePaidTo(game.seatLabel(round.result!.winners[1]))),
               findsOneWidget);
           expectRow(
               const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout, 0, l10n);
@@ -166,6 +184,32 @@ void main() {
         });
       });
     }
+
+    testWidgets('${ruleset.name} riichi deposits are not double counted',
+        (tester) async {
+      // Discarder and winner both declared riichi; one stick carried over.
+      final round =
+          fixture(ruleset, outcome: 'ron', sticks: 1, riichi: {0, 1});
+      final start = ruleset.startingPoints;
+      await showResult(tester, round, (game) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final hand = round.result!.score!.points;
+        const honba = 600;
+        expectRow(const Key('scoreHandValue'), l10n.scoreHandValue, hand, l10n);
+        expectRow(
+            const Key('scoreHonbaPayout'), l10n.scoreHonbaPayout, honba, l10n);
+        expectRow(const Key('scoreRiichiStickPayout'),
+            l10n.scoreRiichiStickPayout, 3000, l10n);
+        final payments = find.byKey(const Key('scorePayments'));
+        Finder text(String t) =>
+            find.descendant(of: payments, matching: find.text(t));
+        // "Before" is after the deposits, and the changes are exactly the
+        // itemized lines: the winner's equals their sum.
+        expect(text('${start - 1000}'), findsNWidgets(2));
+        expect(text('+${hand + honba + 3000}'), findsOneWidget);
+        expect(text('-${hand + honba}'), findsOneWidget);
+      });
+    });
 
     for (final outcome in ['ron', 'nagashi']) {
       testWidgets('${ruleset.name} $outcome explicitly shows zero bonuses',

@@ -854,9 +854,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resultExhaustiveDraw => 'Exhaustive Draw';
 
   @override
-  String scoreBonusesTo(String player) {
-    return 'Bonuses paid to $player';
+  String scorePaidTo(String player) {
+    return 'Paid to $player';
   }
+
+  @override
+  String get scoreHandValue => 'Hand value';
 
   @override
   String get scoreHonbaPayout => 'Honba payout';
