@@ -3,6 +3,8 @@ import 'package:mahjong_core/round.dart';
 import 'package:tilesense/game/call_callout.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/l10n/l10n.dart';
+import 'package:tilesense/l10n/mahjong_terms.dart';
 
 import 'helpers.dart';
 
@@ -66,7 +68,7 @@ void main() {
 
       g.humanDiscard(tile);
       expect(g.canUndo, isTrue);
-      expect(g.undoLabel, tile.type.displayName);
+      expect(g.undoLabel, currentL10n.tileDisplayName(tile.type));
 
       // Let the table move on to your next decision.
       await pumpUntil(tester, () => yourMove(g) && snapshot(g) != before);

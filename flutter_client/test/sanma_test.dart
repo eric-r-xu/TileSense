@@ -330,7 +330,7 @@ void main() {
       await openPopup(tester, 'rulesTile');
       expect(find.byKey(const Key('ruleset_sanma')), findsOneWidget);
       expect(find.byKey(const Key('rulesetFlag_sanma')), findsWidgets);
-      expect(find.text('3 players, no 2–8 man'),
+      expect(find.text('3 players, no 2–8 Characters'),
           findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key('ruleset_sanma')));
       await tester.pump();

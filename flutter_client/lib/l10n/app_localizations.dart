@@ -2060,19 +2060,37 @@ abstract class AppLocalizations {
   /// No description provided for @tileMan.
   ///
   /// In en, this message translates to:
-  /// **'{n} Man'**
+  /// **'{n} Characters'**
   String tileMan(int n);
+
+  /// No description provided for @tileManRun.
+  ///
+  /// In en, this message translates to:
+  /// **'{tiles} Characters'**
+  String tileManRun(String tiles);
+
+  /// No description provided for @tilePinRun.
+  ///
+  /// In en, this message translates to:
+  /// **'{tiles} Dots'**
+  String tilePinRun(String tiles);
+
+  /// No description provided for @tileSouRun.
+  ///
+  /// In en, this message translates to:
+  /// **'{tiles} Bamboo'**
+  String tileSouRun(String tiles);
 
   /// No description provided for @tilePin.
   ///
   /// In en, this message translates to:
-  /// **'{n} Pin'**
+  /// **'{n} Dots'**
   String tilePin(int n);
 
   /// No description provided for @tileSou.
   ///
   /// In en, this message translates to:
-  /// **'{n} Sou'**
+  /// **'{n} Bamboo'**
   String tileSou(int n);
 
   /// No description provided for @undoPass.
@@ -5114,13 +5132,13 @@ abstract class AppLocalizations {
   /// No description provided for @rulesetSubtitleSanma.
   ///
   /// In en, this message translates to:
-  /// **'3 players, no 2–8 man'**
+  /// **'3 players, no 2–8 Characters'**
   String get rulesetSubtitleSanma;
 
   /// No description provided for @sanmaTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 man are removed), no chi, and North tiles set aside as kita for an extra dora.'**
+  /// **'Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 Characters are removed), no chi, and North tiles set aside as kita for an extra dora.'**
   String get sanmaTooltip;
 
   /// No description provided for @rulesWeb.
@@ -5180,7 +5198,7 @@ abstract class AppLocalizations {
   /// No description provided for @glossaryDefSanma.
   ///
   /// In en, this message translates to:
-  /// **'Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.'**
+  /// **'Three-player riichi mahjong (三麻). The 2–8 Characters are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.'**
   String get glossaryDefSanma;
 
   /// No description provided for @glossaryTermKita.

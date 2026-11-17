@@ -2,7 +2,7 @@
 /// its own words, and within one Riichi, Hong Kong and Taiwanese keep theirs
 /// (Chi vs Chow, 吃 vs 上). `mahjong_core` keeps its English getters as stable
 /// identifiers for the server, logs and the guide's own bookkeeping; these are
-/// only ever for display. English here is exactly what those getters say.
+/// only ever for display. English uses Characters, Dots and Bamboo for suits.
 library;
 
 import 'package:mahjong_core/mcr/mcr_rules.dart';
@@ -133,13 +133,33 @@ extension MahjongTerms on AppLocalizations {
         _ => null,
       };
 
-  /// Any tile's name ("5 Man", "Red Dragon"…); English is exactly
-  /// [TileType.displayName].
+  /// Any tile's localized name ("5 Characters", "Red Dragon"…).
   String tileDisplayName(TileType t) {
     if (t.isMan) return tileMan(t.number);
     if (t.isPin) return tilePin(t.number);
     if (t.isSou) return tileSou(t.number);
     return tileName(t) ?? t.displayName;
+  }
+
+  /// A compact display token from a call or model suggestion. Keep the
+  /// underlying tile codes unchanged for game state and saved scenarios.
+  String tileCodeDisplayName(String code) {
+    final match = RegExp(r'^([1-9]|[1-7][2-8][3-9])([mps])$').firstMatch(code);
+    if (match == null) return code;
+    final digits = match[1]!;
+    if (digits.length == 1) {
+      final n = int.parse(digits);
+      return switch (match[2]!) {
+        'm' => tileMan(n),
+        'p' => tilePin(n),
+        _ => tileSou(n),
+      };
+    }
+    return switch (match[2]!) {
+      'm' => tileManRun(digits),
+      'p' => tilePinRun(digits),
+      _ => tileSouRun(digits),
+    };
   }
 
   /// A yaku / faan / tai name from `mahjong_core` (e.g. "Riichi", "Red

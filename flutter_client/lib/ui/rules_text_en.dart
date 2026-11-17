@@ -610,7 +610,7 @@ class EnRulesText extends RulesText {
     'Tsuuiisou': 'Only honour tiles, seven pairs included.',
     'Chinroutou': 'Only 1s and 9s.',
     'Ryuuiisou':
-        'Only 2, 3, 4, 6 and 8 sou and the green dragon; the dragon is optional.',
+        'Only 2, 3, 4, 6 and 8 Bamboo and the green dragon; the dragon is optional.',
     'Chuuren Poutou':
         'Closed 1112345678999 plus one more tile of that suit. The nine-sided wait is not doubled.',
     'Dora': 'Each tile that follows a dora indicator in sequence.',

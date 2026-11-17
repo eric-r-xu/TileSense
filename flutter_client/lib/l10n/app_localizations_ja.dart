@@ -1072,6 +1072,21 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String tileManRun(String tiles) {
+    return '$tiles萬';
+  }
+
+  @override
+  String tilePinRun(String tiles) {
+    return '$tiles筒';
+  }
+
+  @override
+  String tileSouRun(String tiles) {
+    return '$tiles索';
+  }
+
+  @override
   String tilePin(int n) {
     return '$n筒';
   }

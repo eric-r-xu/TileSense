@@ -9,6 +9,15 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-16 — Action buttons and localized suit names
+
+- The shared action bar gives phone-scaled buttons enough height, grows when
+  choices wrap, and keeps Undo clear of the call choices across all seven
+  variants, in offline and online play.
+- Tile, chi-run and kan labels use the selected language's suit names, including
+  model suggestions. English uses Characters, Dots and Bamboo; Japanese and
+  Chinese retain their own names. Saved tile codes are unchanged.
+
 ## 2026-11-16 — Saeko and Nagomi bots on Mortal in riichi and sanma
 
 - Riichi and sanma bot seats now default to Saeko and Nagomi, offline (four-player:

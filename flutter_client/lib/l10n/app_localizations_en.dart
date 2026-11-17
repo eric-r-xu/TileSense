@@ -1080,17 +1080,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tileMan(int n) {
-    return '$n Man';
+    return '$n Characters';
+  }
+
+  @override
+  String tileManRun(String tiles) {
+    return '$tiles Characters';
+  }
+
+  @override
+  String tilePinRun(String tiles) {
+    return '$tiles Dots';
+  }
+
+  @override
+  String tileSouRun(String tiles) {
+    return '$tiles Bamboo';
   }
 
   @override
   String tilePin(int n) {
-    return '$n Pin';
+    return '$n Dots';
   }
 
   @override
   String tileSou(int n) {
-    return '$n Sou';
+    return '$n Bamboo';
   }
 
   @override
@@ -2891,11 +2906,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesetSanmaLong => 'Sanma (3-player riichi mahjong)';
 
   @override
-  String get rulesetSubtitleSanma => '3 players, no 2–8 man';
+  String get rulesetSubtitleSanma => '3 players, no 2–8 Characters';
 
   @override
   String get sanmaTooltip =>
-      'Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 man are removed), no chi, and North tiles set aside as kita for an extra dora.';
+      'Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 Characters are removed), no chi, and North tiles set aside as kita for an extra dora.';
 
   @override
   String rulesWeb(String rules) {
@@ -2932,7 +2947,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glossaryDefSanma =>
-      'Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.';
+      'Three-player riichi mahjong (三麻). The 2–8 Characters are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.';
 
   @override
   String get glossaryTermKita => 'Kita (North set aside)';

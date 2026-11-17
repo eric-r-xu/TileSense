@@ -4,6 +4,8 @@ import 'package:mahjong_core/round.dart';
 
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
+import 'package:tilesense/l10n/l10n.dart';
+import 'package:tilesense/l10n/mahjong_terms.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/ui/hand_view.dart';
 import 'package:tilesense/ui/table_view.dart';
@@ -179,7 +181,8 @@ void main() {
         find.descendant(
             of: find.byKey(const Key('undo')),
             matching:
-                find.textContaining(tile.type.displayName, findRichText: true)),
+                find.textContaining(currentL10n.tileDisplayName(tile.type),
+                    findRichText: true)),
         findsOneWidget,
         reason: 'the button names what it takes back');
 

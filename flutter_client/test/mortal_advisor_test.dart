@@ -215,7 +215,7 @@ void main() {
         expect(find.text('Model'), findsOneWidget);
         expect(find.text('★R'), findsOneWidget);
         expect(find.text('2'), findsWidgets);
-        expect(find.text('Model: RIICHI, cut 9s'), findsOneWidget);
+        expect(find.text('Model: RIICHI, cut 9 Bamboo'), findsOneWidget);
         // The guide and Mortal both pick 9s: green, outlined in red.
         expect(fillOf(tester, '9s')!.color, green);
         expect(fillOf(tester, '9s')!.border, redBorder);
