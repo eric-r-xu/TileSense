@@ -89,8 +89,8 @@ void main() {
       for (final low in ['man3', 'man4', 'man5']) {
         expect(find.byKey(Key('chiRun_$low')), findsOneWidget, reason: low);
       }
-      expect(find.textContaining('345m'), findsOneWidget);
-      expect(find.textContaining('567m'), findsOneWidget);
+      expect(find.textContaining('345 Characters'), findsOneWidget);
+      expect(find.textContaining('567 Characters'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('chiRun_man5')));
       await tester.pump();

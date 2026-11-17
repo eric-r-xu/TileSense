@@ -1008,7 +1008,7 @@ class _HandViewState extends State<HandView> {
             buttons.add(KeyedSubtree(
               key: Key('chiRun_${low.name}'),
               child: _btn(
-                  '${context.l10n.callLabel(CallType.chi, ruleset).toUpperCase()} ${_runLabel(low)}'
+                  '${context.l10n.callLabel(CallType.chi, ruleset).toUpperCase()} ${context.l10n.tileCodeDisplayName(_runLabel(low))}'
                   '${low == picked ? ' ★' : ''}',
                   const Color(0xff00838f),
                   () => game.answerCall(CallType.chi, chiLow: low)),
@@ -1061,12 +1061,12 @@ class _HandViewState extends State<HandView> {
       }
       for (final t in game.humanClosedKanTypes) {
         buttons.add(_btn(
-            '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${t.code}',
+            '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${context.l10n.tileDisplayName(t)}',
             const Color(0xff4527a0), () => game.humanClosedKan(t)));
       }
       for (final t in game.humanAddedKanTypes) {
         buttons.add(_btn(
-            '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${t.code}',
+            '${context.l10n.callLabel(CallType.kan, ruleset).toUpperCase()} ${context.l10n.tileDisplayName(t)}',
             const Color(0xff4527a0), () => game.humanAddKan(t)));
       }
       // Whenever riichi is legal — closed, and some discard leaves the hand
@@ -1118,41 +1118,45 @@ class _HandViewState extends State<HandView> {
     ].join('|');
     final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
-    // Fixed height so the tile bar below never shifts as buttons come and go.
-    // Centred (rather than left-aligned) so it lines up under the seat badge
-    // above it instead of hugging the left edge of the bar.
-    return SizedBox(
-      height: 48,
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AnimatedSwitcher(
-            duration: still ? Duration.zero : const Duration(milliseconds: 150),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween(begin: 0.96, end: 1.0).animate(animation),
-                child: child,
+    // Reserve enough height for phone-scaled labels and their button padding.
+    // Let wrapped actions grow the band rather than clipping their bottoms.
+    return ConstrainedBox(
+      key: const Key('handActionBar'),
+      constraints: BoxConstraints(minHeight: isPhoneLayout(context) ? 64 : 48),
+      child: SizedBox(
+        width: double.infinity,
+        child: Row(
+          children: [
+            // Reserve Undo's own space so longer localized call labels never
+            // overlap it. The remaining actions can wrap as a group.
+            if (game.canUndo) ...[
+              _undoButton(),
+              const SizedBox(width: 17),
+            ],
+            Expanded(
+                child: AnimatedSwitcher(
+              duration:
+                  still ? Duration.zero : const Duration(milliseconds: 150),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween(begin: 0.96, end: 1.0).animate(animation),
+                  child: child,
+                ),
               ),
-            ),
-            child: Wrap(
-              key: ValueKey(offer),
-              // Wide gaps so a thumb on a small screen lands on the action
-              // it meant — the bar is the full canvas width, so even a
-              // crowded turn (every chi option plus pon, kan, win and pass)
-              // stays one row.
-              spacing: 17,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: buttons,
-            ),
-          ),
-          // Take back sits apart at the left end, outside the centred row,
-          // so the call buttons never shift when it comes and goes.
-          if (game.canUndo)
-            Positioned(left: 0, child: _undoButton()),
-        ],
+              child: Wrap(
+                key: ValueKey(offer),
+                alignment: WrapAlignment.center,
+                // Wide gaps keep neighbouring actions distinct for a thumb.
+                // Longer localized labels may wrap onto another row.
+                spacing: 17,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: buttons,
+              ),
+            )),
+          ],
+        ),
       ),
     );
   }

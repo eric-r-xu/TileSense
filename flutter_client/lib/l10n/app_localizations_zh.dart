@@ -1067,6 +1067,21 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String tileManRun(String tiles) {
+    return '$tiles万';
+  }
+
+  @override
+  String tilePinRun(String tiles) {
+    return '$tiles筒';
+  }
+
+  @override
+  String tileSouRun(String tiles) {
+    return '$tiles条';
+  }
+
+  @override
   String tilePin(int n) {
     return '$n筒';
   }
@@ -4443,6 +4458,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String tileMan(int n) {
     return '$n萬';
+  }
+
+  @override
+  String tileManRun(String tiles) {
+    return '$tiles萬';
+  }
+
+  @override
+  String tilePinRun(String tiles) {
+    return '$tiles筒';
+  }
+
+  @override
+  String tileSouRun(String tiles) {
+    return '$tiles條';
   }
 
   @override

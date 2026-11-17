@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../game/guide_host.dart';
 import '../l10n/l10n.dart';
 import '../l10n/guide_terms.dart';
+import '../l10n/mahjong_terms.dart';
 import '../game/mortal_advisor.dart';
 import '../logic/efficiency_engine.dart';
 import '../logic/placement_utility.dart';
@@ -1511,6 +1512,9 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
       _ => null,
     };
     if (text == null) return const SizedBox.shrink();
+    final displayText = text.replaceAllMapped(
+        RegExp(r'\b[1-9]{1,3}[mps]\b'),
+        (match) => context.l10n.tileCodeDisplayName(match[0]!));
     final picked = a!.status == MortalStatus.ready;
     return _tipBox(
       Container(
@@ -1521,7 +1525,7 @@ class _EfficiencyOverlayState extends State<EfficiencyOverlay> {
         // with the guide's green when the guide recommends the same move.
         decoration:
             picked ? _pickFill(guide: _guideAgrees(a), mortal: true) : null,
-        child: Text('Model: $text',
+        child: Text('Model: $displayText',
             key: const ValueKey('mortal-line'),
             style: TextStyle(
                 color: picked ? Colors.white : _mortalColour,

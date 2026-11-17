@@ -5,6 +5,7 @@ import 'dart:ui' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/round.dart' show CallType;
 import 'package:mahjong_core/ruleset.dart';
+import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/l10n/app_language.dart';
 import 'package:tilesense/l10n/l10n.dart';
 import 'package:tilesense/l10n/mahjong_terms.dart';
@@ -80,6 +81,33 @@ void main() {
   });
 
   group('mahjong vocabulary', () {
+    test('suited tiles and call runs use each language\'s own suit names', () {
+      for (final (locale, singles, runs) in [
+        (
+          const Locale('en'),
+          ['5 Characters', '5 Dots', '5 Bamboo'],
+          ['345 Characters', '345 Dots', '345 Bamboo']
+        ),
+        (const Locale('ja'), ['5萬', '5筒', '5索'], ['345萬', '345筒', '345索']),
+        (const Locale('zh'), ['5万', '5筒', '5条'], ['345万', '345筒', '345条']),
+        (
+          const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+          ['5萬', '5筒', '5條'],
+          ['345萬', '345筒', '345條']
+        ),
+      ]) {
+        final l10n = lookupAppLocalizations(locale);
+        for (var suit = 0; suit < 3; suit++) {
+          final code = 'mps'[suit];
+          expect(l10n.tileDisplayName(typeFrom34(suit * 9 + 4)), singles[suit]);
+          expect(l10n.tileCodeDisplayName('5$code'), singles[suit]);
+          expect(l10n.tileCodeDisplayName('345$code'), runs[suit]);
+        }
+        expect(l10n.tileCodeDisplayName('invalid'), 'invalid');
+        expect(l10n.tileCodeDisplayName('E'), 'E');
+      }
+    });
+
     test('English call words are exactly the ruleset\'s own', () {
       for (final r in Ruleset.values) {
         expect(en.callLabel(CallType.chi, r), r.chiLabel);

@@ -583,7 +583,13 @@
       }
     }
   },
-  "tileMan": "{n} Man",
+  "tileMan": "{n} Characters",
+  "tileManRun": "{tiles} Characters",
+  "@tileManRun": {"placeholders": {"tiles": {"type": "String"}}},
+  "tilePinRun": "{tiles} Dots",
+  "@tilePinRun": {"placeholders": {"tiles": {"type": "String"}}},
+  "tileSouRun": "{tiles} Bamboo",
+  "@tileSouRun": {"placeholders": {"tiles": {"type": "String"}}},
   "@tileMan": {
     "placeholders": {
       "n": {
@@ -591,7 +597,7 @@
       }
     }
   },
-  "tilePin": "{n} Pin",
+  "tilePin": "{n} Dots",
   "@tilePin": {
     "placeholders": {
       "n": {
@@ -599,7 +605,7 @@
       }
     }
   },
-  "tileSou": "{n} Sou",
+  "tileSou": "{n} Bamboo",
   "@tileSou": {
     "placeholders": {
       "n": {
@@ -1772,8 +1778,8 @@
   "quizFocusPoints": "Plenty of hands left: TileSense plays for points.",
   "rulesetSanma": "Sanma",
   "rulesetSanmaLong": "Sanma (3-player riichi mahjong)",
-  "rulesetSubtitleSanma": "3 players, no 2–8 man",
-  "sanmaTooltip": "Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 man are removed), no chi, and North tiles set aside as kita for an extra dora.",
+  "rulesetSubtitleSanma": "3 players, no 2–8 Characters",
+  "sanmaTooltip": "Sanma (三麻) is 3-player riichi mahjong: three players, 108 tiles (the 2–8 Characters are removed), no chi, and North tiles set aside as kita for an extra dora.",
   "rulesWeb": "{rules} rules (web)",
   "@rulesWeb": {
     "placeholders": {
@@ -1804,7 +1810,7 @@
     }
   },
   "glossaryTermSanma": "Sanma",
-  "glossaryDefSanma": "Three-player riichi mahjong (三麻). The 2–8 man are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.",
+  "glossaryDefSanma": "Three-player riichi mahjong (三麻). The 2–8 Characters are taken out, leaving 108 tiles; there is no chi; seats go East, South, West; everyone starts on 35,000. A self-draw is paid by the two others only, so it is worth less than the same hand by ron.",
   "glossaryTermKita": "Kita (North set aside)",
   "glossaryDefKita": "In sanma, a North can be set aside instead of kept: it counts as a dora, and you draw a replacement from the dead wall. An opponent may ron it.",
   "quizNoneSanma": "There is no daily quiz for Sanma yet. Switch to Riichi or Hong Kong to play it.",
