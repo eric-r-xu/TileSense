@@ -9,6 +9,16 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-16 — Riichi result payouts that add up
+
+- Riichi and sanma results list what the winner was paid as Hand value, Honba
+  payout and Riichi stick payout, which now sum to the winner's change.
+- Each seat's before score and change leave out its own riichi deposit for the
+  hand, which had already been taken at declaration and is paid out in the
+  riichi sticks. Previously a riichi winner's change looked 1000 short of the
+  itemized lines, and a riichi discarder's looked 1000 too large. The points
+  themselves are unchanged.
+
 ## 2026-11-16 — Action buttons and localized suit names
 
 - The shared action bar gives phone-scaled buttons enough height, grows when
