@@ -30,7 +30,22 @@ abstract interface class TileWall {
   List<Tile?> deadWallDisplay({bool revealUra = false});
 }
 
-class Wall implements TileWall {
+/// A wall whose kan dora can be turned late. Riichi's open and added kans
+/// reveal their new indicator only once the kan's replacement draw has been
+/// discarded (or another kan is declared first), so a rinshan win on that
+/// replacement does not count it. A closed kan's indicator shows at once.
+abstract interface class KanDoraWall implements TileWall {
+  /// Holds back the indicator the last [TileWall.drawDeadWall] turned.
+  void deferKanDora();
+
+  /// Turns every indicator held back by [deferKanDora].
+  void revealKanDora();
+
+  /// Indicators held back and not yet turned.
+  int get pendingKanDora;
+}
+
+class Wall implements KanDoraWall {
   Wall(int seed, {Random? rng}) : _rng = rng ?? Random(seed) {
     _build();
   }
@@ -101,8 +116,24 @@ class Wall implements TileWall {
   /// indicators are at fixed positions 4,6,8,10,12 and ura at 5,7,9,11,13.
   final List<Tile> _dead = [];
 
-  int _doraRevealed = 1;
+  int _doraRevealedRaw = 1;
   int _kanDraws = 0;
+  int _pendingKanDora = 0;
+
+  /// Indicators showing: every one a kan has earned, less those held back.
+  int get _doraRevealed => _doraRevealedRaw - _pendingKanDora;
+  set _doraRevealed(int value) => _doraRevealedRaw = value;
+
+  @override
+  void deferKanDora() {
+    if (_pendingKanDora < _doraRevealedRaw - 1) _pendingKanDora++;
+  }
+
+  @override
+  void revealKanDora() => _pendingKanDora = 0;
+
+  @override
+  int get pendingKanDora => _pendingKanDora;
 
   @override
   int get remaining => _live.length;
@@ -147,7 +178,7 @@ class Wall implements TileWall {
   Tile drawDeadWall() {
     final tile = _dead[_kanDraws];
     _kanDraws++;
-    _doraRevealed++;
+    _doraRevealedRaw++;
     // A kan also shortens the live wall by one (haitei bookkeeping).
     if (_live.isNotEmpty) _live.removeAt(0);
     return tile;

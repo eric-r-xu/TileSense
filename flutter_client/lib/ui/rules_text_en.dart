@@ -575,7 +575,8 @@ class EnRulesText extends RulesText {
     'Haitei Raoyue': 'Self-draw on the last tile of the live wall.',
     'Houtei Raoyui': 'Ron on the last discard.',
     'Rinshan Kaihou': 'Win on a replacement tile from the dead wall.',
-    'Chankan': 'Ron on the tile another player adds to make an added kan.',
+    'Chankan':
+        'Ron on the tile another player adds to make an added kan, or, with Kokushi Musou only, on a closed kan.',
     'Tanyao': 'No terminals or honours anywhere. Open tanyao counts.',
     'yakuhaiDragon': 'A triplet or kan of any dragon.',
     'Round Wind': 'A triplet or kan of the round wind.',

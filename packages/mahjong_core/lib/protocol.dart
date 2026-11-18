@@ -163,6 +163,10 @@ Map<String, dynamic> roundResultToJson(RoundResult r) => {
         'riichiStickPayouts': {
           for (final e in r.riichiStickPayouts.entries) '${e.key}': e.value
         },
+      if (r.paoPayers.isNotEmpty)
+        'paoPayers': {
+          for (final e in r.paoPayers.entries) '${e.key}': e.value
+        },
       'tenpaiAtDraw': r.tenpaiAtDraw,
       'label': r.label,
       if (r.sichuanHu.isNotEmpty)
@@ -211,6 +215,11 @@ RoundResult roundResultFromJson(
       for (final e in
           (json['riichiStickPayouts'] as Map<String, dynamic>? ?? const {}).entries)
         localSeat(int.parse(e.key)): e.value as int,
+    },
+    paoPayers: {
+      for (final e in
+          (json['paoPayers'] as Map<String, dynamic>? ?? const {}).entries)
+        localSeat(int.parse(e.key)): localSeat(e.value as int),
     },
     label: json['label'] as String,
     sichuanHu: [

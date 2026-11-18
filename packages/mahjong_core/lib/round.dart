@@ -97,6 +97,12 @@ class SeatState {
   /// Ordinary draws this seat has taken this hand (Blessing of Man).
   int drawCount = 0;
 
+  /// Riichi pao (sekinin barai): the seat that fed this one the call that
+  /// completed its third dragon set or fourth wind set, and the yakuman it is
+  /// liable for ('Daisangen' or 'Daisuushii'). Null when nobody is liable.
+  int? paoSeat;
+  String? paoYaku;
+
   bool riichi = false;
   bool doubleRiichi = false;
   bool ippatsu = false;
@@ -168,6 +174,7 @@ class RoundResult {
     this.tenpaiAtDraw = const [],
     this.honbaPayouts = const {},
     this.riichiStickPayouts = const {},
+    this.paoPayers = const {},
     this.sichuanHu = const [],
     this.sichuanPayments = const [],
     this.nextDealer,
@@ -198,6 +205,11 @@ class RoundResult {
   /// paid earlier in this hand. Draws (including nagashi) award neither.
   final Map<int, int> honbaPayouts;
   final Map<int, int> riichiStickPayouts;
+
+  /// Japanese rules: winner seat -> the seat liable (pao) for its Daisangen
+  /// or Daisuushii, which paid all of that yakuman on a tsumo or half of it
+  /// on another seat's discard. Absent when no liability applied.
+  final Map<int, int> paoPayers;
 
   /// Nagashi recipients are listed in [winners], but this remains a draw:
   /// dealer continuation depends on tenpai, and there is no winning hand,
@@ -395,6 +407,15 @@ class Round {
   /// Whether the open call window is a chankan one (see [_chankanPending]):
   /// if nobody robs the kan, the same seat carries on rather than the next.
   bool get chankanPending => _chankanPending;
+
+  /// True while the chankan window is on a closed kan, which only a Kokushi
+  /// Musou hand may rob (riichi rules). Unclaimed, the closed kan completes.
+  bool _ankanRobPending = false;
+
+  /// True after the discard that follows a fourth kan made by more than one
+  /// seat: only ron is offered on it, and if nobody rons the hand is aborted
+  /// (suukaikan).
+  bool _suukaikanPending = false;
 
   /// The pon an added kan upgraded, held while its chankan window is open so
   /// a Hong Kong robbery can put it back.
@@ -1312,13 +1333,31 @@ class Round {
     _discardsThisRound++;
     if (turn == dealer && _discardsThisRound > 1) _firstGoAround = false;
 
+    // An open or added kan's dora indicator turns as its replacement is
+    // discarded, so a ron on this very discard counts it.
+    _revealKanDora();
+
     pendingDiscard = tile;
     pendingDiscardSeat = seat;
     callOptions = _collectCallOptions(tile, seat);
+    // Suukaikan: after a fourth kan split between seats, the next discard can
+    // only be ronned; if nobody does, the hand is void.
+    _suukaikanPending = ruleset.isJapanese && _fourKansSplit();
+    if (_suukaikanPending) {
+      callOptions = [
+        for (final o in callOptions)
+          if (o.types.contains(CallType.ron))
+            CallOption(o.seat, {CallType.ron}),
+      ];
+    }
     if (callOptions.isEmpty) {
       // No one can act on it, so no one is claiming it: register the miss now.
       _registerMissedRon(tile, seat);
       _registerPassedDiscard(tile, seat);
+      if (_suukaikanPending) {
+        _abortSuukaikan();
+        return;
+      }
       phase = RoundPhase.drawing;
       _advanceTurn();
     } else {
@@ -1381,6 +1420,23 @@ class Round {
           .map((e) => e.key)
           .toList();
       _chankanPending = false;
+      final ankan = _ankanRobPending;
+      _ankanRobPending = false;
+      if (ankan) {
+        if (ronners.isNotEmpty) {
+          _applyRon(ronners, pendingDiscard!, pendingDiscardSeat,
+              chankan: true);
+          return;
+        }
+        // A Kokushi hand that let the closed kan go missed a real win.
+        for (final o in callOptions) {
+          final s = seats[o.seat];
+          s.tempFuriten = true;
+          if (s.riichi) s.riichiFuriten = true;
+        }
+        _completeClosedKan();
+        return;
+      }
       if (ronners.isNotEmpty) {
         // Chinese-style: a robbed kong never happened, so the pung stands.
         if (ruleset.isChineseStyle && _pendingPung != null) {
@@ -1413,6 +1469,11 @@ class Round {
     _registerMissedRon(pendingDiscard!, pendingDiscardSeat);
 
     _registerPassedDiscard(pendingDiscard!, pendingDiscardSeat);
+
+    if (_suukaikanPending) {
+      _abortSuukaikan();
+      return;
+    }
 
     int? kanSeat;
     int? ponSeat;
@@ -1504,7 +1565,94 @@ class Round {
         Meld(kind: MeldKind.kan, low: type, concealed: true, tiles: taken));
     _recordKong(seat, SichuanKongKind.concealed, type);
     s.drawn = null;
+    // Riichi: a closed kan of a terminal or honour can be robbed, but only
+    // by Kokushi Musou.
+    if (ruleset.isJapanese && type.isTerminalOrHonor && taken.isNotEmpty) {
+      pendingDiscard = taken.first;
+      pendingDiscardSeat = seat;
+      final options = <CallOption>[
+        for (var i = 0; i < 4; i++)
+          if (i != seat && isActive(i) && _canRobClosedKan(i, taken.first))
+            CallOption(i, {CallType.ron}),
+      ];
+      if (options.isNotEmpty) {
+        callOptions = options;
+        _chankanPending = true;
+        _ankanRobPending = true;
+        phase = RoundPhase.callOffer;
+        return;
+      }
+      pendingDiscard = null;
+      pendingDiscardSeat = -1;
+    }
+    _completeClosedKan();
+  }
+
+  /// Whether [seat] can rob a closed kan of [tile]: a legal ron (furiten
+  /// included) whose hand is Kokushi Musou.
+  bool _canRobClosedKan(int seat, Tile tile) {
+    if (!canRon(seat, tile, chankan: true)) return false;
+    final s = seats[seat];
+    return _score(s, s.hand, tile, isTsumo: false, dryRun: true, chankan: true)
+        .yaku
+        .any((y) => y.name == 'Kokushi Musou');
+  }
+
+  /// A closed kan's indicator turns at once, along with any an earlier open
+  /// or added kan still holds back; then the replacement is drawn.
+  void _completeClosedKan() {
+    pendingDiscard = null;
+    pendingDiscardSeat = -1;
+    callOptions = const [];
+    _revealKanDora();
     _drawReplacement();
+    // The replacement (drawDeadWall) turned this kan's own indicator.
+  }
+
+  /// Turns any kan dora held back by an earlier open or added kan.
+  void _revealKanDora() {
+    if (wall case final KanDoraWall w when ruleset.isJapanese) {
+      w.revealKanDora();
+    }
+  }
+
+  /// Draws an open or added kan's replacement, turning any earlier held-back
+  /// indicator now and holding this kan's own back until its discard.
+  void _drawOpenKanReplacement() {
+    _revealKanDora();
+    _drawReplacement();
+    if (wall case final KanDoraWall w when ruleset.isJapanese && !finished) {
+      w.deferKanDora();
+    }
+  }
+
+  /// Four kans on the table, made by more than one seat.
+  bool _fourKansSplit() {
+    var kans = 0;
+    var makers = 0;
+    for (final s in activeSeats) {
+      final n = s.melds.where((m) => m.isKan).length;
+      kans += n;
+      if (n > 0) makers++;
+    }
+    return kans >= 4 && makers > 1;
+  }
+
+  /// Suukaikan: the hand is void, like kyuushu kyuuhai. The dealer repeats
+  /// and riichi sticks stay on the table.
+  void _abortSuukaikan() {
+    _suukaikanPending = false;
+    pendingDiscard = null;
+    pendingDiscardSeat = -1;
+    callOptions = const [];
+    phase = RoundPhase.finished;
+    result = RoundResult(
+      kind: RoundEndKind.abortiveDraw,
+      winners: const [],
+      pointDeltas: _handDeltas(),
+      label: 'Suukaikan — four kans',
+    );
+    _postFinish(dealerRepeat: true);
   }
 
   /// Shouminkan: fold the matching tile [type] this seat is holding into its
@@ -1584,7 +1732,7 @@ class Round {
     pendingDiscard = null;
     pendingDiscardSeat = -1;
     callOptions = const [];
-    _drawReplacement();
+    _drawOpenKanReplacement();
   }
 
   // --- kita (sanma) -----------------------------------------------------
@@ -1741,6 +1889,7 @@ class Round {
       _recordKong(seat, SichuanKongKind.melded, discard.type,
           discarder: discarder);
     }
+    if (ruleset.isJapanese) _checkPao(s, discard.type, discarder);
     s.passedHuValue = 0;
     // ippatsu / first-go-around broken by a call
     for (final o in seats) {
@@ -1755,10 +1904,38 @@ class Round {
     current.drawn = null;
     if (kan) {
       s.kongChain = 1;
-      _drawReplacement();
+      _drawOpenKanReplacement();
     } else {
       phase = RoundPhase.discarding;
     }
+  }
+
+  /// Pao: a pon or open kan of [type] off [discarder] that gives [s] its
+  /// third dragon set or fourth wind set makes [discarder] liable for
+  /// Daisangen or Daisuushii.
+  void _checkPao(SeatState s, TileType type, int discarder) {
+    if (s.paoSeat != null || !(type.isDragon || type.isWind)) return;
+    final sets = s.melds
+        .where((m) =>
+            m.isTripletLike && (type.isDragon ? m.low.isDragon : m.low.isWind))
+        .length;
+    if (type.isDragon && sets == 3) {
+      s.paoSeat = discarder;
+      s.paoYaku = 'Daisangen';
+    } else if (type.isWind && sets == 4) {
+      s.paoSeat = discarder;
+      s.paoYaku = 'Daisuushii';
+    }
+  }
+
+  /// The ron value of the part of [score] that [s]'s pao covers, or 0.
+  int _paoValue(SeatState s, HandScore score) {
+    if (!ruleset.isJapanese || s.paoSeat == null) return 0;
+    final multiple = score.yaku
+        .where((y) => y.name == s.paoYaku)
+        .fold<int>(0, (a, y) => a + y.yakuman);
+    if (multiple == 0) return 0;
+    return (s.isDealer ? 48000 : 32000) * multiple;
   }
 
   /// A riichi is only in force once its declaration tile has passed: if that
@@ -1804,6 +1981,7 @@ class Round {
       ronners = [ronners.first];
     }
     HandScore? firstScore;
+    final paoPayers = <int, int>{};
     final deltas = <int, int>{for (var i = 0; i < 4; i++) i: 0};
     // Taiwanese has its own dealer-streak bonus (below) in place of honba
     // payments, which mean nothing there — its honba instead counts the
@@ -1825,7 +2003,19 @@ class Round {
           if (i != w) deltas[i] = deltas[i]! - (i == discarder ? score.han + 8 : 8);
         }
       } else {
-        deltas[discarder] = deltas[discarder]! - score.points - winnerHonba;
+        // Pao on another seat's discard: the liable seat pays half of the
+        // yakuman it fed, the discarder the rest and the honba.
+        final pao = _paoValue(s, score);
+        final liable = s.paoSeat;
+        if (pao > 0 && liable != null && liable != discarder) {
+          deltas[liable] = deltas[liable]! - pao ~/ 2;
+          deltas[discarder] =
+              deltas[discarder]! - (score.points - pao ~/ 2) - winnerHonba;
+          paoPayers[w] = liable;
+        } else {
+          if (pao > 0 && liable != null) paoPayers[w] = liable;
+          deltas[discarder] = deltas[discarder]! - score.points - winnerHonba;
+        }
       }
     }
     // Taiwanese dealer-streak bonus: on a ron, paid only by the discarder —
@@ -1865,6 +2055,7 @@ class Round {
       riichiStickPayouts: {
         if (ruleset.isJapanese && stickPay > 0) ronners.first: stickPay,
       },
+      paoPayers: paoPayers,
       loser: discarder,
       score: firstScore,
       scores: [
@@ -1901,16 +2092,33 @@ class Round {
             ? 0
             : honba * 100;
 
+    // Pao on a tsumo: the liable seat pays the whole of the yakuman it fed,
+    // as if it had dealt in, and every honba; the rest of the hand is split
+    // as usual.
+    final pao = flowerWin ? 0 : _paoValue(seats[w], score);
+    final liable = pao > 0 ? seats[w].paoSeat : null;
+    final paoShare =
+        score.yakuman == 0 ? 0 : pao ~/ (seats[w].isDealer ? 48000 : 32000);
+
     // Tsumo only (ron goes through _applyRon). Sanma's empty seat pays
     // nothing and nobody covers its share: tsumo loss.
     for (var i = 0; i < 4; i++) {
       if (i == w || !isActive(i)) continue;
-      final base = seats[w].isDealer
+      var base = seats[w].isDealer
           ? score.nonDealerPays
           : (i == dealer ? score.dealerPays : score.nonDealerPays);
-      final pay = base + honbaPay + bonus;
+      var pay = base + honbaPay + bonus;
+      if (liable != null) {
+        base = base * (score.yakuman - paoShare) ~/ score.yakuman;
+        pay = base + bonus;
+      }
       deltas[i] = -pay;
       deltas[w] = deltas[w]! + pay;
+    }
+    if (liable != null) {
+      final extra = pao + honbaPay * (ruleset.playerCount - 1);
+      deltas[liable] = deltas[liable]! - extra;
+      deltas[w] = deltas[w]! + extra;
     }
 
     final stickPay = riichiSticks * 1000;
@@ -1931,6 +2139,7 @@ class Round {
       riichiStickPayouts: {
         if (ruleset.isJapanese && stickPay > 0) w: stickPay,
       },
+      paoPayers: {if (liable != null) w: liable},
       loser: loser,
       score: score,
       scores: [score],

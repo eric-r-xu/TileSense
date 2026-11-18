@@ -66,7 +66,8 @@ void main() {
     r.turn = 0;
     r.phase = RoundPhase.discarding;
     r.addKan(0, TileType.man1);
-    expect(indicators(r), 2, reason: 'the kan itself flips one');
+    expect(indicators(r), 1,
+        reason: 'an added kan holds its indicator back until the discard');
 
     // An ordinary discard somebody can call on. It has nothing to do with the
     // kan and must not flip anything.
@@ -76,8 +77,9 @@ void main() {
     r.phase = RoundPhase.discarding;
     r.discard(0, Tile(901, TileType.sou5));
     expect(r.phase, RoundPhase.callOffer);
+    expect(indicators(r), 2, reason: 'the discard turns the kan\'s indicator');
     r.resolveCalls({});
     expect(indicators(r), 2,
-        reason: 'an ordinary discard flipped a dora indicator');
+        reason: 'resolving the discard flipped another dora indicator');
   });
 }
