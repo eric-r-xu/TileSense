@@ -81,8 +81,8 @@ void main() {
   });
 
   test(
-      'addKan upgrades the pon, reveals a new dora indicator, and draws a '
-      'replacement when no one can chankan', () {
+      'addKan upgrades the pon, draws a replacement when no one can '
+      'chankan, and reveals its dora indicator on the next discard', () {
     final round = _freshRound();
     final seat = round.seats[0];
     seat.melds = [
@@ -109,10 +109,14 @@ void main() {
     expect(seat.melds.single.kind, MeldKind.kan);
     expect(seat.melds.single.addedKan, isTrue);
     expect(seat.melds.single.tiles, hasLength(4));
-    expect(round.wall.doraIndicators().length, doraCountBefore + 1);
+    expect(round.wall.doraIndicators().length, doraCountBefore,
+        reason: 'an added kan holds its indicator back until the discard');
     expect(seat.drawn, isNotNull, reason: 'the rinshan replacement draw');
     expect(seat.hand.any((t) => t.type == TileType.pin5), isFalse,
         reason: 'the 4th 5p moved into the meld, not still in hand');
+
+    round.discard(0, seat.hand.firstWhere((t) => t.type == TileType.sou9));
+    expect(round.wall.doraIndicators().length, doraCountBefore + 1);
   });
 
   test('chankan lets another seat ron the tile before the kan completes', () {

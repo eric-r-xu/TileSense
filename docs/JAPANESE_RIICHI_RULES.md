@@ -14,7 +14,7 @@ simplified or left out, as listed below. This is a trainer, not a ruleset arbite
 - Four players, 136 tiles: four of each of 34 types, with **one red five per suit** (aka dora). No flowers.
 - Everyone starts on **25,000 points**. A full game is a **hanchan** — East and South, 8 dealerships — or East only as an option.
 - 14 tiles form the dead wall: four kan replacements and the dora / ura-dora indicators. The other 122 are the live wall. A kan's replacement comes from the dead wall and shortens the live wall by one. At most four kans are made per hand.
-- Chi only from the player on your left. Ron takes priority over pon/kan, then chi. Added kans can be robbed (chankan); closed kans cannot.
+- Chi only from the player on your left. Ron takes priority over pon/kan, then chi. Added kans can be robbed (chankan); a closed kan of a terminal or honour can be robbed only by a Kokushi Musou ron. A Kokushi hand that passes on that kan is furiten like any missed ron.
 - **Kuikae is forbidden.** Immediately after chi or pon, you cannot discard the called tile type, including a red or ordinary copy. After chi, you also cannot discard the other tile that completes a sequence with the same two tiles used from your hand (for example, call 1p with 2p–3p, then discard 4p). The restriction ends after one legal discard; you must discard before declaring another kan. Calls that leave no legal discard are not offered.
 - **Multiple ron** is allowed: every seat that can ron wins, each paid separately by the discarder. There is no head bump.
 - A hanchan extends into **West** if nobody has **30,000 points** when South 4 passes the dealership. In West, it ends when a hand passes the dealership with someone at 30,000 or more, or when West 4 passes the dealership regardless of scores. Dealer repeats take priority, including at West 4; there is no automatic dealer-top stopping. East-only games retain their four-dealership schedule. Any game ends at once when anyone falls **below zero** (tobi). There is no uma or oka.
@@ -28,6 +28,7 @@ simplified or left out, as listed below. This is a trainer, not a ruleset arbite
 - Avoiding furiten: check your waits against your own discards before each discard (called-away tiles still count); ron a winning tile when you can, and hold a yaku before waiting, since a pass for lack of a yaku still counts; before riichi, check the wait, because the hand is locked afterwards. The in-app manual's Furiten table gives one example of each type.
 - **Minimum**: one yaku, with no further han or point floor; the smallest win is 1 han, 1,000 points at 30 fu on a ron (1,500 for the dealer).
 - **Kyuushu kyuuhai**: any seat may abort the hand on its first discard, before any call or kan, with nine or more different terminals and honours. The dealer repeats and a honba is added.
+- **Suukaikan (four-kan abortive draw)**: once four kans are on the table and more than one seat made them, the discard after the fourth kan can only be ronned — no pon, chi or kan. If nobody rons it, the hand is aborted: no payments, riichi sticks stay on the table, the dealer repeats and a honba is added. Four kans by one seat play on (no fifth kan is allowed), as in Mahjong Soul and Riichi City.
 
 ## Yaku
 
@@ -66,8 +67,16 @@ Daisangen, Shousuushii, Daisuushii (double), Tsuuiisou, Chinroutou, Ryuuiisou
 Poutou (closed). 13 or more han is **kazoe yakuman**. Suuankou tanki and the
 nine-sided Chuuren are not doubled.
 
+**Pao (responsibility payment)**: a seat that discards the tile a player pons
+or open-kans for their third dragon set, or fourth wind set, is liable for that
+Daisangen or Daisuushii. On a tsumo the liable seat pays the whole of that
+yakuman as if it had dealt in, plus all honba; on a ron off another seat, the
+liable seat and the discarder pay half each, and the discarder pays the honba.
+Any other yakuman in the hand is paid as usual. Added kans never create
+liability.
+
 **Not implemented:** Tenhou, Chiihou, Renhou and Suukantsu; the
-four-wind, four-riichi and four-kan abortive draws.
+four-wind and four-riichi abortive draws.
 
 **Seven pairs** currently scores only its own 2 han plus dora: it does not add
 Riichi, Menzen Tsumo, Tanyao, Honroutou or the flushes (Tsuuiisou is the one
@@ -75,7 +84,7 @@ exception).
 
 ## Dora
 
-- One dora indicator shows at the start; each kan reveals another as its replacement is drawn. The dora is the next tile in sequence (9 → 1, winds E → S → W → N → E, dragons white → green → red → white).
+- One dora indicator shows at the start. A closed kan reveals another at once, before its replacement draw. An open or added kan reveals its indicator only when the kan's player discards (or declares another kan first), so a rinshan win on an open or added kan's replacement does not count that new dora; a ron on the discard does. The dora is the next tile in sequence (9 → 1, winds E → S → W → N → E, dragons white → green → red → white).
 - **Ura-dora** under each revealed indicator count only on a riichi win.
 - Each red five is one more han. Dora of every kind count only on a hand that already has a yaku, and are not added to yakuman.
 

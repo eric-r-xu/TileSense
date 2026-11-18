@@ -14,7 +14,7 @@ import '../tile.dart';
 import '../wall.dart';
 import 'sanma_rules.dart';
 
-class SanmaWall implements TileWall {
+class SanmaWall implements KanDoraWall {
   SanmaWall(int seed, {Random? rng}) {
     final tiles = <Tile>[];
     var id = 0;
@@ -149,7 +149,21 @@ class SanmaWall implements TileWall {
   }
 
   int get _doraRevealed =>
-      _posedDora ?? min(_baseDora + _kans, _indicators.length ~/ 2);
+      _posedDora ??
+      min(_baseDora + _kans - _pendingKanDora, _indicators.length ~/ 2);
+
+  int _pendingKanDora = 0;
+
+  @override
+  void deferKanDora() {
+    if (_pendingKanDora < _kans) _pendingKanDora++;
+  }
+
+  @override
+  void revealKanDora() => _pendingKanDora = 0;
+
+  @override
+  int get pendingKanDora => _pendingKanDora;
 
   @override
   List<TileType> doraIndicators() =>

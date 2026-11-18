@@ -9,6 +9,19 @@ sections below were reconstructed from git history after the fact, purely so
 this file can be navigated — they are not published releases, and a boundary is
 approximate wherever a batch of work spanned more than a day.
 
+## 2026-11-17 — Riichi kan and pao rules
+
+- Suukaikan: when four kans are made by more than one seat, only ron is
+  offered on the next discard; if nobody rons, the hand is an abortive draw
+  (dealer repeats). Four kans by one seat still play on.
+- Pao: feeding the third dragon set (Daisangen) or fourth wind set
+  (Daisuushii) makes the discarder liable — the whole yakuman on a tsumo
+  (with honba), half on another seat's ron. Results carry `paoPayers`.
+- Open and added kans now reveal their dora indicator when their player
+  discards, not on the replacement draw, so a rinshan win on that replacement
+  does not count it. Closed kans still reveal at once.
+- Kokushi Musou may rob a closed kan of a terminal or honour.
+
 ## 2026-11-16 — Riichi result payouts that add up
 
 - Riichi and sanma results list what the winner was paid as Hand value, Honba
