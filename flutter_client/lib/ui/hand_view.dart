@@ -991,12 +991,15 @@ class _HandViewState extends State<HandView> {
       if (opt.types.contains(CallType.pon)) {
         buttons.add(_btn(
             context.l10n.callLabel(CallType.pon, ruleset).toUpperCase(),
-            const Color(0xff00695c), () => game.answerCall(CallType.pon)));
+            const Color(0xff00695c),
+            () => game.answerCall(CallType.pon),
+            meld: true));
       }
       if (opt.types.contains(CallType.kan)) {
         buttons.add(_btn(
             context.l10n.callLabel(CallType.kan, ruleset).toUpperCase(),
-            const Color(0xff4527a0), () => game.answerCall(CallType.kan)));
+            const Color(0xff4527a0),
+            () => game.answerCall(CallType.kan)));
       }
       if (opt.types.contains(CallType.chi)) {
         final runs = game.humanChiRuns;
@@ -1011,13 +1014,16 @@ class _HandViewState extends State<HandView> {
                   '${context.l10n.callLabel(CallType.chi, ruleset).toUpperCase()} ${context.l10n.tileCodeDisplayName(_runLabel(low))}'
                   '${low == picked ? ' ★' : ''}',
                   const Color(0xff00838f),
-                  () => game.answerCall(CallType.chi, chiLow: low)),
+                  () => game.answerCall(CallType.chi, chiLow: low),
+                  meld: true),
             ));
           }
         } else {
           buttons.add(_btn(
               context.l10n.callLabel(CallType.chi, ruleset).toUpperCase(),
-              const Color(0xff00838f), () => game.answerCall(CallType.chi)));
+              const Color(0xff00838f),
+              () => game.answerCall(CallType.chi),
+              meld: true));
         }
       }
       buttons.add(_btn(context.l10n.passCaps, const Color(0xff37474f),
@@ -1195,16 +1201,20 @@ class _HandViewState extends State<HandView> {
     return '$n${n + 1}${n + 2}${code.substring(code.length - 1)}';
   }
 
-  Widget _btn(String label, Color color, VoidCallback onTap) => ElevatedButton(
+  Widget _btn(String label, Color color, VoidCallback onTap,
+          {bool meld = false}) =>
+      ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-          minimumSize: const Size(72, 44),
+          padding: EdgeInsets.symmetric(
+              horizontal: meld ? 25 : 22, vertical: meld ? 12 : 10),
+          minimumSize: meld ? const Size(84, 50) : const Size(72, 44),
         ),
         onPressed: onTap,
         child: Text(label,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: meld ? 19 : 17, fontWeight: FontWeight.bold)),
       );
 }
 

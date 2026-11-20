@@ -894,14 +894,16 @@ class _ScenarioPageState extends State<ScenarioPage> {
                         : ('', Colors.white70);
 
     Widget action(String label, VoidCallback? onTap,
-        {Key? key, bool primary = false}) {
+        {Key? key, bool primary = false, bool meld = false}) {
       final button = (primary ? FilledButton.new : OutlinedButton.new)(
         key: key,
         onPressed: onTap,
         style: (primary ? FilledButton.styleFrom : OutlinedButton.styleFrom)(
-          minimumSize: Size(0, _phone ? 64 : 30),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          textStyle: TextStyle(fontSize: _phone ? 20 : 12),
+          minimumSize:
+              Size(meld ? 64 : 0, (_phone ? 64.0 : 30.0) + (meld ? 6 : 0)),
+          padding: EdgeInsets.symmetric(horizontal: meld ? 16 : 12),
+          textStyle:
+              TextStyle(fontSize: (_phone ? 20.0 : 12.0) + (meld ? 2 : 0)),
         ),
         child: Text(label),
       );
@@ -914,21 +916,26 @@ class _ScenarioPageState extends State<ScenarioPage> {
     final gameActions = <Widget>[
       if (call != null) ...[
         if (call.types.contains(CallType.ron))
-          action(l10n.callLabel(CallType.ron, r), () => p.answerCall(CallType.ron),
+          action(
+              l10n.callLabel(CallType.ron, r), () => p.answerCall(CallType.ron),
               key: const Key('playRon'), primary: true),
         if (call.types.contains(CallType.kan))
-          action(l10n.callLabel(CallType.kan, r), () => p.answerCall(CallType.kan)),
+          action(l10n.callLabel(CallType.kan, r),
+              () => p.answerCall(CallType.kan)),
         if (call.types.contains(CallType.pon))
-          action(l10n.callLabel(CallType.pon, r), () => p.answerCall(CallType.pon),
-              key: const Key('playPon')),
+          action(
+              l10n.callLabel(CallType.pon, r), () => p.answerCall(CallType.pon),
+              key: const Key('playPon'), meld: true),
         if (call.types.contains(CallType.chi))
           if (p.chiRuns.length <= 1)
-            action(l10n.callLabel(CallType.chi, r), () => p.answerCall(CallType.chi),
-                key: const Key('playChi'))
+            action(l10n.callLabel(CallType.chi, r),
+                () => p.answerCall(CallType.chi),
+                key: const Key('playChi'), meld: true)
           else
             for (final low in p.chiRuns)
               action('${l10n.callLabel(CallType.chi, r)} ${low.code}',
-                  () => p.answerCall(CallType.chi, chiLow: low)),
+                  () => p.answerCall(CallType.chi, chiLow: low),
+                  meld: true),
         action(l10n.playPass, () => p.answerCall(CallType.none),
             key: const Key('playPass')),
       ],
@@ -949,8 +956,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
             () => setState(() => _riichiArmed = !_riichiArmed),
             key: const Key('playRiichi')),
     ];
-    // Always in reach on the right; the choices to the left of them scroll if
-    // there are more than fit.
+    // Keep the editor controls pinned while the calls wrap within the remaining width.
     final pinned = <Widget>[
       action(l10n.playReset, () {
         setState(() => _riichiArmed = false);
@@ -1022,10 +1028,7 @@ class _ScenarioPageState extends State<ScenarioPage> {
             padding: EdgeInsets.only(right: _phone ? 150 : 60),
             child: Row(children: [
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: gameActions),
-                ),
+                child: Wrap(runSpacing: 4, children: gameActions),
               ),
               ...pinned,
             ]),

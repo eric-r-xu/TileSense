@@ -2044,92 +2044,80 @@ class _WelcomeScreen extends StatelessWidget {
 
   /// One ruleset in the Rules popup: pick it (which closes the popup), or open
   /// its native summary or external reference beneath.
-  Widget _rulesetOption(BuildContext context, Ruleset value, String subtitle) {
+  Widget _rulesetOption(
+      BuildContext context, Ruleset value, String subtitle, double side) {
     final selected = ruleset == value;
-    return Padding(
-      // Room between one style and the next, so each card and its own links
-      // read as a unit.
-      padding: const EdgeInsets.only(bottom: 28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
+    final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Semantics(
+            selected: selected,
             child: OutlinedButton(
               key: Key('ruleset_${value.name}'),
               onPressed: () {
-                Navigator.of(context, rootNavigator: true).pop();
+                Navigator.of(context).pop();
                 onRuleset(value);
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: selected ? const Color(0x33caa24e) : null,
-                foregroundColor:
-                    selected ? AppColors.goldBright : Colors.white70,
+                foregroundColor: selected ? AppColors.goldBright : Colors.white,
                 side: BorderSide(
                     color: selected ? AppColors.gold : Colors.white24,
                     width: selected ? 2 : 1),
-                minimumSize: const Size(0, 64),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
                   RulesetFlagLabel(value,
                       style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                  // One line, whatever the language: it shrinks before it
-                  // would wrap.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(subtitle,
-                        maxLines: 1,
-                        softWrap: false,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 13)),
-                  ),
-                ],
+                          fontSize: 17, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                      width: 112,
+                      child: Text(subtitle,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 11,
+                              height: 1.15,
+                              color: Colors.white70))),
+                ]),
               ),
             ),
           ),
-          const SizedBox(height: 2),
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              e2eId(
-                'rulesRead_${value.name}',
-                TextButton.icon(
-                  key: Key('rulesRead_${value.name}'),
-                  onPressed: () => showRulesReader(context, value),
-                  icon: const Icon(Icons.menu_book, size: 18),
-                  label: Text(context.l10n.rulesRead),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.link,
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: const Size(0, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ),
-              TextButton.icon(
-                key: Key('rulesPdf_${value.name}'),
-                onPressed: () => openRules(value),
-                icon: const Icon(Icons.open_in_new, size: 14),
-                label: Text(context.l10n.rulesLinkLabel(value)),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.link,
-                  visualDensity: VisualDensity.compact,
-                  minimumSize: const Size(0, 30),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: const TextStyle(
-                      fontSize: 14, decoration: TextDecoration.underline),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        SizedBox(
+          height: math.min(40.0, side * 0.28),
+          child: Row(children: [
+            Expanded(
+                child: e2eId(
+                    'rulesRead_${value.name}',
+                    IconButton(
+                      key: Key('rulesRead_${value.name}'),
+                      tooltip: '${l10n.rulesRead} · ${l10n.rulesetName(value)}',
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.menu_book, size: 17),
+                      color: AppColors.link,
+                      onPressed: () => showRulesReader(context, value),
+                    ))),
+            Expanded(
+                child: IconButton(
+              key: Key('rulesPdf_${value.name}'),
+              tooltip: l10n.rulesLinkLabel(value),
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.open_in_new, size: 15),
+              color: AppColors.link,
+              onPressed: () => openRules(value),
+            )),
+          ]),
+        ),
+      ],
     );
   }
 
@@ -2173,42 +2161,53 @@ class _WelcomeScreen extends StatelessWidget {
         ],
       );
 
-  /// The styles side by side, so all seven show at once instead of one column
-  /// that runs past the popup and scrolls: four across in the popup's full
-  /// width (two rows), fewer in a narrower one.
   void _showRules(BuildContext context) => _showTitlePopup(
         context,
         key: const Key('rulesPopup'),
         title: context.l10n.rules,
-        maxWidth: 1000,
-        children: [
-          LayoutBuilder(builder: (context, c) {
-            const gap = 12.0;
-            final columns = c.maxWidth >= 900
-                ? 4
-                : (c.maxWidth >= 840 ? 3 : (c.maxWidth >= 520 ? 2 : 1));
-            final width = (c.maxWidth - gap * (columns - 1)) / columns;
-            final l10n = context.l10n;
-            return Wrap(
-              spacing: gap,
-              children: [
-                for (final (value, subtitle) in [
-                  (Ruleset.riichi, l10n.rulesetSubtitleRiichi),
-                  (Ruleset.sanma, l10n.rulesetSubtitleSanma),
-                  (Ruleset.hongKong, l10n.rulesetSubtitleHongKong),
-                  (Ruleset.taiwanese, l10n.rulesetSubtitleTaiwanese),
-                  (Ruleset.mcr, l10n.rulesetSubtitleMcr),
-                  (Ruleset.sichuan, l10n.rulesetSubtitleSichuan),
-                  (Ruleset.fuzhou, l10n.rulesetSubtitleFuzhou),
-                ])
-                  SizedBox(
-                    width: width,
-                    child: _rulesetOption(context, value, subtitle),
-                  ),
-              ],
-            );
-          }),
-        ],
+        maxWidth: 760,
+        fittedBody: (context) => LayoutBuilder(builder: (context, box) {
+          final l10n = context.l10n;
+          final options = [
+            (Ruleset.riichi, l10n.rulesetSubtitleRiichi),
+            (Ruleset.sanma, l10n.rulesetSubtitleSanma),
+            (Ruleset.hongKong, l10n.rulesetSubtitleHongKong),
+            (Ruleset.taiwanese, l10n.rulesetSubtitleTaiwanese),
+            (Ruleset.mcr, l10n.rulesetSubtitleMcr),
+            (Ruleset.sichuan, l10n.rulesetSubtitleSichuan),
+            (Ruleset.fuzhou, l10n.rulesetSubtitleFuzhou),
+          ];
+          // Choose the largest square that fits every choice in both dimensions.
+          const gap = 6.0;
+          var columns = 1;
+          var side = 0.0;
+          for (var n = 1; n <= options.length; n++) {
+            final rows = (options.length / n).ceil();
+            final fit = math.min((box.maxWidth - (n - 1) * gap) / n,
+                (box.maxHeight - (rows - 1) * gap) / rows);
+            if (fit > side) {
+              columns = n;
+              side = fit;
+            }
+          }
+          side = math.min(side, 158);
+          return Column(mainAxisSize: MainAxisSize.min, children: [
+            for (var i = 0; i < options.length; i += columns) ...[
+              if (i > 0) const SizedBox(height: gap),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var j = i;
+                    j < math.min(i + columns, options.length);
+                    j++) ...[
+                  if (j > i) const SizedBox(width: gap),
+                  SizedBox.square(
+                      dimension: side,
+                      child: _rulesetOption(
+                          context, options[j].$1, options[j].$2, side)),
+                ],
+              ]),
+            ],
+          ]);
+        }),
       );
 
   @override
@@ -2682,7 +2681,8 @@ Future<void> _showTitlePopup(
   BuildContext context, {
   required Key key,
   required String title,
-  required List<Widget> children,
+  List<Widget> children = const [],
+  WidgetBuilder? fittedBody,
   double maxWidth = 560,
 }) =>
     showDialog<void>(
@@ -2723,13 +2723,14 @@ Future<void> _showTitlePopup(
                   ),
                   const SizedBox(height: 8),
                   Flexible(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: children,
-                      ),
-                    ),
+                    child: fittedBody?.call(dialogContext) ??
+                        SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: children,
+                          ),
+                        ),
                   ),
                 ],
               ),
