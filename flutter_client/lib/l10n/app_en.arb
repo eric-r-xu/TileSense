@@ -212,6 +212,7 @@
     }
   },
   "viewOnGitHub": "View on GitHub",
+  "mobilePrivacyPolicy": "Mobile privacy policy",
   "builtWithFlutter": "Built with Flutter",
   "seatYou": "You",
   "seatRight": "Right",

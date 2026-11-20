@@ -21,7 +21,7 @@ releasing each target.
 | --- | --- |
 | Web | Flutter SDK ≥ 3.3, any OS, a static host |
 | Android | Flutter SDK, Android Studio or the Android command-line tools + a JDK 17, a keystore, a Google Play Console account ($25 one-time) for store release |
-| iOS | **macOS**, Xcode ≥ 15, CocoaPods (`sudo gem install cocoapods`), an Apple Developer Program membership ($99/year) for TestFlight / App Store |
+| iOS | **macOS**, Xcode ≥ 26, CocoaPods (`sudo gem install cocoapods`), an Apple Developer Program membership ($99/year) for TestFlight / App Store |
 
 Verify the toolchain:
 
@@ -56,7 +56,7 @@ flutter pub get
 Both come from `pubspec.yaml`:
 
 ```yaml
-version: 0.2.1+4
+version: 0.2.1+5
 #        ^^^^^  ^-- build number  (Android versionCode / iOS CFBundleVersion)
 #        └------- version name    (Android versionName  / iOS CFBundleShortVersionString)
 ```
@@ -238,27 +238,10 @@ network. No `Cache-Control` line at all means every play pays a round trip.
 
 ## Android
 
-### Configure `android/app/build.gradle.kts`
-
-```gradle
-android {
-    namespace = "com.ericrxu.tilesense"
-    defaultConfig {
-        applicationId = "com.ericrxu.tilesense"
-        minSdk = 23          // Flutter's current floor is 21; 23 covers ~99% of devices
-        targetSdk = flutter.targetSdkVersion   // keep current for Play submission
-        versionCode = flutter.versionCode      // from pubspec "+N"
-        versionName = flutter.versionName      // from pubspec "X.Y.Z"
-    }
-}
-```
-
-App display name: `android/app/src/main/AndroidManifest.xml`,
-`<application android:label="TileSense" …>`.
-
-This app needs **no runtime permissions** — it is fully offline. Make sure no
-stray `<uses-permission>` (e.g. INTERNET, added by some plugins) is present that
-you do not want; `INTERNET` is harmless and often kept for debugging.
+The release uses `com.ericrxu.tilesense`, the version in `pubspec.yaml`
+and the Flutter SDK's target API level. The main manifest includes the normal
+internet permission for encrypted multiplayer connections. Offline play works
+without a connection.
 
 ### Signing (release)
 
@@ -272,8 +255,7 @@ can be reset through Play support.
   `keyAlias` and an absolute `storeFile` path. Never commit it or paste its
   contents anywhere.
 - `android/app/build.gradle.kts` reads it and defines `signingConfigs.release`.
-  If the file is absent, release builds fall back to debug signing and print a
-  warning; Play rejects such a bundle.
+  The Play bundle task requires this file. Local release APKs use debug signing when it is absent.
 
 To create a keystore on a new machine (run in your own terminal, since it
 prompts for a password):
@@ -310,15 +292,8 @@ flutter install --release
 
 ### Publish to Google Play
 
-1. Play Console → **Create app**.
-2. Complete the required declarations: content rating (IARC questionnaire —
-   this is a card game, no gambling with real money), data safety (this app
-   collects and shares **nothing**), target audience, ads (none), privacy policy
-   URL (host a short one; even "no data collected" needs a URL).
-3. Upload the `.aab` to a **Closed testing** track first, add testers, then
-   promote to **Production**.
-4. Google re-signs with an app-signing key; your `upload` key only signs the
-   upload. Keep both.
+Use the [store submission kit](store/RELEASE.md) for the listing, graphics,
+privacy disclosures and testing tracks.
 
 ---
 
@@ -347,15 +322,11 @@ In **Runner ▸ General**:
 - **Version** / **Build**: leave these to come from `pubspec.yaml`
   (`$(FLUTTER_BUILD_NAME)` / `$(FLUTTER_BUILD_NUMBER)` — the Flutter tooling sets
   them).
-- **Deployment target**: iOS 13.0 or newer (Flutter's current minimum is 12).
-- **Device Orientation**: this app is **landscape-only**. `main()` calls
-  `SystemChrome.setPreferredOrientations([landscapeLeft, landscapeRight])`, and
-  the platform configs pin it too — `ios/Runner/Info.plist`
-  `UISupportedInterfaceOrientations` (iPhone and iPad) lists only the two
-  landscape values, Android's `AndroidManifest.xml` activity sets
-  `android:screenOrientation="sensorLandscape"`, and `web/manifest.json` sets
-  `"orientation": "landscape"` (with a runtime `_LandscapeGate` prompt as the
-  web fallback, since browsers can't hard-lock rotation).
+- **Deployment target**: iOS 15.0 in this project.
+- **Device Orientation**: iPhone and iPad use the two landscape orientations in
+  `ios/Runner/Info.plist`. Android follows the device orientation and supports
+  resizable windows. The web app requests landscape and shows a rotation prompt
+  in portrait windows.
 
 `ios/Runner/Info.plist` otherwise needs no special keys — the app uses no
 camera, location, network entitlements, or background modes.
@@ -374,16 +345,10 @@ Xcode's **Organizer** (`Window ▸ Organizer`) and use **Distribute App** →
 
 ### Upload to TestFlight / App Store
 
-1. App Store Connect → **My Apps ▸ +** → new app, same bundle id.
-2. Upload the build:
-   - Xcode Organizer → **Distribute App → App Store Connect → Upload**, or
-   - `xcrun altool --upload-app -f build/ios/ipa/*.ipa -t ios -u <apple-id> -p <app-specific-password>`,
-     or the newer `xcrun notarytool`/**Transporter** app.
-3. The build appears in **TestFlight** after processing (~5–30 min). Add internal
-   testers immediately; external testers require a short Beta App Review.
-4. For App Store release: fill in the listing, screenshots (6.7" and 5.5"
-   required), age rating (card game, no real-money gambling), the privacy
-   "Nutrition Label" (**Data Not Collected**), then submit for review.
+Create the App Store Connect record for `com.ericrxu.tilesense`, sign and
+export the archive with your distribution team, and upload through Xcode
+Organizer or Transporter. The [store submission kit](store/RELEASE.md) covers
+TestFlight, screenshots, review notes and App Privacy.
 
 ---
 
@@ -400,7 +365,7 @@ Xcode's **Organizer** (`Window ▸ Organizer`) and use **Distribute App** →
 | Web: audible lag before a call sound | the media `Cache-Control` block is missing, so every play makes a `304` round trip first — check with `curl -sI <clip-url> \| grep -i cache-control` and see [Audio latency](#audio-latency) |
 | Android: `Execution failed … lStar` / AGP errors | update `android/settings.gradle.kts` Android Gradle Plugin + Gradle wrapper to the versions `flutter doctor` recommends |
 | Android: `keystore not found` on release build | check `storeFile` in `key.properties` is an absolute path and the file exists |
-| Android: Play rejects "debuggable" APK | you built `apk` without `--release`, or `key.properties` was absent so it fell back to the debug signing config |
+| Android: Play rejects "debuggable" APK | use the release AAB and compare its upload certificate with Play Console |
 | iOS: `No profiles for 'com.…' were found` | open `ios/Runner.xcworkspace`, enable *Automatically manage signing*, pick your Team |
 | iOS: `CocoaPods not installed` | `sudo gem install cocoapods && (cd ios && pod install)` |
 | iOS: archive missing from Organizer | build for a *Generic iOS Device* / *Any iOS Device (arm64)*, not a simulator |

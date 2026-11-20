@@ -1,6 +1,7 @@
 import 'loading_helpers.dart';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
@@ -354,8 +355,7 @@ void main() {
 
   testWidgets('rotating to portrait and back keeps the same match',
       (tester) async {
-    // The gate reads MediaQuery, which follows the view rather than
-    // setSurfaceSize — so drive the view here.
+    // Change the actual view size to deliver rotation metrics to the app.
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = kDesignSize;
     addTearDown(tester.view.reset);
@@ -375,11 +375,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(const Key('fastMode')), '2x');
 
-    // Portrait: the rotate prompt covers the table, and the welcome screen
-    // must not come back.
+    // On Android the same table stays playable in a portrait window.
     tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Rotate your device'), findsOneWidget);
+    if (kIsWeb) {
+      expect(find.byType(TableView), findsNothing);
+    } else {
+      expect(find.textContaining('Rotate your device'), findsNothing);
+      expect(find.byType(TableView), findsOneWidget);
+      await tester.tap(find.byKey(const Key('phoneMenu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.tap(find.byKey(const Key('phoneMenuDone')));
+      await tester.pump(const Duration(milliseconds: 350));
+    }
 
     // Back to landscape: same match, same setting, no welcome screen.
     tester.view.physicalSize = kDesignSize;

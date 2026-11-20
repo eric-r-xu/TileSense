@@ -361,6 +361,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get viewOnGitHub => 'GitHub で見る';
 
   @override
+  String get mobilePrivacyPolicy => 'モバイル版プライバシーポリシー';
+
+  @override
   String get builtWithFlutter => 'Flutter で作成';
 
   @override

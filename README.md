@@ -385,8 +385,8 @@ flutter build apk --release --split-per-abi  # -> per-ABI APKs for sideloading
 ```
 
 Release signing reads a git-ignored `android/key.properties` that points at your
-upload keystore; without it the build falls back to debug keys, which Play rejects.
-Setup is in [`flutter_client/DEPLOYMENT.md`](flutter_client/DEPLOYMENT.md#signing-release).
+upload keystore. The Play bundle task requires this file.
+See the [signing setup](flutter_client/DEPLOYMENT.md#signing-release) and [store submission kit](flutter_client/store/RELEASE.md).
 Release web builds send gameplay telemetry by default; see
 [the telemetry documentation](server/README.md#telemetry-ingest).
 
@@ -407,7 +407,7 @@ the build appears in TestFlight after processing.
 Both come from one line in `flutter_client/pubspec.yaml`:
 
 ```yaml
-version: 0.2.1+4     # 0.2.1 = version name, 4 = build number; bump +N on every store upload
+version: 0.2.1+5     # 0.2.1 = version name, 5 = build number; bump +N on every store upload
 ```
 
 ---

@@ -357,6 +357,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewOnGitHub => '在 GitHub 上查看';
 
   @override
+  String get mobilePrivacyPolicy => '移动版隐私政策';
+
+  @override
   String get builtWithFlutter => '使用 Flutter 构建';
 
   @override
@@ -3752,6 +3755,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get viewOnGitHub => '在 GitHub 上查看';
+
+  @override
+  String get mobilePrivacyPolicy => '行動版隱私權政策';
 
   @override
   String get builtWithFlutter => '使用 Flutter 建構';

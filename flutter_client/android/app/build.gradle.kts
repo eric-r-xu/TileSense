@@ -6,9 +6,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Release signing secrets live in android/key.properties (git-ignored), never in
-// this file. See DEPLOYMENT.md. When it is absent, release builds fall back to
-// debug signing so `flutter run --release` still works; Play rejects such a bundle.
+// Local release APKs can use the debug key. Play bundles require the upload key.
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
@@ -26,7 +24,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.ericrxu.tilesense"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -53,14 +50,21 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                logger.warn("android/key.properties not found: signing the release build with DEBUG keys (not uploadable to Play).")
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
+}
+
+// Attach the check before AGP packages the bundle, including aggregate builds.
+val checkPlayUploadKey = tasks.register("checkPlayUploadKey") {
+    doLast {
+        check(keystorePropertiesFile.isFile) {
+            "Configure android/key.properties with the Play upload key. See DEPLOYMENT.md."
+        }
+    }
+}
+tasks.matching { it.name == "packageReleaseBundle" }.configureEach {
+    dependsOn(checkPlayUploadKey)
 }
 
 kotlin {
