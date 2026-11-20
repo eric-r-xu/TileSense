@@ -11,11 +11,18 @@ import 'loading_helpers.dart';
 void main() {
   preloadDeferredPages();
 
-  for (final size in [kDesignSize, const Size(1600, 1128)]) {
-    testWidgets('all seven rulesets fit the Rules popup without scrolling, $size',
+  for (final size in [
+    kDesignSize,
+    const Size(393, 852),
+    const Size(640, 320),
+    const Size(852, 393)
+  ]) {
+    testWidgets(
+        'all seven rulesets fit the Rules popup without scrolling, $size',
         (tester) async {
-      await tester.binding.setSurfaceSize(size);
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
       await openPopup(tester, 'rulesTile');
@@ -24,16 +31,19 @@ void main() {
       for (final r in Ruleset.values) {
         for (final prefix in ['ruleset_', 'rulesRead_', 'rulesPdf_']) {
           final rect = tester.getRect(find.byKey(Key('$prefix${r.name}')));
-          expect(popup.contains(rect.topLeft) && popup.contains(rect.bottomRight),
+          expect(
+              popup.contains(rect.topLeft) && popup.contains(rect.bottomRight),
               isTrue,
               reason: '$prefix${r.name} $rect is inside the popup $popup');
         }
       }
-      final scroll = tester.state<ScrollableState>(find.descendant(
-          of: find.byKey(const Key('rulesPopup')),
-          matching: find.byType(Scrollable)));
-      expect(scroll.position.maxScrollExtent, 0,
-          reason: 'nothing to scroll to');
+      expect(
+          find.descendant(
+              of: find.byKey(const Key('rulesPopup')),
+              matching: find.byType(Scrollable)),
+          findsNothing);
+      expect(find.byKey(const Key('ruleset_fuzhou')).hitTestable(),
+          findsOneWidget);
       // Side by side, not one per row.
       final tops = {
         for (final r in Ruleset.values)
