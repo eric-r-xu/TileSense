@@ -365,6 +365,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewOnGitHub => 'View on GitHub';
 
   @override
+  String get mobilePrivacyPolicy => 'Mobile privacy policy';
+
+  @override
   String get builtWithFlutter => 'Built with Flutter';
 
   @override

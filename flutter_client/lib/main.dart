@@ -52,15 +52,19 @@ import 'ui/table_view.dart';
 import 'ui/tilesensor.dart';
 import 'ui/theme.dart';
 
+bool get _nativeAndroid =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // The layout is authored landscape-only (see [_LandscapeGate], which is the
-  // web fallback since browsers can't lock rotation). On Android / iOS lock it
-  // for real so the app opens straight into landscape.
-  SystemChrome.setPreferredOrientations(const [
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+  if (_nativeAndroid) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
   // Arm a native (pre-Flutter) listener whose synchronous AudioContext.resume
   // call satisfies mobile browser autoplay policy. Its web implementation also
   // keeps the native stub a true no-op.
@@ -303,12 +307,13 @@ Size canvasSizeFor(Size available) {
       height.clamp(kDesignSize.height, kMaxCanvasHeight).toDouble());
 }
 
-/// Whether the app is on a phone: the canvas is shrunk far enough that
-/// [_FixedCanvas] boosts its text, which it does only below 0.65x. Read from
-/// the text scaler rather than the window so it follows the same fit, and
-/// rebuilds with it.
+/// Use compact controls when the canvas scales below 0.65x or the Android
+/// portrait canvas has less room across than the full toolbar needs.
 bool isPhoneLayout(BuildContext context) =>
-    MediaQuery.textScalerOf(context).scale(1) > 1;
+    MediaQuery.textScalerOf(context).scale(1) > 1 ||
+    (_nativeAndroid &&
+        MediaQuery.sizeOf(context).width < kDesignSize.width &&
+        MediaQuery.orientationOf(context) == Orientation.portrait);
 
 /// Colour shown in the letterbox bars around the scaled canvas.
 const Color kLetterboxColor = AppColors.background;
@@ -356,9 +361,27 @@ class TileSenseApp extends StatelessWidget {
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(context)
                   .copyWith(textScaler: TextScaler.noScaling),
-              child: child!,
+              // Protect the root navigator too: dialogs and bottom sheets
+              // open outside the scaled game canvas.
+              child: _nativeAndroid
+                  ? AnnotatedRegion<SystemUiOverlayStyle>(
+                      value: const SystemUiOverlayStyle(
+                        statusBarColor: Colors.transparent,
+                        statusBarIconBrightness: Brightness.light,
+                        systemNavigationBarColor: Colors.transparent,
+                        systemNavigationBarIconBrightness: Brightness.light,
+                        systemNavigationBarContrastEnforced: false,
+                      ),
+                      child: ColoredBox(
+                        color: kLetterboxColor,
+                        child: SafeArea(child: child!),
+                      ),
+                    )
+                  : child!,
             ),
-            home: const _LandscapeGate(child: _FixedCanvas(child: GamePage())),
+            home: _nativeAndroid
+                ? const GamePage()
+                : const _LandscapeGate(child: GamePage()),
           ),
         ),
       );
@@ -370,8 +393,9 @@ class TileSenseApp extends StatelessWidget {
 /// letterbox bars; on a smaller window or a phone in landscape it shrinks
 /// uniformly to fit. Swap to [BoxFit.contain] if you'd rather it also scale up.
 class _FixedCanvas extends StatefulWidget {
-  const _FixedCanvas({required this.child});
+  const _FixedCanvas({required this.child, required this.menu});
   final Widget child;
+  final bool menu;
 
   /// Pinch-to-zoom is offered on touch platforms only. On a desktop browser a
   /// stray trackpad pinch scaling the table would be a nuisance, so the raw
@@ -655,30 +679,43 @@ class _FixedCanvasState extends State<_FixedCanvas> {
       // this the guide panel's outer edge sits under the notch. The letterbox
       // colour fills the inset, so nothing looks cut off.
       child: SafeArea(
-        child: LayoutBuilder(builder: (context, c) {
-          final size = canvasSizeFor(c.biggest);
-          final fit = math.min(
-              c.biggest.width / size.width, c.biggest.height / size.height);
-          final canvas = canvasFor(size, fit);
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: _FixedCanvas._deliberateZoom
-                    ? _desktopZoomable(canvas)
-                    : _FixedCanvas._pinchZoomable
-                        ? InteractiveViewer(
-                            transformationController: _zoom,
-                            minScale: _minScale,
-                            maxScale: _maxScale,
-                            panEnabled: _zoomedIn,
-                            child: canvas,
-                          )
-                        : canvas,
-              ),
-              _corner(),
-            ],
-          );
-        }),
+        child: Padding(
+          // The canvas consumes the keyboard inset before scaling. Its
+          // descendants see zero viewInsets in their virtual coordinates.
+          padding: _nativeAndroid
+              ? MediaQuery.viewInsetsOf(context)
+              : EdgeInsets.zero,
+          child: LayoutBuilder(builder: (context, c) {
+            var size = canvasSizeFor(c.biggest);
+            if (_nativeAndroid && c.maxWidth > 0 && c.maxHeight > c.maxWidth) {
+              // Menus wrap and scroll. The table needs room across for four
+              // seats and their ponds, and uses the extra height for the felt.
+              final width = math.max(c.maxWidth, widget.menu ? 640.0 : 1280.0);
+              size = Size(width, width * c.maxHeight / c.maxWidth);
+            }
+            final fit = math.min(
+                c.biggest.width / size.width, c.biggest.height / size.height);
+            final canvas = canvasFor(size, fit);
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: _FixedCanvas._deliberateZoom
+                      ? _desktopZoomable(canvas)
+                      : _FixedCanvas._pinchZoomable
+                          ? InteractiveViewer(
+                              transformationController: _zoom,
+                              minScale: _minScale,
+                              maxScale: _maxScale,
+                              panEnabled: _zoomedIn,
+                              child: canvas,
+                            )
+                          : canvas,
+                ),
+                _corner(),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
@@ -1156,7 +1193,7 @@ class _GamePageState extends State<GamePage> {
     _lifecycle; // instantiate the listener
     // A shared room link (https://…/tilesense/?join=CODE) jumps straight
     // into the join flow instead of the welcome screen.
-    final join = Uri.base.queryParameters['join'];
+    final join = kIsWeb ? Uri.base.queryParameters['join'] : null;
     if (join != null && join.isNotEmpty) {
       _joinCode = join;
       _showWelcome = false;
@@ -1345,7 +1382,17 @@ class _GamePageState extends State<GamePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _FixedCanvas(
+        menu: _showWelcome &&
+            !_showBuilder &&
+            !_showOnline &&
+            !_dailyQuiz &&
+            !_practicing &&
+            !_learning,
+        child: Builder(builder: _buildPage),
+      );
+
+  Widget _buildPage(BuildContext context) {
     if (_startingGame) {
       return StartupScreen(
         label: context.l10n.loadingTable,
@@ -2467,6 +2514,19 @@ class _Credits extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (!kIsWeb)
+              IconButton(
+                key: const Key('privacyLink'),
+                tooltip: context.l10n.mobilePrivacyPolicy,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.privacy_tip_outlined, size: 22),
+                color: Colors.white54,
+                onPressed: () => launchUrl(
+                  Uri.parse(
+                      'https://app.ericrxu.com/static/tilesense-mobile/privacy.html'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
             IconButton(
               key: const Key('githubLink'),
               tooltip: context.l10n.viewOnGitHub,

@@ -105,6 +105,7 @@
   "builderSubtitle": "TileSense ガイドに評価させる",
   "rejoinOnline": "オンライン対局に戻る · ルーム {code}",
   "viewOnGitHub": "GitHub で見る",
+  "mobilePrivacyPolicy": "モバイル版プライバシーポリシー",
   "builtWithFlutter": "Flutter で作成",
   "seatYou": "あなた",
   "seatRight": "下家",

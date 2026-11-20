@@ -155,15 +155,20 @@ void main() {
   });
 
   testWidgets('the rotate-your-device prompt', (tester) async {
-    // Portrait the way the prompt sees it: the view itself, not just the
-    // test surface.
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(const TileSenseApp());
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Rotate your device'), findsOneWidget);
-    await switchToJapanese(tester, ja.rotatePrompt);
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      // Portrait the way the prompt sees it: the view itself, not just the
+      // test surface.
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.textContaining('Rotate your device'), findsOneWidget);
+      await switchToJapanese(tester, ja.rotatePrompt);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('the widen-your-window prompt on a desktop browser',

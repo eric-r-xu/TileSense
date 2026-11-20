@@ -105,6 +105,7 @@
   "builderSubtitle": "让 TileSense 指南评分",
   "rejoinOnline": "重新加入联机对局 · 房间 {code}",
   "viewOnGitHub": "在 GitHub 上查看",
+  "mobilePrivacyPolicy": "移动版隐私政策",
   "builtWithFlutter": "使用 Flutter 构建",
   "seatYou": "你",
   "seatRight": "下家",

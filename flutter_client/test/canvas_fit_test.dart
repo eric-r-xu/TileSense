@@ -19,6 +19,38 @@ void main() {
     const size = Size(852, 393);
     const insets = EdgeInsets.fromLTRB(59, 0, 59, 21);
 
+    testWidgets(
+        'Android keeps portrait controls above system bars and the keyboard',
+        (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(393, 852);
+      const bars = FakeViewPadding(top: 32, bottom: 24);
+      tester.view.padding = bars;
+      tester.view.viewPadding = bars;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const TileSenseApp());
+      await tester.pump(const Duration(milliseconds: 100));
+      final online = find.byKey(const Key('playOnline'));
+      expect(tester.getRect(online).height, greaterThanOrEqualTo(44));
+      expect(tester.getRect(find.byKey(const Key('languageButton'))).top,
+          greaterThanOrEqualTo(32));
+      await tester.tap(online);
+      await pumpLoadedPage(tester);
+      final code = find.byKey(const Key('joinCode'));
+      await tester.tap(code);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      tester.view.padding = const FakeViewPadding(top: 32);
+      await tester.pump();
+      await tester.enterText(code, 'ABCDE');
+      expect(tester.getRect(code).bottom, lessThanOrEqualTo(852 - 300));
+      expect(find.text('ABCDE'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }, skip: kIsWeb);
+
     testWidgets('the canvas is fitted inside the safe area, not under it',
         (tester) async {
       await tester.binding.setSurfaceSize(size);

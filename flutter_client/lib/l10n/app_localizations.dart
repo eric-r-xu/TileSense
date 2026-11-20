@@ -731,6 +731,12 @@ abstract class AppLocalizations {
   /// **'View on GitHub'**
   String get viewOnGitHub;
 
+  /// No description provided for @mobilePrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile privacy policy'**
+  String get mobilePrivacyPolicy;
+
   /// No description provided for @builtWithFlutter.
   ///
   /// In en, this message translates to:

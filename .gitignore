@@ -16,3 +16,18 @@ flutter_client/tools
 /reports
 flutter_client/scripts/*
 /model_training
+
+# Mobile releases exported outside the build directories
+*.aab
+*.apk
+*.ipa
+*.xcarchive/
+
+# Local publishing credentials
+/.credentials/
+AuthKey_*.p8
+*.p12
+*.mobileprovision
+
+# Kotlin compiler session files
+/flutter_client/android/.kotlin/
