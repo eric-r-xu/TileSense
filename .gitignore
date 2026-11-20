@@ -25,3 +25,4 @@ analytics/dbt/logs/
 *.log
 flutter_client/tools
 /reports
+/.credentials
