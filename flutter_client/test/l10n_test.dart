@@ -32,6 +32,7 @@ void main() {
       expect(of(const [Locale('zh', 'CN')]), AppLanguage.simplifiedChinese);
       expect(of(const [Locale('zh', 'SG')]), AppLanguage.simplifiedChinese);
       expect(of(const [Locale('zh')]), AppLanguage.simplifiedChinese);
+      expect(of(const [Locale('hi', 'IN')]), AppLanguage.hindi);
       expect(of(const [Locale('en', 'GB')]), AppLanguage.english);
     });
 
@@ -68,7 +69,7 @@ void main() {
     Set<String> holes(String s) =>
         {for (final m in RegExp(r'\{(\w+)\}').allMatches(s)) m[1]!};
     final template = arb('en');
-    for (final locale in ['ja', 'zh', 'zh_Hant']) {
+    for (final locale in ['ja', 'zh', 'zh_Hant', 'hi']) {
       final other = arb(locale);
       expect(keys(other), keys(template), reason: locale);
       for (final k in keys(template)) {

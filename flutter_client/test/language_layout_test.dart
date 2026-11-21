@@ -26,6 +26,7 @@ void main() {
     AppLanguage.japanese,
     AppLanguage.simplifiedChinese,
     AppLanguage.traditionalChinese,
+    AppLanguage.hindi,
   ]) {
     group(language.nativeName, () {
       setUp(() => AppLanguageController.instance.select(language));

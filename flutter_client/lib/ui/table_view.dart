@@ -168,14 +168,23 @@ class TableView extends StatelessWidget {
   /// online table names the ruleset too) up to the gap between the side ponds.
   static const double _statusPillHeight = 28;
   static const double _statusPillMinWidth = 340;
-  static const double _statusPillMaxWidth = 2 * _sidePondInset - 20;
 
   /// Felt left between the pill and the pond above and below it.
   static const double _statusPillGap = 4;
 
   /// From the middle of the table to the inner edge of each side pond: clear
-  /// of the widest pill, and of the centre ponds' corners.
+  /// of the widest pill, and of the centre ponds' corners. A narrow table (the
+  /// daily quiz's, beside its answer panel) brings the side ponds in closer —
+  /// down to [_minSidePondInset] — and then shrinks every pond, rather than
+  /// let them run out over the side seats' hands.
   static const double _sidePondInset = 230;
+
+  /// The closest a side pond comes to the middle: the pill's line scales down
+  /// to fit between them, and the centre ponds' corners stay clear.
+  static const double _minSidePondInset = 120;
+
+  /// The smallest a narrow table shrinks the ponds to.
+  static const double _minNarrowPondScale = 0.6;
 
   /// Width of each side seat's column (placard, hand and melds).
   static const double _sideSeatWidth = 152;
@@ -371,10 +380,20 @@ class TableView extends StatelessWidget {
       final mid = c.maxHeight / 2;
       final centreX = c.maxWidth / 2;
       const clear = _statusPillHeight / 2 + _statusPillGap;
-      final scale = _pondScaleFor(c.maxHeight);
-      // A turned side pond is the upright box on its side.
+      // A turned side pond is the upright box on its side, _pondBoxH(s) =
+      // 20 + 176·s wide; keep it, at the closest inset, inside the band.
+      final fitScale = (centreX - _pondMargin - _minSidePondInset - 20) / 176;
+      final scale = math
+          .max(_minNarrowPondScale,
+              math.min(_pondScaleFor(c.maxHeight), fitScale))
+          .toDouble();
       final sideW = _pondBoxH(scale);
       final sideH = _pondBoxW(scale);
+      // As far out as the band allows, up to the full table's inset, and
+      // never in over the centre ponds' corners.
+      final inset = math.max(
+          math.max(_minSidePondInset, _pondBoxW(scale) / 2 + 2 * _pondMargin),
+          math.min(_sidePondInset, centreX - _pondMargin - sideW));
       return Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
@@ -394,12 +413,12 @@ class TableView extends StatelessWidget {
                 Center(child: _pond(round, 0, quarterTurns: 0, scale: scale)),
           ),
           Positioned(
-            left: centreX - _sidePondInset - sideW,
+            left: centreX - inset - sideW,
             top: mid - sideH / 2,
             child: _pond(round, 3, quarterTurns: 1, scale: scale),
           ),
           Positioned(
-            left: centreX + _sidePondInset,
+            left: centreX + inset,
             top: mid - sideH / 2,
             child: _pond(round, 1, quarterTurns: 3, scale: scale),
           ),
@@ -407,7 +426,7 @@ class TableView extends StatelessWidget {
             left: 0,
             right: 0,
             top: mid - _statusPillHeight / 2,
-            child: Center(child: _statusPill()),
+            child: Center(child: _statusPill(2 * inset - 20)),
           ),
         ],
       );
@@ -416,12 +435,14 @@ class TableView extends StatelessWidget {
 
   /// Round, wall and honba/riichi (or dealer repeat) on one line, in the
   /// middle of the table.
-  Widget _statusPill() {
+  /// [maxWidth] is the gap between the side ponds, less a little felt.
+  Widget _statusPill(double maxWidth) {
     return Container(
       key: const Key('statusPill'),
       height: _statusPillHeight,
-      constraints: const BoxConstraints(
-          minWidth: _statusPillMinWidth, maxWidth: _statusPillMaxWidth),
+      constraints: BoxConstraints(
+          minWidth: math.min(_statusPillMinWidth, maxWidth),
+          maxWidth: maxWidth),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: const Color(0xe61f3a1c),
@@ -521,32 +542,32 @@ class TableView extends StatelessWidget {
           TableArea.gold,
           -1,
           Tooltip(
-        message: flower ? l10n.fzGoldFlower : l10n.fzGoldTooltip,
-        child: Container(
-          key: const Key('goldIndicator'),
-          padding: const EdgeInsets.fromLTRB(8, 4, 6, 4),
-          decoration: BoxDecoration(
-            color: const Color(0x33caa24e),
-            border: Border.all(color: AppColors.gold),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(l10n.fzGold,
-                  style: const TextStyle(
-                      color: AppColors.goldBright,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(width: 6),
-              if (tile == null)
-                const TileFace(faceDown: true, size: TileSize.small)
-              else
-                TileFace(tile: tile, size: TileSize.small, scale: 1.2),
-            ],
-          ),
-        ),
-      ));
+            message: flower ? l10n.fzGoldFlower : l10n.fzGoldTooltip,
+            child: Container(
+              key: const Key('goldIndicator'),
+              padding: const EdgeInsets.fromLTRB(8, 4, 6, 4),
+              decoration: BoxDecoration(
+                color: const Color(0x33caa24e),
+                border: Border.all(color: AppColors.gold),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.fzGold,
+                      style: const TextStyle(
+                          color: AppColors.goldBright,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800)),
+                  const SizedBox(width: 6),
+                  if (tile == null)
+                    const TileFace(faceDown: true, size: TileSize.small)
+                  else
+                    TileFace(tile: tile, size: TileSize.small, scale: 1.2),
+                ],
+              ),
+            ),
+          ));
     });
   }
 
@@ -954,7 +975,8 @@ class TableView extends StatelessWidget {
     // by the height the seat has, so neither they nor the name shrink.
     final tray = _hasTray(round.ruleset)
         ? Padding(
-            padding: EdgeInsets.only(left: isLeft ? 3 : 0, right: isLeft ? 0 : 3),
+            padding:
+                EdgeInsets.only(left: isLeft ? 3 : 0, right: isLeft ? 0 : 3),
             child: _seatFlowers(round, seat, vertical: true),
           )
         : null;

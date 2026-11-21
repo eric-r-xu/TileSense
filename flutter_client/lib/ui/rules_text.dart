@@ -9,6 +9,7 @@ import 'package:mahjong_core/ruleset.dart';
 import '../l10n/app_localizations.dart';
 import 'rules_content.dart';
 import 'rules_text_en.dart';
+import 'rules_text_hi.dart';
 import 'rules_text_ja.dart';
 import 'rules_text_zh.dart';
 import 'rules_text_zh_hant.dart';
@@ -20,6 +21,7 @@ abstract class RulesText {
         'ja' => const JaRulesText(),
         'zh' => const ZhRulesText(),
         'zh_Hant' => const ZhHantRulesText(),
+        'hi' => const HiRulesText(),
         _ => const EnRulesText(),
       };
 

@@ -69,7 +69,8 @@ void main() {
     test('is named in every language', () {
       expect(l10nFor(AppLanguage.english).rulesetName(Ruleset.fuzhou), 'Fuzhou');
       for (final language in AppLanguage.values.skip(1)) {
-        expect(l10nFor(language).rulesetName(Ruleset.fuzhou), '福州',
+        expect(l10nFor(language).rulesetName(Ruleset.fuzhou),
+            language == AppLanguage.hindi ? 'फ़ूझोउ' : '福州',
             reason: language.name);
       }
     });
