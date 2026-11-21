@@ -198,8 +198,7 @@ void main() {
     expect(find.byKey(const Key('quizDone')), findsOneWidget);
   });
 
-  testWidgets('the results say how many were right',
-      (tester) async {
+  testWidgets('the results say how many were right', (tester) async {
     await pumpLocalized(
         tester, QuizResultsPage(right: 4, total: 5, onExit: () {}),
         size: const Size(1600, 820));
@@ -354,4 +353,36 @@ void main() {
       expect(text(tester, 'quizVerdict'), 'Not quite.');
     });
   }
+
+  testWidgets(
+      'beside the answer panel the side ponds stay clear of the side hands, '
+      'the centre ponds and the status pill', (tester) async {
+    // A spread of puzzles, early and late in their rounds.
+    for (var i = 0; i < puzzles.length; i += 40) {
+      await tester.pumpWidget(const SizedBox());
+      await pumpPuzzle(tester, puzzles[i]);
+      Rect? at(Key key) {
+        final f = find.byKey(key);
+        return f.evaluate().isEmpty ? null : tester.getRect(f);
+      }
+
+      final others = {
+        for (final seat in [1, 3])
+          'side hand $seat': at(ValueKey('sideHand-$seat')),
+        'pond 0': at(const ValueKey('pond-0')),
+        'pond 2': at(const ValueKey('pond-2')),
+        'status pill': at(const Key('statusPill')),
+      };
+      for (final seat in [1, 3]) {
+        final pond = at(ValueKey('pond-$seat'));
+        if (pond == null) continue;
+        for (final MapEntry(:key, :value) in others.entries) {
+          if (value == null) continue;
+          expect(pond.overlaps(value), isFalse,
+              reason: 'puzzle ${puzzles[i].id}: pond $seat $pond and $key '
+                  '$value overlap');
+        }
+      }
+    }
+  });
 }

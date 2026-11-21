@@ -16,7 +16,8 @@ enum AppLanguage {
   japanese(Locale('ja'), '日本語'),
   simplifiedChinese(Locale('zh'), '简体中文'),
   traditionalChinese(
-      Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'), '繁體中文');
+      Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'), '繁體中文'),
+  hindi(Locale('hi'), 'हिन्दी');
 
   const AppLanguage(this.locale, this.nativeName);
 
@@ -26,7 +27,7 @@ enum AppLanguage {
   final String nativeName;
 
   /// The first of the browser's preferred [locales] we have, or English:
-  /// `ja` is Japanese; Chinese is Traditional when its script says Hant or
+  /// `ja` is Japanese, `hi` Hindi; Chinese is Traditional when its script says Hant or
   /// its region is Taiwan, Hong Kong or Macau, and Simplified otherwise.
   static AppLanguage fromLocales(List<Locale> locales) {
     for (final l in locales) {
@@ -35,6 +36,8 @@ enum AppLanguage {
           return english;
         case 'ja':
           return japanese;
+        case 'hi':
+          return hindi;
         case 'zh':
           final traditional = l.scriptCode == 'Hant' ||
               const {'TW', 'HK', 'MO'}.contains(l.countryCode);
