@@ -1,13 +1,7 @@
 /// Privacy-light gameplay telemetry.
 ///
-/// **On by default in release web builds.** [Telemetry.maybe] returns a live
-/// instance for a `flutter build web --release` (real players), and `null`
-/// otherwise — debug/profile builds, `flutter run`, every VM test, and any
-/// non-web target. Override either way:
-///   * `--dart-define=TELEMETRY=false`  disables it in a release build
-///   * `--dart-define=TELEMETRY=true`   enables it in a debug build
-///   * `--dart-define=TELEMETRY_ENDPOINT=<url>`  points it somewhere else
-///     (default: the production ingest endpoint below)
+/// Opt-in on the web. Set `--dart-define=TELEMETRY=true` and
+/// `--dart-define=TELEMETRY_ENDPOINT=<url>` to use an ingest service.
 ///
 /// Transport is `navigator.sendBeacon` only: fire-and-forget, no response is
 /// awaited, a dead or slow endpoint is invisible to gameplay. Events are
@@ -19,20 +13,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show kReleaseMode;
-
 // Web bindings by default; the `dart:io` variant (VM tests, Android/iOS) gets an
 // inert stub so `package:web` is never compiled off the web.
 import 'src/platform_web.dart' if (dart.library.io) 'src/platform_stub.dart'
     as platform;
 
-/// On for release builds unless `--dart-define=TELEMETRY=false`.
-const bool _kEnabled =
-    bool.fromEnvironment('TELEMETRY', defaultValue: kReleaseMode);
-const String _kEndpoint = String.fromEnvironment(
-  'TELEMETRY_ENDPOINT',
-  defaultValue: 'https://app.ericrxu.com/ingest',
-);
+const bool _kEnabled = bool.fromEnvironment('TELEMETRY');
+const String _kEndpoint = String.fromEnvironment('TELEMETRY_ENDPOINT');
 const String _kAppVersion =
     String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
 
@@ -73,12 +60,12 @@ class Telemetry {
         const Duration(seconds: 15), (_) => _send(beacon: false));
   }
 
-  /// The live instance, or `null` when telemetry is disabled (debug build
-  /// without an explicit `TELEMETRY=true`, or `TELEMETRY=false`) or not running
-  /// on the web. Callers use `_tel?.method(...)`.
+  /// The live instance when telemetry and an endpoint are set on the web.
+  /// Callers use `_tel?.method(...)` for the disabled case.
   static Telemetry? maybe() {
-    if (!_kEnabled || _kEndpoint.isEmpty || !platform.isWebPlatform)
+    if (!_kEnabled || _kEndpoint.isEmpty || !platform.isWebPlatform) {
       return null;
+    }
     return Telemetry._(_kEndpoint);
   }
 
