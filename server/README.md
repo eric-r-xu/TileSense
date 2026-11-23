@@ -31,11 +31,9 @@ fails. Other variants use `SimpleBot`.
 The ingest service is **entirely additive** infrastructure — it does not touch
 how the game is built or served.
 
-- **On by default in release web builds** — `flutter build web --release`
-  ships it, pointed at `https://app.ericrxu.com/ingest`. Debug builds,
-  `flutter run`, and every VM test are inert. Opt out with
-  `--dart-define=TELEMETRY=false`; repoint with
-  `--dart-define=TELEMETRY_ENDPOINT=<url>`.
+- Web telemetry requires both `--dart-define=TELEMETRY=true` and
+  `--dart-define=TELEMETRY_ENDPOINT=<url>`. The default builds and the
+  deployed multiplayer unit omit telemetry settings.
 - The client sends with `navigator.sendBeacon` — fire-and-forget, batched, no
   `await`. A dead or slow endpoint is invisible to gameplay, so shipping the
   client before the ingest endpoint is live just means those events are lost.

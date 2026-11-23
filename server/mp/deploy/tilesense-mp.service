@@ -1,22 +1,15 @@
 # /etc/systemd/system/tilesense-mp.service
 #
-# Independent process from tilesense-ingest.service (see ../../deploy/) — a
-# restart of one never drops the other. Unlike ingest, this service is
-# stateful: restarting it drops every room in memory. That is an accepted
-# tradeoff for the MVP (see server/mp/README or DEPLOYMENT.md), not a bug.
-# That statelessness is about live room state only — session data (matches,
-# rounds, discards) is still recorded, best-effort, by forwarding it to
-# tilesense-ingest over loopback (INGEST_URL below); see
-# server/mp/lib/telemetry.dart and DEPLOYMENT.md section 3.
+# Restarting this service drops every room in memory. See server/DEPLOYMENT.md
+# section 3 for multiplayer deployment details.
 [Unit]
 Description=TileSense multiplayer game server
-After=network-online.target tilesense-ingest.service
+After=network-online.target
 Wants=network-online.target
 
 [Service]
 Environment=PORT=8789
 Environment=BIND_ADDR=127.0.0.1
-Environment=INGEST_URL=http://127.0.0.1:8787/ingest
 # Bot Saeko plays Mortal's moves in riichi and sanma rooms
 # (server/mp/lib/mortal.dart); with a sidecar down or absent she falls back
 # to SimpleBot.

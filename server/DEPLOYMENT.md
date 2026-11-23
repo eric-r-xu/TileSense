@@ -68,19 +68,17 @@ one per discard.
 
 ### 1.4 Local no-regression gate
 
-Telemetry is **on** in release builds now, so the checks are about isolation,
-not absence:
+Telemetry is off by default. Use the opt-in flags to test an ingest endpoint.
 
 ```sh
 cd flutter_client
 flutter analyze                                  # clean
 flutter test                                     # all pass (telemetry is inert on the VM)
 
-# opt-out still fully removes it:
-flutter build web --release --dart-define=TELEMETRY=false
-grep -rl "sendBeacon\|ts_client_id\|human_decision" build/web/ ; echo "^ must be EMPTY"
+# The default release build has no ingest endpoint.
+flutter build web --release
 
-# a dead endpoint must not affect gameplay (default endpoint, nothing serving it):
+# Check gameplay with a closed local endpoint:
 flutter run -d chrome --dart-define=TELEMETRY=true \
   --dart-define=TELEMETRY_ENDPOINT=http://127.0.0.1:59999/ingest
 # play several rounds — no jank, no errors surfaced to the UI
@@ -96,11 +94,9 @@ cd server && docker compose down          # add -v to also wipe the data volume
 
 ## 2. DigitalOcean — Droplet + Nginx (matches `DEPLOYMENT_GUIDE.md` §2, which `deploy.sh` runs)
 
-The site is served at `https://app.ericrxu.com/tilesense/` by nginx on the one
-Droplet. This adds a sidecar ingest service on that Droplet and a managed
-database. Nothing about the game build or its deploy changes — telemetry is
-already on by default in release builds and points at
-`https://app.ericrxu.com/ingest`; this section just makes that endpoint exist.
+The site is served at `https://app.ericrxu.com/tilesense/` by nginx. The steps
+below document the former production ingest setup. Use them only to provision
+an explicitly opted-in ingest service.
 
 **No local `psql` needed** — every database command below runs through a
 throwaway `postgres:16` container. Requires Docker Desktop running and `doctl`
@@ -261,15 +257,15 @@ exit
 
 ### 2.8 Redeploy the client
 
-Telemetry is already on by default for `--release` builds and already points at
-`https://app.ericrxu.com/ingest`, so a normal rebuild + your usual deploy is all
-that's needed. `APP_VERSION` is optional but stamps events with a real version
-instead of `dev`.
+To collect telemetry in a release build, set both flags and use the endpoint
+you provisioned. `APP_VERSION` stamps events with a version.
 
 ```sh
 cd ~/Documents/GitHub/TileSense/flutter_client
 flutter build web --release \
   --base-href "$BASE_HREF" \
+  --dart-define=TELEMETRY=true \
+  --dart-define=TELEMETRY_ENDPOINT="$TELEMETRY_ENDPOINT" \
   --dart-define=APP_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
 ```
 
