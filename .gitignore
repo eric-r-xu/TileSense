@@ -31,3 +31,4 @@ AuthKey_*.p8
 
 # Kotlin compiler session files
 /flutter_client/android/.kotlin/
+AGENTS.md
