@@ -8,6 +8,8 @@
 /// one tap is always the setting you meant.
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
@@ -260,7 +262,59 @@ Widget phoneMenuRows(List<List<Widget>> rows) => Column(
       ],
     );
 
-/// A 48pt button; [on] lights it gold for a toggle that is switched on.
+/// Text that wraps at spaces and, when its longest word is still wider than
+/// the room it has, shrinks just enough for that word to fit whole. Nothing is
+/// ellipsised or split mid-word, and [minFontSize] keeps it readable.
+///
+/// The sheet is drawn at the device's real size, so a long label in a narrow
+/// phone's half-width column (Japanese 'メインメニュー', say, which has no space
+/// to wrap at) would otherwise break in two or be cut off.
+class PhoneMenuLabel extends StatelessWidget {
+  const PhoneMenuLabel(
+    this.text, {
+    super.key,
+    required this.style,
+    this.textAlign,
+    this.minFontSize = 10,
+  });
+
+  final String text;
+
+  /// Must give a [TextStyle.fontSize]: the size used when the label fits.
+  final TextStyle style;
+  final TextAlign? textAlign;
+  final double minFontSize;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final base = DefaultTextStyle.of(context).style.merge(style);
+          final size = style.fontSize!;
+          var fitted = size;
+          if (constraints.hasBoundedWidth) {
+            final painter = TextPainter(
+              text: TextSpan(text: text, style: base),
+              textDirection: Directionality.of(context),
+              textScaler: MediaQuery.textScalerOf(context),
+              locale: Localizations.maybeLocaleOf(context),
+            )..layout();
+            // The widest word, which is as narrow as this text can wrap.
+            final longestWord = painter.minIntrinsicWidth;
+            painter.dispose();
+            if (longestWord > constraints.maxWidth) {
+              // Width grows with size, and a little under keeps rounding off
+              // the edge.
+              fitted = math.max(minFontSize,
+                  size * constraints.maxWidth / longestWord * 0.98);
+            }
+          }
+          return Text(text,
+              textAlign: textAlign, style: style.copyWith(fontSize: fitted));
+        },
+      );
+}
+
+/// A button at least 48pt tall; [on] lights it gold for a toggle that is switched on.
 Widget phoneMenuAction({
   required Key key,
   required IconData icon,
@@ -268,15 +322,14 @@ Widget phoneMenuAction({
   required VoidCallback onTap,
   bool on = false,
 }) =>
-    SizedBox(
-      height: 48,
+    ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
       child: OutlinedButton.icon(
         key: key,
         onPressed: onTap,
         icon: Icon(icon, size: 22),
-        label: Text(label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        label: PhoneMenuLabel(label,
+            textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 15)),
         style: OutlinedButton.styleFrom(
           foregroundColor: on ? AppColors.goldText : Colors.white,
@@ -304,7 +357,8 @@ Widget phoneMenuDial<T extends Object>({
       children: [
         SizedBox(
           width: 64,
-          child: Text(caption,
+          child: PhoneMenuLabel(caption,
+              minFontSize: 9,
               style: const TextStyle(color: Colors.white70, fontSize: 13)),
         ),
         Expanded(
@@ -315,10 +369,12 @@ Widget phoneMenuDial<T extends Object>({
                 ButtonSegment(
                   value: v,
                   tooltip: tooltip?.call(v),
-                  label: Text(label(v),
-                      key: Key('${keyPrefix}_${v is Enum ? v.name : v}'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(label(v),
+                        key: Key('${keyPrefix}_${v is Enum ? v.name : v}'),
+                        softWrap: false),
+                  ),
                 ),
             ],
             selected: {current},

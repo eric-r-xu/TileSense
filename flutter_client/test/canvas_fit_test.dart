@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/main.dart';
 import 'package:tilesense/telemetry/telemetry.dart' show persistentClientId;
 import 'package:tilesense/ui/efficiency_overlay.dart';
@@ -20,10 +21,10 @@ void main() {
     const insets = EdgeInsets.fromLTRB(59, 0, 59, 21);
 
     testWidgets(
-        'Android keeps portrait controls above system bars and the keyboard',
+        'Android keeps landscape controls above system bars and the keyboard',
         (tester) async {
       tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(393, 852);
+      tester.view.physicalSize = const Size(852, 393);
       const bars = FakeViewPadding(top: 32, bottom: 24);
       tester.view.padding = bars;
       tester.view.viewPadding = bars;
@@ -32,18 +33,18 @@ void main() {
       await tester.pumpWidget(const TileSenseApp());
       await tester.pump(const Duration(milliseconds: 100));
       final online = find.byKey(const Key('playOnline'));
-      expect(tester.getRect(online).height, greaterThanOrEqualTo(44));
+      expect(tester.getRect(online).top, greaterThanOrEqualTo(32));
       expect(tester.getRect(find.byKey(const Key('languageButton'))).top,
           greaterThanOrEqualTo(32));
       await tester.tap(online);
       await pumpLoadedPage(tester);
       final code = find.byKey(const Key('joinCode'));
       await tester.tap(code);
-      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 150);
       tester.view.padding = const FakeViewPadding(top: 32);
       await tester.pump();
       await tester.enterText(code, 'ABCDE');
-      expect(tester.getRect(code).bottom, lessThanOrEqualTo(852 - 300));
+      expect(tester.getRect(code).bottom, lessThanOrEqualTo(393 - 150));
       expect(find.text('ABCDE'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
@@ -100,6 +101,47 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     });
+  });
+
+  group('the table fills the window', () {
+    // Phones from the smallest to the widest, a 4:3 tablet, laptops, a
+    // monitor bigger than the design canvas and one wider than any phone.
+    for (final size in const [
+      Size(568, 320),
+      Size(852, 393),
+      Size(960, 400),
+      Size(1024, 768),
+      Size(1440, 900),
+      Size(1920, 1080),
+      Size(2560, 1000),
+    ]) {
+      testWidgets('with no side or top bars at $size', (tester) async {
+        Sfx.i.enabled = false;
+        addTearDown(() => Sfx.i.enabled = true);
+        await tester.binding.setSurfaceSize(size);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(const TileSenseApp());
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.ensureVisible(find.text('Single Player'));
+        await tester.tap(find.text('Single Player'));
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('charactersContinue')));
+        await tester.pump(); // Render the startup/loading frame.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(tester.getRect(find.byType(Scaffold).first),
+            rectMoreOrLessEquals(Offset.zero & size, epsilon: 0.01),
+            reason: 'the table does not reach every edge of the window');
+        final board = tester.getRect(find.byType(TableView));
+        expect(board.left, closeTo(0, 0.01));
+        expect(board.right, closeTo(size.width, 0.01));
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
+    }
   });
 
   group('pinch to zoom', () {

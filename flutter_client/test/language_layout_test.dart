@@ -14,6 +14,7 @@ import 'package:tilesense/ui/scoring_view.dart';
 
 import 'helpers.dart';
 import 'l10n_helpers.dart';
+import 'phone_menu_helpers.dart';
 
 /// The Phase 1 screens in each non-English language, on a desktop canvas and
 /// a landscape phone: nothing overflows or throws with the longer (or wider)
@@ -50,6 +51,25 @@ void main() {
           expect(tester.takeException(), isNull, reason: 'table');
           await tester.pumpWidget(const SizedBox());
           await tester.pump(const Duration(seconds: 5));
+        });
+      }
+
+      for (final size in const [Size(568, 320), Size(852, 393)]) {
+        testWidgets('the phone menu shows every label in full at $size',
+            (tester) async {
+          await tester.binding.setSurfaceSize(size);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          await tester.pumpWidget(const TileSenseApp());
+          await tester.tap(find.byType(ElevatedButton).first);
+          await tester.pump();
+          await tester.tap(find.byKey(const Key('charactersContinue')));
+          await pumpUntil(tester,
+              () => find.byKey(const Key('phoneMenu')).evaluate().isNotEmpty);
+          await tester.tap(find.byKey(const Key('phoneMenu')));
+          await tester.pumpAndSettle();
+          expectPhoneMenuLabelsWhole(tester);
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox());
         });
       }
 

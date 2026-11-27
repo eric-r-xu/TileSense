@@ -13,6 +13,7 @@ import 'package:tilesense/ui/tile_face.dart';
 
 import 'helpers.dart';
 import 'loading_helpers.dart';
+import 'phone_menu_helpers.dart';
 
 /// The table's controls sized and grouped for a thumb on a phone, where the
 /// whole 1600×820 canvas is drawn at about half size.
@@ -255,6 +256,14 @@ void main() {
       for (final key in ['backToMenu', 'autoplay', 'newGame', 'soundToggle']) {
         expect(find.byKey(Key(key)), findsNothing, reason: key);
       }
+      final board = tester.getRect(find.byType(TableView));
+      expect(board.left, closeTo(0, 0.01));
+      expect(board.right, closeTo(iPhone.width, 0.01));
+      final tile = tester.getRect(find.descendant(
+        of: find.byType(HandView), matching: find.byType(TileFace),
+      ).first);
+      // The previous height-limited canvas left side bars and smaller tiles.
+      expect(tile.width, greaterThan(46 * 1.65 * iPhone.height / kDesignSize.height));
       final menu = tester.getRect(find.byKey(const Key('phoneMenu')));
       expect(menu.width, greaterThanOrEqualTo(44));
       expect(menu.height, greaterThanOrEqualTo(44));
@@ -287,6 +296,17 @@ void main() {
           findsOneWidget);
       expect(tester.takeException(), isNull);
       await tearDownApp(tester);
+    });
+
+    testWidgets('every label in the menu is whole on the smallest phones too',
+        (tester) async {
+      for (final size in [iPhone, const Size(568, 320)]) {
+        await startGame(tester, size: size);
+        await openMenu(tester);
+        expectPhoneMenuLabelsWhole(tester);
+        expect(tester.takeException(), isNull);
+        await tearDownApp(tester);
+      }
     });
 
     testWidgets('the menu shows no dials, and no goal to pick',

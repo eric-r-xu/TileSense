@@ -1,7 +1,6 @@
 import 'loading_helpers.dart';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilesense/game/game_controller.dart';
@@ -375,24 +374,21 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(labelOf(const Key('fastMode')), '2x');
 
-    // On Android the same table stays playable in a portrait window.
+    // Even a sheet already open on the root navigator is hidden in portrait.
+    await tester.tap(find.byKey(const Key('newGame')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('newGameCancel')), findsOneWidget);
     tester.view.physicalSize = Size(kDesignSize.height, kDesignSize.width);
     await tester.pump(const Duration(milliseconds: 100));
-    if (kIsWeb) {
-      expect(find.byType(TableView), findsNothing);
-    } else {
-      expect(find.textContaining('Rotate your device'), findsNothing);
-      expect(find.byType(TableView), findsOneWidget);
-      await tester.tap(find.byKey(const Key('phoneMenu')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.tap(find.byKey(const Key('phoneMenuDone')));
-      await tester.pump(const Duration(milliseconds: 350));
-    }
+    expect(find.textContaining('Rotate your device'), findsOneWidget);
+    expect(find.byType(TableView), findsNothing);
+    expect(find.byKey(const Key('newGameCancel')), findsNothing);
 
-    // Back to landscape: same match, same setting, no welcome screen.
+    // Back to landscape: the same dialog and the same match.
     tester.view.physicalSize = kDesignSize;
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('newGameCancel')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Rotate your device'), findsNothing);
     expect(find.text('Single Player'), findsNothing);
     expect(labelOf(const Key('fastMode')), '2x');

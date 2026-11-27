@@ -13,7 +13,7 @@ void main() {
 
   for (final size in [
     kDesignSize,
-    const Size(393, 852),
+    const Size(568, 320),
     const Size(640, 320),
     const Size(852, 393)
   ]) {
