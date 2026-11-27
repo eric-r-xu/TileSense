@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mahjong_core/tile.dart';
 import 'package:tilesense/main.dart';
@@ -286,6 +287,12 @@ void main() {
     await startGame(tester);
     final before = strip(tester).length;
     final tileRect = tester.getRect(handTiles.first);
+    final systemSounds = <Object?>[];
+    tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'SystemSound.play') systemSounds.add(call.arguments);
+      return null;
+    });
 
     await tester.tap(handTiles.first, warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 200));
@@ -299,10 +306,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     expect(strip(tester).length, lessThan(before),
         reason: 'a second tap on the raised tile should discard it');
+    expect(systemSounds, isEmpty,
+        reason: 'neither tap should add an Android click to the discard');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('tapping a different tile moves the raise instead of discarding',
       (tester) async {
