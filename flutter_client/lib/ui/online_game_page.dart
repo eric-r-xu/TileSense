@@ -99,7 +99,7 @@ class _OnlineGamePageState extends State<OnlineGamePage> {
         return SafeArea(
           child: AnimatedBuilder(
             animation: game,
-            builder: (_, __) => Padding(
+            builder: (_, __) => SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

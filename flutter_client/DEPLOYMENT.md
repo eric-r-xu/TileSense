@@ -324,9 +324,12 @@ In **Runner ▸ General**:
   them).
 - **Deployment target**: iOS 15.0 in this project.
 - **Device Orientation**: iPhone and iPad use the two landscape orientations in
-  `ios/Runner/Info.plist`. Android follows the device orientation and supports
-  resizable windows. The web app requests landscape and shows a rotation prompt
-  in portrait windows.
+  `ios/Runner/Info.plist`. Android locks the activity to landscape in its
+  manifest (`sensorLandscape`) and declares `appCategory="game"`: from Android
+  16 (we target API 36) tablets and unfolded foldables ignore an orientation lock
+  unless the app is a game. Anywhere the OS still lets the window turn portrait
+  (web, split screen, desktop windowing), a rotation prompt covers the table and
+  keeps the current match mounted.
 
 `ios/Runner/Info.plist` otherwise needs no special keys — the app uses no
 camera, location, network entitlements, or background modes.

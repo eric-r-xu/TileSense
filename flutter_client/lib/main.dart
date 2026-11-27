@@ -294,6 +294,11 @@ const Size kDesignSize = Size(1600, 820);
 /// The tallest canvas [canvasSizeFor] hands out, a little past a 4:3 screen.
 const double kMaxCanvasHeight = 1200;
 
+/// The shortest canvas the table is laid out on when it fills its window: the
+/// 1600-wide hand across, and room for four pond rows above and below centre.
+/// Below [kDesignSize]'s 820 so a phone's wider screen has no side bars.
+const double kTableMinHeight = 780;
+
 /// The canvas to lay the app out on for a window of [available] size. Always
 /// [kDesignSize]'s width, so nothing reflows sideways; on a screen squarer
 /// than 1600:820 (a tablet, most laptops) the height grows to match it, up to
@@ -307,13 +312,9 @@ Size canvasSizeFor(Size available) {
       height.clamp(kDesignSize.height, kMaxCanvasHeight).toDouble());
 }
 
-/// Use compact controls when the canvas scales below 0.65x or the Android
-/// portrait canvas has less room across than the full toolbar needs.
+/// Use compact controls when the canvas scales below 0.65x.
 bool isPhoneLayout(BuildContext context) =>
-    MediaQuery.textScalerOf(context).scale(1) > 1 ||
-    (_nativeAndroid &&
-        MediaQuery.sizeOf(context).width < kDesignSize.width &&
-        MediaQuery.orientationOf(context) == Orientation.portrait);
+    MediaQuery.textScalerOf(context).scale(1) > 1;
 
 /// Colour shown in the letterbox bars around the scaled canvas.
 const Color kLetterboxColor = AppColors.background;
@@ -374,28 +375,23 @@ class TileSenseApp extends StatelessWidget {
                       ),
                       child: ColoredBox(
                         color: kLetterboxColor,
-                        child: SafeArea(child: child!),
+                        child: SafeArea(child: _LandscapeGate(child: child!)),
                       ),
                     )
-                  : child!,
+                  : _LandscapeGate(child: child!),
             ),
-            home: _nativeAndroid
-                ? const GamePage()
-                : const _LandscapeGate(child: GamePage()),
+            home: const GamePage(),
           ),
         ),
       );
 }
 
-/// Renders [child] at [kDesignSize] and scales the whole thing to fit the
-/// window. With [BoxFit.scaleDown] it never exceeds 1:1 — on a large desktop
-/// Chrome window you get the app at its exact native pixels, centred, with
-/// letterbox bars; on a smaller window or a phone in landscape it shrinks
-/// uniformly to fit. Swap to [BoxFit.contain] if you'd rather it also scale up.
+/// Fits the design canvas inside the safe area. The playing table can use
+/// the whole window, including space beyond the menu's authored dimensions.
 class _FixedCanvas extends StatefulWidget {
-  const _FixedCanvas({required this.child, required this.menu});
+  const _FixedCanvas({required this.child, required this.fillWindow});
   final Widget child;
-  final bool menu;
+  final bool fillWindow;
 
   /// Pinch-to-zoom is offered on touch platforms only. On a desktop browser a
   /// stray trackpad pinch scaling the table would be a nuisance, so the raw
@@ -642,34 +638,46 @@ class _FixedCanvasState extends State<_FixedCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    Widget canvasFor(Size size, double fit) => Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: SizedBox(
-              width: size.width,
-              height: size.height,
-              // Give the subtree a MediaQuery that reflects the canvas, not
-              // the browser window, so SafeArea / layout math stays stable.
-              // The real insets are handled by the SafeArea below, before the
-              // canvas is sized, so there is nothing left for the subtree to
-              // dodge.
-              child: MediaQuery(
-                // A phone shrinks the canvas to about half size, which
-                // leaves authored text a few points tall, so text grows by
-                // up to 1.35x once the canvas is shrunk below 0.65x. Desktop
-                // and large tablets stay at 1.0.
-                data: MediaQuery.of(context).copyWith(
-                  size: size,
-                  padding: EdgeInsets.zero,
-                  viewInsets: EdgeInsets.zero,
-                  viewPadding: EdgeInsets.zero,
-                  textScaler: TextScaler.linear((0.65 / fit).clamp(1.0, 1.35)),
-                ),
-                child: widget.child,
-              ),
+    Widget canvasFor(Size size, double fit, Size window) {
+      final scaled = FittedBox(
+        fit: widget.fillWindow ? BoxFit.contain : BoxFit.scaleDown,
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          // Give the subtree a MediaQuery that reflects the canvas, not
+          // the browser window, so SafeArea / layout math stays stable.
+          // The real insets are handled by the SafeArea below, before the
+          // canvas is sized, so there is nothing left for the subtree to
+          // dodge.
+          child: MediaQuery(
+            // A phone shrinks the canvas to about half size, which
+            // leaves authored text a few points tall, so text grows by
+            // up to 1.35x once the canvas is shrunk below 0.65x. Desktop
+            // and large tablets stay at 1.0.
+            data: MediaQuery.of(context).copyWith(
+              size: size,
+              padding: EdgeInsets.zero,
+              viewInsets: EdgeInsets.zero,
+              viewPadding: EdgeInsets.zero,
+              textScaler: TextScaler.linear((0.65 / fit).clamp(1.0, 1.35)),
             ),
+            child: widget.child,
           ),
-        );
+        ),
+      );
+      // Centre loosens the constraints, and a loose FittedBox never grows past
+      // its child. The table sizes its canvas to the window's own shape, so
+      // the box in between pins it to the window and it scales up as well as
+      // down. The tree keeps the same shape either way, so going from a menu
+      // to the table updates this subtree instead of rebuilding it.
+      return Center(
+        child: SizedBox(
+          width: widget.fillWindow ? window.width : null,
+          height: widget.fillWindow ? window.height : null,
+          child: scaled,
+        ),
+      );
+    }
 
     return ColoredBox(
       color: kLetterboxColor,
@@ -687,15 +695,16 @@ class _FixedCanvasState extends State<_FixedCanvas> {
               : EdgeInsets.zero,
           child: LayoutBuilder(builder: (context, c) {
             var size = canvasSizeFor(c.biggest);
-            if (_nativeAndroid && c.maxWidth > 0 && c.maxHeight > c.maxWidth) {
-              // Menus wrap and scroll. The table needs room across for four
-              // seats and their ponds, and uses the extra height for the felt.
-              final width = math.max(c.maxWidth, widget.menu ? 640.0 : 1280.0);
-              size = Size(width, width * c.maxHeight / c.maxWidth);
+            if (widget.fillWindow && !c.biggest.isEmpty) {
+              // Keep the full hand across and the table's minimum height, and
+              // give any extra width or height to the felt.
+              final scale = math.min(c.maxWidth / kDesignSize.width,
+                  c.maxHeight / kTableMinHeight);
+              size = c.biggest / scale;
             }
             final fit = math.min(
                 c.biggest.width / size.width, c.biggest.height / size.height);
-            final canvas = canvasFor(size, fit);
+            final canvas = canvasFor(size, fit, c.biggest);
             return Stack(
               children: [
                 Positioned.fill(
@@ -1031,7 +1040,16 @@ class _LandscapeGate extends StatelessWidget {
           maintainState: true,
           child: child,
         ),
-        if (!landscape) _RotatePrompt(canRotate: _canRotateDevice),
+        // Keep open sheets and dialogs behind the prompt too. Its language
+        // picker needs a navigator of its own while the game navigator is hidden.
+        if (!landscape)
+          HeroControllerScope.none(
+            child: Navigator(
+              onGenerateRoute: (_) => MaterialPageRoute<void>(
+                builder: (_) => _RotatePrompt(canRotate: _canRotateDevice),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1383,12 +1401,8 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) => _FixedCanvas(
-        menu: _showWelcome &&
-            !_showBuilder &&
-            !_showOnline &&
-            !_dailyQuiz &&
-            !_practicing &&
-            !_learning,
+        fillWindow:
+            _showOnline || (!_showWelcome && !_startingGame && !_showBuilder),
         child: Builder(builder: _buildPage),
       );
 

@@ -3,6 +3,7 @@
     <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
 
     <application
+        android:appCategory="game"
         android:label="TileSense"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
@@ -10,6 +11,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:screenOrientation="sensorLandscape"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
