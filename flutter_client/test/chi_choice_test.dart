@@ -6,6 +6,8 @@ import 'package:tilesense/game/call_callout.dart';
 import 'package:tilesense/game/game_controller.dart';
 import 'package:tilesense/game/sfx.dart';
 import 'package:tilesense/ui/hand_view.dart';
+import 'package:tilesense/ui/table_view.dart';
+import 'package:tilesense/ui/tile_face.dart';
 
 import 'helpers.dart';
 
@@ -39,6 +41,39 @@ void main() {
 
   // 3-4, 4-6 and 6-7 of man each make a run with a 5m.
   const manyRuns = '3467m 123p 456p 99s 7s';
+
+  testWidgets('skipping a chi leaves the discarded tile in its pond slot',
+      (tester) async {
+    Sfx.i.enabled = false;
+    addTearDown(() => Sfx.i.enabled = true);
+    final fed = Tile(900, TileType.man5);
+    final game = awaitingCall(fed, seat0Hand: manyRuns);
+    try {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: game,
+            builder: (_, __) => TableView(game: game),
+          ),
+        ),
+      ));
+      final tile =
+          find.byWidgetPredicate((w) => w is TileFace && w.tile?.id == fed.id);
+      final arriving = tester.getCenter(tile);
+      await pumpUntil(tester, () => game.awaitingHumanCall);
+      final landed = tester.getCenter(tile);
+      expect(landed, isNot(arriving));
+      game.answerCall(CallType.none);
+      await tester.pump();
+      expect(game.round.seats[3].pond.last.id, fed.id);
+      expect(tester.getCenter(tile), landed);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.getCenter(tile), landed);
+    } finally {
+      game.dispose();
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
 
   Future<GameController> boot(WidgetTester tester, String hand) async {
     Sfx.i.enabled = false; // no audio plugin under a test binding

@@ -662,6 +662,21 @@ class TableView extends StatelessWidget {
     // Pulse the just-cut tile while the human is being offered a call on it.
     final flashLast =
         game.awaitingHumanCall && round.pendingDiscardSeat == seat;
+    Widget pondTile(int i) {
+      final face = TileFace(
+        tile: s.pond[i],
+        size: TileSize.normal,
+        scale: scale,
+        rotationQuarterTurns: i == s.riichiPondIndex ? 1 : 0,
+      );
+      if (i != last) return face;
+      // The call prompt only changes the highlight inside the arrival.
+      return _travelIn(
+        ValueKey('pond-$seat-${s.pond[i].id}'),
+        child: flashLast ? _FlashTile(child: face) : face,
+      );
+    }
+
     final rows = <Widget>[];
     for (var start = 0; start < s.pond.length; start += _pondCols) {
       final end = (start + _pondCols).clamp(0, s.pond.length);
@@ -671,33 +686,7 @@ class TableView extends StatelessWidget {
           for (var i = start; i < end; i++)
             Padding(
               padding: const EdgeInsets.all(0.5),
-              child: i == last
-                  ? (flashLast
-                      ? _FlashTile(
-                          child: TileFace(
-                            tile: s.pond[i],
-                            size: TileSize.normal,
-                            scale: scale,
-                            rotationQuarterTurns:
-                                i == s.riichiPondIndex ? 1 : 0,
-                          ),
-                        )
-                      : _travelIn(
-                          ValueKey('pond-$seat-${s.pond.length}'),
-                          child: TileFace(
-                            tile: s.pond[i],
-                            size: TileSize.normal,
-                            scale: scale,
-                            rotationQuarterTurns:
-                                i == s.riichiPondIndex ? 1 : 0,
-                          ),
-                        ))
-                  : TileFace(
-                      tile: s.pond[i],
-                      size: TileSize.normal,
-                      scale: scale,
-                      rotationQuarterTurns: i == s.riichiPondIndex ? 1 : 0,
-                    ),
+              child: pondTile(i),
             ),
         ],
       ));

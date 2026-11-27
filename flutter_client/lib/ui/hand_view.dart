@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -337,6 +338,7 @@ class _HandViewState extends State<HandView> {
                     : null,
               ),
               InkWell(
+                enableFeedback: _discardTapFeedback,
                 onTap: tappable ? () => _tapTile(context, tile) : null,
                 onHover: tappable
                     ? (h) => setState(() => _hoveredTileId = h ? tile.id : null)
@@ -773,6 +775,11 @@ class _HandViewState extends State<HandView> {
     );
   }
 
+  // Android adds an audible system click to each tap, including the tap
+  // that only raises a tile. The game sounds the actual discard itself.
+  bool get _discardTapFeedback =>
+      kIsWeb || defaultTargetPlatform != TargetPlatform.android;
+
   /// A tile tap: the first one just raises it (staging it for discard), and
   /// a second tap on that same raised tile discards it. Tapping a different
   /// tile moves the raise there instead, without discarding anything.
@@ -799,6 +806,7 @@ class _HandViewState extends State<HandView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                enableFeedback: _discardTapFeedback,
                 leading: const Icon(Icons.campaign),
                 title: Text(context.l10n.declareRiichiDiscard(
                     context.l10n.tileDisplayName(tile.type))),
@@ -808,6 +816,7 @@ class _HandViewState extends State<HandView> {
                 },
               ),
               ListTile(
+                enableFeedback: _discardTapFeedback,
                 leading: const Icon(Icons.arrow_forward),
                 title: Text(context.l10n
                     .justDiscard(context.l10n.tileDisplayName(tile.type))),
